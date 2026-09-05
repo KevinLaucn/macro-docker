@@ -1,8 +1,8 @@
+import { __t } from '@macro/i18n';
 import CaretDown from '@phosphor/caret-down.svg';
 import CheckIcon from '@phosphor/check.svg';
 import { cn, Dropdown, Layer } from '@ui';
 import { createMemo, For, type JSX, Show, splitProps } from 'solid-js';
-import { __t } from '@macro/i18n';
 
 export type TabItem = {
   label: string | JSX.Element;
@@ -54,7 +54,7 @@ export const TabsInsetDropdown = (props: TabsInsetDropdownProps) => {
               ? typeof current()!.label === 'string'
                 ? __t(current()!.label as string)
                 : current()!.label
-              : local.placeholder ?? ''}
+              : (local.placeholder ?? '')}
           </span>
         </Layer>
         <span class="flex items-center justify-center px-1.5 text-ink-extra-muted">
@@ -72,7 +72,9 @@ export const TabsInsetDropdown = (props: TabsInsetDropdownProps) => {
                   onSelect={() => local.onChange?.(item.value)}
                 >
                   <span class="flex-1 truncate">
-                    {typeof item.label === 'string' ? __t(item.label) : item.label}
+                    {typeof item.label === 'string'
+                      ? __t(item.label)
+                      : item.label}
                   </span>
                   <Show when={isActive()}>
                     <CheckIcon class="size-3.5 text-accent" />

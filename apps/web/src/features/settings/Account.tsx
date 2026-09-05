@@ -24,6 +24,7 @@ import {
 } from '@core/signal/profilePicture';
 import { createStaticFile } from '@core/util/create';
 import { openFilePicker } from '@core/util/upload';
+import { __t } from '@macro/i18n';
 import { type BundleUpdateStatus, useTauri } from '@macro/tauri';
 import {
   type SupportedNotificationSettings,
@@ -42,7 +43,6 @@ import {
 } from '@queries/auth/user-name-self';
 import { authServiceClient } from '@service-auth/client';
 import { invoke } from '@tauri-apps/api/core';
-import { __t } from '@macro/i18n';
 import { Button, Dialog, Dropdown, Panel, ToggleSwitch, Tooltip } from '@ui';
 import {
   createEffect,

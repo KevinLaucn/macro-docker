@@ -3,9 +3,9 @@ import {
   SegmentedControl as KSegmentedControl,
   type SegmentedControlRootProps,
 } from '@kobalte/core/segmented-control';
+import { __t } from '@macro/i18n';
 import { cn, Layer } from '@ui';
 import { For, type JSX, splitProps } from 'solid-js';
-import { __t } from '@macro/i18n';
 
 type TabItem = {
   value: string;
@@ -84,7 +84,9 @@ export const TabsInset = (props: TabsInsetProps) => {
                     }}
                     onClick={() => rootProps.onChange?.(item.value)}
                   >
-                    {typeof item.label === 'string' ? __t(item.label) : item.label}
+                    {typeof item.label === 'string'
+                      ? __t(item.label)
+                      : item.label}
                   </KSegmentedControl.ItemLabel>
                 </KSegmentedControl.Item>
               </Layer>

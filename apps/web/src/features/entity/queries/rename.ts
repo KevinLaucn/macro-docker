@@ -256,8 +256,6 @@ const renameChannelSetData = (entities: EntityRenameOptimisticInfo[]): void => {
   );
 };
 
-
-
 const renamePreviewSetData = (entities: EntityRenameOptimisticInfo[]) => {
   entities.forEach(({ id, newName, itemType }) => {
     // Calendar event previews are API-served projections keyed to the

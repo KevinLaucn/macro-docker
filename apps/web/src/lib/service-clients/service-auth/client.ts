@@ -476,11 +476,8 @@ export const authServiceClient = {
     const tokenData = accessTokenData();
     if (tokenData?.accessToken) {
       try {
-        const payload = JSON.parse(
-          atob(tokenData.accessToken.split('.')[1])
-        );
-        const userId =
-          payload.macro_user_id || payload.sub || payload.user_id;
+        const payload = JSON.parse(atob(tokenData.accessToken.split('.')[1]));
+        const userId = payload.macro_user_id || payload.sub || payload.user_id;
         if (userId) {
           return ok({
             id: userId,

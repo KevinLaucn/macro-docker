@@ -20,13 +20,13 @@ import type { ValidHotkey } from '@core/hotkey/types';
 import { isMobile } from '@core/mobile/isMobile';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { activeTabId, setActiveTabId } from '@core/signal/settingsTab';
+import { t } from '@macro/i18n';
 import ArrowsIn from '@phosphor/arrows-in.svg';
 import ArrowsOut from '@phosphor/arrows-out.svg';
 import CaretLeftIcon from '@phosphor/caret-left.svg';
 import SignOutIcon from '@phosphor/sign-out.svg';
-import { Button, cn, Layer, SideNav } from '@ui';
-import { t } from '@macro/i18n';
 import { useLocation } from '@solidjs/router';
+import { Button, cn, Layer, SideNav } from '@ui';
 import {
   createRenderEffect,
   createSignal,
@@ -413,7 +413,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       console.error('Failed to load Appearance settings:', err);
                       return (
                         <div class="p-8 text-ink text-sm">
-                          Failed to load Appearance settings. Check console for details.
+                          Failed to load Appearance settings. Check console for
+                          details.
                         </div>
                       );
                     }}

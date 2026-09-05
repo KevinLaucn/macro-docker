@@ -26,6 +26,7 @@ import {
 } from '@entity';
 import MacroLogo from '@icon/macro-logo.svg';
 import GithubIcon from '@icon/mcp-github.svg';
+import { locale } from '@macro/i18n';
 import { formatCalendarReminderTime } from '@notifications';
 import FilesIcon from '@phosphor/files.svg';
 import GitMergeIcon from '@phosphor/git-merge.svg';
@@ -48,7 +49,6 @@ import { senderFromStorageId } from '@queries/channel/message-sender';
 import type { ItemEntity } from '@queries/preview';
 import { useBulkSaveEntityPropertiesMutation } from '@queries/properties/entity';
 import { EntityType } from '@service-storage/generated/schemas';
-import { locale } from '@macro/i18n';
 import { Avatar, cn, Tooltip } from '@ui';
 import { parseISO } from 'date-fns';
 import { createMemo, For, type JSX, Match, Show, Switch } from 'solid-js';
@@ -1291,11 +1291,6 @@ export function GithubCardLayout(props: InboxCardLayoutProps) {
       </Show>
     </BaseCard>
   );
-}
-
-function CallParticipantName(props: { id: string }) {
-  const displayName = createSenderDisplayName(() => props.id);
-  return <>{displayName()}</>;
 }
 
 /**

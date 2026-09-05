@@ -189,7 +189,9 @@ export function HarnessPairingDialog(props: {
                   </div>
 
                   <label class="flex flex-col gap-1.5">
-                    <span class="text-xs font-medium text-ink">{t('Name')}</span>
+                    <span class="text-xs font-medium text-ink">
+                      {t('Name')}
+                    </span>
                     <input
                       class="settings-input w-full"
                       value={name()}
@@ -237,7 +239,9 @@ export function HarnessPairingDialog(props: {
             </Match>
 
             <Match when={committedCode()}>
-              <p class="text-sm text-ink-muted">{t('Looking up pairing code…')}</p>
+              <p class="text-sm text-ink-muted">
+                {t('Looking up pairing code…')}
+              </p>
             </Match>
 
             <Match when>
@@ -266,7 +270,9 @@ export function HarnessPairingDialog(props: {
                   />
                 </div>
                 <p class="text-xs text-ink-extra-muted">
-                  {t('Run macrod on your computer and enter the code it prints.')}
+                  {t(
+                    'Run macrod on your computer and enter the code it prints.'
+                  )}
                 </p>
               </div>
             </Match>

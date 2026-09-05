@@ -279,10 +279,14 @@ export const PropertyDateSelector = (props: DateSelectorProps) => {
               })
                 .split(/(__EG1__|__EG2__|__EG3__|__EG4__)/g)
                 .map((part) => {
-                  if (part === '__EG1__') return <code class="bg-active px-1">3d</code>;
-                  if (part === '__EG2__') return <code class="bg-active px-1">1w</code>;
-                  if (part === '__EG3__') return <code class="bg-active px-1">feb 17</code>;
-                  if (part === '__EG4__') return <code class="bg-active px-1">tomorrow</code>;
+                  if (part === '__EG1__')
+                    return <code class="bg-active px-1">3d</code>;
+                  if (part === '__EG2__')
+                    return <code class="bg-active px-1">1w</code>;
+                  if (part === '__EG3__')
+                    return <code class="bg-active px-1">feb 17</code>;
+                  if (part === '__EG4__')
+                    return <code class="bg-active px-1">tomorrow</code>;
                   return part;
                 })}
             </div>

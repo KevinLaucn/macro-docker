@@ -27,16 +27,21 @@ export function ChatTipsSection() {
         <SetupRow
           icon={<AtIcon class="size-4" />}
           title={t('@mention anything')}
-          desc={t('Attach files, documents, emails & more as context for the AI')}
+          desc={t(
+            'Attach files, documents, emails & more as context for the AI'
+          )}
         />
         <SetupRow
           icon={<PaperPlaneTiltIcon class="size-4" />}
           title={t('Send in the background')}
           desc={
             <>
-              {t('Press {hotkey} to send and get notified when the AI responds', {
-                hotkey: <Hotkey shortcut="meta+enter" theme="subtle" />,
-              })}
+              {t(
+                'Press {hotkey} to send and get notified when the AI responds',
+                {
+                  hotkey: <Hotkey shortcut="meta+enter" theme="subtle" />,
+                }
+              )}
             </>
           }
         />

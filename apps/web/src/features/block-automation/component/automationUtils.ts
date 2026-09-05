@@ -11,13 +11,13 @@ import {
   parseCron as parseCronParts,
 } from '@core/util/cron';
 import { ThrownResultError } from '@core/util/result';
+import { t } from '@macro/i18n';
 import type {
   AgentTask,
   CreateScheduledAction,
   ScheduledAction,
   UpdateScheduledAction,
 } from '@service-scheduled-action/generated/schemas';
-import { t } from '@macro/i18n';
 import type { ScheduleDraft, ScheduleFrequency } from './types';
 
 export {
@@ -34,8 +34,18 @@ export const FREQUENCY_OPTIONS: Array<{
   value: ScheduleFrequency;
   label: string;
 }> = [
-  { value: 'week', get label() { return t('Every week'); } },
-  { value: 'month', get label() { return t('Every month'); } },
+  {
+    value: 'week',
+    get label() {
+      return t('Every week');
+    },
+  },
+  {
+    value: 'month',
+    get label() {
+      return t('Every month');
+    },
+  },
 ];
 
 export const getFrequencyOptions = (): Array<{

@@ -32,19 +32,18 @@ export function describeAction(action: ActivityAction): string {
     .with({ __typename: 'GraphqlActivityDeleted' }, () => t('deleted this'))
     .with({ __typename: 'GraphqlActivityMessaged' }, () => t('sent a message'))
     .with({ __typename: 'GraphqlActivitySent' }, () => t('sent an email'))
-    .with(
-      { __typename: 'GraphqlActivityPropertyChanged' },
-      () => t('changed a property')
+    .with({ __typename: 'GraphqlActivityPropertyChanged' }, () =>
+      t('changed a property')
     )
-    .with(
-      { __typename: 'GraphqlActivityParticipantAdded' },
-      () => t('added a participant')
+    .with({ __typename: 'GraphqlActivityParticipantAdded' }, () =>
+      t('added a participant')
     )
-    .with(
-      { __typename: 'GraphqlActivityParticipantRemoved' },
-      () => t('removed a participant')
+    .with({ __typename: 'GraphqlActivityParticipantRemoved' }, () =>
+      t('removed a participant')
     )
-    .with({ __typename: 'GraphqlActivityCallStarted' }, () => t('started a call'))
+    .with({ __typename: 'GraphqlActivityCallStarted' }, () =>
+      t('started a call')
+    )
     .with({ __typename: 'GraphqlActivityUnknownAction' }, (unknown) =>
       unknown.tag.replaceAll('_', ' ')
     )
@@ -66,8 +65,12 @@ export function describeActionForEntity(action: ActivityAction): {
       .with({ __typename: 'GraphqlActivityCreated' }, () => ({
         verb: t('created'),
       }))
-      .with({ __typename: 'GraphqlActivityEdited' }, () => ({ verb: t('edited') }))
-      .with({ __typename: 'GraphqlActivityOpened' }, () => ({ verb: t('opened') }))
+      .with({ __typename: 'GraphqlActivityEdited' }, () => ({
+        verb: t('edited'),
+      }))
+      .with({ __typename: 'GraphqlActivityOpened' }, () => ({
+        verb: t('opened'),
+      }))
       .with({ __typename: 'GraphqlActivityDeleted' }, () => ({
         verb: t('deleted'),
       }))

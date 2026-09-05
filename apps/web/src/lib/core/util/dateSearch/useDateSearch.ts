@@ -253,13 +253,22 @@ function formatDateWithContext(
   const isZh = locale() === 'zh-CN';
 
   if (diffDays === 0) {
-    if (isZh) return showTime ? `今天 ${format(date, 'aa h:mm', { locale: zhCN })}` : '今天';
+    if (isZh)
+      return showTime
+        ? `今天 ${format(date, 'aa h:mm', { locale: zhCN })}`
+        : '今天';
     return showTime ? `Today, ${format(date, 'h:mm a')}` : 'Today';
   } else if (diffDays === 1) {
-    if (isZh) return showTime ? `明天 ${format(date, 'aa h:mm', { locale: zhCN })}` : '明天';
+    if (isZh)
+      return showTime
+        ? `明天 ${format(date, 'aa h:mm', { locale: zhCN })}`
+        : '明天';
     return showTime ? `Tomorrow, ${format(date, 'h:mm a')}` : 'Tomorrow';
   } else if (diffDays === -1) {
-    if (isZh) return showTime ? `昨天 ${format(date, 'aa h:mm', { locale: zhCN })}` : '昨天';
+    if (isZh)
+      return showTime
+        ? `昨天 ${format(date, 'aa h:mm', { locale: zhCN })}`
+        : '昨天';
     return showTime ? `Yesterday, ${format(date, 'h:mm a')}` : 'Yesterday';
   } else if (diffDays > 0 && diffDays <= 7) {
     if (isZh) {

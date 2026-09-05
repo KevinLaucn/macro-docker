@@ -85,6 +85,12 @@ just stack down
 >
 > **严禁误用重置/种子命令**：排查真实本地账号、团队、CRM、Gmail、邮件或联系人问题时，不得运行 `just reset_local`、`just local-e2e-seed`、`cargo run -p seed_cli -- scenario local-e2e-smoke`、`just setup_local_dbs`、`just initialize_dbs`、`sqlx database drop`、`drop_db` 或任何会重置 MacroDB/FusionAuth/LocalStack 数据的命令，除非用户明确要求“清空/重置数据库”。`macro|e2e@macro.local`、`bob@example.com`、`charlie@example.com` 等是 E2E fixture 用户，不是真实开发账号；不要用它们验证用户的真实 CRM 问题。
 
+**彻底重置本地开发环境（安全重置与用户自愈准则）**：
+1. **双层存储必须保持对齐**：
+   - Macro 的用户认证层驻留在 `FusionAuth`（账号凭据/OAuth），业务实体层驻留在 PostgreSQL `macrodb`（`User`、`macro_user`、团队、CRM）。
+   - 若用户明确要求“彻底重置本地开发环境/清空数据库”，**必须同步重置 FusionAuth 的持久化数据卷（`fusionauth_db_data`、`fusionauth_config`）**；
+   - 若仅重置了 `macrodb`，必须立即向 `authentication-service`（`/webhooks/user`）触发已存在活跃账号的内部 `user.create` Webhook，将当前管理员账号档案补全至 `User` 与 `macro_user` 表，防止无密码登录老用户因无法触发新用户 Hook 而沦为“幽灵用户”（引发创建团队 500、绑定 Gmail 500 等外键缺失异常）。
+
 **保留本地邮箱与全部数据的标准操作**：
 1. **停止本地服务（保留数据）**：
    ```bash

@@ -39,7 +39,11 @@ export function ReadReceiptsSection(props: { link: EmailLink }) {
         checked={checked()}
         disabled={preference.isPending || updatePreference.isPending}
         onChange={setEnabled}
-        label={<span class="sr-only">Email read receipts for {props.link.email_address}</span>}
+        label={
+          <span class="sr-only">
+            Email read receipts for {props.link.email_address}
+          </span>
+        }
       />
     </div>
   );

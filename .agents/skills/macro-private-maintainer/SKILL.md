@@ -37,6 +37,7 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 5. **Profile 驱动可达性隔离**：目标 Domain 源码可以继续保留，但在指定 Product Profile 下必须不可进入编译闭包、生产制品、Docker 镜像与运行时图；
 6. **本地开发默认热更新原则**：本地日常界面二开与联调默认采用**热更新开发模式**（`just run_local` 或 `just frontend`，端口 `3000`），避免使用静态产物挂载模式导致源码修改不生效；`just stack` 仅限 CI/自动化或发布验收使用；
 7. **本地数据持久化与防丢原则**：本分叉的本地开发命令不得默认删除 Docker 数据卷。`run_local`、`stop_local`、`destroy_local` 与无参 `just stack down` 都必须保留本地数据库、Redis、OpenSearch、Kafka 与 FusionAuth 数据卷；只有显式数据库重置命令可清空对应数据。
+8. **认证中心（FusionAuth）与业务库（MacroDB）一致性守则**：FusionAuth 与 MacroDB 为双层独立存储。若显式执行“清空/彻底重置数据库”，必须保持两者对齐（同步重置 FusionAuth 存储卷，或在重置 MacroDB 后立即自动补齐 FusionAuth 已有活跃账号的 `User` / `macro_user` 档案与权限），严禁只重置业务库而留下孤儿身份，导致无密码老用户因未触发 `user.create` 陷入建团队/绑邮箱 500 异常。
 
 ---
 

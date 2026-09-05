@@ -11,16 +11,29 @@
   ],
   "Cancel": [
     "features/settings/Crm.tsx",
+    "features/settings/Team.tsx",
     "features/settings/Harness.tsx",
     "features/settings/Agents.tsx",
     "features/settings/HarnessPairingDialog.tsx",
     "features/block-automation/component/AutomationComposer.tsx",
     "features/inbox/AddInboxDialog.tsx"
   ],
+  "Team": [
+    "features/settings/Team.tsx",
+    "features/settings/Harness.tsx",
+    "features/settings/HarnessPairingDialog.tsx"
+  ],
   "Name": [
+    "features/settings/Team.tsx",
     "features/settings/Agents.tsx",
     "features/settings/HarnessPairingDialog.tsx",
     "features/block-automation/component/AutomationComposer.tsx"
+  ],
+  "Loading…": [
+    "features/settings/Team.tsx",
+    "features/settings/Harness.tsx",
+    "features/settings/GitHub.tsx",
+    "features/activity/my-activity-view.tsx"
   ],
   "Create": [
     "features/block-automation/component/AutomationComposer.tsx",

@@ -1,12 +1,12 @@
 import { toast } from '@core/component/Toast/Toast';
 import { DropdownMenu as KobalteDropdownMenu } from '@kobalte/core/dropdown-menu';
+import { locale, type SupportedLocale, setLocale, t } from '@macro/i18n';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import CheckIcon from '@phosphor/check.svg';
 import ClipboardIcon from '@phosphor/clipboard.svg';
 import PencilIcon from '@phosphor/pencil-simple.svg';
 import PlusIcon from '@phosphor/plus.svg';
 import TrashIcon from '@phosphor/trash.svg';
-import { locale, setLocale, t, type SupportedLocale } from '@macro/i18n';
 import { ThemeChipPill } from '@theme/components/ThemeChipPill';
 import { ThemeChips } from '@theme/components/ThemeChips';
 import { ThemeEditor } from '@theme/components/ThemeEditor';
@@ -729,17 +729,17 @@ export function Appearance() {
           </SettingsCard>
         </SettingsSection>
 
-        <SettingsSection title={t("Interface")}>
+        <SettingsSection title={t('Interface')}>
           <SettingsCard>
             <SettingsRow
-              label={t("Language")}
-              description={t("Choose your preferred display language.")}
+              label={t('Language')}
+              description={t('Choose your preferred display language.')}
             >
               <LanguageSelect />
             </SettingsRow>
             <SettingsRow
-              label={t("Monochrome icons")}
-              description={t("Use single-color icons across the app.")}
+              label={t('Monochrome icons')}
+              description={t('Use single-color icons across the app.')}
             >
               <ToggleSwitch
                 size="md"
@@ -748,8 +748,8 @@ export function Appearance() {
               />
             </SettingsRow>
             <SettingsRow
-              label={t("Show tooltips")}
-              description={t("Show hover hints on buttons and controls.")}
+              label={t('Show tooltips')}
+              description={t('Show hover hints on buttons and controls.')}
             >
               <ToggleSwitch
                 size="md"

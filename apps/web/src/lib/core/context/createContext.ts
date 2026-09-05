@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import {
   type ContextProvider,
   type ContextProviderProps,
@@ -23,7 +24,13 @@ export function createAssertedContextProvider<
   const useAssertedContext = (): T => {
     const ctx = useContext();
     if (ctx === undefined) {
-      throw new Error(`${name} must be used within <${name}Provider />`);
+      throw new Error(
+        t('{name} must be used within <{provider} />', {
+          name,
+          provider: `${name}Provider`,
+          fallback: `${name} must be used within <${name}Provider />`,
+        })
+      );
     }
     return ctx;
   };

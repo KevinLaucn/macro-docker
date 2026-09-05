@@ -819,46 +819,44 @@ export function reminderSplitTarget(entity: ReminderEntity) {
 
 // TODO(dev-rb/github): Map GitHub PRs to { type: 'pr', id }.
 function getEntitySplitContent(entity: EntityData) {
-  return (
-    match(entity)
-      .with({ type: 'document' }, (entity) => {
-        const { id, fileType, subType } = entity;
-        const blockName = fileTypeToBlockName(subType?.type ?? fileType);
+  return match(entity)
+    .with({ type: 'document' }, (entity) => {
+      const { id, fileType, subType } = entity;
+      const blockName = fileTypeToBlockName(subType?.type ?? fileType);
 
-        return { type: blockName, id };
-      })
-      .with({ type: 'channel_message' }, (entity) => {
-        return { type: 'channel' as const, id: entity.channelId };
-      })
-      .with({ type: 'channel_thread' }, (entity) => {
-        return { type: 'channel' as const, id: entity.channelId };
-      })
-      .with({ type: 'foreign' }, (entity) => {
-        return { type: 'unknown' as const, id: entity.id };
-      })
-      .with({ type: 'crm_company' }, (entity) => {
-        return { type: 'company' as const, id: entity.id };
-      })
-      .with({ type: 'crm_contact' }, (entity) => {
-        return { type: 'contact' as const, id: entity.id };
-      })
-      .with({ type: 'reminder' }, (entity) => {
-        // A reminder has no block of its own; it opens its editor as a
-        // component split. The reminder id rides in the content id (component
-        // params are dropped on URL restore, and split identity is keyed on the
-        // id, so each reminder needs a distinct one) — see `resolveComponent`.
-        return {
-          type: 'component' as const,
-          id: `reminder-view~${entity.id}`,
-        };
-      })
-      .with({ type: 'calendar_event' }, () => {
-        return { type: 'unknown' as const, id: entity.id };
-      })
-      .otherwise((entity) => {
-        return { type: entity.type, id: entity.id };
-      })
-  );
+      return { type: blockName, id };
+    })
+    .with({ type: 'channel_message' }, (entity) => {
+      return { type: 'channel' as const, id: entity.channelId };
+    })
+    .with({ type: 'channel_thread' }, (entity) => {
+      return { type: 'channel' as const, id: entity.channelId };
+    })
+    .with({ type: 'foreign' }, (entity) => {
+      return { type: 'unknown' as const, id: entity.id };
+    })
+    .with({ type: 'crm_company' }, (entity) => {
+      return { type: 'company' as const, id: entity.id };
+    })
+    .with({ type: 'crm_contact' }, (entity) => {
+      return { type: 'contact' as const, id: entity.id };
+    })
+    .with({ type: 'reminder' }, (entity) => {
+      // A reminder has no block of its own; it opens its editor as a
+      // component split. The reminder id rides in the content id (component
+      // params are dropped on URL restore, and split identity is keyed on the
+      // id, so each reminder needs a distinct one) — see `resolveComponent`.
+      return {
+        type: 'component' as const,
+        id: `reminder-view~${entity.id}`,
+      };
+    })
+    .with({ type: 'calendar_event' }, () => {
+      return { type: 'unknown' as const, id: entity.id };
+    })
+    .otherwise((entity) => {
+      return { type: entity.type, id: entity.id };
+    });
 }
 
 /**

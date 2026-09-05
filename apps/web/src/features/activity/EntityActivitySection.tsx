@@ -1,5 +1,6 @@
 import { SidePanel } from '@components/app/side-panel/SidePanel';
 import { formatRelativeTimestamp } from '@entity/utils/timestamp';
+import { t } from '@macro/i18n';
 import CaretRightIcon from '@phosphor/caret-right.svg';
 import {
   type ActivityEvent,
@@ -8,7 +9,6 @@ import {
 import type { EntityType } from '@service-properties/generated/schemas/entityType';
 import { cn } from '@ui';
 import { createSignal, For, Show, Suspense } from 'solid-js';
-import { t } from '@macro/i18n';
 import { ActionPhrase } from './action-phrase';
 import { ActorName } from './actor-name';
 import { useEntityActivityFlag } from './use-entity-activity-flag';
@@ -54,7 +54,11 @@ function EntityActivitySection(props: EntityActivitySectionProps) {
 
   return (
     <Show when={query.isEnabled()}>
-      <SidePanel.Section id="activity" title={t('Activity')} order={props.order}>
+      <SidePanel.Section
+        id="activity"
+        title={t('Activity')}
+        order={props.order}
+      >
         {/* Two loading layers: the urql store never suspends, so the query's
             own fetch/error need explicit branches (or they'd render as a
             false "No activity yet"), while the Suspense boundary scopes
@@ -64,7 +68,9 @@ function EntityActivitySection(props: EntityActivitySectionProps) {
           <Show when={!query.result.isLoading} fallback={<SidePanel.Loading />}>
             <Show
               when={!query.result.isError}
-              fallback={<SidePanel.EmptyPill label={t('Activity is unavailable')} />}
+              fallback={
+                <SidePanel.EmptyPill label={t('Activity is unavailable')} />
+              }
             >
               <Show
                 when={events().length > 0}

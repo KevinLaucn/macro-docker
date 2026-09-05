@@ -1,7 +1,7 @@
 import { throwOnErr } from '@core/util/result';
 import {
-  readReceiptsClient,
   type ReadReceiptStatus,
+  readReceiptsClient,
 } from '@service-email/readReceiptsClient';
 import { useMutation, useQuery } from '@tanstack/solid-query';
 import type { Accessor } from 'solid-js';

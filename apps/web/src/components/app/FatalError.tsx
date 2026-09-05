@@ -1,5 +1,5 @@
+import { t } from '@macro/i18n';
 import { Telemetry } from '@macro-inc/observability';
-
 import ResetIcon from '@phosphor/arrow-clockwise.svg';
 import HomeIcon from '@phosphor/house.svg';
 import { Button, Dialog, Surface } from '@ui';
@@ -21,22 +21,23 @@ export function FatalError(props: FatalErrorProps) {
         <div class="p-6 sm:p-8 font-sans">
           <div class="text-center">
             <h1 class="text-ink text-lg/7 font-semibold mb-4">
-              Something went terribly wrong
+              {t('Something went terribly wrong')}
             </h1>
 
             <Show when={props.error} keyed>
               {(error) => (
                 <div class="mb-6 p-3 bg-failure-bg border border-edge rounded text-left">
                   <p class="text-sm text-failure-ink font-mono break-all">
-                    {error.message || error.toString()}
+                    {t(error.message || error.toString())}
                   </p>
                 </div>
               )}
             </Show>
 
             <p class="text-ink-muted text-sm mb-6">
-              We apologize for the inconvenience. Please try again or contact
-              support.
+              {t(
+                'We apologize for the inconvenience. Please try again or contact support.'
+              )}
             </p>
 
             <div class="flex flex-row gap-3 justify-center">
@@ -46,10 +47,10 @@ export function FatalError(props: FatalErrorProps) {
                   window.location.href = window.location.origin + '/app';
                 }}
               >
-                <HomeIcon class="size-4" /> Home
+                <HomeIcon class="size-4" /> {t('Home')}
               </Button>
               <Button variant="outline" onClick={props.reset}>
-                <ResetIcon class="size-4" /> Try Again
+                <ResetIcon class="size-4" /> {t('Try Again')}
               </Button>
             </div>
           </div>

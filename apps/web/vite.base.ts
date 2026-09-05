@@ -8,9 +8,9 @@ import solid from 'vite-plugin-solid';
 import solidSvg from 'vite-plugin-solid-svg';
 import wasm from 'vite-plugin-wasm';
 import tsconfigpaths from 'vite-tsconfig-paths';
+import { i18nAstPlugin } from '../../packages/i18n/vite-plugin';
 // @ts-ignore
 import { version } from './package.json';
-import { i18nAstPlugin } from '../../packages/i18n/vite-plugin';
 import { keepImportMetaDev } from './scripts/keep-import-meta-dev';
 
 function readShortSha(): string {
@@ -77,7 +77,9 @@ function devRootRedirectPlugin(): Plugin {
         const rawUrl = req.url || '';
         const pathname = rawUrl.split('?')[0];
         if (pathname === '/' || pathname === '') {
-          const search = rawUrl.includes('?') ? rawUrl.slice(rawUrl.indexOf('?')) : '';
+          const search = rawUrl.includes('?')
+            ? rawUrl.slice(rawUrl.indexOf('?'))
+            : '';
           res.writeHead(302, { Location: `/app${search}` });
           res.end();
           return;
@@ -136,6 +138,11 @@ export const createAppViteConfig = (): UserConfigFn => {
             '/features/settings/Team.tsx',
             '/features/settings/Notifications.tsx',
             '/features/settings/MutedItemRow.tsx',
+            '/features/next-soup/soup-view/empty-states.tsx',
+            '/features/command/Launcher.tsx',
+            '/features/auth/banner/Banner.tsx',
+            '/lib/core/component/TopBar/LoginButton.tsx',
+            '/components/app/FatalError.tsx',
           ],
         }),
         solid(),

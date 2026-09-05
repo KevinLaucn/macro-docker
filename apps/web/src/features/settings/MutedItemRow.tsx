@@ -11,6 +11,7 @@ import {
   muteItemPreviewEntity,
   normalizeMuteItemType,
 } from '@entity/utils/notification';
+import { t } from '@macro/i18n';
 import { mutedEntityTypeLabel } from '@notifications/notification-event-catalog';
 import {
   type ItemEntity,
@@ -19,7 +20,6 @@ import {
 } from '@queries/preview';
 import type { UserUnsubscribe } from '@service-notification/generated/schemas/userUnsubscribe';
 import { ChannelType } from '@service-storage/generated/schemas/channelType';
-import { t } from '@macro/i18n';
 import { createMemo, Show } from 'solid-js';
 
 /**

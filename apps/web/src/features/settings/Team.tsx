@@ -9,7 +9,6 @@ import { UserIcon } from '@core/component/UserIcon';
 import { SERVER_HOSTS } from '@core/constant/servers';
 import { useUserId } from '@core/context/user';
 import { getDisplayName, macroIdToEmail, tryMacroId } from '@core/user';
-import { t } from '@macro/i18n';
 import { debouncedDependent } from '@core/util/debounce';
 import { fuzzyFilter } from '@core/util/fuzzy';
 import { getWebOrigin } from '@core/util/webOrigin';
@@ -17,6 +16,7 @@ import { formatRelativeTimestamp } from '@entity';
 import GithubIcon from '@icon/mcp-github.svg';
 import type { CollectionNode } from '@kobalte/core';
 import { Select } from '@kobalte/core/select';
+import { t } from '@macro/i18n';
 import ArrowUpRightIcon from '@phosphor/arrow-up-right.svg';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import CheckIcon from '@phosphor/check.svg';
@@ -216,7 +216,8 @@ function getEmailError(
 ): string | undefined {
   const trimmed = email.trim();
   if (trimmed === '') return undefined;
-  if (!emailSchema.safeParse(trimmed).success) return t('Invalid email address');
+  if (!emailSchema.safeParse(trimmed).success)
+    return t('Invalid email address');
   const isDuplicate = existingEmails.some(
     (existing, i) =>
       i !== excludeIndex && existing.toLowerCase() === trimmed.toLowerCase()
@@ -749,7 +750,9 @@ function EmptyTeamState() {
             <div class="size-12 rounded-full bg-accent/10 flex items-center justify-center mb-4">
               <UsersIcon class="size-6 text-accent" />
             </div>
-            <h3 class="text-sm font-medium text-ink mb-1">{t('No team yet')}</h3>
+            <h3 class="text-sm font-medium text-ink mb-1">
+              {t('No team yet')}
+            </h3>
             <p class="text-xs text-ink-muted max-w-xs mb-4">
               {t(
                 'Create a team to collaborate with others and manage access together.'
@@ -993,9 +996,12 @@ function TeamManagement(props: {
   const autoJoinDescription = () => {
     const domain = autoJoinDomain();
     return domain
-      ? t('New sign-ups with an @{domain} email automatically join this team.', {
-          domain,
-        })
+      ? t(
+          'New sign-ups with an @{domain} email automatically join this team.',
+          {
+            domain,
+          }
+        )
       : t(
           "Automatically add new sign-ups whose email matches the team owner's domain."
         );
@@ -1205,9 +1211,7 @@ function TeamManagement(props: {
                 fallback={
                   <ReadOnlyField
                     value={props.teamName}
-                    tooltip={t(
-                      'Only the team owner can change the team name.'
-                    )}
+                    tooltip={t('Only the team owner can change the team name.')}
                   />
                 }
               >
@@ -1256,9 +1260,7 @@ function TeamManagement(props: {
                 fallback={
                   <ReadOnlyField
                     value={props.teamSlug}
-                    tooltip={t(
-                      'Only the team owner can change the team slug.'
-                    )}
+                    tooltip={t('Only the team owner can change the team slug.')}
                   />
                 }
               >
@@ -1637,7 +1639,10 @@ function TeamManagement(props: {
                 disabled={removeUserMutation.isPending}
                 onClick={handleRemoveMember}
               >
-                <Show when={removeUserMutation.isPending} fallback={t('Remove')}>
+                <Show
+                  when={removeUserMutation.isPending}
+                  fallback={t('Remove')}
+                >
                   <SpinnerIcon class="size-4 animate-spin" />
                 </Show>
               </Button>
@@ -1661,9 +1666,12 @@ function TeamManagement(props: {
           </Panel.Header>
           <Panel.Body class="p-3 flex flex-col gap-3">
             <p>
-              {t('Are you sure you want to cancel the invitation for {email}?', {
-                email: showCancelInviteModal()?.email ?? '',
-              })}
+              {t(
+                'Are you sure you want to cancel the invitation for {email}?',
+                {
+                  email: showCancelInviteModal()?.email ?? '',
+                }
+              )}
             </p>
             <div class="flex justify-end gap-1 pt-2">
               <Button

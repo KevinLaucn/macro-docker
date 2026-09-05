@@ -68,7 +68,6 @@ import {
   createMemo,
   createSignal,
   ErrorBoundary,
-  type JSX,
   onCleanup,
   onMount,
   Show,
@@ -156,7 +155,8 @@ function NewOnboardingRedirect() {
     // against the router.
     const target =
       location.pathname.slice(ROUTER_BASE_CONCAT.length - 1) + location.search;
-    const isGenericEntry = !target || target === '/' || target?.startsWith(DEFAULT_ROUTE);
+    const isGenericEntry =
+      !target || target === '/' || target?.startsWith(DEFAULT_ROUTE);
     navigate(
       isGenericEntry
         ? '/onboarding'

@@ -12,10 +12,10 @@ import { toast } from '@core/component/Toast/Toast';
 import { fileTypeToBlockName } from '@core/constant/allBlocks';
 import { createChat } from '@core/util/create';
 import { AnimatedStarIcon } from '@icon/wide-star';
+import { t } from '@macro/i18n';
 import type { ChannelType } from '@service-cognition/generated/schemas/channelType';
 import { Button } from '@ui';
 import { createSignal } from 'solid-js';
-import { t } from '@macro/i18n';
 
 export { AnimatedStarIcon as ChatWithAgentIcon };
 

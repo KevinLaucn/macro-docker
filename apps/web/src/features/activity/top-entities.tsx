@@ -28,7 +28,9 @@ export function TopEntities(props: {
       <Show
         when={props.entities.length > 0}
         fallback={
-          <p class="px-2 py-2 text-ink-muted text-sm">{t('No entities yet.')}</p>
+          <p class="px-2 py-2 text-ink-muted text-sm">
+            {t('No entities yet.')}
+          </p>
         }
       >
         <For each={props.entities}>

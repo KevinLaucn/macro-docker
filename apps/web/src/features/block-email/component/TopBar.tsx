@@ -36,6 +36,7 @@ import { buildEntityData } from '@entity';
 import { AnimatedNoiseIcon } from '@icon/wide-noise';
 import IconShared from '@icon/wide-share.svg';
 import { AnimatedTaskIcon } from '@icon/wide-task';
+import { t } from '@macro/i18n';
 import ArrowRightIcon from '@phosphor/arrow-right.svg';
 import CheckIcon from '@phosphor/check.svg';
 import EnvelopeSimpleIcon from '@phosphor/envelope-simple.svg';
@@ -47,7 +48,6 @@ import ArrowCounterClockwise from '@phosphor-icons/core/regular/arrow-counter-cl
 import { useEmailLinksQuery } from '@queries/email/link';
 import { Button } from '@ui';
 import { onCleanup, Show } from 'solid-js';
-import { t } from '@macro/i18n';
 import { useEmailContext } from './EmailContext';
 
 export function TopBar(props: {

@@ -1,4 +1,5 @@
 import { TabsInset } from '@core/component/TabsInset';
+import { __t } from '@macro/i18n';
 import TagIcon from '@phosphor/tag-simple.svg';
 import TrashIcon from '@phosphor/trash.svg';
 import XIcon from '@phosphor/x.svg';
@@ -13,7 +14,6 @@ import type { TagScope } from '@service-properties/generated/schemas/tagScope';
 import { Button, CommandMenuShell, cn, Dialog, Hotkey, Tooltip } from '@ui';
 import type { JSX } from 'solid-js';
 import { createEffect, createMemo, createSignal, For, Show } from 'solid-js';
-import { __t } from '@macro/i18n';
 import { TagDot } from './TagDot';
 import { DEFAULT_TAG_COLOR, TAG_COLOR_OPTIONS } from './tagColors';
 

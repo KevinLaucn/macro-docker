@@ -25,6 +25,7 @@ import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { useIsDocumentOwner } from '@core/signal/permissions';
 import { buildEntityData, type EntityData } from '@entity';
 import DotsThree from '@icon/dots-three-large.svg';
+import { t } from '@macro/i18n';
 import ArrowRight from '@phosphor/arrow-right.svg';
 import BellSimple from '@phosphor/bell-simple.svg';
 import BellSlash from '@phosphor/bell-slash.svg';
@@ -39,7 +40,6 @@ import Tag from '@phosphor/tag.svg';
 import Trash from '@phosphor/trash-simple.svg';
 import { blockNameToItemType, type ItemType } from '@service-storage/itemType';
 import { cn, Dropdown, Hotkey } from '@ui';
-import { t } from '@macro/i18n';
 import {
   type Component,
   createEffect,

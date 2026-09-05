@@ -1,5 +1,5 @@
-import { locale } from '@macro/i18n';
 import type { DateValue } from '@core/util/date';
+import { locale } from '@macro/i18n';
 import {
   differenceInHours,
   differenceInMinutes,
@@ -21,20 +21,14 @@ export function formatTimestamp(date: DateValue): string {
   const d = typeof date === 'string' ? new Date(date) : date;
 
   if (isToday(d)) {
-    return isZh
-      ? format(d, 'aa h:mm', { locale: zhCN })
-      : format(d, 'h:mm a');
+    return isZh ? format(d, 'aa h:mm', { locale: zhCN }) : format(d, 'h:mm a');
   }
 
   if (isSameYear(d, new Date())) {
-    return isZh
-      ? format(d, 'M月d日', { locale: zhCN })
-      : format(d, 'MMM d');
+    return isZh ? format(d, 'M月d日', { locale: zhCN }) : format(d, 'MMM d');
   }
 
-  return isZh
-    ? format(d, 'yyyy/M/d', { locale: zhCN })
-    : format(d, 'M/d/yy');
+  return isZh ? format(d, 'yyyy/M/d', { locale: zhCN }) : format(d, 'M/d/yy');
 }
 
 /**
@@ -84,10 +78,14 @@ export function formatRelativeTimestamp(
   }
 
   if (isSameYear(date, now)) {
-    return isZh ? format(date, 'M月d日', { locale: zhCN }) : format(date, 'MMM d');
+    return isZh
+      ? format(date, 'M月d日', { locale: zhCN })
+      : format(date, 'MMM d');
   }
 
-  return isZh ? format(date, 'yyyy/M/d', { locale: zhCN }) : format(date, 'M/d/yy');
+  return isZh
+    ? format(date, 'yyyy/M/d', { locale: zhCN })
+    : format(date, 'M/d/yy');
 }
 
 /**

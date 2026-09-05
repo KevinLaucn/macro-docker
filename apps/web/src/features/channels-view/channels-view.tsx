@@ -1,7 +1,7 @@
-import { onMount } from 'solid-js';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { t } from '@macro/i18n';
 import ChatCircleDotsIcon from '@phosphor/chat-circle-dots.svg';
+import { onMount } from 'solid-js';
 
 export function ChannelsView() {
   const panel = useSplitPanelOrThrow();

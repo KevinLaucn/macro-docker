@@ -67,7 +67,9 @@ export function MyActivityView() {
                   {feed.isLoading
                     ? t('Loading…')
                     : feed.isError
-                      ? t('Activity is unavailable right now. Try again in a moment.')
+                      ? t(
+                          'Activity is unavailable right now. Try again in a moment.'
+                        )
                       : t('No activity yet.')}
                 </p>
               }

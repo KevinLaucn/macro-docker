@@ -1,4 +1,5 @@
 import { IS_MAC } from '@core/constant/isMac';
+import { t } from '@macro/i18n';
 import { cn, Hotkey, ToggleSwitch } from '@ui';
 import {
   enableScreencastHotkeys,
@@ -6,7 +7,6 @@ import {
 } from '@ui/components/ScreencastHotkeys';
 import { createMemo, createSignal, For, Index, type JSX } from 'solid-js';
 import { SettingsCard, SettingsPage } from './primitives';
-import { t } from '@macro/i18n';
 
 interface ShortcutItem {
   description: JSX.Element;
@@ -1067,10 +1067,10 @@ function ShortcutSectionComponent(props: { section: ShortcutSection }) {
 export function Shortcuts() {
   return (
     <SettingsPage
-      title={t("Keyboard shortcuts")}
+      title={t('Keyboard shortcuts')}
       actions={
         <div class="flex items-center gap-2">
-          <span class="text-sm text-ink-muted">{t("Screencast keys")}</span>
+          <span class="text-sm text-ink-muted">{t('Screencast keys')}</span>
           <ToggleSwitch
             size="md"
             onChange={setEnableScreencastHotkeys}

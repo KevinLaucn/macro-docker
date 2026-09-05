@@ -1,9 +1,9 @@
+import { __t } from '@macro/i18n';
 import CaretRight from '@phosphor-icons/core/bold/caret-right-bold.svg?component-solid';
 import CheckIcon from '@phosphor-icons/core/bold/check-bold.svg?component-solid';
 import ClipboardIcon from '@phosphor-icons/core/bold/clipboard-bold.svg?component-solid';
 import { Button, cn } from '@ui';
 import { createSignal, For, Show } from 'solid-js';
-import { __t } from '@macro/i18n';
 import {
   CLI_COMMANDS,
   MACRO_MCP_CONFIG,

@@ -58,14 +58,7 @@ import { useChannelParticipantsQuery } from '@queries/channel/channel-participan
 import { ChannelTypeEnum } from '@service-storage/client';
 import { useSearchParams } from '@solidjs/router';
 import { cn } from '@ui';
-import {
-  createSignal,
-  Match,
-  onCleanup,
-  Show,
-  Suspense,
-  Switch,
-} from 'solid-js';
+import { createSignal, Match, onCleanup, Suspense, Switch } from 'solid-js';
 import { CHANNEL_TAB_ICONS, ChannelTopLeft } from './Top';
 import { useChannelBotManagement } from './useChannelBotManagement';
 
@@ -94,9 +87,7 @@ const normalizeChannelTab = (tab: ChannelTabId) => {
   return tab === 'call' ? DEFAULT_CHANNEL_TAB : tab;
 };
 
-const initialChannelTab = (options: {
-  persistedTab?: ChannelTabId;
-}) => {
+const initialChannelTab = (options: { persistedTab?: ChannelTabId }) => {
   return normalizeChannelTab(options.persistedTab ?? DEFAULT_CHANNEL_TAB);
 };
 

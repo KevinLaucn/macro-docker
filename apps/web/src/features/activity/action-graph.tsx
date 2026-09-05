@@ -24,10 +24,14 @@ const WEEKDAY_LABELS_ZH = ['', '一', '', '三', '', '五', ''];
 
 function dateLabel(date: string): string {
   const isZh = locale() === 'zh-CN';
-  return format(parseOverviewDate(date), isZh ? 'yyyy年M月d日' : 'EEE, MMM d, yyyy', {
-    in: OVERVIEW_TZ,
-    locale: isZh ? zhCN : undefined,
-  });
+  return format(
+    parseOverviewDate(date),
+    isZh ? 'yyyy年M月d日' : 'EEE, MMM d, yyyy',
+    {
+      in: OVERVIEW_TZ,
+      locale: isZh ? zhCN : undefined,
+    }
+  );
 }
 
 function actionLabel(day: ContributionDay): string {

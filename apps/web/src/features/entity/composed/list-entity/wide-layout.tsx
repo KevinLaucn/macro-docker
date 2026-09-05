@@ -4,9 +4,7 @@ import { EntityType } from '@service-properties/generated/schemas/entityType';
 import type { SoupProperty } from '@service-storage/generated/schemas/soupProperty';
 import { cn } from '@ui';
 import { Match, Show, Switch } from 'solid-js';
-import {
-  SharedBadge,
-} from '../../components/Badges';
+import { SharedBadge } from '../../components/Badges';
 import { MultiSelectCheckbox } from '../../components/MultiSelectCheckbox';
 import { ProjectBreadCrumb } from '../../components/ProjectBreadCrumb';
 import { UnreadIndicator } from '../../components/UnreadIndicator';

@@ -83,7 +83,9 @@ export function InboxSelector() {
       variant="outline"
       size="sm"
       depth={2}
-      aria-label={buttonProps.hideLabel ? t('Connect another account') : undefined}
+      aria-label={
+        buttonProps.hideLabel ? t('Connect another account') : undefined
+      }
       tooltip={buttonProps.hideLabel ? t('Connect another account') : undefined}
       class={cn('bg-surface gap-1', buttonProps.hideLabel && 'px-1')}
       onClick={() => addInbox()}

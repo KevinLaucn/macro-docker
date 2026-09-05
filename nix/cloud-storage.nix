@@ -834,7 +834,12 @@
             cargoArtifacts = selfHostEmailCargoArtifacts;
             buildArgs = selfHostEmailCommonArgs;
             sourceForPackage = selfHostEmailPrunedDeploySrc;
-            lockArg = "--locked";
+            # Each leaf overlays one real service closure onto mkDummySrc's
+            # reduced workspace. Cargo may need to normalize that temporary
+            # lockfile after the overlay, so use the same offline policy as
+            # the former monolithic Email build. Dependencies still come
+            # exclusively from the Nix-vendored source configuration.
+            lockArg = "--offline";
           };
         }) selfHostEmailBinaryDefinitions
       );

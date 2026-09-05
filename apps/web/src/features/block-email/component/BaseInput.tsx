@@ -22,7 +22,6 @@ import {
 import type { UserMentionRecord } from '@core/component/LexicalMarkdown/utils/mentionsUtils';
 import { RecipientSelector } from '@core/component/RecipientSelector';
 import { toast } from '@core/component/Toast/Toast';
-import { t } from '@macro/i18n';
 import {
   ENABLE_EMAIL_SCHEDULED_SEND,
   enableEmailSignatures,
@@ -42,6 +41,7 @@ import { plural } from '@core/util/string';
 import { handleFileFolderDrop } from '@core/util/upload';
 import { ToggleButton as KToggleButton } from '@kobalte/core/toggle-button';
 import { $generateHtmlFromNodes } from '@lexical/html';
+import { t } from '@macro/i18n';
 import {
   $appendWatermarkNodeToLast,
   $removeAllWatermarkNodes,
@@ -1595,9 +1595,7 @@ export function BaseInput(props: {
     ];
     const firstRecipient = recipients[0];
     const action =
-      effectiveReplyType() === 'forward'
-        ? t('Forwarding')
-        : t('Replying to');
+      effectiveReplyType() === 'forward' ? t('Forwarding') : t('Replying to');
     if (!firstRecipient) return action;
 
     const remainingCount = recipients.length - 1;

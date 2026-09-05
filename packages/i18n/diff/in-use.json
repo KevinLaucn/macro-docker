@@ -2,14 +2,158 @@
   "Ask AI": [
     "features/next-soup/soup-view/search-ask-ai-button.tsx"
   ],
+  "Set a reminder on anything in Macro by selecting it and pressing {key}, or write one about nothing in particular from the Create menu.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "See recordings, transcriptions and summaries of your Macro calls.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Calls are available to agents.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
   "No results for \"{query}\"": [
     "features/next-soup/soup-view/empty-states.tsx"
   ],
   "No results": [
     "features/next-soup/soup-view/empty-states.tsx"
   ],
+  "Search across messages, documents, tasks, and more. Try a different query or broaden your filters.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "No items matching the filters": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Try adjusting or clearing your filters to see more results.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "No scheduled reminders": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Reminders you schedule wait here until they fire into Signal. Set one on anything in Macro by selecting it and pressing {key}, or write one about nothing in particular.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "New reminder": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Your inbox is empty": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Bring your inbox into Macro to triage signal from noise, reply faster, and let agents work alongside your mail.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Connect email": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Connect your email": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "No noise": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Low-priority items like newsletters and notifications collect here.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Nothing to clear right now.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Inbox zero": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "You're all caught up. New items will appear here as they arrive.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "You're all caught up. Important items will appear here as they arrive.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "You're all caught up. New email will appear here as it arrives.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Nothing to do": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Tasks you create or that get assigned to you will show up here.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "New task": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "No automations to show": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Automations run in the background to handle repetitive work for you — like triaging messages, updating tasks, or sending follow-ups.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "New automation": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "No skills yet": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Skills are markdown documents with instructions AI follows. Reference one with / in any AI input.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "New skill": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Get started with agents": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Create an agent, or use Macro with your favorite AI chat client or code editor via MCP.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "New agent": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Join a team to enable CRM": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Create or join a team in Settings > Team.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Open team settings": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "CRM is disabled": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Enable CRM in Settings > CRM to start tracking your customers.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Team owners and admins can enable CRM in Settings > CRM.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Open CRM settings": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "No customers yet": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Customers your team emails will appear here.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "No folders": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Folders let you organize conversations, documents, and tasks into projects. Create a folder or drop files below to get started.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "New folder": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "No items to show": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Search across messages, documents, tasks, and more.": [
+    "features/next-soup/soup-view/empty-states.tsx"
+  ],
   "No {item} to show": [
     "features/next-soup/soup-view/empty-states.tsx"
+  ],
+  "Search inboxes...": [
+    "features/next-soup/soup-view/filters-bar/inbox-selector.tsx"
+  ],
+  "Connect another account": [
+    "features/next-soup/soup-view/filters-bar/inbox-selector.tsx"
   ],
   "Status": [
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx"
@@ -30,7 +174,8 @@
     "features/next-soup/soup-view/filters-bar/searchable-multi-select.tsx"
   ],
   "No options available": [
-    "features/next-soup/soup-view/filters-bar/searchable-multi-select.tsx"
+    "features/next-soup/soup-view/filters-bar/searchable-multi-select.tsx",
+    "features/property/editors/selectors/PropertyOptionSelector.tsx"
   ],
   "Board": [
     "features/next-soup/soup-view/soup-view-tabs.tsx"
@@ -70,6 +215,7 @@
   ],
   "Cancel": [
     "features/settings/Crm.tsx",
+    "features/settings/Team.tsx",
     "features/settings/Harness.tsx",
     "features/settings/Agents.tsx",
     "features/settings/HarnessPairingDialog.tsx",
@@ -86,7 +232,8 @@
     "features/settings/Crm.tsx"
   ],
   "General": [
-    "features/settings/Crm.tsx"
+    "features/settings/Crm.tsx",
+    "features/settings/Team.tsx"
   ],
   "Disable CRM": [
     "features/settings/Crm.tsx"
@@ -126,6 +273,244 @@
   ],
   "Enable or disable your team's CRM.": [
     "features/settings/Crm.tsx"
+  ],
+  "Member": [
+    "features/settings/Team.tsx"
+  ],
+  "Admin": [
+    "features/settings/Team.tsx"
+  ],
+  "Owner": [
+    "features/settings/Team.tsx"
+  ],
+  "Enter email address": [
+    "features/settings/Team.tsx"
+  ],
+  "Remove": [
+    "features/settings/Team.tsx",
+    "features/settings/Harness.tsx"
+  ],
+  "Invalid email address": [
+    "features/settings/Team.tsx"
+  ],
+  "Email already added": [
+    "features/settings/Team.tsx"
+  ],
+  "Add another": [
+    "features/settings/Team.tsx"
+  ],
+  "Cannot remove team owner": [
+    "features/settings/Team.tsx"
+  ],
+  "Cannot remove yourself": [
+    "features/settings/Team.tsx"
+  ],
+  "Remove member": [
+    "features/settings/Team.tsx"
+  ],
+  "Invited as {role}": [
+    "features/settings/Team.tsx"
+  ],
+  "Copied": [
+    "features/settings/Team.tsx",
+    "lib/core/component/AI/component/McpSetupCards.tsx"
+  ],
+  "Copy invite link": [
+    "features/settings/Team.tsx"
+  ],
+  "Cancel invite": [
+    "features/settings/Team.tsx"
+  ],
+  "{inviter} invited you to join a team": [
+    "features/settings/Team.tsx"
+  ],
+  "as {role}": [
+    "features/settings/Team.tsx"
+  ],
+  "Decline": [
+    "features/settings/Team.tsx",
+    "components/app/app-sidebar/sidebar.tsx"
+  ],
+  "Join": [
+    "features/settings/Team.tsx"
+  ],
+  "Team": [
+    "features/settings/Team.tsx",
+    "features/settings/Harness.tsx",
+    "features/settings/HarnessPairingDialog.tsx"
+  ],
+  "Invitations": [
+    "features/settings/Team.tsx"
+  ],
+  "You've been invited to join a team.": [
+    "features/settings/Team.tsx"
+  ],
+  "Create Team": [
+    "features/settings/Team.tsx"
+  ],
+  "Team name": [
+    "features/settings/Team.tsx"
+  ],
+  "My Team": [
+    "features/settings/Team.tsx"
+  ],
+  "Invite members (optional)": [
+    "features/settings/Team.tsx"
+  ],
+  "No team yet": [
+    "features/settings/Team.tsx"
+  ],
+  "Create a team to collaborate with others and manage access together.": [
+    "features/settings/Team.tsx"
+  ],
+  "Save": [
+    "features/settings/Team.tsx",
+    "features/settings/Harness.tsx"
+  ],
+  "New sign-ups with an @{domain} email automatically join this team.": [
+    "features/settings/Team.tsx"
+  ],
+  "Automatically add new sign-ups whose email matches the team owner's domain.": [
+    "features/settings/Team.tsx"
+  ],
+  "Delete Team": [
+    "features/settings/Team.tsx"
+  ],
+  "Name": [
+    "features/settings/Team.tsx",
+    "features/settings/Agents.tsx",
+    "features/settings/HarnessPairingDialog.tsx",
+    "features/block-automation/component/AutomationComposer.tsx"
+  ],
+  "What your team is called — shown in invitations and billing.": [
+    "features/settings/Team.tsx"
+  ],
+  "Only the team owner can change the team name.": [
+    "features/settings/Team.tsx"
+  ],
+  "Enter team name": [
+    "features/settings/Team.tsx"
+  ],
+  "Slug": [
+    "features/settings/Team.tsx"
+  ],
+  "Short code in task references like ENG-42 (GitHub, branch names).": [
+    "features/settings/Team.tsx"
+  ],
+  "Only the team owner can change the team slug.": [
+    "features/settings/Team.tsx"
+  ],
+  "Enter team slug": [
+    "features/settings/Team.tsx"
+  ],
+  "Will save as {slug}": [
+    "features/settings/Team.tsx"
+  ],
+  "GitHub autolink": [
+    "features/settings/Team.tsx"
+  ],
+  "Use": [
+    "features/settings/Team.tsx"
+  ],
+  "as the reference prefix in GitHub, then paste this target URL.": [
+    "features/settings/Team.tsx"
+  ],
+  "Copy target URL": [
+    "features/settings/Team.tsx"
+  ],
+  "Auto-join on domain": [
+    "features/settings/Team.tsx"
+  ],
+  "Members can invite": [
+    "features/settings/Team.tsx"
+  ],
+  "Let every team member invite people. When off, only admins and the owner can send invites.": [
+    "features/settings/Team.tsx"
+  ],
+  "Default link sharing": [
+    "features/settings/Team.tsx"
+  ],
+  "The link-sharing scope newly shared items start with. None means link sharing starts off.": [
+    "features/settings/Team.tsx"
+  ],
+  "Default link sharing scope": [
+    "features/settings/Team.tsx"
+  ],
+  "Connections": [
+    "features/settings/Team.tsx",
+    "features/settings/ConnectedAccounts.tsx"
+  ],
+  "GitHub App": [
+    "features/settings/Team.tsx",
+    "features/settings/GitHub.tsx"
+  ],
+  "Connect your team's repositories for pull request sync.": [
+    "features/settings/Team.tsx"
+  ],
+  "Loading…": [
+    "features/settings/Team.tsx",
+    "features/settings/Harness.tsx",
+    "features/settings/GitHub.tsx",
+    "features/activity/my-activity-view.tsx"
+  ],
+  "Connect your GitHub account first": [
+    "features/settings/Team.tsx",
+    "features/settings/GitHub.tsx"
+  ],
+  "Configure app": [
+    "features/settings/Team.tsx",
+    "features/settings/GitHub.tsx"
+  ],
+  "Members": [
+    "features/settings/Team.tsx"
+  ],
+  "Invite": [
+    "features/settings/Team.tsx"
+  ],
+  "Filter members": [
+    "features/settings/Team.tsx"
+  ],
+  "Clear filter": [
+    "features/settings/Team.tsx"
+  ],
+  "No members match “{query}”": [
+    "features/settings/Team.tsx"
+  ],
+  "Pending invites": [
+    "features/settings/Team.tsx"
+  ],
+  "Are you sure you want to delete {name}? This action cannot be undone and all team members will lose access.": [
+    "features/settings/Team.tsx"
+  ],
+  "Type {phrase} to confirm.": [
+    "features/settings/Team.tsx"
+  ],
+  "Remove Member": [
+    "features/settings/Team.tsx"
+  ],
+  "Are you sure you want to remove {member} from the team?": [
+    "features/settings/Team.tsx"
+  ],
+  "Cancel Invitation": [
+    "features/settings/Team.tsx"
+  ],
+  "Are you sure you want to cancel the invitation for {email}?": [
+    "features/settings/Team.tsx"
+  ],
+  "Keep": [
+    "features/settings/Team.tsx"
+  ],
+  "Cancel Invite": [
+    "features/settings/Team.tsx"
+  ],
+  "Invite to Team": [
+    "features/settings/Team.tsx"
+  ],
+  "Send {count} Invites": [
+    "features/settings/Team.tsx"
+  ],
+  "Send Invite": [
+    "features/settings/Team.tsx"
   ],
   "Last connected {time}": [
     "features/settings/Harness.tsx"
@@ -185,14 +570,7 @@
   "Use your Cursor account to run agent sessions in Macro.": [
     "features/settings/Harness.tsx"
   ],
-  "Loading…": [
-    "features/settings/Harness.tsx",
-    "features/settings/GitHub.tsx"
-  ],
   "API key": [
-    "features/settings/Harness.tsx"
-  ],
-  "Save": [
     "features/settings/Harness.tsx"
   ],
   "Create an API key in Cursor and paste it here. Macro stores it encrypted.": [
@@ -233,18 +611,11 @@
   "Agents connected through macrod will appear here.": [
     "features/settings/Harness.tsx"
   ],
-  "Team": [
-    "features/settings/Harness.tsx",
-    "features/settings/HarnessPairingDialog.tsx"
-  ],
   "Private": [
     "features/settings/Harness.tsx",
     "features/settings/HarnessPairingDialog.tsx"
   ],
   "Disconnected": [
-    "features/settings/Harness.tsx"
-  ],
-  "Remove": [
     "features/settings/Harness.tsx"
   ],
   "Could not load your harnesses. Try refreshing this page.": [
@@ -262,8 +633,8 @@
   "Remove harness": [
     "features/settings/Harness.tsx"
   ],
-  "Connections": [
-    "features/settings/ConnectedAccounts.tsx"
+  "Unmute": [
+    "features/settings/MutedItemRow.tsx"
   ],
   "Connect your accounts so Macro can work across the tools you already use.": [
     "features/settings/ConnectedAccounts.tsx"
@@ -285,11 +656,6 @@
   ],
   "Upload": [
     "features/settings/Agents.tsx"
-  ],
-  "Name": [
-    "features/settings/Agents.tsx",
-    "features/settings/HarnessPairingDialog.tsx",
-    "features/block-automation/component/AutomationComposer.tsx"
   ],
   "Bug fixer": [
     "features/settings/Agents.tsx"
@@ -330,17 +696,65 @@
   "Reconnect": [
     "features/settings/GitHub.tsx"
   ],
-  "GitHub App": [
-    "features/settings/GitHub.tsx"
-  ],
   "Choose repositories for Macro to sync.": [
     "features/settings/GitHub.tsx"
   ],
-  "Connect your GitHub account first": [
-    "features/settings/GitHub.tsx"
+  "Could not update notification preference": [
+    "features/settings/Notifications.tsx"
   ],
-  "Configure app": [
-    "features/settings/GitHub.tsx"
+  "Could not unmute item": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Mobile notifications": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Desktop notifications": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Receive push notifications on this device": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Receive notifications on this browser or desktop app": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Notifications": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Choose when you'll be notified. Inbox items always arrive unless you mute a type or an item.": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Delivery": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Inbox": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Always on for types you have not muted": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Always on": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Not supported on this device": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Email digest": [
+    "features/settings/Notifications.tsx"
+  ],
+  "A periodic email of unread notifications. Inbox items are unchanged.": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Muted items": [
+    "features/settings/Notifications.tsx"
+  ],
+  "These items will not send you notifications.": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Nothing muted": [
+    "features/settings/Notifications.tsx"
+  ],
+  "Items you mute stop sending notifications.": [
+    "features/settings/Notifications.tsx"
   ],
   "This pairing code is invalid, expired, or already claimed.": [
     "features/settings/HarnessPairingDialog.tsx"
@@ -648,8 +1062,96 @@
     "features/chat/ChatWithAgentButton.tsx",
     "features/block-email/component/TopBar.tsx"
   ],
+  "Add {property}...": [
+    "features/property/editors/popover/SelectEditor.tsx"
+  ],
+  "Change {property}...": [
+    "features/property/editors/popover/SelectEditor.tsx"
+  ],
+  "No {property}": [
+    "features/property/editors/popover/SelectEditor.tsx"
+  ],
+  "Set {property}...": [
+    "features/property/editors/selectors/PropertyDateSelector.tsx"
+  ],
+  "Enter a date or duration": [
+    "features/property/editors/selectors/PropertyDateSelector.tsx"
+  ],
+  "No dates match \"{query}\"": [
+    "features/property/editors/selectors/PropertyDateSelector.tsx"
+  ],
+  "Custom date...": [
+    "features/property/editors/selectors/PropertyDateSelector.tsx"
+  ],
+  "Pick from calendar": [
+    "features/property/editors/selectors/PropertyDateSelector.tsx"
+  ],
+  "Clear date": [
+    "features/property/editors/selectors/PropertyDateSelector.tsx"
+  ],
+  "Use queries like {eg1}, {eg2}, {eg3}, or {eg4}": [
+    "features/property/editors/selectors/PropertyDateSelector.tsx"
+  ],
+  "No options match your search": [
+    "features/property/editors/selectors/PropertyOptionSelector.tsx"
+  ],
+  "No {property} set": [
+    "features/property/component/propertyValue/PropertyTooltip.tsx"
+  ],
+  "Most active": [
+    "features/activity/top-entities.tsx"
+  ],
+  "No entities yet.": [
+    "features/activity/top-entities.tsx"
+  ],
+  "an item": [
+    "features/activity/property-change-label.ts"
+  ],
+  "{0} items": [
+    "features/activity/property-change-label.ts"
+  ],
   "Activity": [
+    "features/activity/my-activity-view.tsx",
     "features/activity/EntityActivitySection.tsx"
+  ],
+  "Activity overview is unavailable right now.": [
+    "features/activity/my-activity-view.tsx"
+  ],
+  "Loading activity overview…": [
+    "features/activity/my-activity-view.tsx"
+  ],
+  "Activity is unavailable right now. Try again in a moment.": [
+    "features/activity/my-activity-view.tsx"
+  ],
+  "No activity yet.": [
+    "features/activity/my-activity-view.tsx"
+  ],
+  "Show more": [
+    "features/activity/my-activity-view.tsx"
+  ],
+  "Fewer": [
+    "features/activity/action-graph.tsx"
+  ],
+  "More": [
+    "features/activity/action-graph.tsx"
+  ],
+  "Most active month": [
+    "features/activity/action-graph.tsx"
+  ],
+  "Most active day": [
+    "features/activity/action-graph.tsx"
+  ],
+  "Longest streak": [
+    "features/activity/action-graph.tsx"
+  ],
+  "Current streak": [
+    "features/activity/action-graph.tsx"
+  ],
+  "Automation": [
+    "features/activity/actor-name.tsx"
+  ],
+  "You": [
+    "features/activity/actor-name.tsx"
   ],
   "Activity is unavailable": [
     "features/activity/EntityActivitySection.tsx"
@@ -662,6 +1164,74 @@
   ],
   "Show all ({count})": [
     "features/activity/EntityActivitySection.tsx"
+  ],
+  "Cleared": [
+    "features/activity/property-change.tsx"
+  ],
+  "cleared": [
+    "features/activity/property-change.tsx"
+  ],
+  "Changed": [
+    "features/activity/property-change.tsx"
+  ],
+  "changed": [
+    "features/activity/property-change.tsx"
+  ],
+  "from": [
+    "features/activity/property-change.tsx",
+    "features/activity/describe-action.ts"
+  ],
+  "to": [
+    "features/activity/property-change.tsx",
+    "features/activity/describe-action.ts"
+  ],
+  "created this": [
+    "features/activity/describe-action.ts"
+  ],
+  "made an edit": [
+    "features/activity/describe-action.ts"
+  ],
+  "opened this": [
+    "features/activity/describe-action.ts"
+  ],
+  "deleted this": [
+    "features/activity/describe-action.ts"
+  ],
+  "sent a message": [
+    "features/activity/describe-action.ts"
+  ],
+  "sent an email": [
+    "features/activity/describe-action.ts"
+  ],
+  "changed a property": [
+    "features/activity/describe-action.ts"
+  ],
+  "added a participant": [
+    "features/activity/describe-action.ts"
+  ],
+  "removed a participant": [
+    "features/activity/describe-action.ts"
+  ],
+  "started a call": [
+    "features/activity/describe-action.ts"
+  ],
+  "created": [
+    "features/activity/describe-action.ts"
+  ],
+  "edited": [
+    "features/activity/describe-action.ts"
+  ],
+  "opened": [
+    "features/activity/describe-action.ts"
+  ],
+  "deleted": [
+    "features/activity/describe-action.ts"
+  ],
+  "in": [
+    "features/activity/describe-action.ts"
+  ],
+  "on": [
+    "features/activity/describe-action.ts"
   ],
   "Favorites": [
     "features/favorites/sidebar/favorites-section.tsx"
@@ -751,6 +1321,24 @@
   ],
   "Close search": [
     "features/command/mobile/MobileSearchInput.tsx"
+  ],
+  "Older": [
+    "features/soup/collection/date-buckets.ts"
+  ],
+  "Today": [
+    "features/soup/collection/date-buckets.ts"
+  ],
+  "Yesterday": [
+    "features/soup/collection/date-buckets.ts"
+  ],
+  "Last 7 days": [
+    "features/soup/collection/date-buckets.ts"
+  ],
+  "Earlier this month": [
+    "features/soup/collection/date-buckets.ts"
+  ],
+  "Last month": [
+    "features/soup/collection/date-buckets.ts"
   ],
   "Mark done": [
     "features/block-email/component/TopBar.tsx"
@@ -848,9 +1436,6 @@
   "Accept": [
     "components/app/app-sidebar/sidebar.tsx"
   ],
-  "Decline": [
-    "components/app/app-sidebar/sidebar.tsx"
-  ],
   "Workspace": [
     "components/app/app-sidebar/sidebar.tsx"
   ],
@@ -901,9 +1486,6 @@
   ],
   "Ask AI, @mention anything": [
     "lib/core/component/AI/component/input/ChatInput.tsx"
-  ],
-  "Copied": [
-    "lib/core/component/AI/component/McpSetupCards.tsx"
   ],
   "Copy": [
     "lib/core/component/AI/component/McpSetupCards.tsx"

@@ -41,9 +41,7 @@ export function createTagFilter(queryFilters: QueryStore) {
         ? set.options.map((option) => ({
             id: option.id,
             label:
-              option.value?.type === 'string'
-                ? option.value.value
-                : option.id,
+              option.value?.type === 'string' ? option.value.value : option.id,
             icon: () => <TagDot color={option.color ?? undefined} />,
           }))
         : []

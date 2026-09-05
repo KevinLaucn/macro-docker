@@ -3,6 +3,7 @@
 import { toast } from '@core/component/Toast/Toast';
 import { SERVER_HOSTS } from '@core/constant/servers';
 import { throwOnErr } from '@core/util/result';
+import { t } from '@macro/i18n';
 import SpinnerIcon from '@phosphor/spinner.svg';
 import XIcon from '@phosphor/x.svg';
 import {
@@ -16,7 +17,6 @@ import type { PatchTeamCrmSettingsResponse } from '@service-auth/generated/schem
 import { useMutation } from '@tanstack/solid-query';
 import { Button, Dialog, Panel, Tooltip } from '@ui';
 import { createSignal, type JSX, Show, Suspense } from 'solid-js';
-import { t } from '@macro/i18n';
 import {
   SettingsCard,
   SettingsPage,
@@ -218,7 +218,9 @@ function CrmEnablementSection() {
           </Panel.Header>
           <Panel.Body class="p-3 flex flex-col gap-3">
             <p>
-              {t("Start the CRM from your team's existing email, or from a clean slate.")}
+              {t(
+                "Start the CRM from your team's existing email, or from a clean slate."
+              )}
             </p>
             <div class="flex justify-end gap-1 pt-2">
               <Button
@@ -274,7 +276,9 @@ function CrmEnablementSection() {
         onClose={() => setShowDisableModal(false)}
       >
         <p>
-          {t("Disabling the CRM permanently purges your team's CRM data — companies, contacts, and their history. Re-enabling later lets you backfill again or start fresh.")}
+          {t(
+            "Disabling the CRM permanently purges your team's CRM data — companies, contacts, and their history. Re-enabling later lets you backfill again or start fresh."
+          )}
         </p>
         <p class="text-sm text-ink-muted">
           Type <span class="font-medium text-ink">{DISABLE_CRM_PHRASE}</span> to

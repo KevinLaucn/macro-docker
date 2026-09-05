@@ -13,13 +13,13 @@ import { ENABLE_EMAIL_SCHEDULED_SEND } from '@core/constant/featureFlags';
 import { fileSelector } from '@core/directive/fileSelector';
 import { isMobile } from '@core/mobile/isMobile';
 import { plural } from '@core/util/string';
+import { t } from '@macro/i18n';
 import PaperclipIcon from '@phosphor/paperclip.svg?component-solid';
 import TextAa from '@phosphor/text-aa.svg';
 import Trash from '@phosphor/trash.svg';
 import { Button, SendButton, Tooltip } from '@ui';
 import { FORMAT_TEXT_COMMAND, type LexicalEditor } from 'lexical';
 import { createSignal, Show } from 'solid-js';
-import { t } from '@macro/i18n';
 import { useCompose } from './ComposeContext';
 
 export function EmailComposeToolbar(props: {
@@ -97,7 +97,7 @@ export function EmailComposeToolbar(props: {
                       onSelect: handleAddAttachments,
                     }))
                   }
-                  tooltip={t("Attach")}
+                  tooltip={t('Attach')}
                   size="icon-sm"
                   disabled={ctx.disabled()}
                 >
@@ -106,7 +106,7 @@ export function EmailComposeToolbar(props: {
               </div>
             </Show>
             <Button
-              tooltip={t("Format")}
+              tooltip={t('Format')}
               size="icon-sm"
               disabled={ctx.disabled()}
               onClick={() => {
@@ -119,7 +119,7 @@ export function EmailComposeToolbar(props: {
               <div aria-hidden="true" class="mx-1 h-4 w-px bg-edge-muted/70" />
               <Button
                 onclick={ctx.onDelete}
-                tooltip={t("Delete draft")}
+                tooltip={t('Delete draft')}
                 size="icon-sm"
               >
                 <Trash />
@@ -157,7 +157,7 @@ export function EmailComposeToolbar(props: {
                   ctx.disabled()
                 }
                 pending={ctx.isSending()}
-                tooltip={t("Send email")}
+                tooltip={t('Send email')}
                 shortcut="cmd+enter"
               />
             </Tooltip>

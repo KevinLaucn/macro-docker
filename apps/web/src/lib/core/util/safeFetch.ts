@@ -264,7 +264,10 @@ function getSuperAdminFallback(input: RequestInfo): unknown | undefined {
   if (path.includes('/invites') || path.includes('/user/invites')) {
     return { invites: [] };
   }
-  if (path.includes('/profile_pictures') || path.includes('/profile-pictures')) {
+  if (
+    path.includes('/profile_pictures') ||
+    path.includes('/profile-pictures')
+  ) {
     return { pictures: [] };
   }
   if (path.includes('/team')) {
@@ -318,7 +321,10 @@ function getSuperAdminFallback(input: RequestInfo): unknown | undefined {
     return { data: [] };
   }
   if (path.includes('/jwt/refresh')) {
-    return { access_token: 'local-super-admin-token', refresh_token: 'local-super-admin-refresh' };
+    return {
+      access_token: 'local-super-admin-token',
+      refresh_token: 'local-super-admin-refresh',
+    };
   }
   if (path.includes('/bots') || path.includes('/agents')) {
     return [];

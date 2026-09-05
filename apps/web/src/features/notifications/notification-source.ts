@@ -2,30 +2,30 @@ import {
   ENABLE_DOCUMENT_MENTION_NOTIFICATIONS,
   enableGraphqlSoup,
   isFeatureEnabled,
-} from "@core/constant/featureFlags";
-import type { Entity } from "@core/types";
-import { muteItemForRef } from "@entity/utils/notification";
-import { createSocketEffect } from "@macro-inc/collaboration/websocket";
+} from '@core/constant/featureFlags';
+import type { Entity } from '@core/types';
+import { muteItemForRef } from '@entity/utils/notification';
+import { createSocketEffect } from '@macro-inc/collaboration/websocket';
 import {
   useMuteItemMutation,
   useUnmuteItemMutation,
-} from "@queries/notification/unsubscribes";
+} from '@queries/notification/unsubscribes';
 import {
   optimisticInsertNotification,
   type UserNotificationsQuery,
   useMarkNotificationsAsDoneMutation,
   useMarkNotificationsAsSeenMutation,
   useUserNotificationsQuery,
-} from "@queries/notification/user-notifications";
-import type { ConnectionGatewayWebsocket } from "@service-connection/websocket";
+} from '@queries/notification/user-notifications';
+import type { ConnectionGatewayWebsocket } from '@service-connection/websocket';
 import type {
   ConnGatewayNotificationPayload,
   NotifEvent,
   UserUnsubscribe,
-} from "@service-notification/generated/schemas";
-import { mapGraphqlNotification } from "@service-storage/graphql-soup";
-import { subscribeToGraphqlNotificationPatches } from "@service-storage/graphql-soup-websocket";
-import type { UseQueryResult } from "@tanstack/solid-query";
+} from '@service-notification/generated/schemas';
+import { mapGraphqlNotification } from '@service-storage/graphql-soup';
+import { subscribeToGraphqlNotificationPatches } from '@service-storage/graphql-soup-websocket';
+import type { UseQueryResult } from '@tanstack/solid-query';
 import {
   type Accessor,
   batch,
@@ -34,29 +34,29 @@ import {
   createRoot,
   createSignal,
   onCleanup,
-} from "solid-js";
-import { createStore, reconcile } from "solid-js/store";
-import { fromZodError } from "zod-validation-error";
-import { createMutedEntitiesQuery } from "./queries/muted-entities-query";
+} from 'solid-js';
+import { createStore, reconcile } from 'solid-js/store';
+import { fromZodError } from 'zod-validation-error';
+import { createMutedEntitiesQuery } from './queries/muted-entities-query';
 import {
   type CompositeEntity,
   compositeEntity,
   notificationEntity,
   type UnifiedNotification,
   unifiedNotificationSchema,
-} from "./types";
+} from './types';
 
 export const CHANNEL_EVENT_TYPES = [
-  "channel_mention",
-  "channel_message_send",
-  "channel_message_reply",
-  "document_mention",
+  'channel_mention',
+  'channel_message_send',
+  'channel_message_reply',
+  'document_mention',
 ] as const;
 
 export const DOCUMENT_COMMENT_EVENT_TYPES = [
-  "mentioned_in_document_comment",
-  "replied_to_document_comment_thread",
-  "commented_on_document",
+  'mentioned_in_document_comment',
+  'replied_to_document_comment_thread',
+  'commented_on_document',
 ] as const;
 
 type NotificationsByEntity = Record<CompositeEntity, UnifiedNotification[]>;
@@ -105,9 +105,9 @@ export type NotificationSource = {
   subscribe: (subscribe: SubscribeFn) => UnsubscribeFn;
 };
 
-const NOTIFICATION_EVENT_TYPE = "notification";
+const NOTIFICATION_EVENT_TYPE = 'notification';
 const BROWSER_NEW_EMAIL_NOTIFICATION_EVENT_TYPE =
-  "browser_new_email_notification";
+  'browser_new_email_notification';
 
 const QUERY_LIMIT = 500;
 
@@ -116,12 +116,12 @@ const QUERY_LIMIT = 500;
 // flip and overwrite it with stale server data; this map keeps the UI
 // consistent regardless of what the cache says.
 const [doneOverrides, setDoneOverrides] = createRoot(() =>
-  createSignal<ReadonlyMap<string, boolean>>(new Map()),
+  createSignal<ReadonlyMap<string, boolean>>(new Map())
 );
 
 export function setDoneOverride(
   ids: readonly string[],
-  done: boolean | undefined,
+  done: boolean | undefined
 ) {
   if (ids.length === 0) return;
   setDoneOverrides((prev) => {
@@ -142,7 +142,7 @@ export function setDoneOverride(
 // failure (that rollback is deliberate) and pruned once the cache confirms
 // the seen state at a quiet moment.
 const [seenOverrides, setSeenOverrides] = createRoot(() =>
-  createStore<Record<string, string | undefined>>({}),
+  createStore<Record<string, string | undefined>>({})
 );
 
 function setSeenOverride(ids: readonly string[], viewedAt: string | undefined) {
@@ -154,7 +154,7 @@ function setSeenOverride(ids: readonly string[], viewedAt: string | undefined) {
 
 export function createNotificationSource(
   ws: ConnectionGatewayWebsocket,
-  onNotification?: (notification: UnifiedNotification) => void,
+  onNotification?: (notification: UnifiedNotification) => void
 ): NotificationSource {
   const subscriptions: Set<SubscribeFn> = new Set();
 
@@ -279,7 +279,7 @@ export function createNotificationSource(
   if (!ENABLE_DOCUMENT_MENTION_NOTIFICATIONS) {
     createEffect(() => {
       const toDiscard = notifications().filter(
-        (n) => n.notification_event_type === "document_mention" && !n.done,
+        (n) => n.notification_event_type === 'document_mention' && !n.done
       );
       if (toDiscard.length === 0) return;
       void markNotificationsAsDoneMutation.mutateAsync({
@@ -289,7 +289,7 @@ export function createNotificationSource(
   }
 
   const dispatchIncomingNotification = (
-    notification: UnifiedNotification,
+    notification: UnifiedNotification
   ): void => {
     onNotification?.(notification);
     subscriptions.forEach((subscribe) => subscribe(notification));
@@ -310,8 +310,8 @@ export function createNotificationSource(
           await notificationsQuery.refetch();
         } catch (error) {
           console.warn(
-            "Failed to refresh notifications after GraphQL patch",
-            error,
+            'Failed to refresh notifications after GraphQL patch',
+            error
           );
         }
       } while (graphqlRefetchPending && !graphqlSubscriptionDisposed);
@@ -334,9 +334,9 @@ export function createNotificationSource(
     (patch) => {
       if (!isFeatureEnabled(enableGraphqlSoup)) return;
       scheduleGraphqlNotificationRefetch();
-      if (patch.__typename !== "GraphqlNewNotification") return;
+      if (patch.__typename !== 'GraphqlNewNotification') return;
       dispatchIncomingNotification(mapGraphqlNotification(patch.notification));
-    },
+    }
   );
   onCleanup(() => {
     graphqlSubscriptionDisposed = true;
@@ -344,7 +344,7 @@ export function createNotificationSource(
   });
 
   const mapWebsocketNotification = (
-    raw: ConnGatewayNotificationPayload,
+    raw: ConnGatewayNotificationPayload
   ): UnifiedNotification => {
     return {
       ...raw,
@@ -354,29 +354,29 @@ export function createNotificationSource(
   };
 
   const isBrowserNewEmailNotificationPayload = (
-    raw: unknown,
+    raw: unknown
   ): raw is BrowserNewEmailNotificationPayload => {
-    if (!raw || typeof raw !== "object") return false;
+    if (!raw || typeof raw !== 'object') return false;
     const payload = raw as Partial<BrowserNewEmailNotificationPayload>;
     return (
-      typeof payload.threadId === "string" &&
-      typeof payload.toEmail === "string" &&
-      typeof payload.subject === "string" &&
-      typeof payload.snippet === "string"
+      typeof payload.threadId === 'string' &&
+      typeof payload.toEmail === 'string' &&
+      typeof payload.subject === 'string' &&
+      typeof payload.snippet === 'string'
     );
   };
 
   const mapBrowserNewEmailNotification = (
-    raw: BrowserNewEmailNotificationPayload,
+    raw: BrowserNewEmailNotificationPayload
   ): UnifiedNotification => {
     const now = raw.sentAt ?? new Date().toISOString();
     return {
       id: `browser-new-email:${raw.threadId}:${now}`,
       entity_id: raw.threadId,
-      entity_type: "email_thread",
-      notification_event_type: "new_email",
+      entity_type: 'email_thread',
+      notification_event_type: 'new_email',
       notification_metadata: {
-        tag: "new_email",
+        tag: 'new_email',
         content: {
           sender: raw.sender ?? null,
           toEmail: raw.toEmail,
@@ -397,15 +397,15 @@ export function createNotificationSource(
       try {
         const raw = JSON.parse(wsData.data) as unknown;
         if (!isBrowserNewEmailNotificationPayload(raw)) {
-          console.warn("Failed to parse browser new email notification", raw);
+          console.warn('Failed to parse browser new email notification', raw);
           return;
         }
         dispatchIncomingNotification(mapBrowserNewEmailNotification(raw));
       } catch (e) {
         console.error(
-          "Failed to parse browser new email notification",
+          'Failed to parse browser new email notification',
           wsData.data,
-          e,
+          e
         );
       }
       return;
@@ -424,21 +424,21 @@ export function createNotificationSource(
       const parseResult = unifiedNotificationSchema.safeParse(unsafeMapped);
       if (!parseResult.success) {
         console.warn(
-          "Failed to parse notification",
+          'Failed to parse notification',
           wsData.data,
-          fromZodError(parseResult.error),
+          fromZodError(parseResult.error)
         );
         parsedNotification = unsafeMapped;
       } else {
         parsedNotification = parseResult.data;
       }
     } catch (e) {
-      console.error("Failed to parse notification", wsData.data, e);
+      console.error('Failed to parse notification', wsData.data, e);
       return;
     }
     dispatchIncomingNotification(parsedNotification);
 
-    if (notificationsQuery.transport === "rest") {
+    if (notificationsQuery.transport === 'rest') {
       optimisticInsertNotification(parsedNotification);
     }
   });

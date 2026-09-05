@@ -3,6 +3,7 @@ import { isLargeModelCatalog } from '@core/component/AI/component/input/modelCat
 import { toast } from '@core/component/Toast/Toast';
 import { ThrownResultError } from '@core/util/result';
 import CursorIcon from '@icon/wide-cursor-ide.svg';
+import { t } from '@macro/i18n';
 import ArrowUpRightIcon from '@phosphor/arrow-up-right.svg';
 import HardDrivesIcon from '@phosphor/hard-drives.svg';
 import TerminalWindowIcon from '@phosphor/terminal-window.svg';
@@ -18,7 +19,6 @@ import {
   useHarnessesQuery,
 } from '@queries/harnesses/harnesses';
 import type { Harness as RegisteredHarness } from '@service-storage/client';
-import { t } from '@macro/i18n';
 import { useSearchParams } from '@solidjs/router';
 import { Button, Dialog, Panel } from '@ui';
 import { createSignal, For, type JSX, onMount, Show } from 'solid-js';
@@ -95,7 +95,9 @@ export function Harness() {
       await setCursorDefaultModel.mutateAsync(modelId);
       toast.success(t('Default model updated'));
     } catch (error) {
-      toast.failure(failureMessage(error, t('Failed to set your default model')));
+      toast.failure(
+        failureMessage(error, t('Failed to set your default model'))
+      );
     }
   };
 
@@ -175,7 +177,9 @@ export function Harness() {
 
             <Show
               when={!cursorStatus.isPlaceholderData}
-              fallback={<p class="mt-4 text-xs text-ink-muted">{t('Loading…')}</p>}
+              fallback={
+                <p class="mt-4 text-xs text-ink-muted">{t('Loading…')}</p>
+              }
             >
               <Show
                 when={cursorRegistered()}
@@ -300,7 +304,9 @@ export function Harness() {
           </HarnessIcon>
           <div class="min-w-0 flex-1">
             <div class="flex items-center justify-between gap-4">
-              <h2 class="text-sm font-medium text-ink">{t('Bring your own agent')}</h2>
+              <h2 class="text-sm font-medium text-ink">
+                {t('Bring your own agent')}
+              </h2>
               <div class="flex shrink-0 items-center gap-1">
                 <Button
                   type="button"
@@ -359,14 +365,18 @@ export function Harness() {
                       <div class="flex min-w-0 items-center gap-2">
                         <p class="truncate text-sm text-ink">{harness.name}</p>
                         <span class="shrink-0 rounded-full border border-edge-muted px-2 py-0.5 text-xxs font-medium uppercase text-ink-extra-muted">
-                          {harness.owner.type === 'team' ? t('Team') : t('Private')}
+                          {harness.owner.type === 'team'
+                            ? t('Team')
+                            : t('Private')}
                         </span>
                         <StatusDot
                           state={
                             harness.connected ? 'connected' : 'disconnected'
                           }
                           label={
-                            harness.connected ? t('Connected') : t('Disconnected')
+                            harness.connected
+                              ? t('Connected')
+                              : t('Disconnected')
                           }
                         />
                       </div>
@@ -384,7 +394,9 @@ export function Harness() {
               </For>
               <Show when={harnessesQuery.isError}>
                 <p class="px-4 py-3 text-xs text-negative">
-                  {t('Could not load your harnesses. Try refreshing this page.')}
+                  {t(
+                    'Could not load your harnesses. Try refreshing this page.'
+                  )}
                 </p>
               </Show>
             </div>

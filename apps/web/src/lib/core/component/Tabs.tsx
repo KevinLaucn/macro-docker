@@ -4,9 +4,9 @@ import {
   type SegmentedControlRootProps,
   useSegmentedControlContext,
 } from '@kobalte/core/segmented-control';
+import { __t } from '@macro/i18n';
 import { createResizeObserver } from '@solid-primitives/resize-observer';
 import { cn } from '@ui';
-import { __t } from '@macro/i18n';
 import {
   batch,
   type ComponentProps,
