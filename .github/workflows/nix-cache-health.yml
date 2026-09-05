@@ -1,4 +1,3 @@
-# Hand-maintained diagnostic workflow; does not build or publish images.
 name: Nix S3 cache health
 
 on:
@@ -10,7 +9,7 @@ permissions:
 jobs:
   health:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       NIX_CACHE_URL: ${{ vars.NIX_CACHE_URL }}
       NIX_CACHE_PUBLIC_KEY: ${{ vars.NIX_CACHE_PUBLIC_KEY }}
@@ -23,124 +22,34 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: 'false'
-      - name: Check S3 objects and cached archive integrity
+
+      - name: Validate configuration
+        env:
+          NIX_CACHE_SIGNING_KEY: ${{ secrets.NIX_CACHE_SIGNING_KEY }}
         shell: python
         run: |
-          import base64
-          import hashlib
-          import json
           import os
-          from pathlib import Path
+          from urllib.parse import urlsplit, parse_qs
+          required = ["NIX_CACHE_URL", "NIX_CACHE_PUBLIC_KEY",
+                      "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+                      "NIX_CACHE_SIGNING_KEY"]
+          missing = [name for name in required if not os.environ.get(name)]
+          if missing:
+              raise SystemExit("[失败] 缺少配置: " + ", ".join(missing))
+          url = urlsplit(os.environ["NIX_CACHE_URL"])
+          query = parse_qs(url.query)
+          if (url.scheme != "s3" or not url.netloc
+              or url.path not in ("", "/") or set(query) - {"region"}):
+              raise SystemExit("[失败] 仅支持 s3://bucket?region=... 的 AWS S3 地址")
+          region = query.get("region", ["us-east-1"])[0]
           import re
-          import subprocess
-          import sys
-          import tempfile
-          from urllib.parse import parse_qs, urlsplit
-          
-          
-          def report(message):
-              print(message, flush=True)
-              with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
-                  summary.write(f"- {message}\n")
-          
-          
-          def aws(*args):
-              # AWS CLI errors remain visible, but never print environment credentials.
-              return subprocess.check_output(
-                  ["aws", "--cli-connect-timeout", "10", "--cli-read-timeout", "30", "s3api", *args],
-                  text=True,
-                  timeout=90,
-              )
-          
-          
-          def nix_base32(digest):
-              alphabet = "0123456789abcdfghijklmnpqrsvwxyz"
-              number = int.from_bytes(digest, "little")
-              return "".join(alphabet[(number >> bit) & 31] for bit in reversed(range(0, len(digest) * 8, 5)))
-          
-          
-          def main():
-              required = ("NIX_CACHE_URL", "NIX_CACHE_PUBLIC_KEY", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
-              missing = [name for name in required if not os.environ.get(name)]
-              if missing:
-                  raise ValueError("缺少配置: " + ", ".join(missing))
-              url = urlsplit(os.environ["NIX_CACHE_URL"])
-              query = parse_qs(url.query)
-              if url.scheme != "s3" or not url.netloc or url.path not in ("", "/"):
-                  raise ValueError("仅支持 s3://bucket?region=... 格式")
-              if set(query) - {"region"}:
-                  raise ValueError("此诊断仅支持 AWS S3 region 参数，避免检查与 Nix 不同的目标")
-              os.environ["AWS_DEFAULT_REGION"] = query.get("region", ["us-east-1"])[0]
-              if not os.environ.get("AWS_SESSION_TOKEN"):
-                  os.environ.pop("AWS_SESSION_TOKEN", None)
-              bucket = url.netloc
-              report("[通过] 必需配置齐全（不输出凭据）")
-          
-              with tempfile.TemporaryDirectory() as directory:
-                  scratch = Path(directory)
-          
-                  def download(key, name):
-                      target = scratch / name
-                      aws("get-object", "--bucket", bucket, "--key", key, str(target))
-                      return target
-          
-                  info = download("nix-cache-info", "cache-info").read_text()
-                  if not re.search(r"^StoreDir: /nix/store\s*$", info, re.MULTILINE):
-                      raise ValueError("nix-cache-info 缺少有效的 StoreDir: /nix/store")
-                  report("[通过] S3 GetObject 与 nix-cache-info 格式")
-                  listing = json.loads(aws("list-objects-v2", "--bucket", bucket, "--max-keys", "1000", "--no-paginate"))
-                  objects = listing.get("Contents", [])
-                  candidates = [item["Key"] for item in objects if re.fullmatch(r"[0-9a-z]{32}\.narinfo", item["Key"])]
-                  report(f"[缓存] 首批 {len(objects)} 个对象中有 {len(candidates)} 个 narinfo；不是全桶缓存总数")
-                  if not candidates:
-                      raise ValueError("首批对象没有 narinfo：S3 可读，但尚未证实存在可用 Nix 缓存")
-          
-                  samples = []
-                  for index, key in enumerate(candidates[:10]):
-                      fields = {}
-                      for line in download(key, f"sample-{index}").read_text().splitlines():
-                          name, separator, value = line.partition(": ")
-                          if separator:
-                              fields.setdefault(name, []).append(value)
-                      path = fields.get("StorePath", [""])[0]
-                      if not re.fullmatch(r"/nix/store/" + re.escape(key[:-8]) + r"-[A-Za-z0-9+._?=-]+", path):
-                          raise ValueError("narinfo 的 StorePath 与对象名称不匹配")
-                      samples.append((int(fields["FileSize"][0]), fields))
-          
-                  size, fields = min(samples, key=lambda item: item[0])
-                  if size <= 0 or size > 32 * 1024 * 1024:
-                      raise ValueError("抽样中没有 32 MiB 以内的有效归档，未执行下载校验")
-                  archive_key = fields["URL"][0]
-                  if not re.fullmatch(r"nar/[A-Za-z0-9._+-]+", archive_key):
-                      raise ValueError("narinfo 包含不支持的归档路径")
-                  metadata = json.loads(aws("head-object", "--bucket", bucket, "--key", archive_key))
-                  if metadata["ContentLength"] != size:
-                      raise ValueError("归档实际大小与 narinfo FileSize 不符")
-                  archive = download(archive_key, "archive").read_bytes()
-                  digest = hashlib.sha256(archive).digest()
-                  expected = fields["FileHash"][0]
-                  valid_hashes = {"sha256:" + nix_base32(digest), "sha256:" + digest.hex(), "sha256-" + base64.b64encode(digest).decode()}
-                  if len(archive) != size or expected not in valid_hashes:
-                      raise ValueError("缓存归档 SHA-256 或大小校验失败")
-                  report(f"[通过] 抽样归档下载、大小与 SHA-256 校验（{size} bytes）")
-                  key_names = {key.split(":", 1)[0] for key in os.environ["NIX_CACHE_PUBLIC_KEY"].split()}
-                  if not any(sig.split(":", 1)[0] in key_names for sig in fields.get("Sig", [])):
-                      raise ValueError("抽样 narinfo 没有与已配置公钥名称对应的签名")
-                  report("[通过] 签名名称对应已配置公钥（此项不代表密码学签名验证）")
-                  path = fields["StorePath"][0]
-                  report(f"[缓存] 抽样产物：{path}")
-                  with open(os.environ["GITHUB_ENV"], "a") as output:
-                      output.write(f"CACHE_SAMPLE_PATH={path}\n")
-                  report("[说明] 只读抽样检查；不验证上传权限、全桶完整性或当前构建缓存命中率")
-          
-          
-          if __name__ == "__main__":
-              try:
-                  main()
-              except (ValueError, KeyError, OSError, subprocess.SubprocessError) as error:
-                  report(f"[失败] {error}")
-                  sys.exit(1)
-      - name: Setup Nix and check native S3 access
+          if not re.fullmatch(r"[a-z0-9.-]+", url.netloc) or not re.fullmatch(r"[a-z0-9-]+", region):
+              raise SystemExit("[失败] bucket 或 region 格式无效")
+          with open(os.environ["GITHUB_ENV"], "a") as output:
+              output.write(f"CACHE_BUCKET={url.netloc}\nAWS_DEFAULT_REGION={region}\n")
+          print("[通过] 读写缓存所需配置齐全，不输出凭据")
+
+      - name: Setup Nix
         uses: ./.github/actions/setup-nix
         with:
           nix-cache-url: ${{ vars.NIX_CACHE_URL }}
@@ -149,15 +58,118 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           fail-on-cache-error: 'true'
-      - name: Query sampled store path through Nix
+
+      - name: Build random artifact, upload and download
+        env:
+          NIX_CACHE_SIGNING_KEY: ${{ secrets.NIX_CACHE_SIGNING_KEY }}
         shell: bash
         run: |
           set -euo pipefail
-          nix path-info --store "$NIX_CACHE_URL" "$CACHE_SAMPLE_PATH"
-          echo '[通过] Nix 能读取抽样 store path 的元数据'
-          echo '- [通过] Nix 原生 S3 元数据查询' >> "$GITHUB_STEP_SUMMARY"
+          report() {
+            echo "$1"
+            printf -- '- %s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
+          }
+          probe_dir=$(mktemp -d "$RUNNER_TEMP/nix-cache-probe.XXXXXX")
+          key_file="$probe_dir/signing-key"
+          trap 'rm -f "$key_file"' EXIT
+          umask 077
+          printf '%s\n' "$NIX_CACHE_SIGNING_KEY" > "$key_file"
+          unset NIX_CACHE_SIGNING_KEY
+          nonce=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
+          export CACHE_PROBE_NONCE="$nonce"
+          printf '%s\n' "$nonce" > "$probe_dir/expected"
+
+          # A real input-addressed derivation; only its tiny output is uploaded.
+          # Use nixpkgs pinned by this repository instead of a moving channel.
+          cat > "$probe_dir/probe.nix" <<'NIX'
+          let
+            repo = builtins.getFlake (builtins.getEnv "GITHUB_WORKSPACE");
+            pkgs = import repo.inputs.nixpkgs { system = builtins.currentSystem; };
+            nonce = builtins.getEnv "CACHE_PROBE_NONCE";
+          in pkgs.runCommand "nix-cache-health-probe" {
+            inherit nonce;
+            allowSubstitutes = false;
+            preferLocalBuild = true;
+          } ''
+            printf '%s\n' "$nonce" > "$out"
+          ''
+          NIX
+
+          report '[构建] 创建随机 Nix 测试产物'
+          path=$(nix build --impure --file "$probe_dir/probe.nix"             --no-link --print-out-paths --print-build-logs)
+          cmp "$probe_dir/expected" "$path"
+          test -z "$(nix-store --query --references "$path")"
+          report "[通过] 构建成功，无运行时依赖：$path"
+
+          nix store sign --key-file "$key_file" "$path"
+          report '[上传] 将签名后的测试产物写入 S3'
+          nix copy --to "$NIX_CACHE_URL" "$path"
+          report '[通过] S3 上传完成'
+
+          # Empty destination guarantees this is a download, not a local hit.
+          download_root="$probe_dir/download"
+          mkdir -p "$download_root"
+          destination="local?root=$download_root"
+          test ! -e "$download_root$path"
+          report '[下载] 从 S3 恢复到全新的独立 Nix store'
+          nix copy --from "$NIX_CACHE_URL" --to "$destination"             --option require-sigs true             --option trusted-public-keys "$NIX_CACHE_PUBLIC_KEY" "$path"
+          nix store verify --store "$destination"             --option trusted-public-keys "$NIX_CACHE_PUBLIC_KEY"             --sigs-needed 1 "$path"
+          cmp "$probe_dir/expected" "$download_root$path"
+          report '[通过] S3 下载、Nix 签名、NAR 完整性及随机内容比对全部通过'
+          report '[说明] 小型测试缓存保留在 S3；此检查不验证生产构建上传队列或命中率'
+
+      - name: Count all current S3 objects and bytes
+        if: ${{ !cancelled() && env.CACHE_BUCKET != '' }}
+        shell: python
+        run: |
+          import json
+          import os
+          import subprocess
+
+          if not os.environ.get("AWS_SESSION_TOKEN"):
+              os.environ.pop("AWS_SESSION_TOKEN", None)
+          totals = {"全部对象": [0, 0], "缓存索引 narinfo": [0, 0],
+                    "缓存归档 nar/": [0, 0], "其他对象": [0, 0]}
+          token = None
+          pages = 0
+          while True:
+              args = ["aws", "--cli-connect-timeout", "10",
+                      "--cli-read-timeout", "30",
+                      "s3api", "list-objects-v2",
+                      "--bucket", os.environ["CACHE_BUCKET"],
+                      "--max-keys", "1000", "--no-paginate", "--output", "json"]
+              if token:
+                  args.extend(["--continuation-token", token])
+              page = json.loads(subprocess.check_output(args, text=True, timeout=90))
+              for item in page.get("Contents", []):
+                  key, size = item["Key"], item["Size"]
+                  category = ("缓存索引 narinfo" if key.endswith(".narinfo") else
+                              "缓存归档 nar/" if key.startswith("nar/") else "其他对象")
+                  for name in ("全部对象", category):
+                      totals[name][0] += 1
+                      totals[name][1] += size
+              pages += 1
+              if pages % 25 == 0:
+                  print(f"[统计] 已扫描 {pages} 页、{totals['全部对象'][0]} 个对象", flush=True)
+              if not page.get("IsTruncated"):
+                  break
+              token = page.get("NextContinuationToken")
+              if not token:
+                  raise SystemExit("[失败] S3 分页缺少 continuation token")
+
+          lines = ["", "| 类型 | 文件数 | 大小 | 字节数 |",
+                   "| --- | ---: | ---: | ---: |"]
+          for name, (count, size) in totals.items():
+              readable = f"{size / 1024**3:.3f} GiB"
+              print(f"[统计] {name}: {count:,} 个，{readable}，{size:,} bytes")
+              lines.append(f"| {name} | {count:,} | {readable} | {size:,} |")
+          lines.append("\n统计全部分页的当前对象，包含本次测试缓存；"
+                       "不含历史版本与未完成分段上传。并发上传时并非原子快照。")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("\n".join(lines) + "\n")
+
       - name: Report failure
         if: failure()
         run: |
-          echo '[失败] 缓存健康检查未通过，请查看上方失败步骤'
-          echo '- [失败] 检查未全部通过；请查看失败步骤日志。' >> "$GITHUB_STEP_SUMMARY"
+          echo '[失败] 健康检查未全部通过，请查看对应失败步骤'
+          echo '- [失败] 健康检查未全部通过。' >> "$GITHUB_STEP_SUMMARY"
