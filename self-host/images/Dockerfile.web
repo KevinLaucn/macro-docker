@@ -15,7 +15,7 @@ ARG DIST_DIR=dist
 ARG MACRO_VERSION=dev
 
 LABEL org.opencontainers.image.title="Macro web" \
-      org.opencontainers.image.source="https://github.com/macro-inc/macro" \
+      org.opencontainers.image.source="https://github.com/KevinLaucn/macro-docker" \
       org.opencontainers.image.licenses="AGPL-3.0-only" \
       org.opencontainers.image.version="${MACRO_VERSION}"
 
