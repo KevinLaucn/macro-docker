@@ -38,7 +38,9 @@ on:
 
 concurrency:
   group: self-host-images-${{ github.ref }}
-  cancel-in-progress: false
+  # Only the newest image build for a branch is useful; stop stale queued or
+  # running builds when a newer push supersedes them.
+  cancel-in-progress: true
 
 permissions:
   contents: read
