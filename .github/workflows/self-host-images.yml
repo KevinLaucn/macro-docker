@@ -119,11 +119,8 @@ jobs:
             '^Cargo\.lock$' \
             '^crates/' \
             '^services/' \
-            '^tooling/' \
-            '^nix/' \
-            '^docker/' \
-            '^self-host/' \
-            '^\.github/workflows/self-host-images\.yml$' \
+            '^nix/cloud-storage\.nix$' \
+            '^self-host/scripts/' \
             '^\.github/actions/setup-nix/action\.yml$'; then
             run_services=true
           fi
@@ -131,16 +128,14 @@ jobs:
           if has_match \
             '^apps/web/' \
             '^packages/' \
-            '^self-host/images/Dockerfile\.web$' \
-            '^\.github/workflows/self-host-images\.yml$'; then
+            '^self-host/images/Dockerfile\.web$'; then
             run_web=true
           fi
 
           if has_match \
             '^docker/websocket-service\.Dockerfile$' \
             '^services/websocket_service/' \
-            '^crates/.*/websocket' \
-            '^\.github/workflows/self-host-images\.yml$'; then
+            '^crates/.*/websocket'; then
             run_workers=true
           fi
 
@@ -1053,6 +1048,12 @@ jobs:
       - name: Setup Nix
         id: setup_nix
         uses: './.github/actions/setup-nix'
+        with:
+          nix-cache-url: ${{ vars.NIX_CACHE_URL }}
+          nix-cache-public-key: ${{ vars.NIX_CACHE_PUBLIC_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
 
       - name: Build diagnostics before build
         run: |
