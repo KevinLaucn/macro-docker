@@ -61,3 +61,6 @@ infra/local/generated/
 /self-host/generated/
 *.pem
 *.key
+
+# Per-instance production Compose topology; keep the local file out of GitHub.
+/docker-compose.yml

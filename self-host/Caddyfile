@@ -24,7 +24,7 @@
 	admin off
 }
 
-{$MACRO_DOMAIN} {
+http://{$MACRO_DOMAIN} {
 	encode zstd gzip
 
 	header {
@@ -144,7 +144,7 @@
 # passwordless email login never leaves the app origin. FusionAuth builds
 # absolute URLs from the host it is reached on, so it gets its own name rather
 # than a path prefix on the app origin.
-{$FUSIONAUTH_DOMAIN} {
+http://{$FUSIONAUTH_DOMAIN} {
 	encode zstd gzip
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
@@ -154,7 +154,7 @@
 	reverse_proxy fusionauth:9011
 }
 
-{$S3_DOMAIN} {
+http://{$S3_DOMAIN} {
 	encode zstd gzip
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"

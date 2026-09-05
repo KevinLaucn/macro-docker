@@ -319,9 +319,15 @@ if "Finalize Nix cache uploads\n        if: always()" in workflow:
 # service binary compiled successfully if nounset leaks into it.
 cloud_storage_nix = (ROOT / "nix/cloud-storage.nix").read_text()
 try:
-    self_host_email_derivation = cloud_storage_nix.split(
-        "selfHostEmailBinaries = craneLib.mkCargoDerivation (", 1
-    )[1].split("# ── Lambda builds", 1)[0]
+    marker = "# ── Lambda builds"
+    if "selfHostEmailBinariesMonolith = craneLib.mkCargoDerivation (" in cloud_storage_nix:
+        self_host_email_derivation = cloud_storage_nix.split(
+            "selfHostEmailBinariesMonolith = craneLib.mkCargoDerivation (", 1
+        )[1].split(marker, 1)[0]
+    else:
+        self_host_email_derivation = cloud_storage_nix.split(
+            "selfHostEmailBinaries = pkgs.buildEnv {", 1
+        )[1].split(marker, 1)[0]
 except IndexError:
     fail("could not locate selfHostEmailBinaries derivation in nix/cloud-storage.nix")
 else:

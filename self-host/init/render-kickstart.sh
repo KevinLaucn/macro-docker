@@ -66,9 +66,18 @@ base=$(subst "$TPL/kickstart.json.template" \
   SMTP_USERNAME                       "$(esc "${SMTP_USERNAME:-}")" \
   SMTP_PASSWORD                       "$(esc "${SMTP_PASSWORD:-}")" \
   ADMIN_EMAIL                         "$(esc "$ADMIN_EMAIL")" \
-  ADMIN_PASSWORD                      "$(esc "$ADMIN_PASSWORD")")
+  ADMIN_PASSWORD                      "$(esc "${ADMIN_PASSWORD:-}")")
 
 printf '%s' "$base" | jq . > "$OUT/kickstart.json"
+
+# 管理员账号由生产环境手动在 FusionAuth 中创建时，不生成空密码注册请求。
+# 空密码会导致 FusionAuth Kickstart 拒绝整个初始化文件。
+if [ -z "${ADMIN_PASSWORD:-}" ]; then
+  jq ' .requests |= map(select(.url != "/api/user/registration")) ' \
+    "$OUT/kickstart.json" > "$OUT/kickstart.json.tmp"
+  mv "$OUT/kickstart.json.tmp" "$OUT/kickstart.json"
+  echo "  administrator registration: skipped (ADMIN_PASSWORD is not configured)"
+fi
 
 append_requests() {
   local rendered="$1"

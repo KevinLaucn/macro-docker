@@ -4,7 +4,6 @@ import { useOnboardingV4Flag } from '@app/features/setup/flow/useOnboardingV4Fla
 import { useAnalytics } from '@app/lib/analytics/analytics-context';
 import { GOOGLE_GMAIL_IDP } from '@core/auth/email';
 import { LoadingBlock } from '@core/component/LoadingBlock';
-import { toast } from '@core/component/Toast/Toast';
 import { useEmailLinks } from '@core/email-link';
 import { isMobile } from '@core/mobile/isMobile';
 import { isNativeMobilePlatform } from '@core/mobile/isNativeMobilePlatform';
@@ -25,6 +24,7 @@ import { authServiceClient } from '@service-auth/client';
 import {
   action,
   useAction,
+  useNavigate,
   useSearchParams,
   useSubmission,
 } from '@solidjs/router';
@@ -43,14 +43,23 @@ import {
   untrack,
 } from 'solid-js';
 import { match } from 'ts-pattern';
-import { autoLoginCode, sendEmailCode, useResetEmailCode } from './EmailForm';
+import {
+  autoLoginCode,
+  sendEmailCode,
+  sentEmailCode,
+  useResetEmailCode,
+} from './EmailForm';
 import { OtpInput } from './OtpInput';
 import { Stage } from './Shared';
 import { useSsoLogin } from './useSsoLogin';
 
 function PostLoginRedirect() {
+  const navigate = useNavigate();
+
+  // Login init is owned by the per-method handlers (the session-token effect and
+  // onComplete); this redirect only navigates, so login doesn't fire init twice.
   onMount(() => {
-    window.location.href = `${window.location.origin}/app`;
+    navigate('/', { replace: true });
   });
 
   return <LoadingBlock />;
@@ -114,32 +123,25 @@ function LoginPicker(props: {
     <div class="flex flex-col gap-3">
       <Button
         variant="cta"
-        size="xl"
         autofocus
         onClick={() => startSsoLogin(GOOGLE_GMAIL_IDP)}
       >
-        <IconGoogle class="size-fit" />
+        <IconGoogle />
         Continue with Google
       </Button>
 
       <Show when={showApple}>
         <Button
-          variant="outline"
-          size="xl"
+          variant="base"
           class="bg-surface"
           onClick={() => startSsoLogin('Apple')}
         >
-          <IconApple class="size-fit" />
+          <IconApple />
           Continue with Apple
         </Button>
       </Show>
 
-      <Button
-        variant="outline"
-        size="xl"
-        class="bg-surface"
-        onClick={continueWithEmail}
-      >
+      <Button variant="base" class="bg-surface" onClick={continueWithEmail}>
         Continue with email
       </Button>
     </div>
@@ -200,6 +202,7 @@ function EmailFormNew(props: {
   setStage: (next: Stage) => void;
   onBack: () => void;
 }) {
+  const [isPasswordLogin, setIsPasswordLogin] = createSignal(false);
   const submission = useSubmission(sendEmailCode);
   const send = useAction(sendEmailCode);
   const [searchParams] = useSearchParams();
@@ -226,7 +229,11 @@ function EmailFormNew(props: {
   });
 
   createEffect(() => {
-    if (submission.result === 'LoggedIn') {
+    if (sentEmailCode(submission.result)) {
+      props.setStage(Stage.Verify);
+    } else if (submission.result === 'isPasswordLogin') {
+      setIsPasswordLogin(true);
+    } else if (submission.result === 'LoggedIn') {
       props.setStage(Stage.Done);
     }
   });
@@ -239,7 +246,7 @@ function EmailFormNew(props: {
       class="flex flex-col gap-3"
     >
       <p class="text-xs text-ink-muted leading-snug">
-        请输入邮箱和密码进行登录。
+        We’ll send a one-time code to verify.
       </p>
       <FormInput
         id="email"
@@ -247,29 +254,21 @@ function EmailFormNew(props: {
         placeholder="you@company.com"
         value={searchParamsEmail}
       />
-      <FormInput
-        id="password"
-        type="password"
-        placeholder="Password"
-        required
-      />
+      <Show when={isPasswordLogin()}>
+        <FormInput
+          id="password"
+          type="password"
+          placeholder="Password"
+          required={isPasswordLogin()}
+        />
+      </Show>
       <FormError msg={submission.error?.message} />
-      <Button
-        variant="cta"
-        size="xl"
-        type="submit"
-        disabled={submission.pending}
-      >
+      <Button variant="cta" type="submit" disabled={submission.pending}>
         Continue
-        <ArrowRight class="size-5" />
+        <ArrowRight class="size-4" />
       </Button>
-      <Button
-        variant="outline"
-        size="xl"
-        class="bg-surface"
-        onClick={props.onBack}
-      >
-        <ArrowLeft class="size-5" />
+      <Button variant="base" class="bg-surface" onClick={props.onBack}>
+        <ArrowLeft class="size-4" />
         Back to sign in
       </Button>
     </form>
@@ -437,20 +436,14 @@ function VerifyFormNew(props: {
           gate submission here instead of round-tripping partial codes. */}
       <Button
         variant="cta"
-        size="xl"
         type="submit"
         disabled={submission.pending || code().length !== 6 || !email()}
       >
         Verify
-        <ArrowRight class="size-5" />
+        <ArrowRight class="size-4" />
       </Button>
-      <Button
-        variant="outline"
-        size="xl"
-        class="bg-surface"
-        onClick={props.onBack}
-      >
-        <ArrowLeft class="size-5" />
+      <Button variant="base" class="bg-surface" onClick={props.onBack}>
+        <ArrowLeft class="size-4" />
         Change email
       </Button>
     </form>
@@ -499,12 +492,9 @@ export function Login(props: { signupMode?: boolean }) {
       ? rawToken[rawToken.length - 1]
       : rawToken;
     if (session_code && typeof session_code === 'string') {
+      unsetTokenPromise();
       authServiceClient.sessionLogin({ session_code }).then(async (res) => {
         if (res.isOk()) {
-          // Reset token state only after the session cookies have actually
-          // changed — resetting before sessionLogin opens a window where a
-          // visibility-triggered refresh re-latches under the new generation.
-          unsetTokenPromise();
           await invalidateAllAfterLogin();
           await initEmailLink().match(
             () => {},
@@ -514,9 +504,6 @@ export function Login(props: { signupMode?: boolean }) {
               }
             }
           );
-        } else {
-          console.error('Failed to redeem session code', res.error);
-          toast.failure('Sign-in failed. Please try again.');
         }
       });
     }
@@ -561,7 +548,7 @@ export function Login(props: { signupMode?: boolean }) {
       .with(Stage.None, () => 0)
       .with(Stage.Email, () => 1)
       .with(Stage.Verify, () => 2)
-      .with(Stage.Done, () => 3)
+      .with(Stage.Done, () => 2)
       .exhaustive();
 
   const emailSubmission = useSubmission(sendEmailCode);
@@ -619,23 +606,21 @@ export function Login(props: { signupMode?: boolean }) {
                 </div>
               </Show>
 
-              <Stepper step={stepIndex()}>
-                <Stepper.Step noTransition>
+              <Stepper
+                step={stepIndex()}
+                transition={Stepper.transitions.scale}
+              >
+                <Stepper.Step>
                   <LoginPicker
                     setStage={onStageChange}
                     signupMode={props.signupMode}
                   />
                 </Stepper.Step>
-                <Stepper.Step noTransition>
+                <Stepper.Step>
                   <EmailFormNew setStage={onStageChange} onBack={onBack} />
                 </Stepper.Step>
-                <Stepper.Step noTransition>
+                <Stepper.Step>
                   <VerifyFormNew setStage={onStageChange} onBack={onBack} />
-                </Stepper.Step>
-                <Stepper.Step noTransition>
-                  <div class="flex items-center justify-center py-12">
-                    <LoadingBlock />
-                  </div>
                 </Stepper.Step>
               </Stepper>
             </div>
@@ -643,14 +628,14 @@ export function Login(props: { signupMode?: boolean }) {
             <div class="text-center text-xs text-ink/50 wrap-break-word">
               By continuing, you agree to our{' '}
               <a
-                class="text-link hover:text-link-hover visited:text-link-visited underline underline-offset-2 focus-visible:text-link-hover"
+                class="underline underline-offset-2 hover:text-ink focus-visible:text-ink"
                 href="/terms"
               >
                 terms
               </a>{' '}
               and{' '}
               <a
-                class="text-link hover:text-link-hover visited:text-link-visited underline underline-offset-2 focus-visible:text-link-hover"
+                class="underline underline-offset-2 hover:text-ink focus-visible:text-ink"
                 href="/privacy"
               >
                 privacy policy

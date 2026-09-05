@@ -757,7 +757,9 @@
         pkgs.lib.concatMap (def: def.binaries) selfHostEmailBinaryDefinitions
       );
 
-      selfHostEmailBinaries = craneLib.mkCargoDerivation (
+      # Retained as a reference implementation while the production target
+      # below uses independently cacheable per-service derivations.
+      selfHostEmailBinariesMonolith = craneLib.mkCargoDerivation (
         selfHostEmailCommonArgs
         // {
           inherit (selfHostEmailCommonArgs) src;
@@ -819,6 +821,29 @@
           '';
         }
       );
+
+      # Build each service as its own derivation while sharing the single
+      # deps-only Cargo artifact cache. A source change now invalidates only
+      # the affected service closure instead of all Email binaries.
+      selfHostEmailBinaryPackages = pkgs.lib.listToAttrs (
+        map (def: {
+          name = "self-host-email-${def.serviceName}";
+          value = deployServiceBinaryPackage {
+            inherit (def) serviceName packageName binaries;
+            featureArgs = def.featureArgs or "";
+            cargoArtifacts = selfHostEmailCargoArtifacts;
+            buildArgs = selfHostEmailCommonArgs;
+            sourceForPackage = selfHostEmailPrunedDeploySrc;
+            lockArg = "--locked";
+          };
+        }) selfHostEmailBinaryDefinitions
+      );
+
+      selfHostEmailBinaries = pkgs.buildEnv {
+        name = "self-host-email-binaries";
+        pathsToLink = [ "/bin" ];
+        paths = pkgs.lib.attrValues selfHostEmailBinaryPackages;
+      };
 
       # ── Lambda builds (crane + cargo-zigbuild) ─────────────────────
       # SPIKE: build a Rust Lambda handler reproducibly under nix/crane so
