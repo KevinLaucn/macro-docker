@@ -4,6 +4,7 @@ import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { Key } from '@solid-primitives/keyed';
 import { Button, cn, Layer } from '@ui';
+import { t } from '@macro/i18n';
 import {
   createEffect,
   createMemo,
@@ -245,8 +246,12 @@ export function MessageList(props: MessageListProps) {
                             onFocus={() => props.onHiddenChipFocus()}
                             onClick={() => props.onOpenMiddle()}
                           >
-                            Show {hiddenCount()} hidden{' '}
-                            {hiddenCount() === 1 ? 'message' : 'messages'}
+                            {t(
+                              hiddenCount() === 1
+                                ? 'Show {count} hidden message'
+                                : 'Show {count} hidden messages',
+                              { count: hiddenCount() }
+                            )}
                           </Button>
                           <span
                             aria-hidden="true"

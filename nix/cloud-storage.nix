@@ -54,7 +54,9 @@
       pdfiumFilter = path: _type: builtins.match ".*pdfium-lib/.*\\.(so|dylib)$" path != null;
       # `.sh` is required so `include_str!` of
       # `crates/agent_harness/container/ensure_ready.sh` survives the prune.
-      assetFilter = path: _type: builtins.match ".*\\.(md|html|txt|json|canvas|sql|sh)$" path != null;
+      assetFilter =
+        path: _type:
+        builtins.match ".*\\.(md|html|txt|json|jsonl|toml|canvas|sql|sh|bop)$" path != null;
       binFilter = path: _type: builtins.match ".*\\.bin$" path != null;
       srcFilter =
         path: type:
@@ -127,6 +129,22 @@
           name = "crate-${builtins.replaceStrings [ "/" ] [ "-" ] dir}";
         };
 
+      # Cargo's package graph cannot express files read from a sibling crate at
+      # compile time. macro_db_migrator embeds macro_db_client's migrations via
+      # sqlx::migrate!, so a pruned leaf containing the migrator must also carry
+      # that directory even though macro_db_client is not a Cargo dependency.
+      macroDbMigrationsSrc = pkgs.lib.cleanSourceWith {
+        src = ../crates/macro_db_client/migrations;
+        name = "macro-db-migrations";
+        filter = path: type: type == "directory" || builtins.match ".*\\.sql$" path != null;
+      };
+
+      compileTimeResourceOverlays = dirs: pkgs.lib.optionalString (builtins.elem "crates/macro_db_migrator" dirs) ''
+        mkdir -p "$out/crates/macro_db_client/migrations"
+        cp -rT ${macroDbMigrationsSrc} "$out/crates/macro_db_client/migrations"
+        chmod -R +w "$out/crates/macro_db_client/migrations"
+      '';
+
       # Workspace-root files that crates read across crate boundaries: the
       # .sqlx offline cache (sqlx macros resolve it from the workspace root)
       # and shared assets under static_assets/ (include_bytes!-ed from workspace
@@ -198,6 +216,7 @@
             cp -rT ${crateDirSrc dir} "$out/${dir}"
             chmod -R +w "$out/${dir}"
           '') dirs}
+          ${compileTimeResourceOverlays dirs}
         '';
 
       prunedDeploySrc =
@@ -222,6 +241,7 @@
           cp -rfT ${rootDepsSrc} $out
           chmod -R +w $out
           ${overlays}
+          ${compileTimeResourceOverlays dirs}
         '';
 
       commonArgs = {
@@ -844,6 +864,31 @@
         }) selfHostEmailBinaryDefinitions
       );
 
+      # Cheap preflight for file dependencies that Cargo metadata cannot see.
+      # Run this before the expensive Rust build so a broken pruned source fails
+      # in seconds rather than after dependency compilation.
+      selfHostEmailSourceCheck =
+        let
+          migratorSrc = selfHostEmailPrunedDeploySrc "source-check-macro-db-migrator" "macro_db_migrator";
+          authenticationSrc = selfHostEmailPrunedDeploySrc "source-check-authentication" "authentication_service";
+          documentStorageSrc = selfHostEmailPrunedDeploySrc "source-check-document-storage" "document_storage_service";
+          syncServiceSrc = crateDirSrc "services/sync-service";
+          agentFoldSrc = crateDirSrc "crates/agent_fold";
+          codingAgentWorkerSrc = crateDirSrc "crates/coding_agent_worker";
+        in
+        pkgs.runCommand "self-host-email-source-check" { } ''
+          test -f ${migratorSrc}/crates/macro_db_migrator/src/lib.rs
+          test -f ${migratorSrc}/crates/macro_db_client/migrations/0001_baseline.sql
+          test -n "$(find ${migratorSrc}/crates/macro_db_client/migrations -maxdepth 1 -type f -name '*.sql' -print -quit)"
+          test -f ${authenticationSrc}/services/authentication_service/src/api/email/_verify_email_template.html
+          test -f ${documentStorageSrc}/services/document_storage_service/src/api/documents/template/canvas_template.canvas
+          test -f ${documentStorageSrc}/static_assets/markdown-golden.1.bin
+          test -f ${syncServiceSrc}/bebop/schema.bop
+          test -f ${agentFoldSrc}/fixtures/turn.jsonl
+          test -f ${codingAgentWorkerSrc}/default.macrod.toml
+          touch $out
+        '';
+
       selfHostEmailBinaries = pkgs.buildEnv {
         name = "self-host-email-binaries";
         pathsToLink = [ "/bin" ];
@@ -1248,6 +1293,7 @@
           openApiBins
           dopplerConfigBins
           nextestArchive
+          selfHostEmailSourceCheck
           ;
         default = cargoArtifacts;
       }
@@ -1257,6 +1303,7 @@
       // pkgs.lib.optionalAttrs isLinux {
         local-stack-binaries = localStackBinaries;
         self-host-email-binaries = selfHostEmailBinaries;
+        self-host-email-source-check = selfHostEmailSourceCheck;
       };
 
       devShells = {

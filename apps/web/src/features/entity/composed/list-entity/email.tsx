@@ -2,7 +2,7 @@ import { inboxIconProps } from '@core/component/inboxIcon';
 import { UserIcon } from '@core/component/UserIcon';
 import { useEmailLinksContext } from '@core/context/emailLinks';
 import { cn } from '@ui';
-import { type Accessor, createMemo, Show } from 'solid-js';
+import { type Accessor, createMemo, type JSX, Show } from 'solid-js';
 import { DraftBadge } from '../../components/Badges';
 import { Entity } from '../../entity';
 import { HitSnippet } from '../../extractors-search/HitSnippet';
@@ -116,11 +116,15 @@ export function EmailNarrowBody(props: {
   );
 }
 
+// [FORK-FEATURE]: Support custom tagsSlot on the left side of the email row.
+// When in single-column (full width) list mode, tags appear between sender and subject.
+// When in double-column/preview mode, tags are kept on the right in WideLayout.
 export function EmailWideContent(props: {
   entity: EmailEntity;
   chars: number;
   showHitSnippet: boolean;
   setContainerRef: (el: HTMLElement) => void;
+  tagsSlot?: JSX.Element;
 }) {
   return (
     <>
@@ -130,6 +134,8 @@ export function EmailWideContent(props: {
         </span>
         <EmailInboxChip entity={props.entity} class="ml-auto" />
       </span>
+      {/* [FORK-FEATURE]: Left-side tags slot (between sender column and title) */}
+      {props.tagsSlot}
       <span class="truncate">
         <Entity.Title entity={props.entity} />
       </span>

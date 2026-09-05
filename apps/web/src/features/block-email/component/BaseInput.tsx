@@ -1793,7 +1793,7 @@ export function BaseInput(props: {
                   <div class="flex items-center gap-2 min-w-0 border-b border-edge-muted">
                     <div class="flex items-center gap-2 min-w-0 flex-1 py-3">
                       <div class="w-14 shrink-0 text-sm text-ink-placeholder">
-                        From
+                        {t('From')}
                       </div>
                       <FromInboxSelector
                         pill
@@ -2065,7 +2065,9 @@ export function BaseInput(props: {
             class="min-h-14 border-b border-edge-muted/70 flex items-center min-w-0"
             data-corvu-no-drag=""
           >
-            <span class="shrink-0 text-ink-placeholder">From:&nbsp;</span>
+            <span class="shrink-0 text-ink-placeholder">
+              {t('From:')}&nbsp;
+            </span>
             <FromInboxSelector
               compact
               class="min-w-0 truncate text-ink-muted"
@@ -2090,7 +2092,7 @@ export function BaseInput(props: {
                 e.preventDefault();
                 e.currentTarget.blur();
               }}
-              placeholder="Subject:"
+              placeholder={t('Subject:')}
             />
           </div>
         </div>
@@ -2159,7 +2161,7 @@ export function BaseInput(props: {
           <div
             class={cn('absolute size-full inset-0', !isDragging() && 'hidden')}
           >
-            <FileDropOverlay>Drop file(s) to attach</FileDropOverlay>
+            <FileDropOverlay>{t('Drop file(s) to attach')}</FileDropOverlay>
           </div>
           <MarkdownShell
             config={editorConfig}

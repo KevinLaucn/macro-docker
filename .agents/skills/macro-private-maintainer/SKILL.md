@@ -55,7 +55,9 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 | **📊 数据库 Schema / 迁移** | Migration、PostgreSQL 表字段、Email/Gmail 数据表、Dump | **`../dump-schema/SKILL.md`** |
 | **🛡️ 发布前质检 / 审查门禁** | PR 审查、发布前验证、QC、精简度评估、稳定性检查 | **`../qc/SKILL.md`** |
 | **📦 依赖治理 / 漏洞升级** | Dependabot、Cargo/Bun/NPM 依赖冲突、CVE 修复 | **`../dependabot/skill.md`** |
+| **🔄 Upstream 同步 / Fork 差异治理** | `upstream/main`、同步分支、sync PR、merge 冲突、fork divergence、定制重叠、`FORK-CUSTOM` | **`skills/macro-upstream-sync/SKILL.md`**（Customization Manifest、语义冲突审查、定向 CI、专用 sync PR） |
 | **🌐 i18n 国际化 / 显式化二开** | 多语言、i18n、翻译、显式 t()、excludePatterns、audit、词条提取 | **`references/i18n-workflow.md`**（**优先通过 CodeGraph 快速定位组件**，索引缺失时执行 `codegraph sync`） |
+| **🎨 UI / UX / 设计系统二开** | 页面、组件、布局、颜色、字号、字体、图标、动效、交互、响应式、空状态、加载态、前端视觉调整 | **`skills/macro-ui-design/SKILL.md`**（官方组件优先、语义 Token、既有排版与动效、可访问性、真实浏览器验收） |
 | **🤖 AI 工具与模型扩展** | AI Tool 开发、Agent 工具注入、模型升级切换 | **`../create-ai-tool/SKILL.md`** / **`../upgrade-model/SKILL.md`** |
 | **🚀 VPS 生产运维 / 部署** | 部署、SSH、Docker Compose、生产更新、运维排障 | **`references/production-deployment.md`**（凭据见 `.local-production.md`） |
 
@@ -75,6 +77,7 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 3. **禁止无意义删除**：严禁仅因功能不用就大面积删除 upstream 源码。必须先判定能否通过解耦实现。
 4. **修改优先级原则**：配置 > 环境变量 > Adapter 替换 > 依赖注入 > 反代 Proxy > 小范围 Patch > 修改 Domain。
 5. **凭据安全红线**：严禁在 Git 追踪的文件中硬编码真实服务器 IP、私钥、OAuth Secret 或 API Key。
+6. **UI 设计系统一致性**：前端二开必须复用 Macro 官方 `@ui`、Kobalte primitives、Theme 语义 Token、既有字号与动效语言；禁止建立平行组件库、私有颜色体系、任意字号或无障碍不受控的自定义交互。
 
 ---
 

@@ -1,0 +1,74 @@
+version: 1
+
+# Keep paths narrow enough to identify the fork feature that needs review.
+# Test group names are implemented by .github/workflows/upstream-sync.yml.
+customizations:
+  - id: SELFHOST-RUNTIME-001
+    title: Private self-host runtime and zero-cloud behavior
+    rationale: Preserve the private Docker/VPS topology and prevent implicit Macro cloud dependencies.
+    risk: high
+    paths:
+      - self-host/**
+      - docker/**
+      - nix/**
+      - tooling/xtask/crates/xtask_local/**
+      - tooling/just/**
+    tests:
+      - conventions
+      - selfhost-config
+
+  - id: EMAIL-SELFHOST-001
+    title: Self-hosted Gmail and email service behavior
+    rationale: Preserve Gmail synchronization, sending, tracking, and local worker behavior without Macro cloud services.
+    risk: high
+    paths:
+      - services/email_service/**
+      - crates/email_db_client/**
+      - crates/email_api_client/**
+      - crates/email_utils/**
+      - apps/web/src/features/block-email/**
+      - apps/web/src/lib/service-clients/service-email/**
+    tests:
+      - conventions
+      - email-rust
+
+  - id: AUTH-SELFHOST-001
+    title: Self-host authentication and identity consistency
+    rationale: Keep FusionAuth and MacroDB identities aligned and preserve the private authentication boundary.
+    risk: high
+    paths:
+      - services/authentication_service/**
+      - crates/authentication_service_client/**
+      - crates/macro_db_client/**
+      - crates/macro_db_migrator/**
+      - self-host/init/**
+    tests:
+      - conventions
+      - auth-rust
+
+  - id: I18N-ZH-CN-001
+    title: Explicit Chinese localization
+    rationale: Preserve the fork's explicit i18n runtime, extraction rules, and zh-CN coverage.
+    risk: medium
+    paths:
+      - packages/i18n/**
+      - apps/web/src/lib/i18n/**
+      - rules/ast-grep/**
+      - sgconfig.yml
+    tests:
+      - conventions
+      - i18n
+
+  - id: FORK-CI-001
+    title: Private fork build and release pipelines
+    rationale: Preserve private image builds, release gates, and fork-specific CI infrastructure.
+    risk: high
+    paths:
+      - .github/workflows/self-host-images.yml
+      - .github/workflows/nix-cache-health.yml
+      - .github/workflows/release.yml
+      - .github/scripts/**
+      - .fork/**
+    tests:
+      - conventions
+      - workflow-lint

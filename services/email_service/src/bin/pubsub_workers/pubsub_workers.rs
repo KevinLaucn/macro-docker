@@ -610,7 +610,7 @@ async fn main() -> anyhow::Result<()> {
     });
 
     let db_scheduled = db.clone();
-    let email_api_scheduled = email_api_live;
+    let email_api_scheduled = email_api_live.clone();
     let s3_client_scheduled = s3_client.clone();
     let attachment_bucket_scheduled = config.attachment_bucket.to_string();
     let macro_event_broker_scheduled = macro_event_broker.clone();
@@ -628,6 +628,23 @@ async fn main() -> anyhow::Result<()> {
         )
         .await;
     });
+
+    if matches!(config.environment, Environment::Local) {
+        let db_poller = db.clone();
+        let email_api_poller = email_api_live;
+        let sqs_client_poller = sqs_client.clone();
+        let cancellation_token = worker_cancellation_token.clone();
+        worker_tracker.spawn(async move {
+            email_service::pubsub::local_poller::run_local_poller(
+                db_poller,
+                email_api_poller,
+                sqs_client_poller,
+                cancellation_token,
+            )
+            .await;
+        });
+        tracing::info!("Local Gmail poller spawned");
+    }
 
     #[cfg(feature = "sfs_map")]
     {

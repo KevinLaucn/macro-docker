@@ -1,0 +1,3 @@
+interface:
+  display_name: "Macro Upstream Sync"
+  short_description: "Safely merge upstream into the private fork"

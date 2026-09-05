@@ -1,0 +1,85 @@
+name: Upstream Sync Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Base Git ref
+        required: true
+        default: upstream/main
+      head:
+        description: Head Git ref
+        required: true
+        default: HEAD
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-sync-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'sync/upstream-') || contains(github.event.pull_request.labels.*.name, 'upstream-sync')
+    runs-on: ubuntu-latest
+    outputs:
+      test-groups: ${{ steps.overlap.outputs.test_groups }}
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream reference for manual runs
+        if: github.event_name == 'workflow_dispatch' && startsWith(inputs.base, 'upstream/')
+        run: |
+          git remote add upstream https://github.com/macro-inc/macro.git
+          git fetch --no-tags upstream main
+
+      - name: Validate manifest and detect overlaps
+        id: overlap
+        env:
+          BASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.base || github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.head || github.event.pull_request.head.sha }}
+        run: ruby .github/scripts/check-upstream-overlap.rb --base "$BASE_REF" --head "$HEAD_REF" --format github
+
+  targeted-tests:
+    needs: detect
+    if: needs.detect.outputs.test-groups != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        group: ${{ fromJSON(needs.detect.outputs.test-groups) }}
+    uses: ./.github/workflows/upstream-sync-test-group.yml
+    with:
+      group: ${{ matrix.group }}
+
+  status:
+    needs:
+      - detect
+      - targeted-tests
+    if: always() && needs.detect.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require successful sync checks
+        env:
+          DETECT_RESULT: ${{ needs.detect.result }}
+          TEST_RESULT: ${{ needs.targeted-tests.result }}
+        run: |
+          if [[ "$DETECT_RESULT" != "success" ]]; then
+            echo "Overlap detection failed: $DETECT_RESULT"
+            exit 1
+          fi
+          if [[ "$TEST_RESULT" != "success" && "$TEST_RESULT" != "skipped" ]]; then
+            echo "Targeted tests failed: $TEST_RESULT"
+            exit 1
+          fi

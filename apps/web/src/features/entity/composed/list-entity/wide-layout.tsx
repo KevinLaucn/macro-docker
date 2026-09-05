@@ -1,4 +1,6 @@
 import { useMaybeSoupView } from '@app/features/next-soup/soup-view/soup-view-context';
+import { globalSplitManager } from '@app/signal/splitLayout';
+import { useSplitPanel } from '@components/app/split-layout/layoutUtils';
 import { EntityRowTags } from '@property/tags';
 import { EntityType } from '@service-properties/generated/schemas/entityType';
 import type { SoupProperty } from '@service-storage/generated/schemas/soupProperty';
@@ -45,6 +47,7 @@ function RowTags(props: {
   entityType: EntityType;
   properties: SoupProperty[] | undefined;
   onFilterByTag?: (optionId: string) => void;
+  class?: string;
 }) {
   return (
     <EntityRowTags
@@ -52,12 +55,22 @@ function RowTags(props: {
       entityType={props.entityType}
       properties={props.properties}
       onFilterByTag={props.onFilterByTag}
+      class={props.class}
     />
   );
 }
 
 export function WideLayout(props: LayoutProps) {
   const soupView = useMaybeSoupView();
+  const splitPanel = useSplitPanel();
+  // [FORK-FEATURE]: Adaptive tag placement for email rows:
+  // - Single-column (full-width list): tags display on the left (between sender & subject).
+  // - Double-column (preview open / multiple splits): tags remain on the right (before timestamp).
+  const isDoubleColumn = () => {
+    const manager = globalSplitManager();
+    if (manager && manager.splits().length > 1) return true;
+    return !!splitPanel?.handle.isControllerSplit();
+  };
   // When a thread resolves to one of the user's inboxes the inbox chip already
   // conveys ownership, so the generic "shared" badge would be redundant.
   const owningInbox = useOwningInboxForEntity(() => props.entity);
@@ -119,6 +132,18 @@ export function WideLayout(props: LayoutProps) {
                 chars={props.chars}
                 showHitSnippet={props.showHitSnippet}
                 setContainerRef={props.setSnippetContainerRef}
+                // [FORK-FEATURE]: In single-column mode, render tags on the left between sender & title
+                tagsSlot={
+                  <Show when={!isDoubleColumn()}>
+                    <RowTags
+                      entityId={entity().id}
+                      entityType={EntityType.THREAD}
+                      properties={entity().properties}
+                      onFilterByTag={soupView?.filterByTag}
+                      class="shrink-0"
+                    />
+                  </Show>
+                }
               />
             )}
           </Match>
@@ -188,12 +213,15 @@ export function WideLayout(props: LayoutProps) {
         </Show>
         <Show when={isEmailEntity(props.entity) && props.entity}>
           {(entity) => (
-            <RowTags
-              entityId={entity().id}
-              entityType={EntityType.THREAD}
-              properties={entity().properties}
-              onFilterByTag={soupView?.filterByTag}
-            />
+            // [FORK-FEATURE]: In double-column mode, retain tags on the right (meta slot before timestamp)
+            <Show when={isDoubleColumn()}>
+              <RowTags
+                entityId={entity().id}
+                entityType={EntityType.THREAD}
+                properties={entity().properties}
+                onFilterByTag={soupView?.filterByTag}
+              />
+            </Show>
           )}
         </Show>
         <Show when={isChatEntity(props.entity) && props.entity}>

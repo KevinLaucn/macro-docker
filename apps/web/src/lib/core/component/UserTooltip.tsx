@@ -8,6 +8,7 @@ import WideChat from '@icon/wide-chat.svg';
 import WideContact from '@icon/wide-contact.svg';
 import WideCopy from '@icon/wide-copy.svg';
 import WideTask from '@icon/wide-task.svg';
+import { t } from '@macro/i18n';
 import IconCheck from '@phosphor/check.svg';
 import { useGetOrCreateDirectMessageMutation } from '@queries/channel/get-or-create-dm';
 import { useCrmContactByEmailQuery } from '@queries/crm/contacts';
@@ -49,7 +50,7 @@ export function UserTooltip(props: UserTooltipProps) {
   const { openWithSplit, popoverSplit } = useSplitLayout();
   const crmFlag = useFeatureFlag(enableCrm);
   const getOrCreateDmMutation = useGetOrCreateDirectMessageMutation({
-    onError: () => toast.failure('Failed to open direct message'),
+    onError: () => toast.failure(t('Failed to open direct message')),
   });
 
   const openDM = async (e: MouseEvent) => {
@@ -129,15 +130,18 @@ export function UserTooltip(props: UserTooltipProps) {
           <div class="p-1.5 flex flex-col gap-0.5">
             <Show when={props.email}>
               {(email) => (
-                <CopyActionItem value={email()} toastMessage="Email copied">
-                  Copy email
+                <CopyActionItem
+                  value={email()}
+                  toastMessage={t('Email copied')}
+                >
+                  {t('Copy email')}
                 </CopyActionItem>
               )}
             </Show>
             <Show when={copyableName(props.displayName, props.email)}>
               {(name) => (
-                <CopyActionItem value={name()} toastMessage="Name copied">
-                  Copy name
+                <CopyActionItem value={name()} toastMessage={t('Name copied')}>
+                  {t('Copy name')}
                 </CopyActionItem>
               )}
             </Show>
@@ -151,13 +155,13 @@ export function UserTooltip(props: UserTooltipProps) {
             <Show when={canTreatAsUser() && props.id !== currentUserId()}>
               <ActionItem onClick={openDM}>
                 <WideChat class="size-3.5" />
-                DM
+                {t('DM')}
               </ActionItem>
             </Show>
             <Show when={canTreatAsUser()}>
               <ActionItem onClick={openTaskComposer}>
                 <WideTask class="size-3.5" />
-                Assign task
+                {t('Assign task')}
               </ActionItem>
             </Show>
           </div>
@@ -197,7 +201,7 @@ function OpenContactAction(props: { email: string; onClose?: () => void }) {
       {(contact) => (
         <ActionItem onClick={(e) => openContact(e, contact().id)}>
           <WideContact class="size-3.5" />
-          Open contact
+          {t('Open contact')}
         </ActionItem>
       )}
     </Show>

@@ -672,6 +672,11 @@ jobs:
             echo "[CACHE] Streaming Nix cache uploads disabled; using configured substituters for reads only."
           fi
 
+          # Validate pruned-source compile-time resources before the expensive
+          # Rust dependency build. This catches sibling-crate assets such as
+          # macro_db_client migrations in seconds instead of after an hour.
+          nix build --print-build-logs ".#self-host-email-source-check" --out-link result-source-check
+
           BUILD_NIX_START=$(date -u +%s)
           set +e
           nix build --print-build-logs $NIX_JOBS_FLAG ".#self-host-email-binaries" --out-link result-bins 2>&1 \

@@ -1,0 +1,63 @@
+name: Upstream Sync Test Group
+
+on:
+  workflow_call:
+    inputs:
+      group:
+        description: Validated customization test group
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Reject unknown test group
+        if: ${{ !contains(fromJSON('["conventions","workflow-lint","selfhost-config","email-rust","auth-rust","i18n"]'), inputs.group) }}
+        run: |
+          echo "Unknown upstream-sync test group: ${{ inputs.group }}"
+          exit 1
+
+      - name: Set up Nix
+        if: inputs.group != 'i18n' && inputs.group != 'workflow-lint'
+        uses: ./.github/actions/setup-nix
+
+      - name: Run conventions
+        if: inputs.group == 'conventions'
+        run: nix develop --command just check
+
+      - name: Lint workflows
+        if: inputs.group == 'workflow-lint'
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+
+      - name: Validate self-host artifacts
+        if: inputs.group == 'selfhost-config'
+        run: nix develop --command just self-host-check
+
+      - name: Check email Rust crates
+        if: inputs.group == 'email-rust'
+        run: nix develop --command cargo check -p email_service -p email_db_client
+
+      - name: Check authentication Rust crates
+        if: inputs.group == 'auth-rust'
+        run: nix develop --command cargo check -p authentication_service -p authentication_service_client
+
+      - name: Set up Bun
+        if: inputs.group == 'i18n'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+
+      - name: Install web dependencies
+        if: inputs.group == 'i18n'
+        run: bun install --frozen-lockfile
+
+      - name: Test i18n
+        if: inputs.group == 'i18n'
+        run: bun test packages/i18n

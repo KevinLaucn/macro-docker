@@ -1,5 +1,6 @@
 import { useEmail } from '@core/context/user';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
+import { t } from '@macro/i18n';
 import CaretRight from '@phosphor/caret-right.svg';
 import EyeIcon from '@phosphor-icons/core/regular/eye.svg?component-solid';
 import { useReadReceiptStatusQuery } from '@queries/email/readReceipts';
@@ -71,7 +72,7 @@ function DetailRow(props: {
   return (
     <Show when={props.recipients.length > 0}>
       <div class="flex flex-row gap-3 text-xs items-center">
-        <div class="text-ink-extra-muted flex items-center shrink-0 w-10 pt-0.5">
+        <div class="text-ink-extra-muted flex items-center shrink-0 min-w-10 pt-0.5">
           {props.label}
         </div>
         <div class="flex flex-row flex-wrap gap-y-1 select-text cursor-text min-w-0">
@@ -98,10 +99,10 @@ function ExpandedDetails(props: { message: ApiMessage }): JSX.Element {
 
   return (
     <div class="mt-2.5 py-3 border-y border-ink-muted/8 flex flex-col gap-1.5 text-xs">
-      <DetailRow label="From" recipients={fromRecipients()} />
-      <DetailRow label="To" recipients={props.message.to} />
-      <DetailRow label="Cc" recipients={props.message.cc} />
-      <DetailRow label="Bcc" recipients={props.message.bcc} />
+      <DetailRow label={t('From')} recipients={fromRecipients()} />
+      <DetailRow label={t('To')} recipients={props.message.to} />
+      <DetailRow label={t('Cc')} recipients={props.message.cc} />
+      <DetailRow label={t('Bcc')} recipients={props.message.bcc} />
       <Show when={props.message.internal_date_ts}>
         <div class="text-xs text-ink-extra-muted tabular-nums mt-1.5 select-text cursor-text">
           {formatFullDate(props.message.internal_date_ts!)}
@@ -166,7 +167,7 @@ function HeaderTopRow(props: {
           <span class="text-ink font-medium">{props.senderName}</span>
         </EmailUserTooltip>
         <span class="text-ink-extra-muted/60 truncate">
-          to{' '}
+          {t('to', { context: 'email' })}{' '}
           <CollapsedRecipientList
             recipients={allRecipients()}
             currentUserEmail={props.currentUserEmail}
@@ -181,8 +182,8 @@ function HeaderTopRow(props: {
           <Tooltip
             label={
               props.isExpanded
-                ? 'Collapse Message Header'
-                : 'Expand Message Header'
+                ? t('Collapse Message Header')
+                : t('Expand Message Header')
             }
           >
             <Button
