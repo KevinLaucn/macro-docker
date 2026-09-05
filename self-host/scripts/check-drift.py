@@ -313,6 +313,25 @@ if 'dest="${NIX_CACHE_URL:-}"' not in workflow:
 if "Finalize Nix cache uploads\n        if: always()" in workflow:
     fail("self-host-images must not flush streaming Nix cache uploads after failed builds")
 
+# 4. Nix stdenv phase safety check. Phase command snippets execute in the
+# shared builder shell, so `set -u` persists into nixpkgs fixup hooks. The
+# strip hook intentionally uses optional variables and can fail after every
+# service binary compiled successfully if nounset leaks into it.
+cloud_storage_nix = (ROOT / "nix/cloud-storage.nix").read_text()
+try:
+    self_host_email_derivation = cloud_storage_nix.split(
+        "selfHostEmailBinaries = craneLib.mkCargoDerivation (", 1
+    )[1].split("# ── Lambda builds", 1)[0]
+except IndexError:
+    fail("could not locate selfHostEmailBinaries derivation in nix/cloud-storage.nix")
+else:
+    unsafe_nounset = re.compile(r"^[ \t]*set[ \t]+-[^\n]*u[^\n]*$", re.M)
+    if unsafe_nounset.search(self_host_email_derivation):
+        fail(
+            "selfHostEmailBinaries must not enable shell nounset in stdenv phases; "
+            "it leaks into automatic fixup hooks"
+        )
+
 # --- report ----------------------------------------------------------------
 if failures:
     print("self-host consistency check failed:\n", file=sys.stderr)

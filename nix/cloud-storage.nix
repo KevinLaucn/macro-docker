@@ -773,7 +773,11 @@
           CARGO_PROFILE = "release";
 
           buildPhaseCargoCommand = ''
-            set -euo pipefail
+            # Crane phase commands run in the stdenv builder shell. Shell
+            # options therefore survive into later phases and Nix's fixup
+            # hooks. Keep errexit/pipefail here, but never enable nounset:
+            # nixpkgs' strip hook uses optional variables such as exit_code.
+            set -eo pipefail
 
             ${pkgs.lib.concatMapStringsSep "\n" (def: ''
               echo "=== [EMAIL BUILD: ${def.packageName}] START: $(date -u +%T) ==="
@@ -786,7 +790,9 @@
           '';
 
           installPhaseCommand = ''
-            set -euo pipefail
+            # Do not enable nounset in a stdenv phase; it would leak into the
+            # automatic patchelf/strip fixup hooks that run after installation.
+            set -eo pipefail
             mkdir -p $out/bin
 
             ${pkgs.lib.concatMapStringsSep "\n" (bin: ''
