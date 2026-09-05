@@ -1,3 +1,4 @@
+# Comment-only rebuild trigger for the workers image.
 FROM oven/bun:1 AS base
 WORKDIR /app
 
