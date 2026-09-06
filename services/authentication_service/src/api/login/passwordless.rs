@@ -13,14 +13,15 @@ use crate::{
     generate_password::generate_random_password,
 };
 use fusionauth::error::FusionAuthClientError;
+#[cfg(feature = "full-saas")]
 use macro_user_id::user_id::MacroUserId;
-use model::{
-    authentication::login::{
-        request::PasswordlessRequest,
-        response::{PasswordlessStartedResponse, SsoRequiredResponse},
-    },
-    response::ErrorResponse,
+use model::authentication::login::{
+    request::PasswordlessRequest,
+    response::{PasswordlessStartedResponse, SsoRequiredResponse},
 };
+#[cfg(feature = "full-saas")]
+use model::response::ErrorResponse;
+#[cfg(feature = "full-saas")]
 use referral::domain::{models::ReferralCode, ports::ReferralService};
 
 /// Initiates a passwordless login
@@ -128,6 +129,7 @@ pub async fn handler(
 
                     tracing::trace!(fusionauth_user_id, "created new fusionauth user");
 
+                    #[cfg(feature = "full-saas")]
                     if let Some(referral_code) = req.referral_code {
                         tracing::trace!(referral_code, "referral code found");
                         let macro_user_id = format!("macro|{}", req.email.to_lowercase());

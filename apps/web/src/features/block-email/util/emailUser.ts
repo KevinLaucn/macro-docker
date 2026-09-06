@@ -3,22 +3,22 @@ import type { ApiMessage } from '@service-email/generated/schemas';
 import { getFirstName } from './name';
 
 /**
- * Check if a message is from the current user or linked inboxes
+ * Check if a message is an outbound message from the current user/inbox
  */
 export function isMessageFromCurrentUser(
   message: ApiMessage,
-  currentUserEmail?: string,
-  connectedEmails?: Array<string | undefined | null>
+  _currentUserEmail?: string,
+  _connectedEmails?: Array<string | undefined | null>
 ): boolean {
-  const fromEmail = message.from?.email?.toLowerCase();
-  if (!fromEmail) return false;
-  if (currentUserEmail && fromEmail === currentUserEmail.toLowerCase()) {
+  if (message.is_sent) return true;
+  if (message.is_draft) return true;
+  if (message.scheduled_send_time) return true;
+  if (
+    message.labels?.some(
+      (l) => l.provider_label_id === 'SENT' || l.name === 'SENT'
+    )
+  ) {
     return true;
-  }
-  if (connectedEmails) {
-    return connectedEmails.some(
-      (email) => email && email.toLowerCase() === fromEmail
-    );
   }
   return false;
 }

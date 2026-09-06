@@ -1,6 +1,7 @@
 import { UserIcon, type UserIconProps } from '@core/component/UserIcon';
 import { useEmail } from '@core/context/user';
 import { emailToMacroId } from '@core/user';
+import { useEmailLinksQuery } from '@queries/email/link';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 import { useEmailContext } from './EmailContext';
 import { EmailUserTooltip } from './EmailUserTooltip';
@@ -16,7 +17,14 @@ const DEFAULT_VISIBLE_COUNT = 5;
 export function EmailParticipants() {
   const context = useEmailContext();
   const currentUserEmail = useEmail();
+  const emailLinksQuery = useEmailLinksQuery();
   const [expanded, setExpanded] = createSignal(false);
+
+  const activeInboxEmail = createMemo(() => {
+    const threadLinkId = context.thread()?.link_id;
+    const link = emailLinksQuery.data?.links.find((l) => l.id === threadLinkId);
+    return link?.email_address?.toLowerCase();
+  });
 
   const participants = createMemo(() => {
     const messages = context.messages.unfiltered();
@@ -60,7 +68,10 @@ export function EmailParticipants() {
   );
 
   const getDisplayName = (p: Participant) => {
-    if (p.email === currentUserEmail()) return 'Me';
+    const inbox = activeInboxEmail();
+    const pEmail = p.email.toLowerCase();
+    if (inbox && pEmail === inbox) return 'Me';
+    if (!inbox && pEmail === currentUserEmail()?.toLowerCase()) return 'Me';
     if (p.name) return p.name.split(' ')[0];
     return p.email.split('@')[0];
   };

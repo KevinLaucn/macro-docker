@@ -69,8 +69,8 @@ export const BlockRegistry = [
   'pr',
 ] as const;
 
-/** Block names that resolve through another concrete block implementation. */
-export const VirtualBlockRegistry = ['write'] as const;
+/** Block names that resolve through another concrete block implementation or have been retired from concrete block loading. */
+export const VirtualBlockRegistry = ['write', 'call'] as const;
 const virtualBlockNames = new Set<string>(VirtualBlockRegistry);
 export const ConcreteBlockRegistry = BlockRegistry.filter(
   (name) => !virtualBlockNames.has(name)

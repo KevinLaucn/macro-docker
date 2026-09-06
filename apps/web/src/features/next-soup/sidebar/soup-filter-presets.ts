@@ -313,7 +313,7 @@ export const VIEW_TAB_PRESETS: Record<ListView, ViewTabConfig> = {
 
             emailShared: 'exclude',
           },
-          emailView: 'inbox',
+          emailView: 'all',
         }),
         clientFilters: { and: ['email'] },
         groupBy: 'date',

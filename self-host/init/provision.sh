@@ -74,28 +74,46 @@ macro_db_migrate
 if [ -n "${ADMIN_EMAIL:-}" ]; then
   log "ensuring Super Administrator exists ($ADMIN_EMAIL)"
   psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 -v admin_email="$ADMIN_EMAIL" <<'ADMIN_EOF' >/dev/null
-INSERT INTO "macro_user" ("id", "username", "email", "stripe_customer_id", "has_trialed")
-VALUES ('00000000-0000-0000-0000-000000000001'::uuid, 'admin', :'admin_email', 'cus_local_admin', true)
-ON CONFLICT ("id") DO UPDATE
-SET "username" = 'admin',
-    "email" = EXCLUDED."email",
-    "stripe_customer_id" = EXCLUDED."stripe_customer_id";
+DO $$
+DECLARE
+  v_admin_email text := lower(:'admin_email');
+  v_user_id uuid;
+BEGIN
+  -- 1. Look up existing real user UUID for admin_email
+  SELECT "macro_user_id" INTO v_user_id FROM "User"
+  WHERE lower("email") = v_admin_email AND "macro_user_id" IS NOT NULL AND "macro_user_id" != '00000000-0000-0000-0000-000000000001'::uuid
+  LIMIT 1;
 
-INSERT INTO "User" ("id", "email", "name", "macro_user_id", "aiDataConsent", "tutorialComplete")
-VALUES ('macro|' || :'admin_email', :'admin_email', 'Admin', '00000000-0000-0000-0000-000000000001'::uuid, true, true)
-ON CONFLICT ("id") DO UPDATE
-SET "email" = EXCLUDED."email",
-    "macro_user_id" = EXCLUDED."macro_user_id";
+  IF v_user_id IS NULL THEN
+    SELECT "id" INTO v_user_id FROM "macro_user"
+    WHERE lower("email") = v_admin_email AND "id" != '00000000-0000-0000-0000-000000000001'::uuid
+    LIMIT 1;
+  END IF;
 
-INSERT INTO "RolesOnUsers" ("userId", "roleId")
-VALUES
-  ('macro|' || :'admin_email', 'super_admin'),
-  ('macro|' || :'admin_email', 'ai_subscriber'),
-  ('macro|' || :'admin_email', 'sub_opus'),
-  ('macro|' || :'admin_email', 'editor_user'),
-  ('macro|' || :'admin_email', 'email_tool'),
-  ('macro|' || :'admin_email', 'professional_subscriber')
-ON CONFLICT ("userId", "roleId") DO NOTHING;
+  -- 2. If no user exists yet, initialize placeholder; if already exists with a real UUID, never overwrite it!
+  IF v_user_id IS NULL THEN
+    v_user_id := '00000000-0000-0000-0000-000000000001'::uuid;
+
+    INSERT INTO "macro_user" ("id", "username", "email", "stripe_customer_id", "has_trialed")
+    VALUES (v_user_id, 'admin', :'admin_email', 'cus_local_admin', true)
+    ON CONFLICT ("id") DO NOTHING;
+
+    INSERT INTO "User" ("id", "email", "name", "macro_user_id", "aiDataConsent", "tutorialComplete")
+    VALUES ('macro|' || :'admin_email', :'admin_email', 'Admin', v_user_id, true, true)
+    ON CONFLICT ("id") DO NOTHING;
+  END IF;
+
+  -- 3. Ensure Super Administrator roles are granted
+  INSERT INTO "RolesOnUsers" ("userId", "roleId")
+  VALUES
+    ('macro|' || :'admin_email', 'super_admin'),
+    ('macro|' || :'admin_email', 'ai_subscriber'),
+    ('macro|' || :'admin_email', 'sub_opus'),
+    ('macro|' || :'admin_email', 'editor_user'),
+    ('macro|' || :'admin_email', 'email_tool'),
+    ('macro|' || :'admin_email', 'professional_subscriber')
+  ON CONFLICT ("userId", "roleId") DO NOTHING;
+END $$;
 ADMIN_EOF
 fi
 

@@ -202,7 +202,6 @@ function EmailFormNew(props: {
   setStage: (next: Stage) => void;
   onBack: () => void;
 }) {
-  const [isPasswordLogin, setIsPasswordLogin] = createSignal(false);
   const submission = useSubmission(sendEmailCode);
   const send = useAction(sendEmailCode);
   const [searchParams] = useSearchParams();
@@ -229,11 +228,7 @@ function EmailFormNew(props: {
   });
 
   createEffect(() => {
-    if (submission.result === 'LoggedIn') {
-      props.setStage(Stage.Done);
-    } else if (submission.result === 'isPasswordLogin') {
-      setIsPasswordLogin(true);
-    } else if (sentEmailCode(submission.result)) {
+    if (sentEmailCode(submission.result)) {
       props.setStage(Stage.Verify);
     }
   });
@@ -254,14 +249,6 @@ function EmailFormNew(props: {
         placeholder="you@company.com"
         value={searchParamsEmail}
       />
-      <Show when={isPasswordLogin()}>
-        <FormInput
-          id="password"
-          type="password"
-          placeholder="Password"
-          required={isPasswordLogin()}
-        />
-      </Show>
       <FormError msg={submission.error?.message} />
       <Button variant="cta" type="submit" disabled={submission.pending}>
         Continue

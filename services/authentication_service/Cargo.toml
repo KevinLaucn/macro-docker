@@ -16,6 +16,7 @@ path = "src/bin/generate_keys.rs"
 [[bin]]
 name = "authentication_service_openapi"
 path = "src/openapi.rs"
+required-features = ["full-saas"]
 
 [[bin]]
 name = "authentication_service_doppler_config"
