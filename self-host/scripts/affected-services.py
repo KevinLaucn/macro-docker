@@ -5,6 +5,10 @@ The Rust service impact calculation is dependency-aware: a service is rebuilt
 only when a changed workspace directory appears in that service package's
 transitive workspace closure from .github/workspace-dep-closures.json.
 
+The script fails closed when its hard-coded production service inventory drifts
+from nix/cloud-storage.nix, so a future service addition cannot silently skip
+CI rebuilds.
+
 GitHub Actions output:
   run_services=true|false
   service_targets=["self-host-email-email-service", ...]
@@ -19,11 +23,13 @@ import argparse
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CLOSURES_PATH = ROOT / ".github/workspace-dep-closures.json"
+NIX_PATH = ROOT / "nix/cloud-storage.nix"
 
 SERVICE_ROOTS: dict[str, str] = {
     "authentication-service": "authentication_service",
@@ -109,14 +115,31 @@ INIT_PREFIXES = (
     "infra/stacks/opensearch/helpers/",
 )
 
+ROOT_SHARED_SUFFIXES = {
+    ".md",
+    ".html",
+    ".txt",
+    ".json",
+    ".jsonl",
+    ".toml",
+    ".canvas",
+    ".sql",
+    ".sh",
+    ".bop",
+    ".bin",
+}
+
 
 def matches(path: str, exact: set[str], prefixes: tuple[str, ...]) -> bool:
     return path in exact or any(path.startswith(prefix) for prefix in prefixes)
 
 
 def git_changed_files(base: str, head: str) -> list[str]:
+    # --no-renames is deliberate. A rename crossing service boundaries must
+    # expose both the deleted old path and the added new path, otherwise the
+    # service losing the file could be incorrectly treated as unaffected.
     proc = subprocess.run(
-        ["git", "diff", "--name-only", base, head],
+        ["git", "diff", "--no-renames", "--name-only", base, head],
         cwd=ROOT,
         check=True,
         text=True,
@@ -129,19 +152,93 @@ def path_in_dir(path: str, directory: str) -> bool:
     return path == directory or path.startswith(directory + "/")
 
 
-ROOT_SHARED_SUFFIXES = {
-    ".md", ".html", ".txt", ".json", ".jsonl", ".toml",
-    ".canvas", ".sql", ".sh", ".bop", ".bin",
-}
-
-
 def is_shared_root_dep(path: str) -> bool:
+    # Mirrors rootDepsSrc in nix/cloud-storage.nix: top-level shared asset files
+    # become inputs to every pruned Email service source.
     if "/" in path or path in {"Cargo.toml", "Cargo.lock"}:
         return False
     return pathlib.PurePosixPath(path).suffix in ROOT_SHARED_SUFFIXES
 
 
-def compute_service_targets(changed: list[str], force_all: bool) -> list[str]:
+def load_closures() -> dict[str, list[str]]:
+    doc = json.loads(CLOSURES_PATH.read_text(encoding="utf-8"))
+    closures = doc.get("closures")
+    if not isinstance(closures, dict):
+        raise RuntimeError(f"{CLOSURES_PATH.relative_to(ROOT)} has no closures object")
+    return closures
+
+
+def nix_email_definitions() -> dict[str, str]:
+    """Read the simple serviceName/packageName pairs from the Email Nix list.
+
+    This is intentionally only a drift guard, not a general Nix parser. If the
+    Nix block is refactored enough that this parser no longer matches, CI fails
+    closed and asks for this planner to be updated instead of silently skipping
+    a production service.
+    """
+    text = NIX_PATH.read_text(encoding="utf-8")
+    start_marker = "selfHostEmailBinaryDefinitions = ["
+    end_marker = "      ];"
+    try:
+        block = text.split(start_marker, 1)[1].split(end_marker, 1)[0]
+    except IndexError as exc:
+        raise RuntimeError(
+            "could not locate selfHostEmailBinaryDefinitions in nix/cloud-storage.nix"
+        ) from exc
+
+    pairs = re.findall(
+        r'serviceName\s*=\s*"([^"]+)";\s*\n\s*packageName\s*=\s*"([^"]+)";',
+        block,
+    )
+    if not pairs:
+        raise RuntimeError(
+            "could not parse any Email service definitions from nix/cloud-storage.nix"
+        )
+    return dict(pairs)
+
+
+def validate_config(closures: dict[str, list[str]]) -> None:
+    nix_defs = nix_email_definitions()
+    if nix_defs != SERVICE_ROOTS:
+        missing = sorted(set(nix_defs) - set(SERVICE_ROOTS))
+        extra = sorted(set(SERVICE_ROOTS) - set(nix_defs))
+        mismatched = sorted(
+            name
+            for name in set(nix_defs) & set(SERVICE_ROOTS)
+            if nix_defs[name] != SERVICE_ROOTS[name]
+        )
+        raise RuntimeError(
+            "affected-services.py service inventory drifted from "
+            "selfHostEmailBinaryDefinitions; "
+            f"missing={missing}, extra={extra}, package_mismatch={mismatched}"
+        )
+
+    missing_closures = sorted(
+        package for package in SERVICE_ROOTS.values() if package not in closures
+    )
+    if missing_closures:
+        raise RuntimeError(
+            ".github/workspace-dep-closures.json is missing production packages: "
+            + ", ".join(missing_closures)
+        )
+
+
+def changed_path_hits_closure(
+    path: str,
+    package_name: str,
+    closures: dict[str, list[str]],
+) -> bool:
+    package_closure = closures.get(package_name)
+    if package_closure is None:
+        return False
+    return any(path_in_dir(path, directory) for directory in package_closure)
+
+
+def compute_service_targets(
+    changed: list[str],
+    force_all: bool,
+    closures: dict[str, list[str]],
+) -> list[str]:
     if force_all or any(
         matches(path, FULL_SERVICE_EXACT, FULL_SERVICE_PREFIXES)
         or is_shared_root_dep(path)
@@ -149,23 +246,71 @@ def compute_service_targets(changed: list[str], force_all: bool) -> list[str]:
     ):
         return [f"self-host-email-{name}" for name in SERVICE_ROOTS]
 
-    closures_doc = json.loads(CLOSURES_PATH.read_text())
-    closures: dict[str, list[str]] = closures_doc["closures"]
-
     affected: list[str] = []
     for service_name, package_name in SERVICE_ROOTS.items():
-        service_closure = closures.get(package_name)
-        if service_closure is None:
-            raise RuntimeError(
-                f"{package_name!r} missing from {CLOSURES_PATH.relative_to(ROOT)}"
-            )
         if any(
-            path_in_dir(path, directory)
+            changed_path_hits_closure(path, package_name, closures)
             for path in changed
-            for directory in service_closure
         ):
             affected.append(f"self-host-email-{service_name}")
     return affected
+
+
+def worker_is_affected(
+    changed: list[str],
+    force_all: bool,
+    closures: dict[str, list[str]],
+) -> bool:
+    if force_all:
+        return True
+    if any(matches(path, WORKER_EXACT, WORKER_PREFIXES) for path in changed):
+        return True
+
+    websocket_closure = closures.get("websocket_service")
+    if websocket_closure is not None:
+        return any(
+            path_in_dir(path, directory)
+            for path in changed
+            for directory in websocket_closure
+        )
+
+    # Fail safe if the generated closure does not expose websocket_service.
+    # This is intentionally conservative rather than risking a stale worker.
+    return any(
+        path.startswith("crates/") or path.startswith("services/websocket_service/")
+        for path in changed
+    )
+
+
+def compute_impact(
+    changed: list[str],
+    force_all: bool,
+    closures: dict[str, list[str]],
+) -> dict[str, object]:
+    service_targets = compute_service_targets(changed, force_all, closures)
+
+    run_services = force_all or bool(service_targets) or any(
+        matches(path, SERVICE_IMAGE_EXACT, SERVICE_IMAGE_PREFIXES)
+        for path in changed
+    )
+    run_web = force_all or any(
+        matches(path, WEB_EXACT, WEB_PREFIXES) for path in changed
+    )
+    run_workers = worker_is_affected(changed, force_all, closures)
+    run_init = (
+        force_all
+        or "self-host-email-macro-db-migrator" in service_targets
+        or any(matches(path, INIT_EXACT, INIT_PREFIXES) for path in changed)
+    )
+
+    return {
+        "run_services": run_services,
+        "service_targets": service_targets,
+        "run_web": run_web,
+        "run_workers": run_workers,
+        "run_init": run_init,
+        "changed_count": len(changed),
+    }
 
 
 def write_outputs(values: dict[str, object], output_path: str | None) -> None:
@@ -195,6 +340,9 @@ def main() -> int:
     parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT"))
     args = parser.parse_args()
 
+    closures = load_closures()
+    validate_config(closures)
+
     if args.force_all:
         changed: list[str] = []
     else:
@@ -202,34 +350,7 @@ def main() -> int:
             parser.error("--base is required unless --all is used")
         changed = git_changed_files(args.base, args.head)
 
-    service_targets = compute_service_targets(changed, args.force_all)
-
-    run_services = args.force_all or bool(service_targets) or any(
-        matches(path, SERVICE_IMAGE_EXACT, SERVICE_IMAGE_PREFIXES)
-        for path in changed
-    )
-    run_web = args.force_all or any(
-        matches(path, WEB_EXACT, WEB_PREFIXES) for path in changed
-    )
-    run_workers = args.force_all or any(
-        matches(path, WORKER_EXACT, WORKER_PREFIXES)
-        or (path.startswith("crates/") and "websocket" in path.lower())
-        for path in changed
-    )
-    run_init = (
-        args.force_all
-        or "self-host-email-macro-db-migrator" in service_targets
-        or any(matches(path, INIT_EXACT, INIT_PREFIXES) for path in changed)
-    )
-
-    values = {
-        "run_services": run_services,
-        "service_targets": service_targets,
-        "run_web": run_web,
-        "run_workers": run_workers,
-        "run_init": run_init,
-        "changed_count": len(changed),
-    }
+    values = compute_impact(changed, args.force_all, closures)
     write_outputs(values, args.github_output)
 
     print("\nChanged files:")
@@ -237,10 +358,11 @@ def main() -> int:
         for path in changed:
             print(f"  {path}")
     else:
-        print("  (forced full build)")
+        print("  (forced full build)" if args.force_all else "  (none)")
 
     print("\nAffected Email service targets:")
-    if service_targets:
+    service_targets = values["service_targets"]
+    if isinstance(service_targets, list) and service_targets:
         for target in service_targets:
             print(f"  .#{target}")
     else:
@@ -250,4 +372,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except (OSError, RuntimeError, json.JSONDecodeError, subprocess.CalledProcessError) as exc:
+        print(f"affected-services: {exc}", file=sys.stderr)
+        sys.exit(2)
