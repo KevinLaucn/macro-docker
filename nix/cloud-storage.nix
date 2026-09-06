@@ -481,7 +481,6 @@
           serviceName = "document-storage-service";
           packageName = "document_storage_service";
           binaries = [ "document_storage_service" ];
-          featureArgs = "--no-default-features";
         }
         {
           serviceName = "email-service";
@@ -557,7 +556,6 @@
       # Same --no-default-features stripping as selfHostEmailBinaryCargoExtraArgs:
       # cargo rejects the flag when it appears more than once, and the aggregate
       # deps-only command concatenates featureArgs from every definition.
-      # Currently only DSS uses the flag here, but a second package would break.
       deployBinaryCargoExtraArgs =
         "--locked "
         + pkgs.lib.concatMapStringsSep " " (
@@ -690,7 +688,6 @@
           serviceName = "document-storage-service";
           packageName = "document_storage_service";
           binaries = [ "document_storage_service" ];
-          featureArgs = "--no-default-features";
         }
         {
           serviceName = "email-service";

@@ -90,7 +90,6 @@ export function defineFlag(config: RemoteFlagConfig | EnvFlagConfig): Flag {
     enabled: envOverride(config.env) ?? config.default ?? false,
   };
 }
-
 /**
  * Imperative snapshot. Env/`default` override wins. Otherwise PostHog,
  * or `false` if flags have not loaded or the key is unknown.
@@ -650,7 +649,7 @@ export const enableActivityFeed = defineFlag({
 export const enableChatV3Agents = defineFlag({
   key: 'enable-chat-v3-agents',
   env: 'ENABLE_CHAT_V3_AGENTS',
-  default: onInDev,
+  default: getAppCapabilities().agents ? onInDev : false,
 });
 
 // The `@cursor` mention entry: agent sessions served by Cursor cloud agents
@@ -660,7 +659,7 @@ export const enableChatV3Agents = defineFlag({
 export const enableCursorAgents = defineFlag({
   key: 'enable-cursor-agents',
   env: 'ENABLE_CURSOR_AGENTS',
-  default: onInDev,
+  default: getAppCapabilities().agents ? onInDev : false,
 });
 
 // The Recent view: the touched-by-me feed (everything the viewer mutated,
@@ -689,3 +688,70 @@ export const enableDirectAttachmentDownload = defineFlag({
   env: 'ENABLE_DIRECT_ATTACHMENT_DOWNLOAD',
   default: false,
 });
+
+// Self-host capability gating: In focused profiles (e.g. Email self-host),
+// backend services like document_cognition_service and scheduled_action_service
+// are not running by default. The web frontend gates feature queries to avoid
+// firing requests to non-existent backend containers (preventing 502s).
+export interface AppCapabilities {
+  cognition: boolean;
+  scheduledActions: boolean;
+  agents: boolean;
+  docsCollab: boolean;
+}
+
+export function isSelfHost(): boolean {
+  if (typeof window === 'undefined') return false;
+  const isLocalBackend =
+    import.meta.env.VITE_LOCAL_BACKEND_ORIGIN === 'same-origin' ||
+    Boolean(import.meta.env.VITE_LOCAL_BACKEND_ORIGIN);
+  const hasMacroEnv = Boolean(
+    (window as unknown as { __MACRO_ENV__?: unknown }).__MACRO_ENV__
+  );
+  const hostname = window.location.hostname;
+  const isCustomHost =
+    hostname !== 'app.macro.com' &&
+    hostname !== 'dev.macro.com' &&
+    !hostname.endsWith('.macro.com');
+  return isLocalBackend || hasMacroEnv || isCustomHost;
+}
+
+function getRuntimeFeatures(): Partial<AppCapabilities> | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return (
+    window as unknown as {
+      __MACRO_ENV__?: { FEATURES?: Partial<AppCapabilities> };
+    }
+  ).__MACRO_ENV__?.FEATURES;
+}
+
+function resolveCapability(
+  env: string,
+  runtimeValue: boolean | undefined,
+  selfHost: boolean
+): boolean {
+  return getFeatureFlagOverride(env) ?? runtimeValue ?? !selfHost;
+}
+
+export function getAppCapabilities(): AppCapabilities {
+  const features = getRuntimeFeatures();
+  const selfHost = isSelfHost();
+  return {
+    cognition: resolveCapability(
+      'ENABLE_COGNITION',
+      features?.cognition,
+      selfHost
+    ),
+    scheduledActions: resolveCapability(
+      'ENABLE_SCHEDULED_ACTIONS',
+      features?.scheduledActions,
+      selfHost
+    ),
+    agents: resolveCapability('ENABLE_AGENTS', features?.agents, selfHost),
+    docsCollab: resolveCapability(
+      'ENABLE_DOCS_COLLAB',
+      features?.docsCollab,
+      selfHost
+    ),
+  };
+}

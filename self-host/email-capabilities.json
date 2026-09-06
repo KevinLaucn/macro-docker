@@ -1,0 +1,10 @@
+{
+  "email": true,
+  "contacts": true,
+  "dss": true,
+  "notification": true,
+  "websocket": true,
+  "cognition": false,
+  "scheduled_actions": false,
+  "ai_editing": false
+}

@@ -1,5 +1,5 @@
 import { NativeAppUpdateRequiredDialog } from '@core/mobile/NativeAppUpdateRequiredDialog';
-import { isPlatform, isTauri } from '@core/util/platform';
+import { isTauri } from '@core/util/platform';
 import { PlatformNotificationProvider } from '@notifications';
 import type { RouteSectionProps } from '@solidjs/router';
 import { invoke } from '@tauri-apps/api/core';

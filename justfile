@@ -78,6 +78,36 @@ local-e2e-services := "authentication-service connection_gateway contacts_servic
 self-host-check:
   python3 self-host/scripts/check-drift.py
 
+# Fast local contract checks for the self-host Email production profile.
+email-contract-check: email-profile-check
+
+# Verify Compose/Caddy/resource/profile drift and the Nix self-host Email graph.
+email-profile-check:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  command -v nix >/dev/null || {
+    echo "nix is required for Email profile contract checks" >&2
+    exit 127
+  }
+  python3 self-host/scripts/check-drift.py
+  python3 self-host/scripts/affected-services.py --all
+  nix build --dry-run .#self-host-email-source-check
+  nix build --dry-run .#self-host-email-binaries
+
+# Focused backend compile contract for the Email production aggregate.
+email-backend-check:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  command -v nix >/dev/null || {
+    echo "nix is required for Email backend contract checks" >&2
+    exit 127
+  }
+  nix build .#self-host-email-binaries
+
+# Frontend test contract for Email UI and shared web code.
+email-web-check:
+  just apps/web/test
+
 # Update the fixed-output js node_modules hash after bun.lock changes.
 update-node-modules-hash:
   tooling/scripts/update-node-modules-hash.sh

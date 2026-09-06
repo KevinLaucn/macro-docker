@@ -1,4 +1,4 @@
-import type { EmailEntity } from '@features/entity/types/entity';
+import type { EmailEntity } from '@entity';
 import { useTagsQuery } from '@queries/properties/tags';
 import { cn } from '@ui';
 import { createMemo, type JSX, Show } from 'solid-js';
@@ -122,7 +122,7 @@ export function AwaitingReplyTag(props: AwaitingReplyTagProps): JSX.Element {
           }
         }}
       >
-        <TagDot color={tagOption()?.color} class="size-2" />
+        <TagDot color={tagOption()?.color ?? undefined} class="size-2" />
         <span class="min-w-0 truncate">{tagOption()?.label}</span>
       </span>
     </Show>

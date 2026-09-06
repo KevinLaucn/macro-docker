@@ -267,6 +267,8 @@ export function runCreateAction(
   const source = options.source ?? 'create_menu';
 
   switch (blockName) {
+    case 'agent':
+      return runCreateAction('chat', options);
     case 'md': {
       const span = startDocumentSpan('doc.create');
       span.setAttr('doc.type', 'md');
@@ -670,7 +672,10 @@ export function useCreateMenuBlocks(
  */
 export function useCreatableEnabled(): (name: CreatableName) => boolean {
   const blocks = useCreateMenuBlocks();
-  return (name) => blocks().some((block) => block.blockName === name);
+  return (name) =>
+    blocks().some((block) =>
+      name === 'agent' ? block.blockName === 'chat' : block.blockName === name
+    );
 }
 
 export const [createMenuOpen, setCreateMenuOpen] = createControlledOpenSignal(

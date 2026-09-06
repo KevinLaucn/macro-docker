@@ -58,6 +58,7 @@ export const BlockRegistry = [
   'image',
   'canvas',
   'channel',
+  'call',
   'project',
   'unknown',
   'video',
@@ -86,7 +87,13 @@ export type BlockName = (typeof BlockRegistry)[BlockNameKeys];
  * List of strongly-typed, valid aliases that can be used as pseudo-differentiated
  * block types.
  */
-export const BlockAliasRegistry = ['csv', 'task', 'snippet', 'skill'] as const;
+export const BlockAliasRegistry = [
+  'csv',
+  'task',
+  'snippet',
+  'skill',
+  'agent',
+] as const;
 
 type BlockAliasKeys = keyof typeof BlockAliasRegistry & number;
 
@@ -103,6 +110,7 @@ export const NonDocumentBlockTypes = [
   'calendar',
   'chat',
   'channel',
+  'call',
   'project',
   'email',
   'contact',
@@ -193,6 +201,7 @@ export const ValidNestingCombinations: BlockCombinationRules = {
   automation: new Set([]),
   csv: new Set([]),
   pr: new Set([]),
+  agent: new Set([]),
 };
 
 export const LoadErrors = {

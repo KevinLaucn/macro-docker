@@ -52,10 +52,13 @@ export function getSoupNormalizer(): ReturnType<typeof createQueryNormalizer> {
  * Accepts queryClient as a parameter to avoid circular imports.
  */
 export function initSoupNormalizer(qc: QueryClient): () => void {
-  _normalizer = createQueryNormalizer(qc, {
-    getNormalizationObjectKey,
-    normalize: false,
-  });
+  _normalizer = createQueryNormalizer(
+    qc as unknown as Parameters<typeof createQueryNormalizer>[0],
+    {
+      getNormalizationObjectKey,
+      normalize: false,
+    }
+  );
   _normalizer.subscribe();
   return () => _normalizer!.unsubscribe();
 }

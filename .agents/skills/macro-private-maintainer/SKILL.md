@@ -78,6 +78,11 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 4. **修改优先级原则**：配置 > 环境变量 > Adapter 替换 > 依赖注入 > 反代 Proxy > 小范围 Patch > 修改 Domain。
 5. **凭据安全红线**：严禁在 Git 追踪的文件中硬编码真实服务器 IP、私钥、OAuth Secret 或 API Key。
 6. **UI 设计系统一致性**：前端二开必须复用 Macro 官方 `@ui`、Kobalte primitives、Theme 语义 Token、既有字号与动效语言；禁止建立平行组件库、私有颜色体系、任意字号或无障碍不受控的自定义交互。
+7. **上游/二开归因先行**：处理 CI、lint、typecheck、构建失败或 warning 前，先用 `git diff upstream/main -- <path>`、`git show upstream/main:<path>`、现有 workflow/just 脚本确认问题来源。结论必须区分：`上游已有`、`二开新增`、`二开触发上游隐患`。
+8. **上游非阻断问题不主动改**：若 lint / type / test 输出来自 `upstream/main` 已存在的问题，且不影响当前构建、CI 门禁、生产运行或本次二开目标，只记录来源与风险，不为“清爽”而修改上游代码。避免把私有 fork 变成无关风格修复分支，增加后续 upstream merge 成本。
+9. **二开代码必须贴合上游规范**：凡是本 fork 新增或本次触碰的二开代码，必须按上游现有目录边界、类型模型、query/service-client 分层、UI 组件规范、格式化与 lint 规则实现。若二开触发 warning/error，优先通过对齐上游模式修复；不要靠禁用规则、扩大类型、粗暴 cast、复制业务逻辑或改原始上游脚本来绕过。
+10. **上游原生运维入口优先**：遇到生产/本地环境状态漂移、服务初始化顺序、外部系统配置缺失、IaC 未落地、数据库/FusionAuth/LocalStack/OpenSearch/Redis/Kafka 等运行时状态不一致时，先查仓库原生脚本、Just recipes、Pulumi/Terraform/IaC 栈、Docker Compose、迁移与 README，再判断是否为“脚本未执行 / import 未完成 / reconcile 未覆盖”。禁止先写新的旁路补丁、手工 curl 脚本或业务代码兜底来掩盖漂移。
+11. **优先贴近 upstream 处理方式**：凡是 Macro 上游已有部署、初始化、导入、同步、回填、修复、seed、doctor、drift check、reconcile 等机制，优先复用或补齐调用路径；只有确认上游没有覆盖当前私有化场景时，才新增最小私有化封装，并明确标注原因与边界。
 
 ---
 

@@ -223,9 +223,9 @@ export const populateJwtLambdaId = populateJwtLambda.lambdaId;
 
 // Aborts Sign-in-with-Google when the id_token email differs from the FA user's
 // email — the signal that the link being matched was created by /link/gmail as a
-// secondary inbox, not the user's primary signup link. Must be wired to the
-// reconcile slot of the google_gmail IdP via FA admin UI per environment until
-// the IdP itself is declared in Pulumi.
+// secondary inbox, not the user's primary signup link. The google_gmail IdP is
+// now declared in Pulumi, so this reconcile lambda is attached by the stack
+// instead of being wired manually in the FusionAuth admin UI.
 const reconcileSecondaryIdpLinkLambda = new FusionAuthLambda(
   'reconcile-secondary-idp-link-lambda',
   {

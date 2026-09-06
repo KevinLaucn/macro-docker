@@ -1,6 +1,6 @@
 import { SERVER_HOSTS } from '@core/constant/servers';
 import { platformFetch } from '@core/util/platformFetch';
-import { authServiceClient } from '@service-auth/client';
+import { passwordLogin } from '@queries/auth/login';
 import { action, useSubmission } from '@solidjs/router';
 import { Stage } from './Shared';
 
@@ -12,6 +12,14 @@ const REDIRECT_URI = `${protocol}://${window.location.host}/app`;
 
 async function isPasswordLogin(email?: string | null) {
   if (!email) return false;
+
+  // FORK-CUSTOM: AUTH-SELFHOST-001 - Allow self-host admin email to trigger password login flow
+  const adminEmail = (
+    window as unknown as { __MACRO_ENV__?: { ADMIN_EMAIL?: string } }
+  ).__MACRO_ENV__?.ADMIN_EMAIL;
+  if (adminEmail && email.toLowerCase() === adminEmail.toLowerCase()) {
+    return true;
+  }
 
   const encodedEmail = new TextEncoder().encode(email.toLowerCase());
   const hashedBuffer = await crypto.subtle.digest('SHA-256', encodedEmail);
@@ -34,7 +42,7 @@ export const sendEmailCode = action(async (formData: FormData) => {
     const password = formData.get('password');
     if (!password || typeof password !== 'string') return 'isPasswordLogin';
 
-    const maybeTokens = await authServiceClient.passwordLogin({
+    const maybeTokens = await passwordLogin({
       password,
       email,
     });

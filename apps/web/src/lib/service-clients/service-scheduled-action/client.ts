@@ -1,3 +1,4 @@
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { SERVER_HOSTS } from '@core/constant/servers';
 import {
   type FetchWithTokenErrorCode,
@@ -5,7 +6,7 @@ import {
 } from '@core/util/fetchWithToken';
 import type { ObjectLike, ResultError } from '@core/util/result';
 import type { SafeFetchInit } from '@core/util/safeFetch';
-import type { Result } from 'neverthrow';
+import { err, ok, type Result } from 'neverthrow';
 import type {
   ActionExecutionRecord,
   CreateScheduledAction,
@@ -30,6 +31,21 @@ function scheduledActionFetch<T extends ObjectLike = never>(
 ):
   | Promise<Result<T, ResultError<FetchWithTokenErrorCode>[]>>
   | Promise<Result<void, ResultError<FetchWithTokenErrorCode>[]>> {
+  const capabilities = getAppCapabilities();
+  if (!capabilities.scheduledActions) {
+    if (url.includes('/scheduled-actions')) {
+      return Promise.resolve(ok([] as unknown as T));
+    }
+    return Promise.resolve(
+      err([
+        {
+          type: 'FetchWithTokenError',
+          code: 'NETWORK_ERROR',
+          message: 'Scheduled action service is disabled in this profile',
+        },
+      ]) as Result<T, ResultError<FetchWithTokenErrorCode>[]>
+    );
+  }
   return fetchWithToken<T>(`${scheduledActionHost}${url}`, init);
 }
 

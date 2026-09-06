@@ -1,3 +1,4 @@
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { SERVER_HOSTS } from '@core/constant/servers';
 import { setCachedInputStore } from '@core/store/cacheChatInput';
 import { cache } from '@core/util/cache';
@@ -62,6 +63,19 @@ async function dcsFetch<T extends ObjectLike = never>(
   | Result<T, ResultError<FetchWithTokenErrorCode>[]>
   | Result<void, ResultError<FetchWithTokenErrorCode>[]>
 > {
+  const capabilities = getAppCapabilities();
+  if (!capabilities.cognition) {
+    if (url.includes('/mcp/servers') || url.includes('/pipedream/')) {
+      return ok([] as unknown as T);
+    }
+    return err([
+      {
+        type: 'FetchWithTokenError',
+        code: 'NETWORK_ERROR',
+        message: 'Cognition service is disabled in this profile',
+      },
+    ]) as Result<T, ResultError<FetchWithTokenErrorCode>[]>;
+  }
   const result = await fetchWithToken<T>(`${dcsHost}${url}`, init);
   if (result.isErr()) {
     if (url.includes('/mcp/servers')) {

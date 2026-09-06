@@ -1,9 +1,6 @@
 name: Validate service cache planner
 
 on:
-  push:
-    branches:
-      - build/service-cache-20260906
   pull_request:
     branches:
       - main

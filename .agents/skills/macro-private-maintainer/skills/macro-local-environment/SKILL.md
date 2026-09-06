@@ -128,6 +128,8 @@ just stack down
 - Do not treat local DEV success as production or CI parity.
 - Use CodeGraph for symbol/call relationship analysis when `.codegraph/` exists.
 - Use Cargo/Nix/Compose graphs for build dependency analysis instead of guessing from filenames.
+- For runtime state drift such as missing FusionAuth IdPs, stale LocalStack resources, missing queues, stale Docker volumes, missing seeded roles, or service config that exists in code but not in the running environment, inspect upstream-native repo mechanisms first: `just` recipes, `xtask_local`, Pulumi stacks, Docker Compose, migrations, seed tools, README runbooks, and existing doctor/status commands. Prefer restoring the intended upstream/IaC reconcile path over adding one-off curl patches or business-code fallbacks.
+- For CI parity checks, distinguish upstream-existing warnings from fork-introduced failures before editing. If a warning exists on `upstream/main` and does not fail the current gate, report it without changing upstream code. Fix fork-introduced errors/warnings by following the upstream file's existing patterns and boundaries.
 
 ## References
 

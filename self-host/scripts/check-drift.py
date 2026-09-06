@@ -101,6 +101,7 @@ for cargo_bin in compose_bins:
 
 # --- resources -------------------------------------------------------------
 manifest = json.loads((SELF_HOST / "init/resources.json").read_text())
+email_capabilities = json.loads((SELF_HOST / "email-capabilities.json").read_text())
 env_keys = {
     line.split("=", 1)[0]
     for line in env_example.splitlines()
@@ -186,6 +187,26 @@ if missing_required_queues:
 # --- image and profile invariants ------------------------------------------
 workflow = (ROOT / ".github/workflows/self-host-images.yml").read_text()
 
+expected_email_capabilities = {
+    "email": True,
+    "contacts": True,
+    "dss": True,
+    "notification": True,
+    "websocket": True,
+    "cognition": False,
+    "scheduled_actions": False,
+    "ai_editing": False,
+}
+if email_capabilities != expected_email_capabilities:
+    fail(
+        "self-host/email-capabilities.json must stay the Email production "
+        f"capability contract; found {email_capabilities!r}"
+    )
+
+document_storage_api = (ROOT / "services/document_storage_service/src/api.rs").read_text()
+if 'mod items;' not in document_storage_api or '.nest("/items"' not in document_storage_api:
+    fail("document_storage_service must expose /dss/items for the Email web UI")
+
 # Ensure macro_db_migrate is part of the binary graph
 if 'packageName = "macro_db_migrator";' not in (ROOT / "nix/cloud-storage.nix").read_text():
     fail("macro_db_migrator is not part of the Nix-managed self-host binary graph")
@@ -205,9 +226,32 @@ for service in (
     if not match or 'profiles: ["full"]' not in match.group(1):
         fail(f"{service} must stay behind the full Compose profile")
 
+web_assets_match = re.search(r"^  web_assets:\n(.*?)(?=^  \w|^volumes:)", compose, re.M | re.S)
+if not web_assets_match:
+    fail("web_assets service missing from docker-compose.yml")
+else:
+    web_assets = web_assets_match.group(1)
+    for flag in ("cognition", "scheduledActions", "agents", "docsCollab"):
+        if f"{flag}: false" not in web_assets:
+            fail(f"Email profile web runtime config must set FEATURES.{flag} to false")
+
 for image in ("macro-ai-editing-worker", "macro-analytics-proxy"):
     if image in workflow:
         fail(f"{image} must not be built by the Email production image workflow")
+
+# --- FusionAuth / Google IdP contract --------------------------------------
+render_kickstart = (SELF_HOST / "init/render-kickstart.sh").read_text()
+google_idp_template = (SELF_HOST / "kickstart/idp-google.json.template").read_text()
+if 'configured "${GOOGLE_CLIENT_ID:-}" && configured "${GOOGLE_CLIENT_SECRET_KEY:-}"' not in render_kickstart:
+    fail("render-kickstart.sh must only render Google IdPs when real credentials are configured")
+if "append_requests \"$google\"" not in render_kickstart:
+    fail("render-kickstart.sh must append rendered Google IdP requests to kickstart.json")
+if '"name": "google"' not in google_idp_template:
+    fail("Google sign-in IdP template is missing the google identity provider")
+if '"name": "google_gmail"' not in google_idp_template:
+    fail("Google Gmail IdP template is missing google_gmail")
+if '"lambdaConfiguration": { "reconcileId": "@@RECONCILE_LAMBDA_ID@@" }' not in google_idp_template:
+    fail("google_gmail IdP must wire the reconcile lambda")
 
 # --- kafka -----------------------------------------------------------------
 # Required Kafka topics for self-host email must exist in self-host/init/kafka-topics.json

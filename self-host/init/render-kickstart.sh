@@ -86,15 +86,15 @@ append_requests() {
 }
 
 if configured "${GOOGLE_CLIENT_ID:-}" && configured "${GOOGLE_CLIENT_SECRET_KEY:-}"; then
-  reconcile_body=$(esc "$(cat /app/kickstart-templates/reconcile_secondary_idp_link.js)")
+  reconcile_body=$(cat /app/kickstart-templates/reconcile_secondary_idp_link.js)
   google=$(subst "$TPL/idp-google.json.template" \
     GOOGLE_IDP_ID            "$(esc "$GOOGLE_IDP_ID")" \
     GOOGLE_GMAIL_IDP_ID      "$(esc "$GOOGLE_GMAIL_IDP_ID")" \
     RECONCILE_LAMBDA_ID      "$(esc "$RECONCILE_LAMBDA_ID")" \
-    RECONCILE_LAMBDA_BODY    "$reconcile_body" \
     GOOGLE_CLIENT_ID         "$(esc "$GOOGLE_CLIENT_ID")" \
     GOOGLE_CLIENT_SECRET_KEY "$(esc "$GOOGLE_CLIENT_SECRET_KEY")" \
     FUSIONAUTH_CLIENT_ID     "$(esc "$FUSIONAUTH_CLIENT_ID")")
+  google=$(printf '%s' "$google" | jq --arg rb "$reconcile_body" '.[0].body.lambda.body = $rb')
   append_requests "$google"
   echo "  google identity providers: configured"
 else
