@@ -1,4 +1,5 @@
 import type { EmailEntity } from '@entity';
+import { awaitingReplyTagId } from '@app/features/extensions/extensionsState';
 import { useTagsQuery } from '@queries/properties/tags';
 import { cn } from '@ui';
 import { createMemo, type JSX, Show } from 'solid-js';
@@ -12,21 +13,28 @@ export interface AwaitingReplyTagProps {
 }
 
 /**
- * Checks if the user's tag library in Settings contains a tag named "待回复".
- * Returns its metadata (id, label, color) if found, or undefined if not configured.
+ * Checks if the configured tag in "Extensions" settings exists in the user's tag library.
+ * Returns its metadata (id, label, color) if found, or undefined if not enabled or not found.
  */
 export function useAwaitingReplyTagOption() {
   const tagsQuery = useTagsQuery();
 
   return createMemo(() => {
+    const targetId = awaitingReplyTagId();
+    if (!targetId) return undefined;
+
     const sets = Array.isArray(tagsQuery.data) ? tagsQuery.data : [];
     for (const set of sets) {
       if (!Array.isArray(set.options)) continue;
       for (const opt of set.options) {
-        if (opt.value?.type === 'string' && opt.value.value === '待回复') {
+        if (opt.id === targetId) {
+          const label =
+            opt.value?.type === 'string'
+              ? opt.value.value
+              : ((opt as any).name ?? targetId);
           return {
             id: opt.id,
-            label: opt.value.value,
+            label,
             color: opt.color,
           };
         }

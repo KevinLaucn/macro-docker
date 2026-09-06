@@ -732,12 +732,6 @@ export function Appearance() {
         <SettingsSection title={t('Interface')}>
           <SettingsCard>
             <SettingsRow
-              label={t('Language')}
-              description={t('Choose your preferred display language.')}
-            >
-              <LanguageSelect />
-            </SettingsRow>
-            <SettingsRow
               label={t('Monochrome icons')}
               description={t('Use single-color icons across the app.')}
             >

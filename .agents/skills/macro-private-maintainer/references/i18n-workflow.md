@@ -71,30 +71,25 @@ i18nAstPlugin({
 
 ---
 
-## 工具链使用指南
+## 工具链使用指南（仅限推送 GitHub 前或大规模批量迁移时按需运行）
+
+> 💡 **日常二开说明**：日常单页面/局部小修改时，不需要反复串行运行以下所有脚本。直接修改组件与 `zh-CN.json` 即可通过本地 Vite HMR（3000端口）热更新秒级查看效果。以下工具链仅在**准备推送 GitHub 远端**或**大规模模块批量改造完成核验**时使用。
 
 ### 1. 语法树审计检测 (`audit.ts`)
 用于只读扫描代码中遗漏未包裹 `t()` 的 JSX 文本或属性：
 ```bash
-# 全局扫描
+# 全局扫描（发布前或大重构使用）
 bun run packages/i18n/audit.ts
 
-# 定向扫描某个二开模块（如联系人）
-bun run packages/i18n/audit.ts apps/web/src/features/contacts
-
-# 单文件检查
+# 定向单文件检查（按需）
 bun run packages/i18n/audit.ts apps/web/src/features/settings/Settings.tsx
 ```
-- 扫描结果自动汇总于终端，并输出 Top 10 未翻译密集文件；
-- 详细行号和片段保存在 `packages/i18n/diff/audit-untranslated.json`。
 
-### 2. 词条精准提取 (`extract.ts`)
-当添加了新的 `t('...')` 后，运行提取脚本：
+### 2. 词条提取与缺失核验 (`extract.ts`)
+用于批量提取全局显式 `t()` 词条并检测 `zh-CN.json` 缺失情况：
 ```bash
 bun run packages/i18n/extract.ts
 ```
-- 自动提取全局所有显式 `t()` 词条；
-- 检测是否在 `zh-CN.json` 中缺失；若有缺失，会在 `packages/i18n/diff/missing.json` 中列出，并在终端提示数量。补齐中文翻译后重新执行验证直到 `Missing in zh-CN: 0`。
 
 ### 3. 单元测试校验
 ```bash
@@ -103,14 +98,10 @@ bun test packages/i18n
 
 ---
 
-## Git 增量审计防回退规范 (Pre-commit Audit Hook)
-
-为防止团队在已排除在 AST 之外的文件中无意提交未包裹 `t()` 的裸英文字符串，可在开发环境或 CI 中运行增量审计：
-
+## Git 远端推送前门禁 (Pre-push CI & Audit Gate)
+在向 GitHub 远端提交/推送代码前，可按需运行：
 ```bash
-# 检查当前 git 暂存区中已排除文件的裸英文字符串
-for file in $(git diff --cached --name-only --diff-filter=ACM | grep -E '\.tsx$'); do
-  bun run packages/i18n/audit.ts "$file"
-done
+bun run packages/i18n/extract.ts
+just check
 ```
-若发现未包裹的裸字符串且该文件位于 `excludePatterns`，必须将其用 `t()` 包裹并补齐翻译后再行提交。
+确保全库词条无缺失、格式与语法树门禁全部绿灯。

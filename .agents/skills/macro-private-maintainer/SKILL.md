@@ -131,18 +131,21 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 
 ---
 
-## 七、验收门禁与标准输出契约
+## 七、验收门禁与分级测试策略 (Verification & Gates)
 
-### 1. 按波及范围的验收基线
-- **Rust 后端**：`cargo fmt --check`、`cargo check -p <crate>`、`cargo clippy -p <crate>`、`cargo test -p <crate>`
-- **前端 Web**：`bun format --check`、`bun check`、生产打包构建验证
-- **生产配置**：`docker compose config` 核验服务拓扑与网络边界
-- **网络边界**：核验 DevTools Network 与服务端日志中 `macro.com` 请求数为 0
+### 1. 分级验证原则（严格区分“日常轻量修改”与“推送/重大重构”）
+> ⚠️ **核心准则**：严禁在每一次局部日常微调、UI/文案小修改、单一组件二开时机械盲目执行全局 heavy 检查或串行跑完所有脚本（如 audit、extract、test、biome check、tsc、cargo 全量等），避免极度拖慢开发节奏与消耗资源。
+
+- **日常轻量小修改（如 UI 调整、页面文案/i18n 微调、单文件优化等）**：
+  - **默认极轻量原则**：修改文件后利用本地 Vite/Solid 热更新（HMR，端口 3000）即时生效，直接向主人报告修改结果与浏览器验证路径；
+  - **按需精准**：如涉及 CodeGraph 结构变更执行毫秒级增量 `codegraph sync`；禁止自动触发全局 `bun test`、全量 `extract.ts`、全库 `tsc` 或耗时静态扫描。
+- **重大修改 / 核心架构重构（涉及多模块依赖流、核心类型、底层接口、公共基础设施改造）**：
+  - 针对所触及的模块执行针对性单测与类型检查（如 `cargo test -p <crate>` 或定向单测）。
 
 ### 2. 推送 GitHub 远端门禁 (Pre-push CI & Lint Gate)
-在向 GitHub 远端仓库（`main` 或 PR 分支）提交与推送代码前，**必须在本地预先执行并通过以下规范检查**，以确保 GitHub Actions CI 100% 绿灯且不泄露任何外部依赖：
+**仅在主人明确要求“推送 GitHub”、“提交 PR”、“准备发版”或“合流远端”时**，才触发完整的流水线前置校验：
 1. **统一本地质检门禁**：
-   - 执行 `just check`：快速执行 `rustfmt`、`biome`（前端格式与语法校验）、`oxlint` 以及 `ast-grep` 语法树规则扫描。
+   - 执行 `just check`：执行 `rustfmt`、`biome`、`oxlint` 以及 `ast-grep` 语法树扫描。
    - 若改动涉及核心类型定义，执行 `just check full`（增加 `tsc` 与 `clippy` 全量分析）。
 2. **私有化与零外部云防御检查**：
    - 确保没有引入写死的官方外部域名（如 `*.workers.dev`、`api.pipedream.com`、`macro-prox.*`、`*.posthog.com`、商业付费墙）。
@@ -152,7 +155,7 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 
 ### 3. 标准响应结构
 每次任务完成时必须遵循：
-1. 🔹方案概述（简短说明修改策略与架构归属）
-2. 🔹已修改的文件路径（绝对路径清单，不含代码块）
-3. 🔹测试方法（具体验证命令与操作步骤）
-4. 🔹可选优化（仅在具有高实际价值时提供，严禁低收益过度优化）
+1. 🔹方案概述（简短说明修改策略与架构归属，不要输出任何代码块）
+2. 🔹已修改的文件路径（说明修改的绝对路径，不要输出任何代码块）
+3. 🔹测试方法（如何验证功能正常，不要输出任何代码块）
+4. 🔹可选优化（仅在具有高实际价值时提供，严禁低收益过度优化，不要输出任何代码块）

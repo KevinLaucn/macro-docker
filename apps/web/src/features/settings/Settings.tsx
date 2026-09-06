@@ -41,6 +41,7 @@ import {
 import { Account } from './Account';
 import { Admin } from './Admin';
 import { Agent } from './Agent';
+import { Extensions } from '../extensions/Extensions';
 import { Agents } from './Agents';
 import { ApiKeys } from './ApiKeys';
 import { Appearance } from './Appearance';
@@ -461,6 +462,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 </Show>
                 <Show when={isCurrentTab('Admin')}>
                   <Admin />
+                </Show>
+                <Show when={isCurrentTab('Extensions')}>
+                  <Extensions />
                 </Show>
               </div>
             </div>

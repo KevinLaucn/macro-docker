@@ -9,6 +9,7 @@ import HardDrivesIcon from '@phosphor/hard-drives.svg';
 import KeyIcon from '@phosphor/key.svg';
 import KeyboardIcon from '@phosphor/keyboard.svg';
 import PlugIcon from '@phosphor/plug.svg';
+import PuzzlePieceIcon from '@phosphor/puzzle-piece.svg';
 import RobotIcon from '@phosphor/robot.svg';
 import SwatchesIcon from '@phosphor/swatches.svg';
 import TagIcon from '@phosphor/tag-simple.svg';
@@ -57,6 +58,7 @@ export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
       { tab: 'Billing', label: 'Billing', icon: CreditCardIcon },
       { tab: 'Appearance', label: 'Appearance', icon: SwatchesIcon },
       { tab: 'Shortcuts', label: 'Shortcuts', icon: KeyboardIcon },
+      { tab: 'Extensions', label: 'Extensions', icon: PuzzlePieceIcon },
     ],
   },
   {
@@ -119,6 +121,7 @@ const SETTINGS_TAB_SLUGS: Record<SettingsTab, string> = {
   Email: 'email',
   GitHub: 'github',
   Admin: 'admin',
+  Extensions: 'extensions',
 };
 
 const SETTINGS_SLUG_TO_TAB = new Map<string, SettingsTab>(
@@ -166,6 +169,7 @@ export const useSettingsTabAvailable = () => {
       case 'Account':
       case 'API Keys':
       case 'Billing':
+      case 'Extensions':
         return true;
       case 'Notifications':
         return notificationSettingsFlag().enabled;

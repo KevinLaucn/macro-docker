@@ -121,6 +121,8 @@ export const createAppViteConfig = (): UserConfigFn => {
             '/features/settings/Admin.tsx',
             '/features/settings/Harness.tsx',
             '/features/settings/HarnessPairingDialog.tsx',
+            '/features/settings/ApiKeys.tsx',
+            '/features/channel/Bots/CredentialField.tsx',
             '/features/block-automation/component/AutomationComposer.tsx',
             '/features/home/chat-tips.tsx',
             '/features/home/home-recent-sessions.tsx',

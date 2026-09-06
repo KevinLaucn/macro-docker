@@ -1557,6 +1557,7 @@
     "features/next-soup/actions/make-copy-action.ts",
     "features/settings/Team.tsx",
     "features/block-pdf/component/PDFPopup.tsx",
+    "features/channel/Bots/CredentialField.tsx",
     "features/channel/Participants/ChannelJoinLinkButton.tsx",
     "lib/core/component/AI/component/McpSetupCards.tsx",
     "lib/core/component/AI/component/AIChatEmptyState.tsx",
@@ -1681,6 +1682,12 @@
   "Admin": [
     "features/settings/Settings.tsx",
     "features/settings/Team.tsx",
+    "lib/core/constant/settingsTabsConfig.tsx",
+    "lib/core/constant/SettingsState.tsx"
+  ],
+  "Extensions": [
+    "features/settings/Settings.tsx",
+    "features/extensions/Extensions.tsx",
     "lib/core/constant/settingsTabsConfig.tsx",
     "lib/core/constant/SettingsState.tsx"
   ],
@@ -2127,6 +2134,7 @@
     "features/settings/Email.tsx",
     "features/settings/PipedreamIntegrations.tsx",
     "features/settings/Integrations.tsx",
+    "features/extensions/TagSelectorDropdown.tsx",
     "lib/core/internal/ThemeDebug.tsx"
   ],
   "Backfilling…": [
@@ -2516,16 +2524,19 @@
   "Load more": [
     "features/settings/PipedreamIntegrations.tsx"
   ],
-  "Authenticate as yourself from scripts and integrations. Send the key in the": [
+  "Authenticate as yourself from scripts and integrations. Send the key in the {header} header. The secret is shown only once when you create a key.": [
     "features/settings/ApiKeys.tsx"
   ],
-  "header. The secret is shown only once when you create a key.": [
+  "You can have at most {max} API keys": [
     "features/settings/ApiKeys.tsx"
   ],
   "Create key": [
     "features/settings/ApiKeys.tsx"
   ],
   "Your keys": [
+    "features/settings/ApiKeys.tsx"
+  ],
+  "Up to {max} keys. Anyone with a key can act as you, so treat them like passwords.": [
     "features/settings/ApiKeys.tsx"
   ],
   "Couldn’t load API keys.": [
@@ -2537,52 +2548,35 @@
   "Use a key to call Macro on your behalf. The full secret is shown only at creation.": [
     "features/settings/ApiKeys.tsx"
   ],
+  "Failed to create API key": [
+    "features/settings/ApiKeys.tsx"
+  ],
   "Delete API key": [
     "features/settings/ApiKeys.tsx"
   ],
   "Delete key": [
     "features/settings/ApiKeys.tsx"
   ],
-  "Delete": [
-    "features/settings/ApiKeys.tsx",
-    "features/settings/Agents.tsx",
-    "features/block-automation/component/Automation.tsx",
-    "features/auth/mobile-onboarding/OnboardingInbox.tsx",
-    "features/property/editors/selectors/PropertyDateSelector.tsx",
-    "features/property/tags/TagEditorDialog.tsx",
-    "features/entity/bulk-edit/BulkDeleteView.tsx",
-    "features/block-calendar/components/SelectedEventDetails.tsx",
-    "features/block-pdf/component/MarkupToolbar.tsx",
-    "features/channel/Message/ActionMenu.tsx",
-    "features/channel/Mobile/ActionDrawer.tsx",
-    "features/block-canvas/component/CanvasController.tsx",
-    "features/soup/createSoupEntityActions.ts",
-    "features/block-email/component/TopBar.tsx",
-    "features/block-email/component/date-selector.tsx",
-    "components/ui/components/DeleteDialog.tsx",
-    "components/app/split-layout/components/SplitFileMenu.tsx",
-    "lib/core/component/DocumentPreview.tsx",
-    "lib/core/component/LexicalMarkdown/component/decorator/PasteNode.tsx",
-    "lib/core/component/LexicalMarkdown/component/decorator/DocumentCard.tsx",
-    "lib/queries/notification/user-notifications.ts",
-    "features/channel/Channel/tests/create-delete-message-confirmation.test.tsx",
-    "lib/queries/notification/tests/user-notifications.test.tsx"
-  ],
-  "? This cannot be undone. Anything using this key will stop working.": [
+  "API key deleted": [
     "features/settings/ApiKeys.tsx"
   ],
-  "Created": [
-    "features/settings/ApiKeys.tsx",
-    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
-    "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
-    "components/app/side-panel/FileSidePanelSections.tsx",
-    "lib/core/util/linearImport.ts",
-    "lib/core/component/DetailsDrawer.tsx",
-    "lib/core/component/AI/component/tool/Bots.tsx",
-    "lib/document-processing-types/jobTypes/jobStatus.ts",
-    "lib/core/component/AI/component/tool/ReadActivity.test.tsx",
-    "lib/queries/preview/tests/preview.test.ts",
-    "lib/queries/preview/tests/graphql.test.ts"
+  "Failed to delete API key": [
+    "features/settings/ApiKeys.tsx"
+  ],
+  "Delete {name}? This cannot be undone. Anything using this key will stop working.": [
+    "features/settings/ApiKeys.tsx"
+  ],
+  "Created {time}": [
+    "features/settings/ApiKeys.tsx"
+  ],
+  "Delete {name}": [
+    "features/settings/ApiKeys.tsx"
+  ],
+  "API key created": [
+    "features/settings/ApiKeys.tsx"
+  ],
+  "New API key": [
+    "features/settings/ApiKeys.tsx"
   ],
   "Close": [
     "features/settings/ApiKeys.tsx",
@@ -2622,7 +2616,11 @@
     "features/channel/CreateChannelModal.tsx",
     "features/companies/CreateCompanyModal.tsx"
   ],
-  "Store this key somewhere secure before closing. Send it as": [
+  "Shown only once": [
+    "features/settings/ApiKeys.tsx",
+    "features/channel/Bots/CreateBotTokenDialog.tsx"
+  ],
+  "Store this key somewhere secure before closing. Send it as {header}.": [
     "features/settings/ApiKeys.tsx"
   ],
   "Connect your accounts so Macro can work across the tools you already use.": [
@@ -2665,6 +2663,30 @@
   ],
   "Delete {agentName}?": [
     "features/settings/Agents.tsx"
+  ],
+  "Delete": [
+    "features/settings/Agents.tsx",
+    "features/block-automation/component/Automation.tsx",
+    "features/auth/mobile-onboarding/OnboardingInbox.tsx",
+    "features/property/editors/selectors/PropertyDateSelector.tsx",
+    "features/property/tags/TagEditorDialog.tsx",
+    "features/entity/bulk-edit/BulkDeleteView.tsx",
+    "features/block-calendar/components/SelectedEventDetails.tsx",
+    "features/block-pdf/component/MarkupToolbar.tsx",
+    "features/channel/Message/ActionMenu.tsx",
+    "features/channel/Mobile/ActionDrawer.tsx",
+    "features/block-canvas/component/CanvasController.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "features/block-email/component/TopBar.tsx",
+    "features/block-email/component/date-selector.tsx",
+    "components/ui/components/DeleteDialog.tsx",
+    "components/app/split-layout/components/SplitFileMenu.tsx",
+    "lib/core/component/DocumentPreview.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/PasteNode.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/DocumentCard.tsx",
+    "lib/queries/notification/user-notifications.ts",
+    "features/channel/Channel/tests/create-delete-message-confirmation.test.tsx",
+    "lib/queries/notification/tests/user-notifications.test.tsx"
   ],
   "This removes the agent from every channel and permanently deletes its configuration. This action cannot be undone.": [
     "features/settings/Agents.tsx"
@@ -3094,7 +3116,8 @@
     "features/settings/Appearance.tsx"
   ],
   "English": [
-    "features/settings/Appearance.tsx"
+    "features/settings/Appearance.tsx",
+    "features/extensions/Extensions.tsx"
   ],
   "Color Theme": [
     "features/settings/Appearance.tsx"
@@ -3112,13 +3135,8 @@
     "features/settings/Appearance.tsx"
   ],
   "Interface": [
-    "features/settings/Appearance.tsx"
-  ],
-  "Language": [
-    "features/settings/Appearance.tsx"
-  ],
-  "Choose your preferred display language.": [
-    "features/settings/Appearance.tsx"
+    "features/settings/Appearance.tsx",
+    "features/extensions/Extensions.tsx"
   ],
   "Monochrome icons": [
     "features/settings/Appearance.tsx"
@@ -4248,6 +4266,18 @@
   "Lets everyone on your team insert this snippet from the ; menu and edit it.": [
     "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx"
   ],
+  "Created": [
+    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
+    "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
+    "components/app/side-panel/FileSidePanelSections.tsx",
+    "lib/core/util/linearImport.ts",
+    "lib/core/component/DetailsDrawer.tsx",
+    "lib/core/component/AI/component/tool/Bots.tsx",
+    "lib/document-processing-types/jobTypes/jobStatus.ts",
+    "lib/core/component/AI/component/tool/ReadActivity.test.tsx",
+    "lib/queries/preview/tests/preview.test.ts",
+    "lib/queries/preview/tests/graphql.test.ts"
+  ],
   "Last updated": [
     "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
     "components/app/side-panel/FileSidePanelSections.tsx",
@@ -4522,9 +4552,6 @@
     "features/auth/Login.tsx"
   ],
   "you@company.com": [
-    "features/auth/Login.tsx"
-  ],
-  "Password": [
     "features/auth/Login.tsx"
   ],
   "Back to sign in": [
@@ -5566,6 +5593,27 @@
   "Or share your personal referral link:": [
     "features/team-invitations/invite-modal.tsx"
   ],
+  "Language": [
+    "features/extensions/Extensions.tsx"
+  ],
+  "Choose your preferred display language.": [
+    "features/extensions/Extensions.tsx"
+  ],
+  "Email Enhancements": [
+    "features/extensions/Extensions.tsx"
+  ],
+  "Include outbound in Important": [
+    "features/extensions/Extensions.tsx"
+  ],
+  "Keep sent emails in Important (Gmail style).": [
+    "features/extensions/Extensions.tsx"
+  ],
+  "Awaiting reply badge": [
+    "features/extensions/Extensions.tsx"
+  ],
+  "Automatically add a tag to threads awaiting reply.": [
+    "features/extensions/Extensions.tsx"
+  ],
   "earlier@@chat": [
     "features/channel/sidebar/channels-recent-widget.tsx"
   ],
@@ -5692,7 +5740,10 @@
   "Webhook URL": [
     "features/channel/Bots/BotWebhooksSection.tsx"
   ],
-  "Copied@@chat": [
+  "Failed to copy {label}": [
+    "features/channel/Bots/CredentialField.tsx"
+  ],
+  "Copy {label}": [
     "features/channel/Bots/CredentialField.tsx"
   ],
   "No bots available to invite@@chat": [
