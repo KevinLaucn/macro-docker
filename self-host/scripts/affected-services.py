@@ -67,6 +67,7 @@ FULL_SERVICE_PREFIXES = (
     ".github/actions/teardown-nix/",
     ".sqlx/",
     "static_assets/",
+    "self-host/scripts/",
 )
 
 SERVICE_IMAGE_EXACT = {
