@@ -1,3 +1,4 @@
+// i18n translation extractor and AST quality gate analysis
 import fs from "node:fs";
 import path from "node:path";
 import { parse } from "@babel/parser";
