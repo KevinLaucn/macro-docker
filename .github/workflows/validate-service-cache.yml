@@ -101,8 +101,15 @@ jobs:
       - name: Check existing self-host invariants
         run: python3 self-host/scripts/check-drift.py
 
-      - name: Setup Nix without private cache
+      - name: Setup Nix with private cache read-only
         uses: './.github/actions/setup-nix'
+        with:
+          nix-cache-url: ${{ vars.NIX_CACHE_URL }}
+          nix-cache-public-key: ${{ vars.NIX_CACHE_PUBLIC_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          fail-on-cache-error: 'true'
 
       - name: Validate self-host Nix targets without compiling
         shell: bash
@@ -140,3 +147,24 @@ jobs:
             echo "dry-run .#$target"
             nix build --dry-run ".#$target"
           done <<< "$targets"
+
+      - name: Build production Email aggregate for real
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Building .#self-host-email-binaries with private cache in read-only mode"
+          nix build \
+            --print-build-logs \
+            --max-jobs 2 \
+            --cores 4 \
+            .#self-host-email-binaries \
+            --out-link result-bins
+
+      - name: Verify built production binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d result-bins/bin
+          echo "Built binaries:"
+          find -L result-bins/bin -maxdepth 1 -type f -printf '%f\n' | sort
+          echo "Total binaries: $(find -L result-bins/bin -maxdepth 1 -type f | wc -l)"
