@@ -74,9 +74,10 @@ macro_db_migrate
 if [ -n "${ADMIN_EMAIL:-}" ]; then
   log "ensuring Super Administrator exists ($ADMIN_EMAIL)"
   psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 -v admin_email="$ADMIN_EMAIL" <<'ADMIN_EOF' >/dev/null
+SET macro.admin_email = :'admin_email';
 DO $$
 DECLARE
-  v_admin_email text := lower(:'admin_email');
+  v_admin_email text := lower(current_setting('macro.admin_email'));
   v_user_id uuid;
 BEGIN
   -- 1. Look up existing real user UUID for admin_email
@@ -95,23 +96,23 @@ BEGIN
     v_user_id := '00000000-0000-0000-0000-000000000001'::uuid;
 
     INSERT INTO "macro_user" ("id", "username", "email", "stripe_customer_id", "has_trialed")
-    VALUES (v_user_id, 'admin', :'admin_email', 'cus_local_admin', true)
+    VALUES (v_user_id, 'admin', v_admin_email, 'cus_local_admin', true)
     ON CONFLICT ("id") DO NOTHING;
 
     INSERT INTO "User" ("id", "email", "name", "macro_user_id", "aiDataConsent", "tutorialComplete")
-    VALUES ('macro|' || :'admin_email', :'admin_email', 'Admin', v_user_id, true, true)
+    VALUES ('macro|' || v_admin_email, v_admin_email, 'Admin', v_user_id, true, true)
     ON CONFLICT ("id") DO NOTHING;
   END IF;
 
   -- 3. Ensure Super Administrator roles are granted
   INSERT INTO "RolesOnUsers" ("userId", "roleId")
   VALUES
-    ('macro|' || :'admin_email', 'super_admin'),
-    ('macro|' || :'admin_email', 'ai_subscriber'),
-    ('macro|' || :'admin_email', 'sub_opus'),
-    ('macro|' || :'admin_email', 'editor_user'),
-    ('macro|' || :'admin_email', 'email_tool'),
-    ('macro|' || :'admin_email', 'professional_subscriber')
+    ('macro|' || v_admin_email, 'super_admin'),
+    ('macro|' || v_admin_email, 'ai_subscriber'),
+    ('macro|' || v_admin_email, 'sub_opus'),
+    ('macro|' || v_admin_email, 'editor_user'),
+    ('macro|' || v_admin_email, 'email_tool'),
+    ('macro|' || v_admin_email, 'professional_subscriber')
   ON CONFLICT ("userId", "roleId") DO NOTHING;
 END $$;
 ADMIN_EOF

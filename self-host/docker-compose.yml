@@ -103,6 +103,8 @@ services:
         condition: service_started
     networks:
       - databases
+    volumes:
+      - ./self-host/init/provision.sh:/app/provision.sh:ro
 
   # One-shot: create the event topics. Uses the Kafka image's own CLI rather
   # than putting a second Kafka client in the init image.
