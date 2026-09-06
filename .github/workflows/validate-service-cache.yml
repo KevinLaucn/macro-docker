@@ -104,11 +104,14 @@ jobs:
       - name: Setup Nix without private cache
         uses: './.github/actions/setup-nix'
 
-      - name: Validate Nix targets without compiling
+      - name: Validate self-host Nix targets without compiling
         shell: bash
         run: |
           set -euo pipefail
-          nix flake show --no-write-lock-file >/tmp/flake-show.txt
+          # Deliberately validate only the production self-host graph. A full
+          # `nix flake show` evaluates unrelated desktop/Tauri outputs and can
+          # fail on their independent fixed-output hashes even though the
+          # self-host targets remain valid.
           nix build --dry-run .#self-host-email-source-check
           nix build --dry-run .#self-host-email-binaries
 
