@@ -955,7 +955,7 @@ export const SidebarSettingsWidget = (props: SidebarSettingsWidgetProps) => {
             <span class="size-5 flex items-center justify-center">
               <GearIcon class="size-4 shrink-0 text-ink-extra-muted" />
             </span>
-            <span class="flex-1 text-ink">{t('Settings')}</span>
+            <span class="flex-1 text-ink">{t('Settings', { context: 'sidebar' })}</span>
             <Hotkey
               token={TOKENS.global.toggleSettings}
               theme="subtle"
@@ -1754,15 +1754,18 @@ export const SidebarOpenInSplitMenu = (props: SidebarOpenInSplitMenuProps) => {
       <ContextMenu.Portal>
         <ContextMenuContent class="text-xs text-ink-muted">
           <MenuItem
-            text={t('Open in new split')}
+            text={t('Open in new split', { context: 'sidebar' })}
             onClick={openInNewSplit}
             disabled={!canOpenInNewSplit()}
           />
           <Show when={canOpenFullscreen()}>
-            <MenuItem text={t('Open fullscreen')} onClick={openFullscreen} />
+            <MenuItem
+              text={t('Open fullscreen', { context: 'sidebar' })}
+              onClick={openFullscreen}
+            />
           </Show>
           <MenuItem
-            text={t('Open in current split')}
+            text={t('Open in current split', { context: 'sidebar' })}
             onClick={openInCurrentSplit}
           />
         </ContextMenuContent>

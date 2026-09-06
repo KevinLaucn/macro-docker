@@ -90,7 +90,7 @@ export function GitHubCard() {
       >
         <Show
           when={!githubLink.isLoading}
-          fallback={<span class="text-xs text-ink-muted">{t('Loading…')}</span>}
+          fallback={<span class="text-xs text-ink-muted">{t('Loading…', { context: 'github' })}</span>}
         >
           <Switch
             fallback={
@@ -138,7 +138,7 @@ export function GitHubCard() {
           fallback={
             <span class="text-xs text-ink-muted">
               {githubLink.isLoading
-                ? t('Loading…')
+                ? t('Loading…', { context: 'github' })
                 : t('Connect your GitHub account first')}
             </span>
           }

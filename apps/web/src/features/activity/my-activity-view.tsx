@@ -65,7 +65,7 @@ export function MyActivityView() {
               fallback={
                 <p class={`${INSET_CLASS} px-2 py-2 text-ink-muted text-sm`}>
                   {feed.isLoading
-                    ? t('Loading…')
+                    ? t('Loading…', { context: 'activity' })
                     : feed.isError
                       ? t(
                           'Activity is unavailable right now. Try again in a moment.'
@@ -82,7 +82,7 @@ export function MyActivityView() {
                     onClick={() => void feed.fetchNextPage()}
                     disabled={feed.isFetchingNextPage}
                   >
-                    {feed.isFetchingNextPage ? t('Loading…') : t('Show more')}
+                    {feed.isFetchingNextPage ? t('Loading…', { context: 'activity' }) : t('Show more')}
                   </Button>
                 </div>
               </Show>

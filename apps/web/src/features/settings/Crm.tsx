@@ -61,7 +61,7 @@ function ConfirmDialog(props: {
               disabled={props.pending}
               onClick={props.onClose}
             >
-              {t('Cancel')}
+              {t('Cancel', { context: 'crm' })}
             </Button>
             <Button
               variant="danger"
@@ -229,7 +229,7 @@ function CrmEnablementSection() {
                 disabled={patchCrmMutation.isPending}
                 onClick={() => setShowEnableModal(false)}
               >
-                {t('Cancel')}
+                {t('Cancel', { context: 'crm' })}
               </Button>
               <Button
                 variant="outline"

@@ -178,7 +178,7 @@ export function Harness() {
             <Show
               when={!cursorStatus.isPlaceholderData}
               fallback={
-                <p class="mt-4 text-xs text-ink-muted">{t('Loading…')}</p>
+                <p class="mt-4 text-xs text-ink-muted">{t('Loading…', { context: 'harness' })}</p>
               }
             >
               <Show
@@ -366,7 +366,7 @@ export function Harness() {
                         <p class="truncate text-sm text-ink">{harness.name}</p>
                         <span class="shrink-0 rounded-full border border-edge-muted px-2 py-0.5 text-xxs font-medium uppercase text-ink-extra-muted">
                           {harness.owner.type === 'team'
-                            ? t('Team')
+                            ? t('Team', { context: 'harness' })
                             : t('Private')}
                         </span>
                         <StatusDot
@@ -461,7 +461,7 @@ function HarnessRemoveDialog(props: {
             disabled={props.pending}
             onClick={props.onClose}
           >
-            {t('Cancel')}
+            {t('Cancel', { context: 'harness' })}
           </Button>
           <Button
             type="button"

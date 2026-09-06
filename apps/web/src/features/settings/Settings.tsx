@@ -273,7 +273,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             <HeaderIsland>
               <div class="h-full flex gap-3 items-center">
                 <h1 class="font-semibold text-ink select-none text-sm shrink-0">
-                  {t('Settings')}
+                  {t('Settings', { context: 'settings' })}
                 </h1>
               </div>
             </HeaderIsland>
@@ -297,7 +297,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           <SplitHeaderRight>
             <Button
               class="p-1 rounded-lg"
-              label={t('Open fullscreen')}
+              label={t('Open fullscreen', { context: 'settings' })}
               onClick={() => moveSettingsToSolo()}
             >
               <ArrowsOut class="size-4" />

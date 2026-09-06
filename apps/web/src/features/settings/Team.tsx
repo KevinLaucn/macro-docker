@@ -550,7 +550,7 @@ function TeamInvites() {
     rejectMutation.variables?.teamInviteId === inviteId;
 
   return (
-    <SettingsPage title={t('Team')}>
+    <SettingsPage title={t('Team', { context: 'team' })}>
       <Show when={invites().length > 0}>
         <SettingsSection
           title={t('Invitations')}
@@ -713,7 +713,7 @@ function CreateTeamDialog(props: { open: boolean; onClose: () => void }) {
               disabled={createTeamMutation.isPending}
               onClick={props.onClose}
             >
-              {t('Cancel')}
+              {t('Cancel', { context: 'team' })}
             </Button>
             <Button
               variant="accent"
@@ -743,7 +743,7 @@ function EmptyTeamState() {
   const [showCreateModal, setShowCreateModal] = createSignal(false);
 
   return (
-    <SettingsPage title={t('Team')}>
+    <SettingsPage title={t('Team', { context: 'team' })}>
       <SettingsSection>
         <SettingsCard>
           <div class="flex flex-col items-center justify-center py-12 text-center px-6">
@@ -823,7 +823,7 @@ function SaveCancelButtons(props: {
           </Show>
         </Button>
       </Tooltip>
-      <Tooltip label={t('Cancel')}>
+      <Tooltip label={t('Cancel', { context: 'team' })}>
         <Button
           variant="ghost"
           size="icon-sm"
@@ -1182,7 +1182,7 @@ function TeamManagement(props: {
   return (
     <>
       <SettingsPage
-        title={t('Team')}
+        title={t('Team', { context: 'team' })}
         actions={
           <Show when={isOwner()}>
             <Button
@@ -1200,7 +1200,7 @@ function TeamManagement(props: {
         <SettingsSection title={t('General')}>
           <SettingsCard>
             <SettingsRow
-              label={t('Name')}
+              label={t('Name', { context: 'team' })}
               description={t(
                 'What your team is called — shown in invitations and billing.'
               )}
@@ -1407,7 +1407,7 @@ function TeamManagement(props: {
                 fallback={
                   <span class="text-xs text-ink-muted">
                     {githubLink.isLoading
-                      ? t('Loading…')
+                      ? t('Loading…', { context: 'team' })
                       : t('Connect your GitHub account first')}
                   </span>
                 }
@@ -1582,7 +1582,7 @@ function TeamManagement(props: {
                 disabled={deleteTeamMutation.isPending}
                 onClick={() => handleDeleteTeamModalClose(false)}
               >
-                {t('Cancel')}
+                {t('Cancel', { context: 'team' })}
               </Button>
               <Button
                 variant="danger"
@@ -1631,7 +1631,7 @@ function TeamManagement(props: {
                 disabled={removeUserMutation.isPending}
                 onClick={() => setShowRemoveModal(null)}
               >
-                {t('Cancel')}
+                {t('Cancel', { context: 'team' })}
               </Button>
               <Button
                 variant="danger"
@@ -1725,7 +1725,7 @@ function TeamManagement(props: {
                 disabled={inviteToTeamMutation.isPending}
                 onClick={() => handleInviteModalClose(false)}
               >
-                {t('Cancel')}
+                {t('Cancel', { context: 'team' })}
               </Button>
               <Button
                 variant={hasValidInvites() ? 'accent' : 'ghost'}

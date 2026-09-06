@@ -900,7 +900,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   registerHotkey({
     hotkey: 'shift+enter',
     scopeId: launcherScope,
-    description: t('Open in new split'),
+    description: t('Open in new split', { context: 'launcher' }),
     keyDownHandler: () => {
       return runLauncherItem(blocks()[focusedIndex()]);
     },
@@ -911,7 +911,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   const confirmHotkey = registerHotkey({
     hotkey: 'enter' as ValidHotkey,
     scopeId: launcherScope,
-    description: t('Open in current split'),
+    description: t('Open in current split', { context: 'launcher' }),
     keyDownHandler: () => {
       return runLauncherItem(blocks()[focusedIndex()]);
     },
@@ -1045,7 +1045,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
           </span>
           <CommandMenuHotkeyHint
             hotkey={<Hotkey shortcut={confirmHotkey.hotkey()} />}
-            label={t('Create')}
+            label={t('Create', { context: 'launcher' })}
           />
           <span class="hidden touch:hidden md:flex items-center gap-1">
             {t('Hold')}

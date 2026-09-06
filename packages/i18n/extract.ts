@@ -18,7 +18,7 @@ function getAllFiles(dir: string, ext: RegExp, list: string[] = []): string[] {
       if (file !== "node_modules" && file !== "dist" && file !== ".vite") {
         getAllFiles(full, ext, list);
       }
-    } else if (ext.test(file) && !file.endsWith(".d.ts") && !file.endsWith(".test.ts") && !file.endsWith(".test.tsx")) {
+    } else if (ext.test(file) && !file.endsWith(".d.ts")) {
       list.push(full);
     }
   }
@@ -29,27 +29,66 @@ function normalizeKey(str: string): string {
   return str.trim().replace(/\s+/g, " ");
 }
 
-async function run() {
-  console.log("🔍 Scanning apps/web/src for explicit t() and __t() calls...");
-  const files = getAllFiles(webSrcDir, /\.[tj]sx?$/);
+import {
+  TRANSLATABLE_ATTRIBUTES,
+  IGNORED_TAGS,
+  isIgnoredPath,
+  normalizeText,
+  shouldTranslateText,
+  getContextKey,
+  parseMixedChildren,
+  parseSimpleTemplateLiteral,
+} from "./ast-utils";
 
-  const currentCalls = new Map<string, { occurrences: string[]; context?: string }>();
+async function run() {
+  const files = getAllFiles(webSrcDir, /\.[tj]sx?$/).filter(
+    (f) => !f.endsWith(".test.ts") && !f.endsWith(".test.tsx")
+  );
+  const testFiles = [
+    ...getAllFiles(webSrcDir, /\.test\.[tj]sx?$/),
+    ...getAllFiles(__dirname, /\.test\.[tj]sx?$/),
+  ];
+
+  const existingZh: Record<string, string> = fs.existsSync(zhDictPath)
+    ? JSON.parse(fs.readFileSync(zhDictPath, "utf-8"))
+    : {};
+
+  const currentCalls = new Map<string, { occurrences: string[]; context?: string; explicit?: boolean }>();
+  const explicitCalls = new Map<string, { occurrences: string[]; context?: string }>();
   const parseFailures: { file: string; error: string }[] = [];
 
+  function recordCall(
+    dictKey: string,
+    rel: string,
+    context: string | undefined,
+    isExplicit = false
+  ) {
+    const existing = currentCalls.get(dictKey) || { occurrences: [] };
+    existing.occurrences.push(rel);
+    if (context) existing.context = context;
+    if (isExplicit) existing.explicit = true;
+    currentCalls.set(dictKey, existing);
+
+    if (isExplicit) {
+      const explicitExisting = explicitCalls.get(dictKey) || { occurrences: [] };
+      explicitExisting.occurrences.push(rel);
+      if (context) explicitExisting.context = context;
+      explicitCalls.set(dictKey, explicitExisting);
+    }
+  }
+
   for (const file of files) {
+    if (isIgnoredPath(file) && !file.startsWith(__dirname)) continue;
     const rel = path.relative(webSrcDir, file);
     const code = fs.readFileSync(file, "utf-8");
-
-    // Quick filter: check if file contains 't(' or '__t('
-    if (!code.includes("t(") && !code.includes("__t(")) {
-      continue;
-    }
 
     try {
       const ast = parse(code, {
         sourceType: "module",
         plugins: ["jsx", "typescript"],
       });
+
+      const fileContext = getContextKey(file);
 
       traverse(ast, {
         CallExpression(p: any) {
@@ -93,11 +132,50 @@ async function run() {
               }
 
               const dictKey = context ? `${key}@@${context}` : key;
-              const existing = currentCalls.get(dictKey) || { occurrences: [] };
-              existing.occurrences.push(rel);
-              if (context) existing.context = context;
-              currentCalls.set(dictKey, existing);
+              recordCall(dictKey, rel, context, true);
             }
+          }
+        },
+        JSXElement(p: any) {
+          const tagName = p.node.openingElement?.name?.name;
+          if (IGNORED_TAGS.has(tagName)) {
+            p.skip();
+            return;
+          }
+          const unit = parseMixedChildren(p.node.children);
+          if (unit) {
+            const norm = normalizeKey(unit.template);
+            if (shouldTranslateText(norm) || existingZh[norm]) {
+              const dictKey = fileContext ? `${norm}@@${fileContext}` : norm;
+              recordCall(dictKey, rel, fileContext);
+            }
+          }
+        },
+        JSXText(p: any) {
+          const raw = p.node.value;
+          const norm = normalizeKey(raw);
+          if (shouldTranslateText(norm) || existingZh[norm]) {
+            const dictKey = fileContext ? `${norm}@@${fileContext}` : norm;
+            recordCall(dictKey, rel, fileContext);
+          }
+        },
+        JSXAttribute(p: any) {
+          const attrName = p.node.name?.name;
+          if (TRANSLATABLE_ATTRIBUTES.has(attrName) && p.node.value?.type === "StringLiteral") {
+            const val = normalizeKey(p.node.value.value);
+            if (shouldTranslateText(val) || existingZh[val]) {
+              const dictKey = fileContext ? `${val}@@${fileContext}` : val;
+              recordCall(dictKey, rel, fileContext);
+            }
+          }
+        },
+        StringLiteral(p: any) {
+          const val = normalizeKey(p.node.value);
+          if (existingZh[val]) {
+            recordCall(val, rel, undefined);
+          }
+          if (fileContext && existingZh[`${val}@@${fileContext}`]) {
+            recordCall(`${val}@@${fileContext}`, rel, fileContext);
           }
         },
       });
@@ -106,30 +184,56 @@ async function run() {
     }
   }
 
-  const existingZh: Record<string, string> = fs.existsSync(zhDictPath)
-    ? JSON.parse(fs.readFileSync(zhDictPath, "utf-8"))
-    : {};
+  for (const file of testFiles) {
+    const rel = path.relative(webSrcDir, file);
+    try {
+      const code = fs.readFileSync(file, "utf-8");
+      const ast = parse(code, {
+        sourceType: "module",
+        plugins: ["jsx", "typescript"],
+      });
+      traverse(ast, {
+        StringLiteral(p: any) {
+          const val = normalizeKey(p.node.value);
+          if (existingZh[val]) {
+            recordCall(val, rel, undefined, false);
+          }
+        },
+      });
+    } catch {
+      // ignore test parse issues
+    }
+  }
 
   const missing: Record<string, string> = {};
   const inUse: Record<string, string[]> = {};
   const ambiguous: Record<string, string[]> = {};
   const obsolete: Record<string, string> = {};
 
+  // inUse tracks all references across apps/web/src
   for (const [key, meta] of currentCalls.entries()) {
-    const uniqueOccurrences = Array.from(new Set(meta.occurrences));
-    inUse[key] = uniqueOccurrences;
+    inUse[key] = Array.from(new Set(meta.occurrences));
+  }
+
+  // Missing translations: only explicit t() / __t() calls that have no translation in zh-CN
+  for (const [key, meta] of explicitCalls.entries()) {
     if (!existingZh[key]) {
-      // Check if base key exists when context key is searched
       const baseKey = key.includes("@@") ? key.split("@@")[0] : key;
       if (!existingZh[baseKey]) {
         missing[key] = "";
       }
     }
-    if (uniqueOccurrences.length > 2) {
+  }
+
+  // Ambiguous context keys: explicit calls without context that appear in > 2 files
+  for (const [key, meta] of explicitCalls.entries()) {
+    const uniqueOccurrences = Array.from(new Set(meta.occurrences));
+    if (uniqueOccurrences.length > 2 && !key.includes("@@")) {
       ambiguous[key] = uniqueOccurrences;
     }
   }
 
+  // Obsolete translations: keys in zh-CN that are neither in explicitCalls nor in any currentCalls
   for (const key of Object.keys(existingZh)) {
     if (!currentCalls.has(key)) {
       const baseKey = key.includes("@@") ? key.split("@@")[0] : key;
@@ -151,8 +255,10 @@ async function run() {
 
   console.log("==========================================");
   console.log(`✅ Explicit t() Extractor Completed:`);
-  console.log(`  - Explicit t() Keys Found: ${currentCalls.size}`);
+  console.log(`  - Explicit t() Keys Found: ${explicitCalls.size}`);
   console.log(`  - Missing in zh-CN:       ${Object.keys(missing).length}`);
+  console.log(`  - Obsolete Translations:   ${Object.keys(obsolete).length}`);
+  console.log(`  - Ambiguous Context Keys:  ${Object.keys(ambiguous).length}`);
   console.log(`  - Parse Failures:          ${parseFailures.length}`);
   console.log(`Reports saved in packages/i18n/diff/`);
   console.log("==========================================");
