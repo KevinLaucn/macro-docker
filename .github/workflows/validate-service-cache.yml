@@ -1,0 +1,127 @@
+name: Validate service cache planner
+
+on:
+  push:
+    branches:
+      - build/service-cache-20260906
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: 'false'
+          fetch-depth: 0
+
+      - name: Compile planner
+        run: python3 -m py_compile self-host/scripts/affected-services.py
+
+      - name: Validate planner against production graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp_output="$(mktemp)"
+          python3 self-host/scripts/affected-services.py \
+            --all \
+            --github-output "$tmp_output"
+
+          python3 - "$tmp_output" <<'PY'
+          import importlib.util
+          import json
+          import pathlib
+          import sys
+
+          output_path = pathlib.Path(sys.argv[1])
+          output = {}
+          for line in output_path.read_text().splitlines():
+              key, value = line.split("=", 1)
+              output[key] = value
+
+          assert output["run_services"] == "true"
+          assert output["run_web"] == "true"
+          assert output["run_workers"] == "true"
+          targets = json.loads(output["service_targets"])
+          assert len(targets) == 12, targets
+          assert len(set(targets)) == 12, targets
+
+          script = pathlib.Path("self-host/scripts/affected-services.py")
+          spec = importlib.util.spec_from_file_location("affected_services", script)
+          module = importlib.util.module_from_spec(spec)
+          assert spec.loader is not None
+          spec.loader.exec_module(module)
+
+          closures = module.load_closures()
+          module.validate_config(closures)
+
+          email = module.compute_impact(
+              ["services/email_service/src/api.rs"], False, closures
+          )
+          assert email["run_services"] is True, email
+          assert "self-host-email-email-service" in email["service_targets"], email
+          assert email["run_web"] is False, email
+
+          web = module.compute_impact(["apps/web/src/app.tsx"], False, closures)
+          assert web["run_web"] is True, web
+          assert web["run_services"] is False, web
+
+          service_image = module.compute_impact(
+              ["self-host/images/Dockerfile.services"], False, closures
+          )
+          assert service_image["run_services"] is True, service_image
+          assert service_image["service_targets"] == [], service_image
+
+          lock = module.compute_impact(["Cargo.lock"], False, closures)
+          assert lock["run_services"] is True, lock
+          assert len(lock["service_targets"]) == 12, lock
+          assert lock["run_workers"] is True, lock
+          assert lock["run_init"] is True, lock
+
+          websocket = module.compute_impact(
+              ["services/websocket_service/src/main.rs"], False, closures
+          )
+          assert websocket["run_workers"] is True, websocket
+
+          irrelevant = module.compute_impact(["docs/cache-notes.md"], False, closures)
+          assert irrelevant["run_services"] is False, irrelevant
+          assert irrelevant["run_web"] is False, irrelevant
+          assert irrelevant["run_workers"] is False, irrelevant
+          assert irrelevant["run_init"] is False, irrelevant
+
+          print("planner assertions passed")
+          PY
+
+      - name: Check existing self-host invariants
+        run: python3 self-host/scripts/check-drift.py
+
+      - name: Setup Nix without private cache
+        uses: './.github/actions/setup-nix'
+
+      - name: Validate Nix targets without compiling
+        shell: bash
+        run: |
+          set -euo pipefail
+          nix flake show --no-write-lock-file >/tmp/flake-show.txt
+          nix build --dry-run .#self-host-email-source-check
+          nix build --dry-run .#self-host-email-binaries
+
+          targets="$({
+            python3 self-host/scripts/affected-services.py --all --github-output /tmp/planner-output
+          } 2>/dev/null; python3 - <<'PY'
+          import json
+          for line in open('/tmp/planner-output'):
+              if line.startswith('service_targets='):
+                  for target in json.loads(line.split('=', 1)[1]):
+                      print(target)
+          PY
+          )"
+
+          while IFS= read -r target; do
+            [ -n "$target" ] || continue
+            echo "dry-run .#$target"
+            nix build --dry-run ".#$target"
+          done <<< "$targets"
