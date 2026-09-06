@@ -79,6 +79,15 @@ if [ -z "${ADMIN_PASSWORD:-}" ]; then
   echo "  administrator registration: skipped (ADMIN_PASSWORD is not configured)"
 fi
 
+# When SMTP_USERNAME is not configured (e.g. Google Workspace IP-relay), omit username
+# and password so FusionAuth does not attempt SMTP AUTH with empty credentials.
+if [ -z "${SMTP_USERNAME:-}" ]; then
+  jq ' (.requests[] | select(.url | test("^/api/tenant/")) | .body.tenant.emailConfiguration) |= del(.username, .password) ' \
+    "$OUT/kickstart.json" > "$OUT/kickstart.json.tmp"
+  mv "$OUT/kickstart.json.tmp" "$OUT/kickstart.json"
+  echo "  smtp authentication: disabled (unauthenticated IP-based relay)"
+fi
+
 append_requests() {
   local rendered="$1"
   jq --argjson extra "$rendered" '.requests += $extra' "$OUT/kickstart.json" > "$OUT/kickstart.json.tmp"

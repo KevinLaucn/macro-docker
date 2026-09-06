@@ -37,7 +37,7 @@ export const [ChannelsContextProvider, useChannelsContext] =
         return {};
       return channelsQuery.data.reduce<Record<string, ApiChannelWithLatest>>(
         (acc, ch) => {
-          acc[ch.id] = ch;
+          if (ch?.id) acc[ch.id] = ch;
           return acc;
         },
         {}
@@ -49,7 +49,7 @@ export const [ChannelsContextProvider, useChannelsContext] =
         return {};
       return activityQuery.data.reduce<Record<string, ChannelsActivity>>(
         (acc, a) => {
-          acc[a.channel_id] = a;
+          if (a?.channel_id) acc[a.channel_id] = a;
           return acc;
         },
         {}

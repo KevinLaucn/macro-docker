@@ -35,12 +35,12 @@ export function CalendarPermissionPrompt() {
       calendarUiEnabled() && promptAllowed()
         ? (linksQuery.data?.links ?? []).filter(
             (link) =>
-              link.needs_calendar_permission &&
+              link?.needs_calendar_permission &&
               !link.needs_reauth &&
               !link.calendar_disabled
           )
         : [],
-    key: (link) => link.id,
+    key: (link) => link?.id ?? '',
     persistKey: 'macro:calendar-prompt:dismissed',
     // Until the flag resolves and the links land, the empty list above means
     // "don't know yet", not "no inbox needs this" — stored dismissals must

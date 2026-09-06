@@ -446,7 +446,7 @@ export function Login(props: { signupMode?: boolean }) {
   const analytics = useAnalytics();
   const authenticatedUserId = createMemo(() => {
     const user = userInfo();
-    return user?.authenticated ? user.id : undefined;
+    return user?.authenticated ? (user.id ?? user.userId) : undefined;
   });
 
   onMount(() => {
@@ -457,9 +457,11 @@ export function Login(props: { signupMode?: boolean }) {
     const user = userInfo();
 
     if (!user || !user.authenticated) return;
+    const userId = user.id ?? user.userId;
+    if (!userId) return;
 
     const platform = detect(navigator.userAgent);
-    analytics.identify(user.id, {
+    analytics.identify(userId, {
       email: user.email,
       os: platform?.os?.replaceAll(' ', ''),
     });

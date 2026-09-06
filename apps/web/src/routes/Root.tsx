@@ -419,26 +419,30 @@ function UserInfoSideEffects() {
       // attributed to a signed-out user. Logout flips userInfo client-side,
       // and on native mobile it's an SPA navigation with no page reload, so
       // this effect is what clears it there.
-      Telemetry.config.setUser(user?.authenticated ? user.id : undefined);
+      Telemetry.config.setUser(
+        user?.authenticated ? (user.id ?? user.userId) : undefined
+      );
 
       if (!user || !user.authenticated) {
         syncedPlanKey = undefined;
         return;
       }
 
-      if (!posthog.instance._isIdentified() && !identified) {
+      const userId = user.id ?? user.userId;
+
+      if (!posthog.instance._isIdentified() && !identified && userId) {
         identified = true;
 
         const platform = detect(navigator.userAgent);
         const os = platform?.os?.replaceAll(' ', '');
 
-        analytics.identify(user.id, {
+        analytics.identify(userId, {
           email: user.email,
           os,
         });
       }
 
-      const planKey = `${user.id}:${user.licenseStatus}`;
+      const planKey = `${userId ?? ''}:${user.licenseStatus}`;
       if (syncedPlanKey !== planKey) {
         syncedPlanKey = planKey;
         analytics.setPlanProperties(user.licenseStatus);
@@ -446,7 +450,9 @@ function UserInfoSideEffects() {
 
       // Fires sign_up + ad conversions once when the auth service flagged this
       // session as a freshly created account (signed_up=true redirect param).
-      trackSignupCompletion(analytics, { id: user.id });
+      if (userId) {
+        trackSignupCompletion(analytics, { id: userId });
+      }
     })
   );
 
@@ -503,8 +509,9 @@ function InitialInteractiveOnboardingModal() {
   createEffect(() => {
     const data = userInfoQuery.data;
     if (data?.authenticated !== true || data.tutorialComplete !== false) return;
-    if (emailInitForUserId === data.id) return;
-    emailInitForUserId = data.id;
+    const uid = data.id ?? data.userId;
+    if (!uid || emailInitForUserId === uid) return;
+    emailInitForUserId = uid;
 
     void initAndStartEmailSync().match(
       () => {},

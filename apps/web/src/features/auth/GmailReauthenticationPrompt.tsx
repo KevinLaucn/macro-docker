@@ -22,8 +22,8 @@ export function GmailReauthenticationPrompt() {
 
   useKeyedPersistentToasts({
     items: () =>
-      (linksQuery.data?.links ?? []).filter((link) => link.needs_reauth),
-    key: (link) => link.id,
+      (linksQuery.data?.links ?? []).filter((link) => link?.needs_reauth),
+    key: (link) => link?.id ?? '',
     toast: (link, dismiss) => ({
       title: 'Reconnect Gmail',
       content(): string {
