@@ -112,14 +112,23 @@ jobs:
           nix build --dry-run .#self-host-email-source-check
           nix build --dry-run .#self-host-email-binaries
 
-          targets="$({
-            python3 self-host/scripts/affected-services.py --all --github-output /tmp/planner-output
-          } 2>/dev/null; python3 - <<'PY'
+          rm -f /tmp/planner-output
+          python3 self-host/scripts/affected-services.py \
+            --all \
+            --github-output /tmp/planner-output \
+            >/dev/null
+
+          targets="$(python3 - <<'PY'
           import json
-          for line in open('/tmp/planner-output'):
-              if line.startswith('service_targets='):
-                  for target in json.loads(line.split('=', 1)[1]):
-                      print(target)
+
+          with open('/tmp/planner-output', encoding='utf-8') as fh:
+              for line in fh:
+                  if line.startswith('service_targets='):
+                      for target in json.loads(line.split('=', 1)[1]):
+                          print(target)
+                      break
+              else:
+                  raise SystemExit('service_targets output missing')
           PY
           )"
 
