@@ -1302,6 +1302,7 @@
       // dopplerConfigBinPackages
       // deployServiceBinaryPackages
       // deployLambdaPackages
+      // selfHostEmailBinaryPackages
       // pkgs.lib.optionalAttrs isLinux {
         local-stack-binaries = localStackBinaries;
         self-host-email-binaries = selfHostEmailBinaries;
