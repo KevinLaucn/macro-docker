@@ -112,7 +112,7 @@ jobs:
             return 1
           }
 
-          run_services=false
+          run_services=true
           run_web=false
           run_workers=false
 
