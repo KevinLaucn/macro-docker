@@ -5,7 +5,10 @@ import { EmailInput } from '@block-email/component/EmailInput';
 import { EmailMessageBody } from '@block-email/component/EmailMessageBody';
 import { EmailMessageTopBar } from '@block-email/component/EmailMessageTopBar';
 import { MessageCard } from '@block-email/component/MessageCard';
-import { getSenderMacroId } from '@block-email/util/emailUser';
+import {
+  getSenderMacroId,
+  isMessageFromCurrentUser,
+} from '@block-email/util/emailUser';
 import { revealMessageAfterLayout } from '@block-email/util/scrollToMessage';
 import { useSplitLayout } from '@components/app/split-layout/layout';
 import { FloatingInputLoader } from '@core/component/FloatingInputLoader';
@@ -15,8 +18,10 @@ import { UserIcon, type UserIconProps } from '@core/component/UserIcon';
 import { VideoPreview } from '@core/component/VideoPreview';
 import { fileTypeToBlockName } from '@core/constant/allBlocks';
 import { enableDirectAttachmentDownload } from '@core/constant/featureFlags';
+import { useEmail } from '@core/context/user';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { Telemetry } from '@macro-inc/observability';
+import { useEmailLinksQuery } from '@queries/email/link';
 import { refetchSoupEntity } from '@queries/soup/cache';
 import { emailClient } from '@service-email/client';
 import type { ApiMessage, Attachment } from '@service-email/generated/schemas';
@@ -37,6 +42,22 @@ interface MessageContainerProps {
 
 export function MessageContainer(props: MessageContainerProps) {
   const context = useEmailContext();
+  const currentUserEmail = useEmail();
+  const emailLinksQuery = useEmailLinksQuery();
+
+  const isSent = createMemo(() => {
+    const msg = props.message;
+    if (msg.is_draft) return false;
+    if (msg.is_sent) return true;
+    if (msg.labels?.some((l) => l.provider_label_id === 'SENT')) return true;
+    if (msg.scheduled_send_time) return true;
+
+    const connectedEmails = emailLinksQuery.data?.links.map(
+      (link) => link.email_address
+    );
+    return isMessageFromCurrentUser(msg, currentUserEmail(), connectedEmails);
+  });
+
   const draftChild = createMemo(() => {
     if (!props.message.db_id) return undefined;
     const draft = context.drafts.getDraftForMessage(props.message.db_id);
@@ -235,6 +256,8 @@ export function MessageContainer(props: MessageContainerProps) {
       messageId={props.message.db_id}
       isSelected={props.isSelected}
       allowHover={props.allowHover}
+      isSent={isSent()}
+      isExpanded={isBodyExpanded()}
       onActivate={isBodyExpanded() ? undefined : handleExpand}
     >
       <Show

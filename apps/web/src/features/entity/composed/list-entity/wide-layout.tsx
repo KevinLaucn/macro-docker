@@ -1,7 +1,7 @@
 import { useMaybeSoupView } from '@app/features/next-soup/soup-view/soup-view-context';
 import { globalSplitManager } from '@app/signal/splitLayout';
 import { useSplitPanel } from '@components/app/split-layout/layoutUtils';
-import { EntityRowTags } from '@property/tags';
+import { AwaitingReplyTag, EntityRowTags } from '@property/tags';
 import { EntityType } from '@service-properties/generated/schemas/entityType';
 import type { SoupProperty } from '@service-storage/generated/schemas/soupProperty';
 import { cn } from '@ui';
@@ -135,6 +135,10 @@ export function WideLayout(props: LayoutProps) {
                 // [FORK-FEATURE]: In single-column mode, render tags on the left between sender & title
                 tagsSlot={
                   <Show when={!isDoubleColumn()}>
+                    <AwaitingReplyTag
+                      entity={entity()}
+                      onFilterByTag={soupView?.filterByTag}
+                    />
                     <RowTags
                       entityId={entity().id}
                       entityType={EntityType.THREAD}
@@ -215,6 +219,10 @@ export function WideLayout(props: LayoutProps) {
           {(entity) => (
             // [FORK-FEATURE]: In double-column mode, retain tags on the right (meta slot before timestamp)
             <Show when={isDoubleColumn()}>
+              <AwaitingReplyTag
+                entity={entity()}
+                onFilterByTag={soupView?.filterByTag}
+              />
               <RowTags
                 entityId={entity().id}
                 entityType={EntityType.THREAD}

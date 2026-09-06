@@ -2,9 +2,9 @@ import { useEmailContext } from '@block-email/component/EmailContext';
 import { isScrollingToMessage } from '@block-email/signal/scrollState';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
+import { t } from '@macro/i18n';
 import { Key } from '@solid-primitives/keyed';
 import { Button, cn, Layer } from '@ui';
-import { t } from '@macro/i18n';
 import {
   createEffect,
   createMemo,

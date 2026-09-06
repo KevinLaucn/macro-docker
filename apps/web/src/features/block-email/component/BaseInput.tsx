@@ -1137,10 +1137,10 @@ export function BaseInput(props: {
 
     const currentEditor = editor();
 
-    // Sending a reply marks the thread done. Gated on inbox_visible because
-    // onMarkDone (archiveThread) toggles: an already-archived thread (e.g.
-    // replying from search or the sent view) would be unarchived.
-    const willMarkDone = markDone || (currentThread?.inbox_visible ?? false);
+    // Preserve Gmail default behavior: sending a reply keeps the thread in the
+    // inbox/current view unless the user explicitly requested "Send and mark done"
+    // (e.g. Shift+Cmd+Enter or explicit markDone parameter).
+    const willMarkDone = markDone ?? false;
     pendingMarkDoneNavigationTargetId = willMarkDone
       ? ctx.getMarkDoneNavigationTargetId()
       : undefined;

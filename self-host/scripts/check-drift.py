@@ -107,6 +107,30 @@ env_keys = {
     if line and not line.lstrip().startswith("#") and "=" in line
 }
 
+# Private production attachment bucket is intentionally different from the
+# upstream default. Keep the resource manifest and environment contract in
+# lockstep so an upstream merge cannot silently point production at a wrong
+# bucket.
+env_values = {
+    line.split("=", 1)[0]: line.split("=", 1)[1]
+    for line in env_example.splitlines()
+    if line and not line.lstrip().startswith("#") and "=" in line
+}
+attachment_bucket = next(
+    (b["name"] for b in manifest["buckets"] if b["env_key"] == "ATTACHMENT_BUCKET"),
+    None,
+)
+if attachment_bucket != "macro-email-attach":
+    fail(
+        "ATTACHMENT_BUCKET manifest value must remain macro-email-attach; "
+        f"found {attachment_bucket!r}"
+    )
+if env_values.get("ATTACHMENT_BUCKET") != "macro-email-attach":
+    fail(
+        "self-host/.env.example ATTACHMENT_BUCKET must remain macro-email-attach; "
+        f"found {env_values.get('ATTACHMENT_BUCKET')!r}"
+    )
+
 for b in manifest["buckets"]:
     if b["env_key"] not in env_keys:
         fail(f'bucket {b["name"]}: {b["env_key"]} missing from .env.example')

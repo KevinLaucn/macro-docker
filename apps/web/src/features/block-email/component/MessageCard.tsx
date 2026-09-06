@@ -1,4 +1,5 @@
 import { useEmailContext } from '@block-email/component/EmailContext';
+import { SentMessageIndicator } from '@block-email/component/SentMessageIndicator';
 import { scrollFocusedCardIntoView } from '@block-email/util/scrollToMessage';
 import { cn } from '@ui';
 import type { JSX } from 'solid-js';
@@ -7,6 +8,8 @@ interface MessageCardProps {
   messageId: string | null | undefined;
   isSelected: boolean;
   allowHover: boolean;
+  isSent?: boolean;
+  isExpanded?: boolean;
   /**
    * Click or Enter on the row. Clicks landing on a control inside the card are
    * excluded so row activation never fights an inner button.
@@ -89,6 +92,10 @@ export function MessageCard(props: MessageCardProps) {
             select();
           }}
         >
+          <SentMessageIndicator
+            isSent={props.isSent}
+            isExpanded={props.isExpanded}
+          />
           {props.children}
         </div>
       </div>

@@ -1,7 +1,11 @@
+#[cfg(not(feature = "full-saas"))]
+use axum::{Json, http::StatusCode};
 use axum::{
     Router,
     routing::{delete, get, patch, post, put},
 };
+#[cfg(not(feature = "full-saas"))]
+use serde_json::{Value, json};
 use tower_cookies::CookieManagerLayer;
 
 use crate::api::ApiContext;
@@ -80,5 +84,21 @@ fn router_with_auth() -> Router<ApiContext> {
         .route("/group", patch(patch_user_group::handler))
         .route("/onboarding", patch(patch_user_onboarding::handler));
 
+    #[cfg(not(feature = "full-saas"))]
+    let router = router
+        .route("/stripe/checkoutv2", post(payment_disabled))
+        .route("/stripe/portal", post(payment_disabled));
+
     router.layer(CookieManagerLayer::new())
+}
+
+#[cfg(not(feature = "full-saas"))]
+async fn payment_disabled() -> (StatusCode, Json<Value>) {
+    (
+        StatusCode::NOT_IMPLEMENTED,
+        Json(json!({
+            "error": "payment_disabled",
+            "message": "Payment and subscription features are disabled for this deployment"
+        })),
+    )
 }

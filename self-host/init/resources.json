@@ -232,7 +232,7 @@
   ],
   "buckets": [
     {
-      "name": "macro-email-attachments",
+      "name": "macro-email-attach",
       "env_key": "ATTACHMENT_BUCKET"
     },
     {

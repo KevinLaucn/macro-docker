@@ -111,6 +111,11 @@ pub struct Config {
     /// absent or blank value at startup.
     pub cursor_api_key_kms_key_id: CursorApiKeyKmsKeyId,
     /// Stripe secret key
+    ///
+    /// Stripe is optional for self-hosted deployments. When omitted, the
+    /// existing local stub path is used and billing endpoints remain
+    /// unavailable instead of preventing the service from starting.
+    #[macro_config_default(StripeSecretKey::Comptime("local-stripe-secret"))]
     pub stripe_secret_key: StripeSecretKey,
     /// The port to listen for HTTP requests on.
     #[macro_config_default(8080)]
@@ -148,6 +153,7 @@ pub struct Config {
     /// All `@macro.com` email addresses are allowed by the Develop policy automatically.
     pub development_signup_allowlist_json: DevelopmentSignupAllowlistJson,
     /// The stripe price id
+    #[macro_config_default(StripePriceId::Comptime("disabled"))]
     pub stripe_price_id: StripePriceId,
     /// The internal api key
     pub internal_api_key: InternalApiKey,
