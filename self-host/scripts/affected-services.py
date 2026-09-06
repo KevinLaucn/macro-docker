@@ -169,22 +169,30 @@ def load_closures() -> dict[str, list[str]]:
 
 
 def nix_email_definitions() -> dict[str, str]:
-    """Read the simple serviceName/packageName pairs from the Email Nix list.
+    """Read serviceName/packageName pairs from the Email production Nix list.
 
-    This is intentionally only a drift guard, not a general Nix parser. If the
-    Nix block is refactored enough that this parser no longer matches, CI fails
-    closed and asks for this planner to be updated instead of silently skipping
-    a production service.
+    This is intentionally only a drift guard, not a general Nix parser. Stable
+    comments delimit the whole definition list so nested `binaries = [ ... ];`
+    arrays cannot be mistaken for the end of the service inventory. If the Nix
+    block is refactored enough that either marker disappears, CI fails closed.
     """
     text = NIX_PATH.read_text(encoding="utf-8")
     start_marker = "selfHostEmailBinaryDefinitions = ["
-    end_marker = "      ];"
-    try:
-        block = text.split(start_marker, 1)[1].split(end_marker, 1)[0]
-    except IndexError as exc:
+    end_marker = "# Strip --no-default-features"
+
+    if start_marker not in text or end_marker not in text:
         raise RuntimeError(
-            "could not locate selfHostEmailBinaryDefinitions in nix/cloud-storage.nix"
-        ) from exc
+            "could not locate the complete selfHostEmailBinaryDefinitions block "
+            "in nix/cloud-storage.nix"
+        )
+
+    tail = text.split(start_marker, 1)[1]
+    block, separator, _ = tail.partition(end_marker)
+    if not separator:
+        raise RuntimeError(
+            "could not locate the end of selfHostEmailBinaryDefinitions in "
+            "nix/cloud-storage.nix"
+        )
 
     pairs = re.findall(
         r'serviceName\s*=\s*"([^"]+)";\s*\n\s*packageName\s*=\s*"([^"]+)";',
@@ -194,7 +202,13 @@ def nix_email_definitions() -> dict[str, str]:
         raise RuntimeError(
             "could not parse any Email service definitions from nix/cloud-storage.nix"
         )
-    return dict(pairs)
+
+    definitions = dict(pairs)
+    if len(definitions) != len(pairs):
+        raise RuntimeError(
+            "duplicate serviceName entries found in selfHostEmailBinaryDefinitions"
+        )
+    return definitions
 
 
 def validate_config(closures: dict[str, list[str]]) -> None:
