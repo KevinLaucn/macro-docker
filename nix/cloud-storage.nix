@@ -168,6 +168,8 @@
           || (
             type == "regular"
             && !(pkgs.lib.hasInfix "/" rel)
+            && rel != "Cargo.toml"
+            && rel != "Cargo.lock"
             && ((assetFilter path type) || (binFilter path type))
           );
       };
