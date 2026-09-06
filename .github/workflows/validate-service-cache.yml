@@ -101,7 +101,7 @@ jobs:
       - name: Check existing self-host invariants
         run: python3 self-host/scripts/check-drift.py
 
-      - name: Setup Nix with private cache read-only
+      - name: Setup Nix with private cache
         uses: './.github/actions/setup-nix'
         with:
           nix-cache-url: ${{ vars.NIX_CACHE_URL }}
@@ -109,7 +109,21 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          nix-cache-signing-key: ${{ github.event_name != 'pull_request' && secrets.NIX_CACHE_SIGNING_KEY || '' }}
           fail-on-cache-error: 'true'
+
+      - name: Reset Nix upload queue
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          queue=/var/lib/nix-cache-upload
+          for dir in spool inflight failed; do
+            if [ -d "$queue/$dir" ]; then
+              sudo find "$queue/$dir" -type f -delete
+            fi
+          done
+          sudo rm -f "$queue/stop" "$queue/done" "$queue/stats" 2>/dev/null || true
 
       - name: Validate self-host Nix targets without compiling
         shell: bash
@@ -149,18 +163,52 @@ jobs:
           done <<< "$targets"
 
       - name: Build production Email aggregate for real
+        id: build
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
-          echo "Building .#self-host-email-binaries with private cache in read-only mode"
+          log=/tmp/nix-email-build.log
+          started="$(date +%s)"
+
+          echo "Building .#self-host-email-binaries with private S3 cache read/write enabled"
           nix build \
             --print-build-logs \
             --max-jobs 2 \
             --cores 4 \
             .#self-host-email-binaries \
-            --out-link result-bins
+            --out-link result-bins \
+            2>&1 | tee "$log"
+
+          finished="$(date +%s)"
+          echo "duration_seconds=$((finished - started))" >> "$GITHUB_OUTPUT"
+
+          cache_hits="$(grep -Ec "copying path '.*' from 's3" "$log" || true)"
+          local_builds="$(grep -Ec "building '/nix/store/.*\\.drv'" "$log" || true)"
+          total=$((cache_hits + local_builds))
+          if [ "$total" -gt 0 ]; then
+            hit_rate="$(awk -v h="$cache_hits" -v t="$total" 'BEGIN { printf "%.1f", (h * 100) / t }')"
+          else
+            hit_rate="100.0"
+          fi
+
+          echo "cache_hits=$cache_hits" >> "$GITHUB_OUTPUT"
+          echo "local_builds=$local_builds" >> "$GITHUB_OUTPUT"
+          echo "cache_hit_rate=$hit_rate" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Nix cache validation"
+            echo ""
+            echo "- Build duration: $((finished - started))s"
+            echo "- S3 substituted paths: $cache_hits"
+            echo "- Locally built derivations: $local_builds"
+            echo "- Path-level cache hit proxy: ${hit_rate}%"
+            echo ""
+            echo "> The hit rate is a path-level proxy from Nix logs, not a byte-weighted cache ratio."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify built production binaries
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
@@ -168,3 +216,73 @@ jobs:
           echo "Built binaries:"
           find -L result-bins/bin -maxdepth 1 -type f -printf '%f\n' | sort
           echo "Total binaries: $(find -L result-bins/bin -maxdepth 1 -type f | wc -l)"
+
+      - name: Upload newly built Nix paths
+        id: upload_cache
+        if: success() && github.event_name != 'pull_request'
+        shell: bash
+        env:
+          NIX_CACHE_URL: ${{ vars.NIX_CACHE_URL }}
+          NIX_CACHE_SIGNING_KEY: ${{ secrets.NIX_CACHE_SIGNING_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+        run: |
+          set -euo pipefail
+          dest="${NIX_CACHE_URL:-}"
+          queue=/var/lib/nix-cache-upload
+          spool="$queue/spool"
+
+          if [ -z "$dest" ]; then
+            echo "NIX_CACHE_URL is empty; cannot upload cache" >&2
+            exit 1
+          fi
+          if [ -z "${NIX_CACHE_SIGNING_KEY:-}" ]; then
+            echo "NIX_CACHE_SIGNING_KEY is empty; cannot upload cache" >&2
+            exit 1
+          fi
+
+          paths_file="$(mktemp)"
+          if [ -d "$spool" ]; then
+            while IFS= read -r file; do
+              sudo cat "$file"
+            done < <(sudo find "$spool" -type f -name '*.path' -print | sort) \
+              | awk 'NF' | sort -u > "$paths_file"
+          fi
+
+          upload_count="$(wc -l < "$paths_file" | tr -d ' ')"
+          echo "uploaded_paths=$upload_count" >> "$GITHUB_OUTPUT"
+          if [ "$upload_count" -eq 0 ]; then
+            echo "No locally built Nix paths to upload; cache was already warm."
+            echo "- Newly uploaded Nix paths: 0" >> "$GITHUB_STEP_SUMMARY"
+            rm -f "$paths_file"
+            exit 0
+          fi
+
+          key_file="$RUNNER_TEMP/nix-cache-signing-key"
+          printf '%s\n' "$NIX_CACHE_SIGNING_KEY" > "$key_file"
+          chmod 600 "$key_file"
+          trap 'rm -f "$key_file" "$paths_file"' EXIT
+
+          if [[ "$dest" == *'?'* ]]; then
+            signed_dest="${dest}&secret-key=${key_file}"
+          else
+            signed_dest="${dest}?secret-key=${key_file}"
+          fi
+
+          copy_flags=()
+          if nix copy --help 2>&1 | grep -q -- '--no-recursive'; then
+            copy_flags+=(--no-recursive)
+          fi
+
+          mapfile -t paths < "$paths_file"
+          batch_size=48
+          for ((i=0; i<${#paths[@]}; i+=batch_size)); do
+            batch=("${paths[@]:i:batch_size}")
+            echo "Uploading Nix cache batch $((i / batch_size + 1)) (${#batch[@]} paths)"
+            nix copy "${copy_flags[@]}" --to "$signed_dest" "${batch[@]}"
+          done
+
+          sudo find "$spool" -type f -delete
+          echo "Uploaded $upload_count newly built Nix paths to the private cache."
+          echo "- Newly uploaded Nix paths: $upload_count" >> "$GITHUB_STEP_SUMMARY"
