@@ -112,8 +112,8 @@ jobs:
             return 1
           }
 
-          run_services=true
-          run_web=true
+          run_services=false
+          run_web=false
           run_workers=false
 
           if has_match \
