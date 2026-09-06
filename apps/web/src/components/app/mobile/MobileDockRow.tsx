@@ -91,7 +91,7 @@ function CreateMenu() {
             }}
           </For>
           <MobileTouchMenu.Separator />
-          <MobileTouchMenu.Footer>{t('Create')}</MobileTouchMenu.Footer>
+          <MobileTouchMenu.Footer>{t('Create', { context: 'dock' })}</MobileTouchMenu.Footer>
         </MobileTouchMenu.Content>
       </MobileTouchMenu>
     </MobileDockIsland>
@@ -171,7 +171,7 @@ function MoreViewsMenu(props: {
           animateIcon={false}
           onSelect={toggleSettings}
         >
-          {t('Settings')}
+          {t('Settings', { context: 'dock' })}
         </MobileTouchMenu.Item>
         <MobileTouchMenu.Separator />
         {/* Rows render top → bottom ending at the thumb: reverse the shared

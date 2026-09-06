@@ -190,7 +190,7 @@ export function HarnessPairingDialog(props: {
 
                   <label class="flex flex-col gap-1.5">
                     <span class="text-xs font-medium text-ink">
-                      {t('Name')}
+                      {t('Name', { context: 'harness' })}
                     </span>
                     <input
                       class="settings-input w-full"
@@ -221,7 +221,7 @@ export function HarnessPairingDialog(props: {
                       name="harness-share"
                       value="team"
                       checked={share() === 'Team'}
-                      title={t('Team')}
+                      title={t('Team', { context: 'harness' })}
                       description={
                         canShareWithTeam()
                           ? t('Your team can run agents on this harness.')
@@ -308,7 +308,7 @@ export function HarnessPairingDialog(props: {
                 disabled={approveMutation.isPending}
                 onClick={props.onClose}
               >
-                {t('Cancel')}
+                {t('Cancel', { context: 'harness' })}
               </Button>
               <Button
                 type="button"
@@ -327,7 +327,7 @@ export function HarnessPairingDialog(props: {
                 size="sm"
                 onClick={props.onClose}
               >
-                {t('Cancel')}
+                {t('Cancel', { context: 'harness' })}
               </Button>
             </Match>
             <Match when>
@@ -337,7 +337,7 @@ export function HarnessPairingDialog(props: {
                 size="sm"
                 onClick={props.onClose}
               >
-                {t('Cancel')}
+                {t('Cancel', { context: 'harness' })}
               </Button>
               <Button
                 type="button"

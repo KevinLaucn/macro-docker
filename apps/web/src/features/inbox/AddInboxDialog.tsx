@@ -66,7 +66,7 @@ export function AddInboxDialog() {
               disabled={pending()}
               onClick={() => setIsOpen(false)}
             >
-              {t('Cancel')}
+              {t('Cancel', { context: 'inbox' })}
             </Button>
             <Button
               variant="accent"

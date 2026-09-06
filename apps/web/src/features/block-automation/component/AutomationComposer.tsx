@@ -160,7 +160,7 @@ export function AutomationComposer() {
             <div class="grid max-h-[70vh] gap-3 overflow-y-auto p-3">
               <div class="grid gap-1.5">
                 <label class="text-xs font-medium text-ink-muted cursor-default">
-                  {t('Name')}
+                  {t('Name', { context: 'automation' })}
                 </label>
                 <input
                   class={INPUT_CLASS}
@@ -309,7 +309,7 @@ export function AutomationComposer() {
                 class="cursor-default"
                 onClick={() => setAutomationComposerOpen(false, false)}
               >
-                {t('Cancel')}
+                {t('Cancel', { context: 'automation' })}
               </Button>
               <Button
                 variant="accent"
@@ -318,7 +318,7 @@ export function AutomationComposer() {
                 disabled={createMutation.isPending}
                 onClick={handleCreate}
               >
-                {createMutation.isPending ? t('Creating…') : t('Create')}
+                {createMutation.isPending ? t('Creating…') : t('Create', { context: 'automation' })}
               </Button>
             </div>
           </div>

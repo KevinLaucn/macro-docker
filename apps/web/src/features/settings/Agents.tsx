@@ -6,7 +6,7 @@ import { MACRO_AGENT_BOT_ID } from '@core/constant/macroAgent';
 import { useChannelsContext } from '@core/context/channels';
 import { useUserId } from '@core/context/user';
 import MacroLogo from '@icon/macro-logo.svg';
-import { __t } from '@macro/i18n';
+import { t, __t } from '@macro/i18n';
 import PencilIcon from '@phosphor/pencil-simple.svg';
 import PlusIcon from '@phosphor/plus.svg';
 import RobotIcon from '@phosphor/robot.svg';
@@ -703,7 +703,7 @@ function AgentDialog(props: {
               <div class="mt-4 grid grid-cols-2 gap-3 mobile:grid-cols-1">
                 <label class="flex flex-col gap-1.5">
                   <span class="text-xs font-medium text-ink">
-                    {__t('Name')}
+                    {t('Name', { context: 'agents' })}
                   </span>
                   <input
                     autofocus
@@ -921,7 +921,7 @@ function AgentDialog(props: {
 
         <Panel.Footer class="justify-end gap-2 px-3 py-2">
           <Button type="button" variant="ghost" size="sm" onClick={close}>
-            {__t('Cancel')}
+            {t('Cancel', { context: 'agents' })}
           </Button>
           <Button
             type="submit"

@@ -504,18 +504,18 @@ const FavoriteRow = (props: {
           <ContextMenuContent class="text-xs text-ink-muted">
             <MenuGroup>
               <MenuItem
-                text={t('Open in new split')}
+                text={t('Open in new split', { context: 'favorites' })}
                 onClick={openInNewSplit}
                 disabled={!canOpenInNewSplit()}
               />
               <Show when={canOpenFullscreen()}>
                 <MenuItem
-                  text={t('Open fullscreen')}
+                  text={t('Open fullscreen', { context: 'favorites' })}
                   onClick={openFullscreen}
                 />
               </Show>
               <MenuItem
-                text={t('Open in current split')}
+                text={t('Open in current split', { context: 'favorites' })}
                 onClick={openInCurrentSplit}
               />
             </MenuGroup>

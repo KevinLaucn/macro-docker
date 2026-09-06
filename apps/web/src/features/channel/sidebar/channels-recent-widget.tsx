@@ -292,12 +292,12 @@ function ChannelRow(props: {
         <ContextMenuContent class="text-xs text-ink-muted">
           <MenuGroup>
             <MenuItem
-              text={t('Open in new split')}
+              text={t('Open in new split', { context: 'channel' })}
               onClick={openInNewSplit}
               disabled={!canOpenInNewSplit()}
             />
             <MenuItem
-              text={t('Open in current split')}
+              text={t('Open in current split', { context: 'channel' })}
               onClick={openInCurrentSplit}
             />
           </MenuGroup>

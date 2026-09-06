@@ -104,7 +104,7 @@ export const SidebarCreateMenu = (props: SidebarCreateMenuProps) => {
                 fullWidth
                 tooltipPlacement="right"
                 tooltipDisabled={!isSlim()}
-                label={t('Create')}
+                label={t('Create', { context: 'menu' })}
                 hotkey={TOKENS.global.createCommand}
                 onMouseDown={(e: MouseEvent) => {
                   if (e.button !== 0) return;
@@ -115,7 +115,7 @@ export const SidebarCreateMenu = (props: SidebarCreateMenuProps) => {
                   <PlusIcon class="size-4" />
                 </div>
                 <span class="whitespace-nowrap group-data-[slim=true]/sidebar:hidden">
-                  {t('Create')}
+                  {t('Create', { context: 'menu' })}
                 </span>
                 <Show when={open()}>
                   <div class="text-xxs text-ink-extra-muted/50 rounded-sm ml-auto border border-ink/5 px-1.5 py-px -my-1 group-data-[slim=true]/sidebar:hidden">
@@ -134,7 +134,7 @@ export const SidebarCreateMenu = (props: SidebarCreateMenuProps) => {
               size="icon-sm"
               depth={1}
               class="size-[26px] rounded-full bg-surface shadow-md shadow-drop-shadow [&_svg]:size-4!"
-              label={t('Create')}
+              label={t('Create', { context: 'menu' })}
               hotkey={TOKENS.global.createCommand}
               onMouseDown={(e: MouseEvent) => {
                 if (e.button !== 0) return;
