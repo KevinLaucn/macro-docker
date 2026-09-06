@@ -16,11 +16,11 @@ import LogoIcon from '@icon/macro-logo.svg';
 import ArrowLeft from '@phosphor/arrow-left.svg';
 import ArrowRight from '@phosphor/arrow-right.svg';
 import { useUserInfo } from '@queries/auth';
+import { passwordlessCallback, sessionLogin } from '@queries/auth/login';
 import {
   invalidateAllAfterLogin,
   useUserInfoQuery,
 } from '@queries/auth/user-info';
-import { authServiceClient } from '@service-auth/client';
 import {
   action,
   useAction,
@@ -132,7 +132,7 @@ function LoginPicker(props: {
 
       <Show when={showApple}>
         <Button
-          variant="base"
+          variant="outline"
           class="bg-surface"
           onClick={() => startSsoLogin('Apple')}
         >
@@ -141,7 +141,7 @@ function LoginPicker(props: {
         </Button>
       </Show>
 
-      <Button variant="base" class="bg-surface" onClick={continueWithEmail}>
+      <Button variant="outline" class="bg-surface" onClick={continueWithEmail}>
         Continue with email
       </Button>
     </div>
@@ -229,12 +229,12 @@ function EmailFormNew(props: {
   });
 
   createEffect(() => {
-    if (sentEmailCode(submission.result)) {
-      props.setStage(Stage.Verify);
+    if (submission.result === 'LoggedIn') {
+      props.setStage(Stage.Done);
     } else if (submission.result === 'isPasswordLogin') {
       setIsPasswordLogin(true);
-    } else if (submission.result === 'LoggedIn') {
-      props.setStage(Stage.Done);
+    } else if (sentEmailCode(submission.result)) {
+      props.setStage(Stage.Verify);
     }
   });
 
@@ -267,7 +267,7 @@ function EmailFormNew(props: {
         Continue
         <ArrowRight class="size-4" />
       </Button>
-      <Button variant="base" class="bg-surface" onClick={props.onBack}>
+      <Button variant="outline" class="bg-surface" onClick={props.onBack}>
         <ArrowLeft class="size-4" />
         Back to sign in
       </Button>
@@ -281,7 +281,7 @@ const verifyCode = action(async (formData: FormData) => {
   const email = formData.get('email');
   if (typeof email !== 'string') throw new Error('Invalid email');
 
-  const result = await authServiceClient.passwordlessCallback({ code, email });
+  const result = await passwordlessCallback({ code, email });
   if (result.isErr()) {
     if (result.error.some((err) => err.code === 'UNAUTHORIZED')) {
       throw new Error('Invalid code.');
@@ -442,7 +442,7 @@ function VerifyFormNew(props: {
         Verify
         <ArrowRight class="size-4" />
       </Button>
-      <Button variant="base" class="bg-surface" onClick={props.onBack}>
+      <Button variant="outline" class="bg-surface" onClick={props.onBack}>
         <ArrowLeft class="size-4" />
         Change email
       </Button>
@@ -492,9 +492,10 @@ export function Login(props: { signupMode?: boolean }) {
       ? rawToken[rawToken.length - 1]
       : rawToken;
     if (session_code && typeof session_code === 'string') {
-      unsetTokenPromise();
-      authServiceClient.sessionLogin({ session_code }).then(async (res) => {
+      void (async () => {
+        const res = await sessionLogin({ session_code });
         if (res.isOk()) {
+          unsetTokenPromise();
           await invalidateAllAfterLogin();
           await initEmailLink().match(
             () => {},
@@ -505,7 +506,7 @@ export function Login(props: { signupMode?: boolean }) {
             }
           );
         }
-      });
+      })();
     }
   });
 

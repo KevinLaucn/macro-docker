@@ -30,6 +30,6 @@ password: set ADMIN_PASSWORD in your local/private .env
 api-key: bf69486b-4733-4954-a44e-2e1b5f2c8a91
 ```
 
-# TODO
-- [ ] configure idps
-- [ ] sync prod with pulumi stack
+# Maintenance
+- Use `just import_dev` or `just import_prod` once to adopt pre-existing FusionAuth state into Pulumi.
+- After import, use `pulumi up --stack [local|macro-inc/dev|macro-inc/prod]` for day-2 reconciliation.

@@ -16,6 +16,7 @@ import { deriveChatName } from '@core/component/AI/util/deriveName';
 import {
   enableHomeRecommendations,
   enableHomeView,
+  getAppCapabilities,
 } from '@core/constant/featureFlags';
 import { PaywallKey, usePaywallState } from '@core/constant/PaywallState';
 import { useUserContext } from '@core/context/user';
@@ -24,8 +25,8 @@ import { TOKENS } from '@core/hotkey/tokens';
 import { isPaymentError } from '@core/util/handlePaymentError';
 import { createRenameDssEntityMutation } from '@entity';
 import { t } from '@macro/i18n';
+import { createChat, sendStreamChatMessage } from '@queries/chat';
 import { invalidateAllSoup } from '@queries/soup/normalized-cache';
-import { cognitionApiServiceClient } from '@service-cognition/client';
 import { Navigate } from '@solidjs/router';
 import { $getRoot } from 'lexical';
 import { createEffect } from 'solid-js';
@@ -90,6 +91,7 @@ export function Home() {
 function HomeContent() {
   const user = useUserContext();
   const preferences = createHomePreferences();
+  const capabilities = getAppCapabilities();
 
   const firstName = () => {
     const name = user.author();
@@ -153,7 +155,13 @@ function HomeContent() {
 
       <FloatRegionOrInline region="accessory">
         <div class="mx-auto w-full max-w-3xl shrink-0 px-4 pb-3 pointer-events-auto touch:px-(--mobile-chrome-gutter) touch:pb-0">
-          <HomeChatInput />
+          {capabilities.cognition ? (
+            <HomeChatInput />
+          ) : (
+            <div class="rounded-md border border-edge-muted bg-surface px-3 py-2 text-xs text-ink-muted">
+              Chat is unavailable in this profile.
+            </div>
+          )}
         </div>
       </FloatRegionOrInline>
     </main>
@@ -214,7 +222,7 @@ const HomeChatInput = () => {
     const backgroundSend = request.metaKey;
 
     // Create a new persistent chat
-    const response = await cognitionApiServiceClient.createChat({});
+    const response = await createChat({});
     if (response.isErr()) {
       if (isPaymentError(response)) {
         const { showPaywall } = usePaywallState();
@@ -235,7 +243,7 @@ const HomeChatInput = () => {
 
     if (backgroundSend) {
       // Send the message in the background without navigating
-      cognitionApiServiceClient.sendStreamChatMessage({
+      sendStreamChatMessage({
         content: request.content,
         model: request.model,
         chat_id: chatId,

@@ -25,7 +25,7 @@ export function SentMessageIndicator(
     <Show when={props.isSent}>
       <div
         class={cn(
-          'absolute -inset-y-px -left-px w-1 rounded-l-lg transition-colors duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none bg-accent/70'
+          'absolute inset-y-0 left-0 w-0.5 transition-colors duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none bg-accent/70'
         )}
         aria-hidden="true"
       />

@@ -151,7 +151,10 @@ http://{$FUSIONAUTH_DOMAIN} {
 		X-Content-Type-Options "nosniff"
 		-Server
 	}
-	reverse_proxy fusionauth:9011
+	reverse_proxy fusionauth:9011 {
+		header_up X-Forwarded-Proto "https"
+		header_up X-Forwarded-Port "443"
+	}
 }
 
 http://{$S3_DOMAIN} {

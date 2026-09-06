@@ -32,6 +32,16 @@ export function useChatQuery(chatId: () => string | undefined) {
   });
 }
 
+export function createChat(args: Record<string, never>) {
+  return cognitionApiServiceClient.createChat(args);
+}
+
+export function sendStreamChatMessage(
+  args: Parameters<typeof cognitionApiServiceClient.sendStreamChatMessage>[0]
+) {
+  return cognitionApiServiceClient.sendStreamChatMessage(args);
+}
+
 export function useChatRenameWebsocketSync() {
   createConnectionWebsocketEffect((message) => {
     if (message.type !== CHAT_RENAMED_MESSAGE_TYPE) return;

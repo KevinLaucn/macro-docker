@@ -63,6 +63,7 @@ const CREATE_COMPANY_OPTION: CreateOption = {
  */
 const VIEW_ONLY_BLOCK_LABELS: Partial<Record<CreatableName, string>> = {
   automation: 'Automation',
+  agent: 'Agent',
 };
 
 const VIEW_CREATE_LABELS: Partial<Record<ListView, string>> = {
@@ -81,13 +82,15 @@ function getViewCreateOptions(
 ): CreateOption[] {
   const createNames = VIEW_CREATE_BLOCKNAMES[view] ?? [];
   const options: CreateOption[] = createNames.flatMap((name) => {
-    const block = CREATABLE_BLOCKS.find((b) => b.blockName === name);
+    const block = CREATABLE_BLOCKS.find((b) =>
+      name === 'agent' ? b.blockName === 'chat' : b.blockName === name
+    );
     if (block) {
       // A flagged-off entry is not offered here either, the same as in the
       // create menus — `runCreateAction` would decline it anyway. Asked
       // reactively, so an option appears once its flag resolves.
       if (!isCreatableEnabled(block.blockName)) return [];
-      return [{ id: block.blockName, label: block.label }];
+      return [{ id: name, label: name === 'agent' ? 'Agent' : block.label }];
     }
     const viewOnlyLabel = VIEW_ONLY_BLOCK_LABELS[name];
     if (viewOnlyLabel) return [{ id: name, label: viewOnlyLabel }];

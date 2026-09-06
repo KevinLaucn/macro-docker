@@ -322,6 +322,8 @@ The app is served at `<proxy>/app/` (`http://localhost:8090/app` for the default
 
 It saves these volumes as an init snapshot. The snapshot is content-addressed and stored under `infra/local/generated/.snapshots`. Later runs restore the snapshot and skip the initialization. An input change causes a cache miss and a normal full init.
 
+When FusionAuth is restored from an existing volume, local startup still reapplies the env-backed admin account and Google/GitHub identity providers, so changing those credentials does not require deleting the FusionAuth volume.
+
 Useful commands:
 
 ```bash

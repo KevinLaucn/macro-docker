@@ -100,7 +100,7 @@ function SplitBackButton() {
       square
       size="sm"
       class="p-1 rounded-lg touch:active:bg-transparent"
-      label={() => t('Go Back')}
+      label={t('Go Back')}
       hotkey={TOKENS.split.go.back}
       disabled={!context.handle.canGoBack()}
       onClick={() => {
@@ -121,7 +121,7 @@ function SplitForwardButton() {
       square
       size="sm"
       class="p-1 rounded-lg touch:active:bg-transparent"
-      label={() => t('Go Forward')}
+      label={t('Go Forward')}
       hotkey={TOKENS.split.go.forward}
       disabled={!context.handle.canGoForward()}
       onClick={context.handle.goForward}
@@ -278,7 +278,7 @@ function SoupNavigationButtons() {
       <div class="flex items-center gap-0.5">
         <Button
           class="p-1 rounded-lg"
-          label={() => t('Previous item')}
+          label={t('Previous item')}
           hotkey={TOKENS.entity.step.start}
           disabled={!canNavigateUp()}
           onClick={() => navigate(-1)}
@@ -287,7 +287,7 @@ function SoupNavigationButtons() {
         </Button>
         <Button
           class="p-1 rounded-lg"
-          label={() => t('Next item')}
+          label={t('Next item')}
           hotkey={TOKENS.entity.step.end}
           disabled={!canNavigateDown()}
           onClick={() => navigate(1)}

@@ -1,3 +1,4 @@
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { openPipedreamConnectUI } from '@core/pipedream/connect-ui';
 import { ThrownResultError, throwOnErr } from '@core/util/result';
 import { queryClient } from '@queries/client';
@@ -35,16 +36,22 @@ export function usePipedreamConnectionsQuery(options?: {
   /** See the same option on `useMcpServersQuery`. */
   neverSuspend?: boolean;
 }) {
+  const capabilities = getAppCapabilities();
   return useQuery(() => ({
     queryKey: KEYS.list,
-    queryFn: async () =>
-      throwOnErr(
+    enabled: capabilities.cognition,
+    queryFn: async () => {
+      if (!capabilities.cognition) return NO_CONNECTIONS;
+      return throwOnErr(
         async () => await cognitionApiServiceClient.listPipedreamConnections()
-      ),
-    refetchOnMount: 'always' as const,
-    refetchOnWindowFocus: 'always' as const,
-    refetchInterval: options?.refetchInterval,
-    placeholderData: options?.neverSuspend ? NO_CONNECTIONS : undefined,
+      );
+    },
+    refetchOnMount: capabilities.cognition ? ('always' as const) : false,
+    refetchOnWindowFocus: capabilities.cognition ? ('always' as const) : false,
+    refetchInterval: capabilities.cognition
+      ? options?.refetchInterval
+      : undefined,
+    placeholderData: NO_CONNECTIONS,
   }));
 }
 

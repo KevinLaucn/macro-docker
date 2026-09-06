@@ -54,6 +54,16 @@ import_dev:
     fusionauth:index/fusionAuthIdpOpenIdConnect:FusionAuthIdpOpenIdConnect google-idp 17dc55db-c78e-4b19-940b-2e847479a08f \
     fusionauth:index/fusionAuthIdpOpenIdConnect:FusionAuthIdpOpenIdConnect google-gmail-idp b99932ac-bce5-4f1d-99a1-e64760aae811
 
+# Imports all pre-existing prod FusionAuth assets into pulumi.
+import_prod:
+  pulumi import --stack macro-inc/prod \
+    fusionauth:index/fusionAuthKey:FusionAuthKey jwt-signing-key 32bf13d6-8006-4a1f-b5e9-e8aa7b99922b \
+    fusionauth:index/fusionAuthApplication:FusionAuthApplication macro-application 75409999-7dc4-4241-b73b-a51818c3a71c \
+    fusionauth:index/fusionAuthTenant:FusionAuthTenant default-tenant a3e53c3d-8d6a-3e92-d64c-fa3bf30a60be \
+    fusionauth:index/fusionAuthLambda:FusionAuthLambda populate-jwt-lambda a7f3e8d2-4b91-4c5a-9e6f-1a2b3c4d5e6f \
+    fusionauth:index/fusionAuthIdpOpenIdConnect:FusionAuthIdpOpenIdConnect google-idp 3707ffc1-c785-4537-a537-10c9ba363e1e \
+    fusionauth:index/fusionAuthIdpOpenIdConnect:FusionAuthIdpOpenIdConnect google-gmail-idp 33fbd135-08c1-4975-8987-cf2456752c2d
+
 # Performs a healthcheck on local FusionAuth.
 healthcheck:
   @echo "Waiting for FusionAuth to be healthy..."

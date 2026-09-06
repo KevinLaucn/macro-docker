@@ -13,6 +13,7 @@ import { getViewPreset } from '@app/features/next-soup/sidebar/soup-filter-prese
 import { NonMemberChannelPreview } from '@app/features/next-soup/soup-view/non-member-channel-preview';
 import { SoupView } from '@app/features/next-soup/soup-view/soup-view';
 import { useRecentViewFlag } from '@app/features/next-soup/use-recent-view-flag';
+import { ReminderEditorSplit } from '@app/features/reminders/ReminderEditorSplit';
 import { SettingsPanelComponentWrapper } from '@app/features/settings/Settings';
 import { useAnalytics } from '@app/lib/analytics/analytics-context';
 import { useFeatureFlag, usePosthog } from '@app/lib/analytics/posthog';
@@ -190,7 +191,12 @@ export function resolveComponent(
       }
     }
     const fallback = REGISTRY.get('inbox');
-    if (fallback) return fallback;
+    if (fallback) {
+      return {
+        element: () => fallback.factory(params ?? {}),
+        initialMeta: fallback.initialMeta,
+      };
+    }
     throw new Error(`Component '${name}' not registered`);
   }
   return {

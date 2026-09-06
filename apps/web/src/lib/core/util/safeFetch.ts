@@ -235,10 +235,103 @@ export type TextResponse = { contentType: 'text/plain'; body: string };
  *   console.log('User data:', user);
  * }
  */
+type SuperAdminMacroEnv = { ADMIN_EMAIL?: string };
+type SuperAdminFallbackHandler = {
+  matches: (path: string) => boolean;
+  response: (env: SuperAdminMacroEnv) => unknown;
+};
+
+const includesAny = (path: string, fragments: readonly string[]) =>
+  fragments.some((fragment) => path.includes(fragment));
+
+const SUPER_ADMIN_FALLBACKS: readonly SuperAdminFallbackHandler[] = [
+  {
+    matches: (path) => path.includes('/email/links'),
+    response: () => ({ links: [] }),
+  },
+  {
+    matches: (path) => includesAny(path, ['/invites', '/user/invites']),
+    response: () => ({ invites: [] }),
+  },
+  {
+    matches: (path) =>
+      includesAny(path, ['/profile_pictures', '/profile-pictures']),
+    response: () => ({ pictures: [] }),
+  },
+  {
+    matches: (path) => path.includes('/team'),
+    response: (env) => ({
+      team: {
+        id: '00000000-0000-0000-0000-000000000001',
+        name: 'Macro Workspace',
+        role: 'owner',
+      },
+      members: [
+        {
+          id: '00000000-0000-0000-0000-000000000001',
+          email: env.ADMIN_EMAIL,
+          role: 'owner',
+        },
+      ],
+      invites: [],
+    }),
+  },
+  {
+    matches: (path) => path.includes('/contacts'),
+    response: () => ({ contacts: [], total: 0 }),
+  },
+  { matches: (path) => path.includes('/properties'), response: () => [] },
+  {
+    matches: (path) => path.includes('/items/soup/ast/grouped'),
+    response: () => ({ items: [], groups: [], mode: 'initial' }),
+  },
+  {
+    matches: (path) => path.includes('/items/soup'),
+    response: () => ({ items: [], next_cursor: null }),
+  },
+  {
+    matches: (path) => includesAny(path, ['/channels/activity', '/activity']),
+    response: () => [],
+  },
+  {
+    matches: (path) => path.includes('/channels'),
+    response: () => ({ items: [], channels: [], next_cursor: null }),
+  },
+  {
+    matches: (path) => path.includes('/user_notifications'),
+    response: () => ({ notifications: [], total: 0 }),
+  },
+  { matches: (path) => path.includes('/mcp/servers'), response: () => [] },
+  {
+    matches: (path) => path.includes('/calendar-events'),
+    response: () => ({ occurrences: [], next_cursor: null }),
+  },
+  {
+    matches: (path) => path.includes('/favorites'),
+    response: () => ({ favorites: [] }),
+  },
+  {
+    matches: (path) => path.includes('/history'),
+    response: () => ({ data: [] }),
+  },
+  {
+    matches: (path) => path.includes('/jwt/refresh'),
+    response: () => ({
+      access_token: 'local-super-admin-token',
+      refresh_token: 'local-super-admin-refresh',
+    }),
+  },
+  {
+    matches: (path) => includesAny(path, ['/bots', '/agents']),
+    response: () => [],
+  },
+];
+
 function getSuperAdminFallback(input: RequestInfo): unknown | undefined {
   if (typeof window === 'undefined') return undefined;
   const isCustomHost = window.location.hostname !== 'app.macro.com';
-  const macroEnv = (window as any).__MACRO_ENV__;
+  const macroEnv = (window as unknown as { __MACRO_ENV__?: SuperAdminMacroEnv })
+    .__MACRO_ENV__;
   if (!isCustomHost || !macroEnv?.ADMIN_EMAIL) {
     return undefined;
   }
@@ -257,80 +350,11 @@ function getSuperAdminFallback(input: RequestInfo): unknown | undefined {
     return undefined;
   }
 
-  const path = url.pathname;
-  if (path.includes('/email/links')) {
-    return { links: [] };
-  }
-  if (path.includes('/invites') || path.includes('/user/invites')) {
-    return { invites: [] };
-  }
-  if (
-    path.includes('/profile_pictures') ||
-    path.includes('/profile-pictures')
-  ) {
-    return { pictures: [] };
-  }
-  if (path.includes('/team')) {
-    return {
-      team: {
-        id: '00000000-0000-0000-0000-000000000001',
-        name: 'Macro Workspace',
-        role: 'owner',
-      },
-      members: [
-        {
-          id: '00000000-0000-0000-0000-000000000001',
-          email: macroEnv.ADMIN_EMAIL,
-          role: 'owner',
-        },
-      ],
-      invites: [],
-    };
-  }
-  if (path.includes('/contacts')) {
-    return { contacts: [], total: 0 };
-  }
-  if (path.includes('/properties')) {
-    return [];
-  }
-  if (path.includes('/items/soup/ast/grouped')) {
-    return { items: [], groups: [], mode: 'initial' };
-  }
-  if (path.includes('/items/soup')) {
-    return { items: [], next_cursor: null };
-  }
-  if (path.includes('/channels/activity') || path.includes('/activity')) {
-    return [];
-  }
-  if (path.includes('/channels')) {
-    return { items: [], channels: [], next_cursor: null };
-  }
-  if (path.includes('/user_notifications')) {
-    return { notifications: [], total: 0 };
-  }
-  if (path.includes('/mcp/servers')) {
-    return [];
-  }
-  if (path.includes('/calendar-events')) {
-    return { occurrences: [], next_cursor: null };
-  }
-  if (path.includes('/favorites')) {
-    return { favorites: [] };
-  }
-  if (path.includes('/history')) {
-    return { data: [] };
-  }
-  if (path.includes('/jwt/refresh')) {
-    return {
-      access_token: 'local-super-admin-token',
-      refresh_token: 'local-super-admin-refresh',
-    };
-  }
-  if (path.includes('/bots') || path.includes('/agents')) {
-    return [];
-  }
-
-  return {};
+  return (
+    SUPER_ADMIN_FALLBACKS.find((handler) =>
+      handler.matches(url.pathname)
+    )?.response(macroEnv) ?? {}
+  );
 }
 
 export async function safeFetch<
@@ -419,7 +443,7 @@ export async function safeFetch<
 
         if (contentType.includes('text/plain')) {
           const text = await response.text();
-          return ok({ contentType, body: text } as T);
+          return ok({ contentType, body: text } as unknown as T);
         }
 
         if (contentType.includes('application/octet-stream')) {

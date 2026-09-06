@@ -12,7 +12,7 @@ import type { Component } from 'solid-js';
  * than in `BlockAliasRegistry`, where it would leak into `fileTypeToBlockName`,
  * split content types and `NonDocumentBlockTypes`.
  */
-export type CreatableName = BlockName | BlockAlias | 'reminder';
+export type CreatableName = BlockName | BlockAlias | 'reminder' | 'agent';
 
 export type CreatableBlock = Omit<HotkeyRegistrationOptions, 'scopeId'> & {
   label: string;

@@ -167,7 +167,7 @@ const DEFAULT_TRY_VISIBILITY: TryItemVisibility = {
 
 const markdownDocumentsQuery = buildDocumentTypeQuery(['doc-markdown']);
 
-const SIDEBAR_LINKS = [
+const SIDEBAR_LINKS: SidebarItem[] = [
   {
     id: 'inbox',
     label: 'Inbox',
@@ -234,7 +234,7 @@ const SIDEBAR_LINKS = [
     hotkey: 'c',
     hotkeyToken: TOKENS.sidebar.goTo.channels,
   },
-] satisfies SidebarItem[];
+];
 
 export type SidebarState = 'hidden' | 'expanded' | 'slim';
 
@@ -1373,9 +1373,9 @@ export const AppSidebar = (props: AppSidebarProps) => {
       .map((id) => findLink(id))
       .filter((link): link is SidebarItem => link !== undefined)
       .map((link) => ({
+        id: link.id as SidebarSectionLinkId,
         label: link.label,
         checked: sectionVisibility()[link.id as SidebarSectionLinkId] ?? true,
-        onToggle: () => toggleSection(link.id as SidebarSectionLinkId),
       }));
 
   const tryItems = createMemo(() => {

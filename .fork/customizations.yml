@@ -42,6 +42,8 @@ customizations:
       - crates/macro_db_client/**
       - crates/macro_db_migrator/**
       - self-host/init/**
+      - apps/web/src/features/auth/EmailForm.tsx
+      - apps/web/src/features/auth/Login.tsx
     tests:
       - conventions
       - auth-rust

@@ -1,3 +1,4 @@
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { throwOnErr } from '@core/util/result';
 import { queryClient } from '@queries/client';
 import { cognitionApiServiceClient } from '@service-cognition/client';
@@ -34,14 +35,22 @@ export function useMcpServersQuery(options?: {
    */
   neverSuspend?: boolean;
 }) {
+  const capabilities = getAppCapabilities();
   return useQuery(() => ({
     queryKey: KEYS.list,
-    queryFn: async () =>
-      throwOnErr(async () => await cognitionApiServiceClient.listMcpServers()),
-    refetchOnMount: 'always' as const,
-    refetchOnWindowFocus: 'always' as const,
-    refetchInterval: options?.refetchInterval,
-    placeholderData: options?.neverSuspend ? NO_SERVERS : undefined,
+    enabled: capabilities.cognition,
+    queryFn: async () => {
+      if (!capabilities.cognition) return NO_SERVERS;
+      return throwOnErr(
+        async () => await cognitionApiServiceClient.listMcpServers()
+      );
+    },
+    refetchOnMount: capabilities.cognition ? ('always' as const) : false,
+    refetchOnWindowFocus: capabilities.cognition ? ('always' as const) : false,
+    refetchInterval: capabilities.cognition
+      ? options?.refetchInterval
+      : undefined,
+    placeholderData: NO_SERVERS,
   }));
 }
 

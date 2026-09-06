@@ -287,7 +287,7 @@ export const CollapsedSoupViewTabs = () => {
       when={listView() !== 'companies'}
       fallback={
         <TabsInsetDropdown
-          list={COMPANY_MODE_TABS}
+          list={getCompanyModeTabs()}
           value={viewMode()}
           defaultValue="board"
           onChange={(value) => setViewMode(value as SoupViewMode)}

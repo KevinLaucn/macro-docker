@@ -12,6 +12,7 @@ import { useBlockId } from '@core/block';
 import { EntityIcon } from '@core/component/EntityIcon';
 import { toast } from '@core/component/Toast/Toast';
 import { blockNameToDefaultFile } from '@core/constant/allBlocks';
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { whenSettled } from '@core/util/whenSettled';
 import { formatDateAndTime } from '@entity';
 import CopyIcon from '@phosphor/copy.svg';
@@ -125,6 +126,15 @@ function HistoryList(props: { records: HistoryRecord[]; isPending: boolean }) {
 }
 
 export function Automation() {
+  const capabilities = getAppCapabilities();
+  if (!capabilities.scheduledActions) {
+    return (
+      <div class="flex size-full items-center justify-center px-4 text-center text-xs text-ink-muted">
+        Scheduled actions are unavailable in this profile.
+      </div>
+    );
+  }
+
   const scheduleId = useBlockId();
   const panel = useSplitPanelOrThrow();
   const { replaceOrInsertSplit } = useSplitLayout();
