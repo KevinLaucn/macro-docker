@@ -234,10 +234,12 @@ services:
   localstack:
     image: localstack/localstack:4
     restart: unless-stopped
+    mem_limit: 750m
     environment:
       SERVICES: s3,sqs,dynamodb,kms
       PERSISTENCE: ${LOCALSTACK_PERSISTENCE:-1}
       DEBUG: "0"
+      DYNAMODB_HEAP_SIZE: ${DYNAMODB_HEAP_SIZE:-64m}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:4566/_localstack/health || exit 1"]
       interval: 10s
