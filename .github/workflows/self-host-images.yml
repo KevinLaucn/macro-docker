@@ -121,6 +121,7 @@ jobs:
             '^Cargo\.lock$' \
             '^crates/' \
             '^services/' \
+            '^\.sqlx/' \
             '^nix/cloud-storage\.nix$' \
             '^self-host/scripts/' \
             '^\.github/actions/setup-nix/action\.yml$'; then
