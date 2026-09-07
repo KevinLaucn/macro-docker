@@ -73,11 +73,13 @@ services:
         cat <<EOF > /out/env-config.js
         window.__MACRO_ENV__ = {
           ADMIN_EMAIL: "$${ADMIN_EMAIL:-}",
+          ENABLE_NEW_APP_VIEWS: "true", // 启用官方双栏 Composable 视图，消除外层面板重复导航箭头
           FEATURES: {
             cognition: false,
             scheduledActions: false,
             agents: false,
-            docsCollab: false
+            docsCollab: false,
+            enableNewAppViews: true
           }
         };
         EOF
@@ -104,7 +106,7 @@ services:
     networks:
       - databases
     volumes:
-      - ./self-host/init/provision.sh:/app/provision.sh:ro
+      - ./init/provision.sh:/app/provision.sh:ro
 
   # One-shot: create the event topics. Uses the Kafka image's own CLI rather
   # than putting a second Kafka client in the init image.

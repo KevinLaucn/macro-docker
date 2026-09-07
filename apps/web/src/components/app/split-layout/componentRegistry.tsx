@@ -1,7 +1,6 @@
 import { useActivityFeedFlag } from '@app/features/activity/use-activity-feed-flag';
 import type { EventEditorInitialValues } from '@app/features/calendar/components/composer/event-form-model';
 import type { CalendarEvent } from '@app/features/calendar/types';
-import { ChannelsView } from '@app/features/channels-view/channels-view';
 import { GettingStarted } from '@app/features/getting-started';
 import { Home } from '@app/features/home';
 import { InboxView } from '@app/features/inbox-view/inbox-view';
@@ -427,12 +426,21 @@ registerComponent(
   })
 );
 
-function RegisteredChannelsView() {
-  usePageViewTracking('channels');
-  return <ChannelsView />;
-}
-
-registerComponent('channels', withAuth(RegisteredChannelsView));
+registerComponent(
+  'channels',
+  withAuth(() => {
+    usePageViewTracking('channels');
+    const preset = getViewPreset('channels');
+    return (
+      <SoupView
+        viewName="Channels"
+        initialFilters={preset?.filters}
+        initialClientFilters={preset?.clientFilters}
+        initialGroupBy={preset?.groupBy}
+      />
+    );
+  })
+);
 
 registerComponent(
   'companies',

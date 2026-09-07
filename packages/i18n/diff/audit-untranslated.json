@@ -1,1 +1,50 @@
-[]
+[
+  {
+    "file": "features/settings/BotSettingsList.tsx",
+    "line": 68,
+    "type": "JSXAttribute(title)",
+    "snippet": "Bots"
+  },
+  {
+    "file": "features/settings/BotSettingsList.tsx",
+    "line": 69,
+    "type": "JSXAttribute(description)",
+    "snippet": "Create webhook-powered teammates and connect them to channel"
+  },
+  {
+    "file": "features/settings/BotSettingsList.tsx",
+    "line": 72,
+    "type": "JSXText",
+    "snippet": "Create bot"
+  },
+  {
+    "file": "features/settings/BotSettingsList.tsx",
+    "line": 78,
+    "type": "JSXAttribute(title)",
+    "snippet": "Your bots"
+  },
+  {
+    "file": "features/settings/BotSettingsList.tsx",
+    "line": 79,
+    "type": "JSXAttribute(description)",
+    "snippet": "Each bot can join multiple channels. Webhook URLs are scoped"
+  },
+  {
+    "file": "features/settings/BotSettingsList.tsx",
+    "line": 97,
+    "type": "JSXText",
+    "snippet": "Create your first bot"
+  },
+  {
+    "file": "features/settings/BotSettingsList.tsx",
+    "line": 100,
+    "type": "JSXText",
+    "snippet": "Bots post to channels through a secure webhook and can be\n  "
+  },
+  {
+    "file": "features/settings/BotSettingsList.tsx",
+    "line": 110,
+    "type": "JSXText",
+    "snippet": "Create bot"
+  }
+]

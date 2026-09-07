@@ -148,16 +148,18 @@ async function audit() {
   const sortedFiles = Object.entries(summaryByFile).sort((a, b) => b[1] - a[1]);
 
   console.log("==========================================");
-  console.log(`📋 Audit Completed:`);
-  console.log(`  - Target Directory:                     ${targetDir}`);
-  console.log(`  - Potential Untranslated Literals Found: ${untranslated.length}`);
+  console.log(`📋 i18n Audit Report:`);
+  console.log(`  - Target:                               ${targetDir}`);
+  console.log(`  - Potential Untranslated Literals:      ${untranslated.length}`);
   console.log(`  - Affected Files:                       ${sortedFiles.length}`);
-  if (sortedFiles.length > 0) {
-    console.log(`\nTop files needing attention:`);
-    for (const [file, count] of sortedFiles.slice(0, 10)) {
-      console.log(`  - ${file}: ${count} literal(s)`);
+
+  if (untranslated.length > 0) {
+    console.log(`\n🔍 Untranslated Details (file:line:col):`);
+    for (const item of untranslated) {
+      console.log(`  apps/web/src/${item.file}:${item.line} [${item.type}] "${item.snippet}"`);
     }
   }
+
   console.log(`\nFull report saved to packages/i18n/diff/audit-untranslated.json`);
   console.log("==========================================");
 }

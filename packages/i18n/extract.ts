@@ -54,25 +54,28 @@ async function run() {
     ? JSON.parse(fs.readFileSync(zhDictPath, "utf-8"))
     : {};
 
-  const currentCalls = new Map<string, { occurrences: string[]; context?: string; explicit?: boolean }>();
-  const explicitCalls = new Map<string, { occurrences: string[]; context?: string }>();
+  const currentCalls = new Map<string, { occurrences: string[]; context?: string; explicit?: boolean; locs: { file: string; line: number }[] }>();
+  const explicitCalls = new Map<string, { occurrences: string[]; context?: string; locs: { file: string; line: number }[] }>();
   const parseFailures: { file: string; error: string }[] = [];
 
   function recordCall(
     dictKey: string,
     rel: string,
     context: string | undefined,
-    isExplicit = false
+    isExplicit = false,
+    line = 0
   ) {
-    const existing = currentCalls.get(dictKey) || { occurrences: [] };
+    const existing = currentCalls.get(dictKey) || { occurrences: [], locs: [] };
     existing.occurrences.push(rel);
+    if (line > 0) existing.locs.push({ file: rel, line });
     if (context) existing.context = context;
     if (isExplicit) existing.explicit = true;
     currentCalls.set(dictKey, existing);
 
     if (isExplicit) {
-      const explicitExisting = explicitCalls.get(dictKey) || { occurrences: [] };
+      const explicitExisting = explicitCalls.get(dictKey) || { occurrences: [], locs: [] };
       explicitExisting.occurrences.push(rel);
+      if (line > 0) explicitExisting.locs.push({ file: rel, line });
       if (context) explicitExisting.context = context;
       explicitCalls.set(dictKey, explicitExisting);
     }
@@ -133,7 +136,8 @@ async function run() {
               }
 
               const dictKey = context ? `${key}@@${context}` : key;
-              recordCall(dictKey, rel, context, true);
+              const line = p.node.loc?.start?.line ?? 0;
+              recordCall(dictKey, rel, context, true, line);
             }
           }
         },
@@ -255,13 +259,34 @@ async function run() {
   fs.writeFileSync(path.join(diffDir, "ambiguous.json"), JSON.stringify(ambiguous, null, 2), "utf-8");
 
   console.log("==========================================");
-  console.log(`✅ Explicit t() Extractor Completed:`);
+  console.log(`✅ i18n Translation Sync Report:`);
   console.log(`  - Explicit t() Keys Found: ${explicitCalls.size}`);
-  console.log(`  - Missing in zh-CN:       ${Object.keys(missing).length}`);
-  console.log(`  - Obsolete Translations:   ${Object.keys(obsolete).length}`);
+  console.log(`  - Missing in zh-CN:        ${Object.keys(missing).length}`);
+  console.log(`  - Obsolete in zh-CN:       ${Object.keys(obsolete).length}`);
   console.log(`  - Ambiguous Context Keys:  ${Object.keys(ambiguous).length}`);
   console.log(`  - Parse Failures:          ${parseFailures.length}`);
-  console.log(`Reports saved in packages/i18n/diff/`);
+
+  const missingKeys = Object.keys(missing);
+  if (missingKeys.length > 0) {
+    console.log(`\n❌ Missing Translations (need translation in zh-CN.json):`);
+    for (const key of missingKeys) {
+      const meta = explicitCalls.get(key);
+      const locList = meta?.locs?.length
+        ? meta.locs.map((l) => `apps/web/src/${l.file}:${l.line}`).join(", ")
+        : meta?.occurrences?.map((f) => `apps/web/src/${f}`).join(", ") || "unknown location";
+      console.log(`  - "${key}"\n    Location: ${locList}`);
+    }
+  }
+
+  const obsoleteKeys = Object.keys(obsolete);
+  if (obsoleteKeys.length > 0) {
+    console.log(`\n⚠️  Obsolete Translations (in zh-CN.json but not referenced in code):`);
+    for (const key of obsoleteKeys) {
+      console.log(`  - "${key}": "${obsolete[key]}"`);
+    }
+  }
+
+  console.log(`\nReports saved in packages/i18n/diff/`);
   console.log("==========================================");
 }
 

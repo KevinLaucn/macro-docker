@@ -52,6 +52,8 @@ infra/local/generated/
 # Local-only production infrastructure credentials and specs
 **/.local*
 *.local.md
+/生产环境配置与避坑指南*.local.md
+/生产环境配置与避坑指南*.md
 
 # Production/self-host runtime secrets generated from templates.
 /production.env

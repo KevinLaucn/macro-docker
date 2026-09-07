@@ -58,8 +58,8 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 | **🔄 Upstream 同步 / Fork 差异治理** | `upstream/main`、同步分支、sync PR、merge 冲突、fork divergence、定制重叠、`FORK-CUSTOM` | **`skills/macro-upstream-sync/SKILL.md`**（Customization Manifest、语义冲突审查、定向 CI、专用 sync PR） |
 | **🌐 i18n 国际化 / 显式化二开** | 多语言、i18n、翻译、显式 t()、excludePatterns、audit、词条提取 | **`references/i18n-workflow.md`**（**优先通过 CodeGraph 快速定位组件**，索引缺失时执行 `codegraph sync`） |
 | **🎨 UI / UX / 设计系统二开** | 页面、组件、布局、颜色、字号、字体、图标、动效、交互、响应式、空状态、加载态、前端视觉调整 | **`skills/macro-ui-design/SKILL.md`**（官方组件优先、语义 Token、既有排版与动效、可访问性、真实浏览器验收） |
-| **🤖 AI 工具与模型扩展** | AI Tool 开发、Agent 工具注入、模型升级切换 | **`../create-ai-tool/SKILL.md`** / **`../upgrade-model/SKILL.md`** |
 | **🚀 VPS 生产运维 / 部署** | 部署、SSH、Docker Compose、生产更新、运维排障 | **`references/production-deployment.md`**（凭据见 `.local-production.md`） |
+| **⚠️ 易疏忽小问题 / 生产暗坑排查** | 邮件延迟、通知收不到、鉴权401、Webhook推送失败、配置无报错但无法工作、常见小Bug与配置疏忽 | **`生产环境配置与避坑指南.local.md`**（**必读防坑手册**，排查高频暗坑、受众配置与网络透传） |
 | **🛡️ 推送与发布前契约门禁 / 离线对齐** | “推送”、“发布”、“发版”、“push”、“上线前检查”、“构建前校验”、“数据对不上”、“sqlx检查”、“离线编译” | **`../macro-pre-push-gate/SKILL.md`**（SQLx 离线元数据强一致性、SQLX_OFFLINE 生产编译仿真、未追踪孤儿文件扫描、前端轻量 tsc 与 Biome 审查） |
 
 ### 子技能路由调度准则
@@ -121,6 +121,8 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 - **网络白名单与隐私审计规约**：读取 [`references/privacy-network.md`](file:///Volumes/开发/macro/.agents/skills/macro-private-maintainer/references/privacy-network.md)
 - **生产环境部署与运维架构**：读取 [`references/production-deployment.md`](file:///Volumes/开发/macro/.agents/skills/macro-private-maintainer/references/production-deployment.md)
 - **真实生产环境 SSH 连接凭据 (Local Only)**：读取 [`.local-production.md`](file:///Volumes/开发/macro/.agents/skills/macro-private-maintainer/.local-production.md)（已受 `.gitignore` 保护）
+- **生产环境配置与高频暗坑排查指南 (Local Only)**：读取 [`生产环境配置与避坑指南.local.md`](file:///Volumes/开发/macro/生产环境配置与避坑指南.local.md)（已受 `.gitignore` 保护，遇到小 Bug、鉴权失败、Webhook 延迟、看似配置正确但无法运作时**必须优先查阅**）
+- **高频问题知识沉淀机制**：在排查运维或开发中遇到“微小但极易疏忽”、“排查耗时长的隐蔽暗坑”（例如服务账号受众缺失、反代 Header 过滤、Token 续期、微服务路径映射等）时，必须主动提示主人：“该问题属于典型高频暗坑，是否同步沉淀写入 `生产环境配置与避坑指南.local.md` 或相关技能文档中？”
 
 ---
 

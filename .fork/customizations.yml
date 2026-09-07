@@ -44,6 +44,7 @@ customizations:
       - self-host/init/**
       - apps/web/src/features/auth/EmailForm.tsx
       - apps/web/src/features/auth/Login.tsx
+      - apps/web/src/routes/Root.tsx
     tests:
       - conventions
       - auth-rust

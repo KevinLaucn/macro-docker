@@ -1096,6 +1096,7 @@
     "components/app/mobile/MobileDockRow.tsx",
     "components/app/mobile/mobile-dock-views.ts",
     "components/app/GlobalHotkeys.tsx",
+    "components/app/split-layout/componentRegistry.tsx",
     "lib/core/component/LexicalMarkdown/component/menu/MentionsMenu/MentionsMenu.tsx",
     "features/settings/Agents.test.tsx"
   ],
@@ -1429,6 +1430,20 @@
     "features/next-soup/soup-view/soup-view.tsx",
     "features/inbox-view/components/InboxList.tsx"
   ],
+  "Failed to mark as done": [
+    "features/next-soup/utils.ts",
+    "features/next-soup/actions/make-mark-done-action.ts",
+    "features/entity/extractors-notification/notification-actions.tsx",
+    "features/block-email/component/EmailContext.tsx"
+  ],
+  "Failed to undo": [
+    "features/next-soup/utils.ts",
+    "features/next-soup/actions/make-mark-done-action.ts",
+    "features/entity/extractors-notification/notification-actions.tsx",
+    "features/block-email/component/EmailContext.tsx",
+    "components/app/GlobalHotkeys.tsx",
+    "lib/queries/email/thread.ts"
+  ],
   "Undo": [
     "features/next-soup/actions/make-delete-action.ts",
     "features/next-soup/actions/make-mark-done-action.ts",
@@ -1517,6 +1532,20 @@
     "lib/core/component/TopBar/ShareButton.tsx",
     "features/settings/Agents.test.tsx"
   ],
+  "Marked {count} reminders as not done": [
+    "features/next-soup/actions/make-mark-not-done-action.ts"
+  ],
+  "Marked as not done": [
+    "features/next-soup/actions/make-mark-not-done-action.ts",
+    "features/block-email/component/EmailContext.tsx"
+  ],
+  "Failed to mark as not done": [
+    "features/next-soup/actions/make-mark-not-done-action.ts",
+    "features/block-email/component/EmailContext.tsx"
+  ],
+  "Marked {count} items as not done": [
+    "features/next-soup/actions/make-mark-not-done-action.ts"
+  ],
   "from": [
     "features/next-soup/actions/make-favorite-action.ts",
     "features/activity/property-change.tsx",
@@ -1562,6 +1591,22 @@
     "lib/core/component/AI/component/McpSetupCards.tsx",
     "lib/core/component/AI/component/AIChatEmptyState.tsx",
     "features/channel/Participants/ChannelJoinLinkButton.test.tsx"
+  ],
+  "Mark Done": [
+    "features/next-soup/actions/make-mark-done-action.ts",
+    "features/entity/extractors-notification/notification-row.tsx",
+    "features/entity/extractors-notification/notification-stacks.tsx",
+    "features/entity/extractors-notification/notification-actions.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "lib/queries/email/thread.ts"
+  ],
+  "Marked {count} items as done": [
+    "features/next-soup/actions/make-mark-done-action.ts"
+  ],
+  "Marked as done": [
+    "features/next-soup/actions/make-mark-done-action.ts",
+    "features/entity/extractors-notification/notification-actions.tsx",
+    "features/block-email/component/EmailContext.tsx"
   ],
   "Back to app": [
     "features/settings/Settings.tsx"
@@ -5435,19 +5480,10 @@
   "Inbox couldn’t be loaded.": [
     "features/inbox-view/components/InboxList.tsx"
   ],
-  "Omnichannel Communications": [
+  "Select a conversation@@chat": [
     "features/channels-view/channels-view.tsx"
   ],
-  "Multi-platform messaging hub is coming soon. Connect and manage customer conversations across WhatsApp, Instagram, Facebook Messenger, and more in one unified interface.": [
-    "features/channels-view/channels-view.tsx"
-  ],
-  "WhatsApp": [
-    "features/channels-view/channels-view.tsx"
-  ],
-  "Instagram": [
-    "features/channels-view/channels-view.tsx"
-  ],
-  "Messenger": [
+  "Choose a channel or person from the sidebar to open the conversation here.@@chat": [
     "features/channels-view/channels-view.tsx"
   ],
   "Unread@@chat": [

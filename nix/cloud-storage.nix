@@ -528,7 +528,7 @@
           serviceName = "local-authentication";
           packageName = "authentication_service";
           binaries = [ "authentication_service" ];
-          featureArgs = "--no-default-features --features self-host-email,return_passwordless_code";
+          featureArgs = "--features return_passwordless_code";
         }
         {
           serviceName = "local-search-processing";
@@ -672,7 +672,6 @@
           serviceName = "authentication-service";
           packageName = "authentication_service";
           binaries = [ "authentication_service" ];
-          featureArgs = "--no-default-features --features self-host-email";
         }
         {
           serviceName = "connection-gateway";

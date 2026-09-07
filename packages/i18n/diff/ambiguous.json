@@ -1,4 +1,24 @@
 {
+  "Failed to mark as done": [
+    "features/next-soup/actions/make-mark-done-action.ts",
+    "features/entity/extractors-notification/notification-actions.tsx",
+    "features/block-email/component/EmailContext.tsx"
+  ],
+  "Marked as done": [
+    "features/next-soup/actions/make-mark-done-action.ts",
+    "features/entity/extractors-notification/notification-actions.tsx",
+    "features/block-email/component/EmailContext.tsx"
+  ],
+  "Undo": [
+    "features/next-soup/actions/make-mark-done-action.ts",
+    "features/entity/extractors-notification/notification-actions.tsx",
+    "features/block-email/component/EmailContext.tsx"
+  ],
+  "Failed to undo": [
+    "features/next-soup/actions/make-mark-done-action.ts",
+    "features/entity/extractors-notification/notification-actions.tsx",
+    "features/block-email/component/EmailContext.tsx"
+  ],
   "Copied": [
     "features/settings/Team.tsx",
     "features/channel/Bots/CredentialField.tsx",

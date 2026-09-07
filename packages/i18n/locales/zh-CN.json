@@ -1156,5 +1156,6 @@
   "Shown only once": "仅显示一次",
   "Store this key somewhere secure before closing. Send it as {header}.": "在关闭前请将此密钥保存在安全的地方。调用时请作为 {header} 发送。",
   "Failed to copy {label}": "复制{label}失败",
-  "Copy {label}": "复制{label}"
+  "Copy {label}": "复制{label}",
+  "Failed to undo": "撤销失败"
 }

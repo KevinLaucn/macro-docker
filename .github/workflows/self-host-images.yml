@@ -57,13 +57,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       run_services: ${{ steps.filter.outputs.run_services }}
+      run_init: ${{ steps.filter.outputs.run_init }}
       run_web: ${{ steps.filter.outputs.run_web }}
       run_workers: ${{ steps.filter.outputs.run_workers }}
+      version: ${{ steps.version.outputs.value }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: 'false'
           fetch-depth: 0
+      - id: version
+        run: echo "value=${{ inputs.version || (github.ref_type == 'branch' && 'latest') || github.ref_name }}" >> "$GITHUB_OUTPUT"
       - name: Check for drift from the service inventory
         run: python3 self-host/scripts/check-drift.py
       - name: Check for SQLx compile-time query drift
@@ -88,6 +92,7 @@ jobs:
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "run_services=true" >> "$GITHUB_OUTPUT"
+            echo "run_init=true" >> "$GITHUB_OUTPUT"
             echo "run_web=true" >> "$GITHUB_OUTPUT"
             echo "run_workers=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -113,6 +118,7 @@ jobs:
           }
 
           run_services=false
+          run_init=false
           run_web=false
           run_workers=false
 
@@ -126,6 +132,16 @@ jobs:
             '^self-host/scripts/' \
             '^\.github/actions/setup-nix/action\.yml$'; then
             run_services=true
+          fi
+
+          # init 镜像由自身配置 (self-host/init/*, opensearch 迁移 helpers, kafka topics 等)
+          # 或者底层 Rust 服务 (run_services) 更新所触发
+          if [ "$run_services" = "true" ] || has_match \
+            '^self-host/init/' \
+            '^infra/stacks/opensearch/helpers/' \
+            '^\.github/kafka-cluster-topics\.json$' \
+            '^self-host/kickstart/'; then
+            run_init=true
           fi
 
           if has_match \
@@ -143,6 +159,7 @@ jobs:
           fi
 
           echo "run_services=$run_services" >> "$GITHUB_OUTPUT"
+          echo "run_init=$run_init" >> "$GITHUB_OUTPUT"
           echo "run_web=$run_web" >> "$GITHUB_OUTPUT"
           echo "run_workers=$run_workers" >> "$GITHUB_OUTPUT"
 
@@ -1115,7 +1132,11 @@ jobs:
   init:
     name: macro-init
     needs: [check-drift, services]
-    if: needs.check-drift.outputs.run_services == 'true'
+    if: |
+      always() &&
+      needs.check-drift.result == 'success' &&
+      (needs.services.result == 'success' || needs.services.result == 'skipped') &&
+      needs.check-drift.outputs.run_init == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -1130,7 +1151,7 @@ jobs:
         # Pulls the migration runner out of the service image just published.
         run: |
           set -euo pipefail
-          v="${{ needs.services.outputs.version }}"
+          v="${{ needs.check-drift.outputs.version }}"
           profile="email"
           ns="$(echo "$NAMESPACE" | tr '[:upper:]' '[:lower:]')"
           service_img_name="macro-services-email"

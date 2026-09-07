@@ -694,15 +694,17 @@ export const authServiceClient = {
   },
 
   async checkGithubLinkStatus() {
-    return (
-      await fetchWithAuth<
-        GithubLinkStatusResponse,
-        GithubReauthenticationErrorCode
-      >(`${authHost}/link/github/status`, {
-        method: 'GET',
-        errorResponseHandler: githubErrorResponseHandler,
-      })
-    ).map((result) => result);
+    const res = await fetchWithAuth<
+      GithubLinkStatusResponse,
+      GithubReauthenticationErrorCode
+    >(`${authHost}/link/github/status`, {
+      method: 'GET',
+      errorResponseHandler: githubErrorResponseHandler,
+    });
+    if (res.isErr() && res.error.some((e) => e.code === 'NOT_FOUND')) {
+      return ok({ reauthentication_required: false });
+    }
+    return res.map((result) => result);
   },
 
   async checkGmailLinkStatus() {
@@ -835,35 +837,38 @@ export const authServiceClient = {
   },
 
   async getUserTeams() {
-    return (
-      await fetchWithAuth<Team[]>(`${authHost}/team/user`, { method: 'GET' })
-    ).map((result) => result);
+    const res = await fetchWithAuth<Team[]>(`${authHost}/team/user`, { method: 'GET' });
+    if (res.isErr() && res.error.some((e) => e.code === 'NOT_FOUND')) {
+      return ok([] as Team[]);
+    }
+    return res.map((result) => result);
   },
 
   async getUserInvites() {
-    return (
-      await fetchWithAuth<TeamInvitesResponse>(
-        `${authHost}/team/user/invites`,
-        {
-          method: 'GET',
-        }
-      )
-    ).map((result) => result);
+    const res = await fetchWithAuth<TeamInvitesResponse>(
+      `${authHost}/team/user/invites`,
+      {
+        method: 'GET',
+      }
+    );
+    if (res.isErr() && res.error.some((e) => e.code === 'NOT_FOUND')) {
+      return ok({ invites: [] } as TeamInvitesResponse);
+    }
+    return res.map((result) => result);
   },
 
   async getTeam() {
-    return (
-      (
-        await fetchWithAuth<TeamWithMembers>(`${authHost}/team`, {
-          method: 'GET',
-        })
-      )
-        // A user with no team gets a 204 No Content, which `safeFetch`
-        // surfaces as an empty object. Normalize that to `null` so callers
-        // don't dereference a non-existent `team`/`members`.
-        .map((result): TeamWithMembers | null =>
-          'team' in result ? result : null
-        )
+    const res = await fetchWithAuth<TeamWithMembers>(`${authHost}/team`, {
+      method: 'GET',
+    });
+    if (res.isErr() && res.error.some((e) => e.code === 'NOT_FOUND')) {
+      return ok(null);
+    }
+    // A user with no team gets a 204 No Content, which `safeFetch`
+    // surfaces as an empty object. Normalize that to `null` so callers
+    // don't dereference a non-existent `team`/`members`.
+    return res.map((result): TeamWithMembers | null =>
+      'team' in result ? result : null
     );
   },
 

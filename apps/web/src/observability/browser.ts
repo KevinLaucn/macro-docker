@@ -69,6 +69,8 @@ export async function initializeBrowserObservability(): Promise<void> {
 
   window.addEventListener('pagehide', () => void Telemetry.flush());
   window.addEventListener('error', (event) => {
+    const msg = String(event.error?.message || event.message || '');
+    if (msg.includes('ResizeObserver')) return;
     Telemetry.error(event.error ?? event.message, {
       'error.source': 'window',
     });

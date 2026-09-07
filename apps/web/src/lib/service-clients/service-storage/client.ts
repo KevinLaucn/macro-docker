@@ -245,6 +245,14 @@ export async function dssFetch<T extends Record<string, any> = never>(
     if (url.includes('/bots') || url.includes('/agents')) {
       return ok([] as unknown as T);
     }
+    if (url.includes('/crm/settings')) {
+      return ok({
+        edit_stages_role: 'admin',
+        move_closed_deals_role: 'admin',
+        delete_records_role: 'admin',
+        team_views: [],
+      } as unknown as T);
+    }
   }
   return result;
 }
