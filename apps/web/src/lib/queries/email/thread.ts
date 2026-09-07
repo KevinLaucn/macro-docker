@@ -384,9 +384,10 @@ export function useMarkThreadAsUnreadMutation(
       const labelId = await fetchUnreadLabelId(params.linkId);
       await throwOnErr(() =>
         emailClient.updateThreadLabel({
-          thread_id: params.threadId },
-          params.linkId
-        )
+          thread_id: params.threadId,
+          label_id: labelId,
+          value: true,
+        })
       );
     },
     ...withCallbacks<void, Error, MarkThreadAsUnreadParams>(
