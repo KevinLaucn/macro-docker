@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT t.id, t.provider_id, t.link_id, t.inbox_visible, t.is_read,\n               t.latest_inbound_message_ts, t.latest_outbound_message_ts,\n               t.latest_non_spam_message_ts, t.created_at, t.updated_at,\n               t.project_id\n        FROM email_threads t\n        WHERE t.id = $1\n        ",
+  "query": "\n        SELECT t.id, t.provider_id, t.link_id, t.inbox_visible, t.is_read,\n               t.latest_inbound_message_ts, t.latest_outbound_message_ts,\n               t.latest_non_spam_message_ts, t.created_at, t.updated_at,\n               t.project_id, t.follow_up_completed_at\n        FROM email_threads t\n        WHERE t.id = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -57,6 +57,11 @@
         "ordinal": 10,
         "name": "project_id",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "follow_up_completed_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -75,8 +80,9 @@
       true,
       false,
       false,
+      true,
       true
     ]
   },
-  "hash": "d9956cd2e52cda4f0e7c080058d33f2bbf35c99b29e7482f198d592ff435cf28"
+  "hash": "014abf83043e4c925f9c5de4869c8b24bd12318215144aee5d0931429c8acdb5"
 }
