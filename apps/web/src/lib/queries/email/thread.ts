@@ -39,6 +39,9 @@ import {
 import { emailKeys } from './keys';
 
 const THREAD_STALE_TIME = 5 * 60 * 1000;
+const OUTBOUND_REACTIVATION_RECONCILE_DELAYS_MS = [
+  250, 750, 1_500, 3_000, 6_000,
+] as const;
 
 /** Shared REST infinite-query options for thread fetching. */
 export function threadQueryOptions(threadId: string) {
@@ -82,6 +85,59 @@ function flattenThreadPages(
 }
 
 /**
+ * Reconcile list membership after the server has committed a workflow state
+ * change. The single-entity refresh updates REST normalized data and the
+ * GraphQL refresh covers mounted GraphQL Soup views; invalidating the REST
+ * lists also makes an already-cached destination view refetch on next mount.
+ * This is intentionally server-confirmed rather than optimistic so it cannot
+ * race the mark-done rollback path.
+ */
+async function reconcileThreadListMembership(threadId: string): Promise<void> {
+  try {
+    await refetchSoupEntity(threadId, 'emailThread', {
+      refreshGraphql: true,
+    });
+  } catch (error) {
+    console.error('[email] failed to reconcile thread list membership', error);
+  } finally {
+    invalidateAllSoup();
+  }
+}
+
+/**
+ * A successful send creates the local message before Gmail/provider metadata
+ * marks it SENT. During that short window the authoritative thread can still
+ * report workflow_done=true even though the user's send should reactivate it.
+ * Keep the optimistic workflowDone=false UI in place and poll only for the
+ * point at which the server agrees; only then is it safe to refetch Soup and
+ * GraphQL membership without clobbering the optimistic state with stale data.
+ */
+async function reconcileOutboundReactivation(threadId: string): Promise<void> {
+  for (const delayMs of OUTBOUND_REACTIVATION_RECONCILE_DELAYS_MS) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+    try {
+      const result = await emailClient.getThread({
+        thread_id: threadId,
+        offset: 0,
+        limit: 1,
+      });
+      if (result.isErr()) continue;
+      if (result.value.thread.workflow_done) continue;
+
+      await reconcileThreadListMembership(threadId);
+      queryClient.invalidateQueries({
+        queryKey: emailKeys.previews._def,
+      });
+      return;
+    } catch {
+      // Best-effort reconciliation. The optimistic state remains correct for
+      // the user's local send and later normal cache activity can still settle it.
+    }
+  }
+}
+
+/**
  * Imperatively fetch a thread through GraphQL and merge it into the normalized
  * cache. Network failures fall back to a complete cached first page.
  */
@@ -94,7 +150,9 @@ export async function fetchAndCacheThread(
     );
     if (result.isErr()) return err(result.error as any);
 
-    const thread = flattenThreadPages(result.value as InfiniteData<Thread, number>);
+    const thread = flattenThreadPages(
+      result.value as InfiniteData<Thread, number>
+    );
     if (!thread) {
       return err([{ code: 'NOT_FOUND', message: 'Email thread not found' }]);
     }
@@ -422,8 +480,8 @@ async function threadArchiveOnMutate(params: ArchiveThreadParams) {
  * Cache bookkeeping for an archive/unarchive performed by another mutation
  * (e.g. the mark-done and mark-not-done actions, which issue their own
  * /archived requests): optimistically flips `inbox_visible`, rolls back if
- * the request fails, and invalidates the thread + preview queries once it
- * settles. Mirrors useUndoableArchiveThreadMutation's cache handling without
+ * the request fails, and reconciles thread + list membership once the server
+ * commits. Mirrors useUndoableArchiveThreadMutation's cache handling without
  * firing a second request or pushing an undo entry.
  */
 export async function trackExternalThreadArchive(
@@ -435,8 +493,10 @@ export async function trackExternalThreadArchive(
     threadId,
     archive,
   });
+  let committed = false;
   try {
     await archived;
+    committed = true;
   } catch {
     if (previousData) {
       queryClient.setQueryData(
@@ -449,6 +509,9 @@ export async function trackExternalThreadArchive(
       queryKey: emailKeys.threadMessages(threadId).queryKey,
     });
     queryClient.invalidateQueries({ queryKey: emailKeys.previews._def });
+    if (committed) {
+      await reconcileThreadListMembership(threadId);
+    }
   }
 }
 
@@ -467,6 +530,7 @@ async function replayThreadArchive(params: ArchiveThreadParams): Promise<void> {
           params.linkId
         )
     );
+    await reconcileThreadListMembership(params.threadId);
   } catch (err) {
     if (previousData) {
       queryClient.setQueryData(
@@ -514,6 +578,7 @@ export function useUndoableArchiveThreadMutation(options: {
             params.linkId
           )
       );
+      await reconcileThreadListMembership(params.threadId);
     },
     onMutate: async (params) => await threadArchiveOnMutate(params),
     onError: (_err, params, context) => {
@@ -572,8 +637,12 @@ export function useSendMessageMutation(
             queryClient.invalidateQueries({
               queryKey: emailKeys.threadMessages(threadID).queryKey,
             });
-            // When reply is sent without willMarkDone, thread reactivates (workflowDone=false).
-            // Optimistically mark not done and restore to done-filtered views (Important/Inbox).
+            // When reply is sent without willMarkDone, the workflow must feel
+            // reactivated immediately. The provider has not necessarily marked
+            // the newly-created local message SENT yet, so an immediate server
+            // refetch can still report workflowDone=true and clobber this UI.
+            // Keep the optimistic state, restore membership now, and reconcile
+            // only after the authoritative thread reports workflow_done=false.
             if (!vars.skipSoupRefetch) {
               optimisticUpdateSoupEntity({
                 tag: 'emailThread',
@@ -581,11 +650,12 @@ export function useSendMessageMutation(
                 frecency_score: 0,
               });
               restoreSoupEntityToDoneFilteredQueries(threadID);
-              refetchSoupEntity(threadID, 'emailThread');
+              void reconcileOutboundReactivation(threadID);
             }
           }
           queryClient.invalidateQueries({
             queryKey: emailKeys.previews._def,
+            refetchType: 'none',
           });
         },
       },
