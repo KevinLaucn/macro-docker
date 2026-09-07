@@ -60,6 +60,7 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 | **🎨 UI / UX / 设计系统二开** | 页面、组件、布局、颜色、字号、字体、图标、动效、交互、响应式、空状态、加载态、前端视觉调整 | **`skills/macro-ui-design/SKILL.md`**（官方组件优先、语义 Token、既有排版与动效、可访问性、真实浏览器验收） |
 | **🤖 AI 工具与模型扩展** | AI Tool 开发、Agent 工具注入、模型升级切换 | **`../create-ai-tool/SKILL.md`** / **`../upgrade-model/SKILL.md`** |
 | **🚀 VPS 生产运维 / 部署** | 部署、SSH、Docker Compose、生产更新、运维排障 | **`references/production-deployment.md`**（凭据见 `.local-production.md`） |
+| **🛡️ 推送与发布前契约门禁 / 离线对齐** | “推送”、“发布”、“发版”、“push”、“上线前检查”、“构建前校验”、“数据对不上”、“sqlx检查”、“离线编译” | **`../macro-pre-push-gate/SKILL.md`**（SQLx 离线元数据强一致性、SQLX_OFFLINE 生产编译仿真、未追踪孤儿文件扫描、前端轻量 tsc 与 Biome 审查） |
 
 ### 子技能路由调度准则
 当分发到上述子技能时：
