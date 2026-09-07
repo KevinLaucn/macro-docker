@@ -125,7 +125,11 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 
 ## 六、辅助目录管理策略
 
-1. **`.sqlx/`（必须保留）**：离线查询元数据，修改 SQL 后必须在根目录执行 `nix develop --command just prepare_db` 更新。严禁手动编辑。
+1. **`.sqlx/`（必须保留与 CI 一致性守则）**：
+   - 离线查询元数据，修改 SQL 后必须在根目录执行 `nix develop --command just prepare_db` 更新，严禁手动编辑 JSON 文件。
+   - **CI 离线构建与类型强对齐铁律**：GitHub Actions CI、Nix 容器镜像打包与发布流水线均在严格离线模式下编译（`SQLX_OFFLINE=true`，无直连数据库），Rust 编译类型严格由 `.sqlx/` 静态元数据决定。
+   - **严禁私加 unwrap 破坏离线编译**：严禁为了迎合本地 live DB 的动态推断（例如 LEFT JOIN 从表字段被本地数据库临时推断为 `Option<T>`）而给字段盲目添加 `.unwrap_or_default()` 或破坏上游强类型契约。若 `.sqlx/` 中对应字段被录制为非空（`nullable: false`，如原生 `String`），调用 `unwrap_or_default()` 会在 CI / Nix 离线构建时抛出致命 `E0599` 错误导致整个流水线崩溃。
+   - **对齐排查标准**：遇到 SQLx 类型存疑时，必须以 `SQLX_OFFLINE=true cargo check -p <crate>` 作为与 CI 离线构建对齐的真凭实据；如确需修改查询非空约束，应在 SQL 中使用 `AS "col!"` 强类型断言，并按规范执行 `just prepare_db` 同步更新 `.sqlx/` 目录。
 2. **`.claude/`（保留）**：Claude 开发规范资产，不作为业务运行时删除。
 3. **`.cursor/`（可清理）**：Cursor Cloud 开发辅助环境配置，自托管与生产部署不依赖。
 
