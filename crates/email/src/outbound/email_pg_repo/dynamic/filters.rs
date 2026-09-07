@@ -228,9 +228,9 @@ fn build_thread_literal_predicate(
             SqlFragment::raw(format!("{thread_alias}.has_calendar_attachment"))
         }
         EmailLiteral::CalendarOnly(false) => SqlFragment::raw("TRUE"),
-        // Denormalized importance flag maintained by update_thread_metadata
-        // (sync_thread_signal_flag) and the email_filters resync fan-out.
-        EmailLiteral::Importance(true) => SqlFragment::raw(format!("{thread_alias}.is_signal")),
+        EmailLiteral::Importance(true) => SqlFragment::raw(format!(
+            "({thread_alias}.is_signal AND ({thread_alias}.follow_up_completed_at IS NULL OR {thread_alias}.follow_up_completed_at < COALESCE(GREATEST({thread_alias}.latest_inbound_message_ts, {thread_alias}.latest_outbound_message_ts), {thread_alias}.updated_at)))"
+        )),
         EmailLiteral::Importance(false) => {
             SqlFragment::raw(format!("(NOT {thread_alias}.is_signal)"))
         }

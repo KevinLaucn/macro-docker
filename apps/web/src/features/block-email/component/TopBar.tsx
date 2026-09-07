@@ -20,7 +20,10 @@ import {
   SplitHeaderBadge,
   StaticSplitLabel,
 } from '@components/app/split-layout/components/SplitLabel';
-import { useSplitPanel } from '@components/app/split-layout/layoutUtils';
+import {
+  returnSplitToRecentListView,
+  useSplitPanel,
+} from '@components/app/split-layout/layoutUtils';
 import { toast } from '@core/component/Toast/Toast';
 import {
   getShareDrawerRecipientInput,
@@ -122,18 +125,14 @@ export function TopBar(props: {
   const showMarkDoneToggle = () => !isDone() || emailCtx.canMarkThreadNotDone();
 
   const toggleMarkDone = () => {
-    if (isDone()) {
+    if (isDone() && emailCtx.canMarkThreadNotDone()) {
       emailCtx.markThreadNotDone();
       return;
     }
-    // Prefer the active Mark done command so it drives soup navigation and
-    // notifications; fall back to archiving the thread directly. A command
-    // can be found but still decline (condition/handler returns false, e.g.
-    // the triage registration when not opened from inbox/mail), so gate on
-    // it actually capturing.
-    const command = getActiveCommandByToken(TOKENS.entity.action.markDone);
-    if (command && runCommand(command).commandCaptured) return;
     emailCtx.archiveThread();
+    if (splitPanel?.handle) {
+      returnSplitToRecentListView(splitPanel.handle);
+    }
   };
 
   const toggleMarkUnread = () => {
@@ -352,7 +351,7 @@ export function TopBar(props: {
               </Show>
             </Button>
           </Show>
-          <Show when={isOwnThread() && showMarkDoneToggle()}>
+          <Show when={isOwnThread()}>
             <Button
               class="p-1 rounded-lg"
               label={isDone() ? 'Mark as not done' : 'Mark done'}
@@ -365,9 +364,7 @@ export function TopBar(props: {
               // Same focus-preservation as the read-state toggle above.
               onMouseDown={(e) => e.preventDefault()}
             >
-              <Show when={isDone()} fallback={<CheckIcon class="size-4" />}>
-                <CheckBoldIcon class="size-4 text-accent" />
-              </Show>
+              <CheckIcon class="size-4" />
             </Button>
           </Show>
         </SplitHeaderRight>

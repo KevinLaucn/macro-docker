@@ -5,7 +5,7 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use email::domain::events::{EmailEventOrigin, EmailMacroEvent, ThreadArchivedMetadata};
-use email_db_client::threads::update::update_inbox_visible_status;
+use email_db_client::threads::update::update_thread_completion_status;
 use email_service::pubsub::publish_email_event;
 use macro_authorization::{MacroAuthorizationExtractor, UserOrInternal};
 use model::response::{EmptyResponse, ErrorResponse};
@@ -87,12 +87,10 @@ pub async fn archived_handler(
     .await?
     .ok_or(ArchiveThreadError::ThreadNotFound)?;
 
-    let thread =
+    let _thread =
         email_db_client::threads::get::get_thread_by_id_and_link_id(&ctx.db, thread_id, link.id)
             .await?
             .ok_or(ArchiveThreadError::ThreadNotFound)?;
-
-    let update_visibility = thread.inbox_visible == is_archiving;
 
     // get messages with label info
     let messages =
@@ -118,21 +116,14 @@ pub async fn archived_handler(
         message_db_ids.push(m.db_id);
     }
 
-    // Early return if no messages need to be updated
-    if message_db_ids.is_empty() && !update_visibility {
-        tracing::debug!("No messages need label changes for thread {}", thread_id);
-        return Ok((StatusCode::OK, Json(EmptyResponse::default())).into_response());
-    }
-
     let mut tx = ctx.db.begin().await?;
 
     // attempt to update in database
     let transaction_result = async {
-        if update_visibility {
-            update_inbox_visible_status(&mut tx, thread_id, link.id, !is_archiving)
-                .await
-                .context("Failed to update thread inbox_visible status")?;
-        }
+        update_thread_completion_status(&mut tx, thread_id, link.id, is_archiving)
+            .await
+            .context("Failed to update thread completion status")?;
+
 
         if !message_db_ids.is_empty() {
             if is_archiving {

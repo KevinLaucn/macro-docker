@@ -638,8 +638,6 @@ export function EmailProvider(props: FlowProps<{ threadID: string }>) {
 
     if (!thread?.db_id) return false;
 
-    if (!thread.inbox_visible) return false;
-
     // Mark done issues the /archived request itself (with undo support), so
     // the paths below skip archiveMutation and only mirror its thread-cache
     // handling via trackExternalThreadArchive.
