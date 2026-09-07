@@ -23,6 +23,7 @@ import {
   useContacts,
   type WithCustomUserInput,
 } from '@core/user';
+import { t } from '@macro/i18n';
 import {
   compositeEntity,
   createEffectOnEntityTypeNotification,
@@ -441,7 +442,9 @@ export function EmailProvider(props: FlowProps<{ threadID: string }>) {
   const archiveMutation = useUndoableArchiveThreadMutation({
     onPushed: (handle, params) => {
       params.onUndoHandle?.(handle);
-      const message = params.archive ? 'Marked as done' : 'Marked as not done';
+      const message = params.archive
+        ? t('Marked as done')
+        : t('Marked as not done');
       let toastId: number | undefined;
 
       const showToast = () => {
@@ -449,11 +452,11 @@ export function EmailProvider(props: FlowProps<{ threadID: string }>) {
         toastId = toast.success(message, {
           actions: [
             {
-              label: 'Undo',
+              label: t('Undo'),
               icon: ArrowCounterClockwise,
               onClick: () => {
                 handle.undo({
-                  onError: () => toast.failure('Failed to undo'),
+                  onError: () => toast.failure(t('Failed to undo')),
                 });
               },
             },
@@ -497,7 +500,9 @@ export function EmailProvider(props: FlowProps<{ threadID: string }>) {
     },
     onError: (params) => {
       toast.failure(
-        params.archive ? 'Failed to mark as done' : 'Failed to mark as not done'
+        params.archive
+          ? t('Failed to mark as done')
+          : t('Failed to mark as not done')
       );
     },
   });
@@ -605,7 +610,7 @@ export function EmailProvider(props: FlowProps<{ threadID: string }>) {
                 // The unarchive itself succeeded, so keep that outcome and
                 // let the override fall back to the server's done state.
                 setDoneOverride(allIds, undefined);
-                toast.failure('Failed to mark as not done');
+                toast.failure(t('Failed to mark as not done'));
               }
             }
             void refetchSoupEntity(threadId, 'emailThread');
@@ -667,11 +672,7 @@ export function EmailProvider(props: FlowProps<{ threadID: string }>) {
       };
       void trackExternalThreadArchive(
         thread.db_id,
-        markAsDoneAction.execute(
-          [target],
-          undefined,
-          markDoneOpts
-        )
+        markAsDoneAction.execute([target], undefined, markDoneOpts)
       );
     } else {
       // No soup entity to drive mark-done from (e.g. the thread was opened

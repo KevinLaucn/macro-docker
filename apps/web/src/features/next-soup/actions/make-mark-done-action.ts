@@ -16,6 +16,7 @@ import {
 } from '@core/constant/featureFlags';
 import type { HotkeyGroup } from '@core/hotkey/types';
 import type { EntityData } from '@entity';
+import { t } from '@macro/i18n';
 import type { NotificationSource } from '@notifications';
 import ArrowCounterClockwise from '@phosphor-icons/core/regular/arrow-counter-clockwise.svg?component-solid';
 import {
@@ -140,7 +141,7 @@ export const makeMarkDoneAction = (options: MakeMarkDoneOptions) => {
     },
     onError: (_err, _variables, context) => {
       context?.rollback();
-      toast.failure('Failed to mark as done');
+      toast.failure(t('Failed to mark as done'));
     },
     undoFn: async (variables, context) => {
       context?.applyUndone();
@@ -168,13 +169,15 @@ export const makeMarkDoneAction = (options: MakeMarkDoneOptions) => {
         throw err;
       }
     },
-    undoLabel: 'Mark Done',
+    undoLabel: t('Mark Done'),
     onPushed: (handle, variables) => {
       variables.onUndoHandle?.(handle);
       const firstEntityId = variables.entities[0]?.id;
       const count = variables.entities.length;
       const message =
-        count > 1 ? `Marked ${count} items as done` : 'Marked as done';
+        count > 1
+          ? t('Marked {count} items as done', { count })
+          : t('Marked as done');
       let toastId: number | undefined;
 
       const showToast = () => {
@@ -182,11 +185,11 @@ export const makeMarkDoneAction = (options: MakeMarkDoneOptions) => {
         toastId = toast.success(message, {
           actions: [
             {
-              label: 'Undo',
+              label: t('Undo'),
               icon: ArrowCounterClockwise,
               onClick: () => {
                 handle.undo({
-                  onError: () => toast.failure('Failed to undo'),
+                  onError: () => toast.failure(t('Failed to undo')),
                 });
               },
             },
