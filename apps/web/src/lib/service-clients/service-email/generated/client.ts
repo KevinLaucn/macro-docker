@@ -607,6 +607,80 @@ export const getAttachmentDocumentId = async (
 };
 
 /**
+ * @summary Download an attachment directly via Gmail API streaming/bytes, bypassing DSS and S3.
+ */
+export type downloadAttachmentResponse200 = {
+  data: void;
+  status: 200;
+};
+
+export type downloadAttachmentResponse400 = {
+  data: ErrorResponse;
+  status: 400;
+};
+
+export type downloadAttachmentResponse401 = {
+  data: ErrorResponse;
+  status: 401;
+};
+
+export type downloadAttachmentResponse403 = {
+  data: ErrorResponse;
+  status: 403;
+};
+
+export type downloadAttachmentResponse404 = {
+  data: ErrorResponse;
+  status: 404;
+};
+
+export type downloadAttachmentResponse500 = {
+  data: ErrorResponse;
+  status: 500;
+};
+
+export type downloadAttachmentResponseSuccess =
+  downloadAttachmentResponse200 & {
+    headers: Headers;
+  };
+export type downloadAttachmentResponseError = (
+  | downloadAttachmentResponse400
+  | downloadAttachmentResponse401
+  | downloadAttachmentResponse403
+  | downloadAttachmentResponse404
+  | downloadAttachmentResponse500
+) & {
+  headers: Headers;
+};
+
+export type downloadAttachmentResponse =
+  | downloadAttachmentResponseSuccess
+  | downloadAttachmentResponseError;
+
+export const getDownloadAttachmentUrl = (id: string) => {
+  return `/email/attachments/${id}/download`;
+};
+
+export const downloadAttachment = async (
+  id: string,
+  options?: RequestInit
+): Promise<downloadAttachmentResponse> => {
+  const res = await fetch(getDownloadAttachmentUrl(id), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: downloadAttachmentResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as downloadAttachmentResponse;
+};
+
+/**
  * @summary List all backfill jobs for the authenticated user, across every link they
 own. Scoped by the user's fusionauth id from the request context rather than
 a single resolved link.

@@ -69,25 +69,6 @@ pub fn is_email_workflow_done(
     }
 }
 
-/// Builds the SQL predicate for checking if an email thread's workflow is active.
-/// Does NOT use updated_at.
-/// Equivalent to:
-/// `(follow_up_completed_at IS NULL OR latest_inbound > follow_up_completed_at OR latest_outbound > follow_up_completed_at)`
-pub fn build_email_workflow_active_predicate(thread_alias: &str) -> String {
-    format!(
-        "({thread_alias}.follow_up_completed_at IS NULL OR ({thread_alias}.latest_inbound_message_ts IS NOT NULL AND {thread_alias}.latest_inbound_message_ts > {thread_alias}.follow_up_completed_at) OR ({thread_alias}.latest_outbound_message_ts IS NOT NULL AND {thread_alias}.latest_outbound_message_ts > {thread_alias}.follow_up_completed_at))"
-    )
-}
-
-/// Builds the SQL predicate for checking if an email thread is active important.
-/// Equivalent to `is_signal AND workflow_active`.
-pub fn build_email_active_important_predicate(thread_alias: &str) -> String {
-    format!(
-        "({thread_alias}.is_signal AND {})",
-        build_email_workflow_active_predicate(thread_alias)
-    )
-}
-
 /// A fully assembled email thread with paginated messages.
 #[derive(Debug, Clone)]
 pub struct Thread {
@@ -103,7 +84,7 @@ mod tests {
     use chrono::{Duration, TimeZone, Utc};
 
     #[test]
-    fn test_workflow_done_cases_a_through_j() {
+    fn test_workflow_done_cases_a_through_i() {
         let t1 = Utc.with_ymd_and_hms(2026, 9, 1, 10, 0, 0).unwrap();
         let t2 = t1 + Duration::hours(1);
         let t3 = t2 + Duration::hours(1);
@@ -145,11 +126,5 @@ mod tests {
         // Case I: updated_at 变化不影响 workflow_done（验证接口设计和时间戳逻辑排除 updated_at）
         // 只要 completed >= max(inbound, outbound)，无论外部更新时间是多少，workflow_done 恒为 true
         assert!(is_email_workflow_done(Some(t2), Some(t1), None));
-
-        // Case J: Predicate SQL 验证
-        let predicate = build_email_active_important_predicate("t");
-        assert!(predicate.contains("t.is_signal AND"));
-        assert!(predicate.contains("t.follow_up_completed_at IS NULL"));
-        assert!(!predicate.contains("updated_at"));
     }
 }

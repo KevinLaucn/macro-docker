@@ -6,6 +6,7 @@
  */
 import type { AccessLevel } from './accessLevel';
 import type { ApiMessage } from './apiMessage';
+import type { ApiThreadFollowUpCompletedAt } from './apiThreadFollowUpCompletedAt';
 import type { ApiThreadLatestInboundMessageTs } from './apiThreadLatestInboundMessageTs';
 import type { ApiThreadLatestNonSpamMessageTs } from './apiThreadLatestNonSpamMessageTs';
 import type { ApiThreadLatestOutboundMessageTs } from './apiThreadLatestOutboundMessageTs';
@@ -19,6 +20,7 @@ export interface ApiThread {
   access_level: AccessLevel;
   created_at: string;
   db_id: string;
+  follow_up_completed_at?: ApiThreadFollowUpCompletedAt;
   inbox_visible: boolean;
   is_read: boolean;
   latest_inbound_message_ts?: ApiThreadLatestInboundMessageTs;
@@ -28,7 +30,6 @@ export interface ApiThread {
   messages: ApiMessage[];
   project_id?: ApiThreadProjectId;
   provider_id?: ApiThreadProviderId;
-  follow_up_completed_at?: string | null;
-  workflow_done?: boolean;
   updated_at: string;
+  workflow_done: boolean;
 }

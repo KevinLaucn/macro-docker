@@ -20,10 +20,14 @@ import {
   useInfiniteQuery,
   useMutation,
 } from '@tanstack/solid-query';
+import { queryClient } from '@queries/client';
 import { err, ok } from 'neverthrow';
 import type { Accessor } from 'solid-js';
-import { queryClient } from '../client';
-import { optimisticUpdateSoupEntity, refetchSoupEntity } from '../soup/cache';
+import {
+  optimisticUpdateSoupEntity,
+  refetchSoupEntity,
+  restoreSoupEntityToDoneFilteredQueries,
+} from '../soup/cache';
 import { invalidateAllSoup } from '../soup/normalized-cache';
 import { type UndoHandle, useUndoableMutation } from '../undo';
 import { type MutationCallbacks, withCallbacks } from '../utils';
@@ -90,7 +94,7 @@ export async function fetchAndCacheThread(
     );
     if (result.isErr()) return err(result.error as any);
 
-    const thread = flattenThreadPages(result.value);
+    const thread = flattenThreadPages(result.value as InfiniteData<Thread, number>);
     if (!thread) {
       return err([{ code: 'NOT_FOUND', message: 'Email thread not found' }]);
     }
@@ -324,9 +328,9 @@ async function fetchUnreadLabelId(linkId?: string): Promise<string> {
   const unreadLabel =
     (linkId
       ? labels.find(
-          (l) => l.providerLabelId === 'UNREAD' && l.linkId === linkId
+          (l: any) => l.providerLabelId === 'UNREAD' && l.linkId === linkId
         )
-      : undefined) ?? labels.find((l) => l.providerLabelId === 'UNREAD');
+      : undefined) ?? labels.find((l: any) => l.providerLabelId === 'UNREAD');
   if (!unreadLabel) {
     throw new Error('UNREAD label not found');
   }
@@ -388,7 +392,7 @@ type ArchiveThreadContext = {
   previousData: InfiniteData<Thread, number> | undefined;
 };
 
-/** Optimistically set `inbox_visible` when archiving a thread. */
+/** Optimistically set `inbox_visible` and `workflow_done` when archiving a thread. */
 async function threadArchiveOnMutate(params: ArchiveThreadParams) {
   await queryClient.cancelQueries({
     queryKey: emailKeys.threadMessages(params.threadId).queryKey,
@@ -400,12 +404,13 @@ async function threadArchiveOnMutate(params: ArchiveThreadParams) {
 
   queryClient.setQueryData<InfiniteData<Thread, number>>(
     emailKeys.threadMessages(params.threadId).queryKey,
-    (old) =>
+    (old: InfiniteData<Thread, number> | undefined) =>
       old && {
         ...old,
-        pages: old.pages.map((page) => ({
+        pages: old.pages.map((page: Thread) => ({
           ...page,
           inbox_visible: !params.archive,
+          workflow_done: params.archive,
         })),
       }
   );
@@ -567,9 +572,15 @@ export function useSendMessageMutation(
             queryClient.invalidateQueries({
               queryKey: emailKeys.threadMessages(threadID).queryKey,
             });
-            // Refresh the thread's soup item so inbox views stop showing it
-            // as a draft once the message is sent.
+            // When reply is sent without willMarkDone, thread reactivates (workflowDone=false).
+            // Optimistically mark not done and restore to done-filtered views (Important/Inbox).
             if (!vars.skipSoupRefetch) {
+              optimisticUpdateSoupEntity({
+                tag: 'emailThread',
+                data: { id: threadID, workflowDone: false },
+                frecency_score: 0,
+              });
+              restoreSoupEntityToDoneFilteredQueries(threadID);
               refetchSoupEntity(threadID, 'emailThread');
             }
           }

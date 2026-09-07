@@ -43,6 +43,9 @@ pub struct ThreadPreviewCursorDbRow {
     pub viewed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub follow_up_completed_at: Option<DateTime<Utc>>,
+    pub latest_inbound_message_ts: Option<DateTime<Utc>>,
+    pub latest_outbound_message_ts: Option<DateTime<Utc>>,
     pub project_id: Option<String>,
     /// The macro user ID of the thread owner, resolved from email_links.
     pub owner_id: String,
@@ -115,10 +118,19 @@ impl ThreadPreviewCursorDbRow {
             viewed_at,
             created_at,
             updated_at,
+            follow_up_completed_at,
+            latest_inbound_message_ts,
+            latest_outbound_message_ts,
             project_id,
             owner_id,
             link_id,
         } = self;
+
+        let workflow_done = crate::domain::models::is_email_workflow_done(
+            follow_up_completed_at,
+            latest_inbound_message_ts,
+            latest_outbound_message_ts,
+        );
 
         EmailThreadPreview {
             id,
@@ -141,6 +153,7 @@ impl ThreadPreviewCursorDbRow {
             viewed_at,
             project_id,
             link_id,
+            workflow_done,
         }
     }
 }

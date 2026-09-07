@@ -135,6 +135,9 @@ pub(crate) async fn important_preview_cursor(
                isk.updated_at as "updated_at!",
                t.project_id,
                isk.viewed_at as "viewed_at?",
+               t.follow_up_completed_at,
+               t.latest_inbound_message_ts,
+               t.latest_outbound_message_ts,
                isk.is_draft as "is_draft!",
                -- It's the important view - all threads here are important
                true as "is_important!",

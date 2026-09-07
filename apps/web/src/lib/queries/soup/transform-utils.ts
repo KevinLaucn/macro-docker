@@ -776,8 +776,7 @@ export const mapApiSoupItemToEntity = (
         senderEmail: item.data.senderEmail ?? undefined,
         senderName: item.data.senderName ?? undefined,
         snippet: item.data.snippet ?? undefined,
-        done:
-          (item.data as { workflowDone?: boolean }).workflowDone ?? false,
+        done: item.data.workflowDone ?? false,
         type: 'email',
         name: item.data.name || 'Email Thread',
         frecencyScore: item.frecency_score,

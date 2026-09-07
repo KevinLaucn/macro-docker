@@ -156,6 +156,8 @@ pub struct SoupEmailThreadPreview {
     pub viewed_at: Option<DateTime<Utc>>,
     /// Project id associated with the thread.
     pub project_id: Option<String>,
+    /// Whether the thread workflow is done.
+    pub workflow_done: bool,
 }
 
 /// Email thread preview enriched with related metadata for Soup.

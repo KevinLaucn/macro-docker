@@ -228,9 +228,9 @@ fn build_thread_literal_predicate(
             SqlFragment::raw(format!("{thread_alias}.has_calendar_attachment"))
         }
         EmailLiteral::CalendarOnly(false) => SqlFragment::raw("TRUE"),
-        EmailLiteral::Importance(true) => SqlFragment::raw(
-            crate::domain::models::build_email_active_important_predicate(thread_alias),
-        ),
+        EmailLiteral::Importance(true) => {
+            SqlFragment::raw(build_email_active_important_predicate(thread_alias))
+        }
         EmailLiteral::Importance(false) => {
             SqlFragment::raw(format!("(NOT {thread_alias}.is_signal)"))
         }
@@ -1109,4 +1109,42 @@ pub(super) fn build_lateral_trash_exclusion(resolved: &ResolvedFilters) -> SqlFr
           )"#,
     );
     f
+}
+
+/// Builds the SQL predicate for checking if an email thread's workflow is active.
+/// Does NOT use updated_at.
+/// Equivalent to:
+/// `(follow_up_completed_at IS NULL OR latest_inbound > follow_up_completed_at OR latest_outbound > follow_up_completed_at)`
+pub fn build_email_workflow_active_predicate(thread_alias: &str) -> String {
+    format!(
+        "({thread_alias}.follow_up_completed_at IS NULL OR ({thread_alias}.latest_inbound_message_ts IS NOT NULL AND {thread_alias}.latest_inbound_message_ts > {thread_alias}.follow_up_completed_at) OR ({thread_alias}.latest_outbound_message_ts IS NOT NULL AND {thread_alias}.latest_outbound_message_ts > {thread_alias}.follow_up_completed_at))"
+    )
+}
+
+/// Builds the SQL predicate for checking if an email thread is active important.
+/// Equivalent to `is_signal AND workflow_active`.
+pub fn build_email_active_important_predicate(thread_alias: &str) -> String {
+    format!(
+        "({thread_alias}.is_signal AND {})",
+        build_email_workflow_active_predicate(thread_alias)
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_email_active_important_predicate_sql_structure() {
+        let predicate = build_email_active_important_predicate("t");
+        assert!(predicate.contains("t.is_signal AND"));
+        assert!(predicate.contains("t.follow_up_completed_at IS NULL"));
+        assert!(predicate.contains("t.latest_inbound_message_ts > t.follow_up_completed_at"));
+        assert!(predicate.contains("t.latest_outbound_message_ts > t.follow_up_completed_at"));
+        assert!(!predicate.contains("updated_at"));
+
+        let alias_et = build_email_active_important_predicate("et");
+        assert!(alias_et.contains("et.is_signal AND"));
+        assert!(alias_et.contains("et.follow_up_completed_at IS NULL"));
+    }
 }

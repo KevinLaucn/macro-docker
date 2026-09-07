@@ -17,7 +17,7 @@ use uuid::Uuid;
 mod contact;
 mod db_types;
 mod draft;
-mod dynamic;
+pub mod dynamic;
 mod email_filter;
 mod label;
 mod link;

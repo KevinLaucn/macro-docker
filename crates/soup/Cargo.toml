@@ -37,6 +37,7 @@ outbound = [
   "dep:properties",
   "dep:readonly_pool",
   "dep:sqlx",
+  "email/outbound",
   "ports",
   "properties/outbound",
 ]

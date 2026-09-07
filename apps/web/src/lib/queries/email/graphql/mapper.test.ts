@@ -81,6 +81,7 @@ function thread(
     linkId: 'link-1',
     inboxVisible: true,
     isRead: false,
+    workflowDone: false,
     projectId: 'project-1',
     latestInboundMessageTs: '2026-08-06T12:00:00Z',
     createdAt: '2026-08-01T00:00:00Z',

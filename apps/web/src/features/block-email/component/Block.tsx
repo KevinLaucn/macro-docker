@@ -36,7 +36,7 @@ export default function BlockEmail() {
       name: displaySubject(thread.messages[0]?.subject),
       blockName: 'email',
       isRead: thread.is_read,
-      done: !thread.inbox_visible,
+      done: thread.workflow_done,
     });
   });
 

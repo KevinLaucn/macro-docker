@@ -51,4 +51,6 @@ export interface SoupEmailThreadPreview {
   updatedAt: string;
   /** Timestamp when the requesting user last viewed the thread. */
   viewedAt?: SoupEmailThreadPreviewViewedAt;
+  /** Whether the thread workflow is done. */
+  workflowDone: boolean;
 }

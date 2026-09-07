@@ -1255,7 +1255,7 @@ export function applyEntitiesDoneOptimistic(args: {
     emailRowTxns = emailIds.map((id) =>
       optimisticUpdateSoupEntity({
         tag: 'emailThread',
-        data: { id, inboxVisible: false },
+        data: { id, workflowDone: true },
         frecency_score: getSoupEntityById(id)?.frecency_score ?? 0,
       })
     );
@@ -1331,7 +1331,7 @@ export function applyEntitiesNotDoneOptimistic(args: {
   const emailRowTxns = emailIds.map((id) =>
     optimisticUpdateSoupEntity({
       tag: 'emailThread',
-      data: { id, inboxVisible: true },
+      data: { id, workflowDone: false },
       frecency_score: getSoupEntityById(id)?.frecency_score ?? 0,
     })
   );

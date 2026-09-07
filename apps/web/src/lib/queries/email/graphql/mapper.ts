@@ -142,6 +142,7 @@ export function mapGraphqlEmailThreadPage(
     db_id: thread.id,
     inbox_visible: thread.inboxVisible,
     is_read: thread.isRead,
+    workflow_done: thread.workflowDone,
     latest_inbound_message_ts: thread.latestInboundMessageTs,
     link_id: thread.linkId,
     messages: thread.messages.map((message) =>

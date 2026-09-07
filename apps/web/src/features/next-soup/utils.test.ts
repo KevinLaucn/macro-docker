@@ -33,6 +33,7 @@ const { toastAlert, ...operationMocks } = vi.hoisted(() => {
     updateNotificationsForEntities: vi.fn(
       async (): Promise<Array<{ id: string }>> => []
     ),
+    optimisticUpdateSoupEntity: vi.fn(() => ({ rollback: vi.fn() })),
   };
 });
 
@@ -74,7 +75,7 @@ vi.mock('@queries/reminders/reminders', () => ({
 vi.mock('@queries/soup/cache', () => ({
   getSoupEntityById: vi.fn(),
   invalidateSoupEntity: operationMocks.invalidateSoupEntity,
-  optimisticUpdateSoupEntity: vi.fn(() => ({ rollback: vi.fn() })),
+  optimisticUpdateSoupEntity: operationMocks.optimisticUpdateSoupEntity,
   removeSoupEntities: vi.fn(() => ({ rollback: vi.fn() })),
   removeSoupEntitiesFromDoneFilteredQueries: vi.fn(() => ({
     rollback: vi.fn(),
@@ -105,6 +106,8 @@ import type { ChannelEntityTarget, EntityData } from '@entity';
 import type { NotificationSource, UnifiedNotification } from '@notifications';
 import { previewSourceEntityId } from './preview-history';
 import {
+  applyEntitiesDoneOptimistic,
+  applyEntitiesNotDoneOptimistic,
   executeMarkEntitiesDone,
   getChannelEntityTarget,
   getRowClickFallbackLocation,
@@ -730,5 +733,47 @@ describe('getRowClickFallbackLocation', () => {
   it('returns no location for non-snippet entities', () => {
     const entity = { type: 'document', id: 'd1' } as unknown as EntityData;
     expect(getRowClickFallbackLocation(entity)).toBeUndefined();
+  });
+});
+
+describe('applyEntitiesDoneOptimistic and applyEntitiesNotDoneOptimistic', () => {
+  it('patches emailThread entity with workflowDone: true on Mark Done', () => {
+    const handle = applyEntitiesDoneOptimistic({
+      entityIds: ['e-1'],
+      emailIds: ['e-1'],
+      notificationIds: [],
+    });
+
+    expect(operationMocks.optimisticUpdateSoupEntity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tag: 'emailThread',
+        data: expect.objectContaining({
+          id: 'e-1',
+          workflowDone: true,
+        }),
+      })
+    );
+
+    // Rollback restores
+    expect(() => handle.rollback()).not.toThrow();
+  });
+
+  it('patches emailThread entity with workflowDone: false on Mark Not Done', () => {
+    const handle = applyEntitiesNotDoneOptimistic({
+      emailIds: ['e-1'],
+      notificationIds: [],
+    });
+
+    expect(operationMocks.optimisticUpdateSoupEntity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tag: 'emailThread',
+        data: expect.objectContaining({
+          id: 'e-1',
+          workflowDone: false,
+        }),
+      })
+    );
+
+    expect(() => handle.rollback()).not.toThrow();
   });
 });

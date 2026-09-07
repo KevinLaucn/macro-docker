@@ -382,6 +382,8 @@ async fn test_insert_thread_new(pool: Pool<Postgres>) -> anyhow::Result<()> {
         created_at: now,
         updated_at: now,
         project_id: None,
+        follow_up_completed_at: None,
+        workflow_done: false,
     };
 
     let mut tx = pool.begin().await?;
@@ -424,6 +426,8 @@ async fn test_insert_thread_conflict_with_provider_id(pool: Pool<Postgres>) -> a
         created_at: now,
         updated_at: now,
         project_id: None,
+        follow_up_completed_at: None,
+        workflow_done: false,
     };
 
     let mut tx = pool.begin().await?;

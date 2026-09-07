@@ -25020,7 +25020,8 @@
           "isImportant",
           "sortTs",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "workflowDone"
         ],
         "properties": {
           "createdAt": {
@@ -25095,6 +25096,10 @@
             "type": ["string", "null"],
             "format": "date-time",
             "description": "Timestamp when the requesting user last viewed the thread."
+          },
+          "workflowDone": {
+            "type": "boolean",
+            "description": "Whether the thread workflow is done."
           }
         }
       },

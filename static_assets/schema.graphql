@@ -4813,6 +4813,10 @@ type GraphqlSoupEmailThread implements GraphqlSoupEntity {
 	"""
 	isImportant: Boolean!
 	"""
+	Whether the thread workflow is done.
+	"""
+	workflowDone: Boolean!
+	"""
 	The identifier of the project.
 	"""
 	projectId: ID

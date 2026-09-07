@@ -608,6 +608,8 @@ async fn test_insert_draft_message_with_new_thread(pool: Pool<Postgres>) -> anyh
         created_at: Utc::now(),
         updated_at: Utc::now(),
         project_id: None,
+        follow_up_completed_at: None,
+        workflow_done: false,
     };
 
     repo.insert_message(&input, &contacts, link_id, Some(new_thread), true)

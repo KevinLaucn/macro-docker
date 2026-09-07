@@ -37,7 +37,4 @@ pub use preview::{
     PreviewView, PreviewViewStandardLabel,
 };
 pub use sender_policy::SenderPolicy;
-pub use thread::{
-    EmailThreadMetadata, Thread, ThreadRow, build_email_active_important_predicate,
-    build_email_workflow_active_predicate, is_email_workflow_done,
-};
+pub use thread::{EmailThreadMetadata, Thread, ThreadRow, is_email_workflow_done};

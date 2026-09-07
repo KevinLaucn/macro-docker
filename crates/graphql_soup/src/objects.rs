@@ -1150,6 +1150,11 @@ where
         self.0.thread.is_important
     }
 
+    /// Whether the thread workflow is done.
+    async fn workflow_done(&self) -> bool {
+        self.0.thread.workflow_done
+    }
+
     /// The identifier of the project.
     async fn project_id(&self) -> Option<ID> {
         self.0.thread.project_id.as_ref().map(|id| ID(id.clone()))
