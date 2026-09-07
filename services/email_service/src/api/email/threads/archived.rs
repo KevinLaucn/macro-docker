@@ -5,7 +5,9 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use email::domain::events::{EmailEventOrigin, EmailMacroEvent, ThreadArchivedMetadata};
-use email_db_client::threads::update::update_thread_completion_status;
+use email_db_client::threads::update::{
+    set_thread_workflow_completed, update_inbox_visible_status,
+};
 use email_service::pubsub::publish_email_event;
 use macro_authorization::{MacroAuthorizationExtractor, UserOrInternal};
 use model::response::{EmptyResponse, ErrorResponse};
@@ -87,7 +89,7 @@ pub async fn archived_handler(
     .await?
     .ok_or(ArchiveThreadError::ThreadNotFound)?;
 
-    let _thread =
+    let thread =
         email_db_client::threads::get::get_thread_by_id_and_link_id(&ctx.db, thread_id, link.id)
             .await?
             .ok_or(ArchiveThreadError::ThreadNotFound)?;
@@ -97,21 +99,31 @@ pub async fn archived_handler(
         email_db_client::messages::get::fetch_messages_with_labels(&ctx.db, thread_id, link.id)
             .await?;
 
-    let mut message_db_ids = Vec::new();
-
-    // if we are archiving the thread, any messages with the INBOX label are affected. and vice versa
     let has_inbox_label = |m: &Message| {
         m.labels
             .iter()
             .any(|l| l.provider_label_id == system_labels::INBOX)
     };
 
-    // Collect affected messages
-    let affected_messages: Vec<&Message> = messages
-        .iter()
-        .filter(|m| has_inbox_label(m) == is_archiving)
-        .collect();
+    let can_restore_inbox =
+        thread.latest_inbound_message_ts.is_some() || messages.iter().any(|m| !m.is_sent);
 
+    // Collect affected messages for Gmail INBOX label sync:
+    // When archiving (Mark Done): remove INBOX from messages that currently have INBOX.
+    // When unarchiving (Mark Not Done): ONLY add INBOX to inbound messages (!m.is_sent) that lack INBOX.
+    // NEVER add INBOX to sent-only messages!
+    let affected_messages: Vec<&Message> = if is_archiving {
+        messages.iter().filter(|m| has_inbox_label(m)).collect()
+    } else if can_restore_inbox {
+        messages
+            .iter()
+            .filter(|m| !m.is_sent && !has_inbox_label(m))
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    let mut message_db_ids = Vec::new();
     for m in &affected_messages {
         message_db_ids.push(m.db_id);
     }
@@ -120,10 +132,22 @@ pub async fn archived_handler(
 
     // attempt to update in database
     let transaction_result = async {
-        update_thread_completion_status(&mut tx, thread_id, link.id, is_archiving)
+        // 1. Authoritative Macro workflow completion status
+        set_thread_workflow_completed(&mut tx, thread_id, link.id, is_archiving)
             .await
-            .context("Failed to update thread completion status")?;
+            .context("Failed to update thread workflow completion status")?;
 
+        // 2. Provider / Inbox visibility status
+        let target_inbox_visible = if is_archiving {
+            false
+        } else {
+            can_restore_inbox
+        };
+        if thread.inbox_visible != target_inbox_visible {
+            update_inbox_visible_status(&mut tx, thread_id, link.id, target_inbox_visible)
+                .await
+                .context("Failed to update thread inbox_visible status")?;
+        }
 
         if !message_db_ids.is_empty() {
             if is_archiving {

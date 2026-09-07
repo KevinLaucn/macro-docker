@@ -28,5 +28,7 @@ export interface ApiThread {
   messages: ApiMessage[];
   project_id?: ApiThreadProjectId;
   provider_id?: ApiThreadProviderId;
+  follow_up_completed_at?: string | null;
+  workflow_done?: boolean;
   updated_at: string;
 }

@@ -84,35 +84,32 @@ pub async fn update_inbox_visible_status(
     Ok(())
 }
 
-/// Updates a thread's completion status atomically:
-/// - Sets `inbox_visible` to `!is_archiving`
-/// - When archiving (Mark Done), refreshes `follow_up_completed_at` to `NOW()`
-/// - When unarchiving (Mark Not Done), resets `follow_up_completed_at` to `NULL`
+/// Updates a thread's Macro workflow completion status:
+/// - When `completed = true` (Mark Done), refreshes `follow_up_completed_at` to `NOW()`.
+/// - When `completed = false` (Mark Not Done), resets `follow_up_completed_at` to `NULL`.
+/// Does NOT touch `inbox_visible`.
 #[tracing::instrument(skip(conn), err)]
-pub async fn update_thread_completion_status(
+pub async fn set_thread_workflow_completed(
     conn: &mut sqlx::PgConnection,
     thread_id: Uuid,
     link_id: Uuid,
-    is_archiving: bool,
+    completed: bool,
 ) -> anyhow::Result<()> {
-    let inbox_visible = !is_archiving;
     sqlx::query(
         r#"
         UPDATE email_threads
         SET
-            inbox_visible = $1,
             follow_up_completed_at = CASE
-                WHEN $2::boolean THEN NOW()
+                WHEN $1::boolean THEN NOW()
                 ELSE NULL
             END,
             updated_at = NOW()
         WHERE
-            id = $3 AND
-            link_id = $4
+            id = $2 AND
+            link_id = $3
         "#,
     )
-    .bind(inbox_visible)
-    .bind(is_archiving)
+    .bind(completed)
     .bind(thread_id)
     .bind(link_id)
     .execute(conn)
@@ -120,7 +117,6 @@ pub async fn update_thread_completion_status(
 
     Ok(())
 }
-
 
 #[tracing::instrument(skip(executor), err)]
 pub async fn update_thread_read_status<'e, E>(

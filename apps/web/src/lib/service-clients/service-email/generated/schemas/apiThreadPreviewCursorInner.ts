@@ -29,5 +29,6 @@ export interface ApiThreadPreviewCursorInner {
   snippet?: ApiThreadPreviewCursorInnerSnippet;
   sortTs: string;
   updatedAt: string;
+  workflowDone?: boolean;
   viewedAt?: ApiThreadPreviewCursorInnerViewedAt;
 }

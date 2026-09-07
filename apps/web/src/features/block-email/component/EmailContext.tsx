@@ -521,20 +521,11 @@ export function EmailProvider(props: FlowProps<{ threadID: string }>) {
   };
 
   const isThreadDone = () => {
-    const thread = threadQuery.data;
-    return thread ? !thread.inbox_visible : false;
+    return threadQuery.data?.workflow_done ?? false;
   };
 
-  // Doneness is derived, not stored: `inbox_visible` is recomputed from the
-  // thread's messages as "some message has INBOX and not SENT", and the inbox
-  // view additionally requires an inbound message. A thread with only sent
-  // messages can satisfy neither, so it is permanently done — unarchiving it
-  // reverts on the next recompute and meanwhile labels its sent messages
-  // INBOX, in Gmail too. Only offer the reversal when it can hold.
   const canMarkThreadNotDone = () => {
-    const thread = threadQuery.data;
-    if (!thread) return false;
-    return !thread.inbox_visible && thread.latest_inbound_message_ts != null;
+    return threadQuery.data?.workflow_done === true;
   };
 
   // Resolve a thread's soup representation for the mark-done / mark-not-done
@@ -644,10 +635,11 @@ export function EmailProvider(props: FlowProps<{ threadID: string }>) {
     const { selectedRow, cachedItem } = resolveThreadSoupLookup(thread.db_id);
 
     if (soup && selectedRow) {
+      const target = { ...selectedRow.original, done: isThreadDone() };
       void trackExternalThreadArchive(
         thread.db_id,
         markAsDoneAction.executeWithSoup(
-          [selectedRow.original],
+          [target],
           soup,
           (nextEntity) => {
             const splitHandle = splitPanel?.handle;
@@ -669,10 +661,14 @@ export function EmailProvider(props: FlowProps<{ threadID: string }>) {
       // Not rendered inside a soup list (e.g. thread opened in a split): no
       // row to drive the action from, so mark done via the cached soup entity
       // so soup views drop the thread and its notifications settle.
+      const target = {
+        ...mapApiSoupItemToEntity(cachedItem),
+        done: isThreadDone(),
+      };
       void trackExternalThreadArchive(
         thread.db_id,
         markAsDoneAction.execute(
-          [mapApiSoupItemToEntity(cachedItem)],
+          [target],
           undefined,
           markDoneOpts
         )

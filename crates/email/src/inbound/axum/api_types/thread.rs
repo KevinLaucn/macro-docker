@@ -41,6 +41,8 @@ pub struct ApiThread {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub project_id: Option<String>,
+    pub follow_up_completed_at: Option<DateTime<Utc>>,
+    pub workflow_done: bool,
     pub messages: Vec<ApiMessage>,
 }
 
@@ -59,6 +61,8 @@ impl ApiThread {
             created_at: t.row.created_at,
             updated_at: t.row.updated_at,
             project_id: t.row.project_id,
+            follow_up_completed_at: t.row.follow_up_completed_at,
+            workflow_done: t.row.workflow_done,
             messages: t.messages.into_iter().map(ApiMessage::from).collect(),
         }
     }

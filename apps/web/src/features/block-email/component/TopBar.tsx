@@ -110,7 +110,7 @@ export function TopBar(props: {
       projectId: thread?.project_id ?? undefined,
       isRead: thread?.is_read,
       isDraft: props.isDraft,
-      done: thread ? !thread.inbox_visible : undefined,
+      done: thread?.workflow_done,
     });
   };
 

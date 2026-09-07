@@ -95,7 +95,7 @@ export function createEmailsInfiniteQuery(
               viewedAt: email.viewedAt,
               snippet: email.snippet ?? undefined,
               isImportant: email.isImportant ?? false,
-              done: !email.inboxVisible,
+              done: email.workflowDone ?? false,
               participants,
               senderEmail: email.senderEmail ?? undefined,
               senderName: email.senderName ?? email.senderEmail ?? undefined,

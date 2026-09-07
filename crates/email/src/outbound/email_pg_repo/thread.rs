@@ -17,7 +17,7 @@ pub(super) async fn thread_by_id(
         SELECT t.id, t.provider_id, t.link_id, t.inbox_visible, t.is_read,
                t.latest_inbound_message_ts, t.latest_outbound_message_ts,
                t.latest_non_spam_message_ts, t.created_at, t.updated_at,
-               t.project_id
+               t.project_id, t.follow_up_completed_at
         FROM email_threads t
         WHERE t.id = $1
         "#,

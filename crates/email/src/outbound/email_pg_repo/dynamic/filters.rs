@@ -228,9 +228,9 @@ fn build_thread_literal_predicate(
             SqlFragment::raw(format!("{thread_alias}.has_calendar_attachment"))
         }
         EmailLiteral::CalendarOnly(false) => SqlFragment::raw("TRUE"),
-        EmailLiteral::Importance(true) => SqlFragment::raw(format!(
-            "({thread_alias}.is_signal AND ({thread_alias}.follow_up_completed_at IS NULL OR {thread_alias}.follow_up_completed_at < COALESCE(GREATEST({thread_alias}.latest_inbound_message_ts, {thread_alias}.latest_outbound_message_ts), {thread_alias}.updated_at)))"
-        )),
+        EmailLiteral::Importance(true) => SqlFragment::raw(
+            crate::domain::models::build_email_active_important_predicate(thread_alias),
+        ),
         EmailLiteral::Importance(false) => {
             SqlFragment::raw(format!("(NOT {thread_alias}.is_signal)"))
         }

@@ -178,10 +178,16 @@ pub struct DbThreadRow {
     pub created_at: chrono::DateTime<Utc>,
     pub updated_at: chrono::DateTime<Utc>,
     pub project_id: Option<String>,
+    pub follow_up_completed_at: Option<DateTime<Utc>>,
 }
 
 impl From<DbThreadRow> for ThreadRow {
     fn from(row: DbThreadRow) -> Self {
+        let workflow_done = crate::domain::models::is_email_workflow_done(
+            row.follow_up_completed_at,
+            row.latest_inbound_message_ts,
+            row.latest_outbound_message_ts,
+        );
         Self {
             db_id: row.id,
             provider_id: row.provider_id,
@@ -194,6 +200,8 @@ impl From<DbThreadRow> for ThreadRow {
             created_at: row.created_at,
             updated_at: row.updated_at,
             project_id: row.project_id,
+            follow_up_completed_at: row.follow_up_completed_at,
+            workflow_done,
         }
     }
 }
