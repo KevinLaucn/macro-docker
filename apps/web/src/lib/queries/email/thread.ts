@@ -39,9 +39,6 @@ import {
 import { emailKeys } from './keys';
 
 const THREAD_STALE_TIME = 5 * 60 * 1000;
-const OUTBOUND_REACTIVATION_RECONCILE_DELAYS_MS = [
-  250, 750, 1_500, 3_000, 6_000,
-] as const;
 
 /** Shared REST infinite-query options for thread fetching. */
 export function threadQueryOptions(threadId: string) {
@@ -101,39 +98,6 @@ async function reconcileThreadListMembership(threadId: string): Promise<void> {
     console.error('[email] failed to reconcile thread list membership', error);
   } finally {
     invalidateAllSoup();
-  }
-}
-
-/**
- * A successful send creates the local message before Gmail/provider metadata
- * marks it SENT. During that short window the authoritative thread can still
- * report workflow_done=true even though the user's send should reactivate it.
- * Keep the optimistic workflowDone=false UI in place and poll only for the
- * point at which the server agrees; only then is it safe to refetch Soup and
- * GraphQL membership without clobbering the optimistic state with stale data.
- */
-async function reconcileOutboundReactivation(threadId: string): Promise<void> {
-  for (const delayMs of OUTBOUND_REACTIVATION_RECONCILE_DELAYS_MS) {
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-
-    try {
-      const result = await emailClient.getThread({
-        thread_id: threadId,
-        offset: 0,
-        limit: 1,
-      });
-      if (result.isErr()) continue;
-      if (result.value.thread.workflow_done) continue;
-
-      await reconcileThreadListMembership(threadId);
-      queryClient.invalidateQueries({
-        queryKey: emailKeys.previews._def,
-      });
-      return;
-    } catch {
-      // Best-effort reconciliation. The optimistic state remains correct for
-      // the user's local send and later normal cache activity can still settle it.
-    }
   }
 }
 
@@ -420,10 +384,9 @@ export function useMarkThreadAsUnreadMutation(
       const labelId = await fetchUnreadLabelId(params.linkId);
       await throwOnErr(() =>
         emailClient.updateThreadLabel({
-          thread_id: params.threadId,
-          label_id: labelId,
-          value: true,
-        })
+          thread_id: params.threadId },
+          params.linkId
+        )
       );
     },
     ...withCallbacks<void, Error, MarkThreadAsUnreadParams>(
@@ -637,12 +600,12 @@ export function useSendMessageMutation(
             queryClient.invalidateQueries({
               queryKey: emailKeys.threadMessages(threadID).queryKey,
             });
-            // When reply is sent without willMarkDone, the workflow must feel
-            // reactivated immediately. The provider has not necessarily marked
-            // the newly-created local message SENT yet, so an immediate server
-            // refetch can still report workflowDone=true and clobber this UI.
-            // Keep the optimistic state, restore membership now, and reconcile
-            // only after the authoritative thread reports workflow_done=false.
+            // Sending a reply reactivates the workflow immediately in local
+            // cache, using the same restore-first pattern as Undo: flip the
+            // entity to not-done and put it straight back into Important/Inbox
+            // style done-filtered views. Do not wait for Gmail/provider sync or
+            // refetch here; an early server read can still carry the previous
+            // workflow_done=true and overwrite the correct optimistic UI.
             if (!vars.skipSoupRefetch) {
               optimisticUpdateSoupEntity({
                 tag: 'emailThread',
@@ -650,7 +613,6 @@ export function useSendMessageMutation(
                 frecency_score: 0,
               });
               restoreSoupEntityToDoneFilteredQueries(threadID);
-              void reconcileOutboundReactivation(threadID);
             }
           }
           queryClient.invalidateQueries({
