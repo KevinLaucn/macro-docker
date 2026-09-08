@@ -67,6 +67,7 @@ export const BlockRegistry = [
   'company',
   'automation',
   'pr',
+  'agent',
 ] as const;
 
 /** Block names that resolve through another concrete block implementation or have been retired from concrete block loading. */
@@ -117,6 +118,7 @@ export const NonDocumentBlockTypes = [
   'company',
   'automation',
   'pr',
+  'agent',
 ] as const as (BlockName | BlockAlias)[];
 
 /**

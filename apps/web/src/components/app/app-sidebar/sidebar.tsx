@@ -73,6 +73,8 @@ import { AnimatedChannelIcon } from '@icon/wide-channel';
 import { AnimatedCompanyIcon } from '@icon/wide-company';
 import { AnimatedEmailIcon } from '@icon/wide-email';
 import { AnimatedFileMdIcon } from '@icon/wide-fileMd';
+import WideCalendarIcon from '@icon/wide-calendar.svg';
+import { CalendarSidebarPreview } from './calendar-sidebar-preview';
 import { AnimatedHomeIcon } from '@icon/wide-home';
 import { AnimatedInboxIcon } from '@icon/wide-inbox';
 import { AnimatedSearchIcon } from '@icon/wide-search';
@@ -135,6 +137,7 @@ type SidebarSectionLinkId =
   | 'mail'
   | 'channels'
   | 'documents'
+  | 'calendar'
   | 'agents'
   | 'companies';
 
@@ -148,6 +151,7 @@ const WORKSPACE_LINK_IDS = [
   'mail',
   'channels',
   'documents',
+  'calendar',
   'agents',
   'companies',
 ] as const;
@@ -156,6 +160,7 @@ const DEFAULT_SECTION_VISIBILITY: SidebarSectionVisibility = {
   mail: true,
   channels: true,
   documents: true,
+  calendar: true,
   agents: true,
   companies: true,
 };
@@ -225,6 +230,14 @@ const SIDEBAR_LINKS: SidebarItem[] = [
     hotkey: 'd',
     hotkeyToken: TOKENS.sidebar.goTo.markdownDocuments,
     hiddenFromSidebar: true,
+  },
+  {
+    id: 'calendar',
+    label: 'Calendar',
+    href: '/calendar',
+    icon: WideCalendarIcon,
+    hotkey: 'r',
+    hotkeyToken: TOKENS.sidebar.goTo.calendar,
   },
   {
     id: 'channels',
@@ -1818,7 +1831,7 @@ const SidebarLinkRow = (props: SidebarLinkProps) => {
           ? props.hotkeyToken
           : [TOKENS.sidebar.goToLeader, props.hotkeyToken]
       }
-      tooltipDisabled={props.sidebarState !== 'slim'}
+      tooltipDisabled={props.sidebarState !== 'slim' || props.id === 'calendar'}
       onMouseLeave={() => setIsHovering(false)}
       onMouseDown={(e) => {
         if (e.button !== 0) return;
@@ -1970,7 +1983,7 @@ const SidebarLinkRow = (props: SidebarLinkProps) => {
 };
 
 const SidebarLink = (props: SidebarLinkProps) => {
-  const [_contextMenuOpen, setContextMenuOpen] = createSignal(false);
+  const [contextMenuOpen, setContextMenuOpen] = createSignal(false);
   const content = () => sidebarContent(props.id, props.params);
   const handleContextMenuOpenChange = (open: boolean) => {
     setContextMenuOpen(open);
@@ -1987,7 +2000,14 @@ const SidebarLink = (props: SidebarLinkProps) => {
           requestSearchFocus(split.id);
       }}
     >
-      <SidebarLinkRow {...props} />
+      <Show
+        when={props.id === 'calendar'}
+        fallback={<SidebarLinkRow {...props} />}
+      >
+        <CalendarSidebarPreview disabled={contextMenuOpen()}>
+          <SidebarLinkRow {...props} />
+        </CalendarSidebarPreview>
+      </Show>
     </SidebarOpenInSplitMenu>
   );
 };
