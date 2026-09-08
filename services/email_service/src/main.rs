@@ -17,6 +17,8 @@ use email::{
 };
 use email_api_client::GmailApiClientRepository;
 #[cfg(feature = "calendar")]
+use email_service::calendar_refresh::ConnectionGatewayCalendarRefresh;
+#[cfg(feature = "calendar")]
 use email_service::calendar_tokens::CalendarTokenProviderAdapter;
 use email_service::outbound::email_api::{
     EmailServiceTokenSource, GmailApi, RateBudget, RedisProviderRateLimiter,
@@ -36,7 +38,9 @@ use macro_env::Environment;
 use macro_event_broker::NoopMacroEventBroker;
 #[cfg(feature = "event_broker")]
 use macro_event_broker::{KafkaEventPublisher, MacroEventBrokerService};
-use macro_service_urls::{AuthServiceUrl, DocumentStorageServiceUrl, StaticFileServiceUrl};
+use macro_service_urls::{
+    AuthServiceUrl, ConnectionGatewayUrl, DocumentStorageServiceUrl, StaticFileServiceUrl,
+};
 use sqlx::postgres::PgPoolOptions;
 use static_file_service_client::StaticFileServiceClient;
 use std::sync::Arc;
@@ -221,6 +225,11 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(feature = "calendar")]
     let calendar_service = Arc::new(CalendarService::new(PgCalendarRepository::new(db.clone())));
     #[cfg(feature = "calendar")]
+    let connection_gateway_client = connection_gateway_client::client::ConnectionGatewayClient::new(
+        config.internal_api_key.to_string(),
+        ConnectionGatewayUrl::new()?.to_string(),
+    );
+    #[cfg(feature = "calendar")]
     let calendar_mutation_service = Arc::new(CalendarMutationServiceImpl::new(
         PgCalendarRepository::new(db.clone()),
         GoogleCalendarClient::with_gate(
@@ -232,6 +241,7 @@ async fn main() -> anyhow::Result<()> {
         ),
         CalendarTokenProviderAdapter::new(redis_conn.clone(), auth_service_client.clone()),
         macro_event_broker.clone(),
+        ConnectionGatewayCalendarRefresh::new(connection_gateway_client, db.clone()),
     ));
     let api_result = api::setup_and_serve(ApiContext {
         db,

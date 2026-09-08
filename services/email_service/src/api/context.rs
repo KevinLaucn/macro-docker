@@ -14,6 +14,8 @@ use email::{
     outbound::{EmailPgRepo, GmailTokenProviderImpl},
 };
 #[cfg(feature = "calendar")]
+use email_service::calendar_refresh::ConnectionGatewayCalendarRefresh;
+#[cfg(feature = "calendar")]
 use email_service::calendar_tokens::CalendarTokenProviderAdapter;
 #[cfg(feature = "calendar")]
 use email_service::pubsub::calendar_backfill_adapters::RedisCalendarRequestGate;
@@ -48,6 +50,7 @@ pub(crate) type CalendarMutationSvc = CalendarMutationServiceImpl<
     GoogleCalendarClient<RedisCalendarRequestGate>,
     CalendarTokenProviderAdapter,
     EmailEventBroker,
+    ConnectionGatewayCalendarRefresh,
 >;
 pub(crate) type EmailEntityAccessService = EntityAccessServiceImpl<PgAccessRepository>;
 pub(crate) type EmailEntityAccessManagementService =
