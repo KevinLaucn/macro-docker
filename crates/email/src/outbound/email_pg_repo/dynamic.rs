@@ -9,8 +9,8 @@ mod resolve;
 mod tests;
 
 // Re-export the public API
-pub(crate) use query::dynamic_email_thread_cursor;
 pub use filters::{build_email_active_important_predicate, build_email_workflow_active_predicate};
+pub(crate) use query::dynamic_email_thread_cursor;
 
 // Re-export filter internals so tests.rs can reach them via `use super::*`
 #[cfg(test)]

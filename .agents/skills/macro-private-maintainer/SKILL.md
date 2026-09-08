@@ -1,6 +1,6 @@
 ---
 name: macro-private-maintainer
-description: Master orchestration skill for maintaining, auditing, developing, and deploying KevinLaucn/macro. Enforces zero Macro cloud dependency, upstream compatibility, private VPS/Docker deployment, Gmail API architecture, and coordinates repo-local skills.
+description: Master orchestration skill for maintaining, auditing, developing, and deploying KevinLaucn/macro. Enforces zero Macro cloud dependency, upstream compatibility, private fnOS/Docker production deployment, Gmail API architecture, and coordinates repo-local skills.
 ---
 
 # Macro Private Maintainer (总控 / Router / Policy Entry)
@@ -38,6 +38,7 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 6. **本地开发默认热更新原则**：本地日常界面二开与联调默认采用**热更新开发模式**（`just run_local` 或 `just frontend`，端口 `3000`），避免使用静态产物挂载模式导致源码修改不生效；`just stack` 仅限 CI/自动化或发布验收使用；
 7. **本地数据持久化与防丢原则**：本分叉的本地开发命令不得默认删除 Docker 数据卷。`run_local`、`stop_local`、`destroy_local` 与无参 `just stack down` 都必须保留本地数据库、Redis、OpenSearch、Kafka 与 FusionAuth 数据卷；只有显式数据库重置命令可清空对应数据。
 8. **认证中心（FusionAuth）与业务库（MacroDB）一致性守则**：FusionAuth 与 MacroDB 为双层独立存储。若显式执行“清空/彻底重置数据库”，必须保持两者对齐（同步重置 FusionAuth 存储卷，或在重置 MacroDB 后立即自动补齐 FusionAuth 已有活跃账号的 `User` / `macro_user` 档案与权限），严禁只重置业务库而留下孤儿身份，导致无密码老用户因未触发 `user.create` 陷入建团队/绑邮箱 500 异常。
+9. **生产环境默认入口**：当前 Macro 生产环境运行在飞牛 OS（fnOS）NAS 上，SSH 别名为 `fnOS`，生产 Compose 路径为 `/vol1/1000/macro/docker-compose.yml`。凡用户说“生产环境”“线上”“部署”“生产 Docker Compose”“生产日志/容器”且未指定其它主机时，必须主动连接 `fnOS` 并在 `/vol1/1000/macro` 下操作。美国 VPS 仍保留为备用/历史环境；除非用户明确提到美国 VPS、`tencent-us2h8g`、旧 VPS 或指定该主机，不要主动连接或排查美国 VPS。
 
 ---
 
@@ -58,7 +59,7 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 | **🔄 Upstream 同步 / Fork 差异治理** | `upstream/main`、同步分支、sync PR、merge 冲突、fork divergence、定制重叠、`FORK-CUSTOM` | **`skills/macro-upstream-sync/SKILL.md`**（Customization Manifest、语义冲突审查、定向 CI、专用 sync PR） |
 | **🌐 i18n 国际化 / 显式化二开** | 多语言、i18n、翻译、显式 t()、excludePatterns、audit、词条提取 | **`references/i18n-workflow.md`**（**优先通过 CodeGraph 快速定位组件**，索引缺失时执行 `codegraph sync`） |
 | **🎨 UI / UX / 设计系统二开** | 页面、组件、布局、颜色、字号、字体、图标、动效、交互、响应式、空状态、加载态、前端视觉调整 | **`skills/macro-ui-design/SKILL.md`**（官方组件优先、语义 Token、既有排版与动效、可访问性、真实浏览器验收） |
-| **🚀 VPS 生产运维 / 部署** | 部署、SSH、Docker Compose、生产更新、运维排障 | **`references/production-deployment.md`**（凭据见 `.local-production.md`） |
+| **🚀 飞牛 OS 生产运维 / 部署** | 生产环境、线上、部署、SSH、Docker Compose、生产更新、运维排障、fnOS、飞牛 | **`references/production-deployment.md`**（默认连接 `fnOS`，Compose 路径 `/vol1/1000/macro/docker-compose.yml`；美国 VPS 仅在用户明确指定时使用，凭据见 `.local-production.md`） |
 | **⚠️ 易疏忽小问题 / 生产暗坑排查** | 邮件延迟、通知收不到、鉴权401、Webhook推送失败、配置无报错但无法工作、常见小Bug与配置疏忽 | **`生产环境配置与避坑指南.local.md`**（**必读防坑手册**，排查高频暗坑、受众配置与网络透传） |
 | **🛡️ 推送与发布前契约门禁 / 离线对齐** | “推送”、“发布”、“发版”、“push”、“上线前检查”、“构建前校验”、“数据对不上”、“sqlx检查”、“离线编译” | **`../macro-pre-push-gate/SKILL.md`**（SQLx 离线元数据强一致性、SQLX_OFFLINE 生产编译仿真、未追踪孤儿文件扫描、前端轻量 tsc 与 Biome 审查） |
 

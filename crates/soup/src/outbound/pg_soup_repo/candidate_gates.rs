@@ -247,9 +247,9 @@ pub(super) fn email_gate(id_sql: &str, filter: Option<&EntityFilterAst>) -> Stri
     let implied = implied_conjuncts_sql(
         filter.and_then(|f| f.email_filter.tree.as_deref()),
         |literal| match literal {
-            EmailLiteral::Importance(true) => {
-                Some(email::outbound::build_email_active_important_predicate("et"))
-            }
+            EmailLiteral::Importance(true) => Some(
+                email::outbound::build_email_active_important_predicate("et"),
+            ),
             EmailLiteral::Importance(false) => Some("NOT et.is_signal".to_string()),
             EmailLiteral::NotificationDone(done) => Some(build_notification_done_clause(
                 "et.id",

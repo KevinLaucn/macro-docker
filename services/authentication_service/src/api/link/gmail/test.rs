@@ -28,53 +28,53 @@ impl InboxCountSpy {
 }
 
 #[tokio::test]
-async fn paywalls_inbox_at_free_limit_without_professional_features() {
+async fn paywalls_regular_user_at_free_limit() {
     let inboxes = InboxCountSpy::returning(FREE_INBOX_LIMIT);
 
     let result = enforce_inbox_paywall(false, || inboxes.count()).await;
 
     assert!(
         inboxes.was_called(),
-        "non-professional users should be checked for connected inbox count"
+        "regular users should be checked for connected inbox count"
     );
     assert!(matches!(result, Err(InitGmailLinkError::PaymentRequired)));
 }
 
 #[tokio::test]
-async fn first_inbox_is_free_without_professional_features() {
+async fn first_inbox_is_free_for_regular_user() {
     let inboxes = InboxCountSpy::returning(0);
 
     let result = enforce_inbox_paywall(false, || inboxes.count()).await;
 
     assert!(
         inboxes.was_called(),
-        "non-professional users should be checked for connected inbox count"
+        "regular users should be checked for connected inbox count"
     );
     assert!(result.is_ok());
 }
 
 #[tokio::test]
-async fn second_inbox_is_free_without_professional_features() {
+async fn second_inbox_is_free_for_regular_user() {
     let inboxes = InboxCountSpy::returning(FREE_INBOX_LIMIT - 1);
 
     let result = enforce_inbox_paywall(false, || inboxes.count()).await;
 
     assert!(
         inboxes.was_called(),
-        "non-professional users should be checked for connected inbox count"
+        "regular users should be checked for connected inbox count"
     );
     assert!(result.is_ok());
 }
 
 #[tokio::test]
-async fn professional_features_skip_existing_inbox_check() {
+async fn super_admin_skips_existing_inbox_check() {
     let inboxes = InboxCountSpy::returning(FREE_INBOX_LIMIT);
 
     let result = enforce_inbox_paywall(true, || inboxes.count()).await;
 
     assert!(
         !inboxes.was_called(),
-        "professional users should never trigger the connected-inbox count"
+        "super admins should never trigger the connected-inbox count"
     );
     assert!(result.is_ok());
 }

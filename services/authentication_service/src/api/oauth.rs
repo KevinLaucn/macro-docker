@@ -14,7 +14,8 @@ pub fn router(_state: ApiContext) -> Router<ApiContext> {
     let router = Router::new()
         .route(
             "/redirect",
-            get(oauth_redirect::handler).layer(ServiceBuilder::new().layer(CookieManagerLayer::new())),
+            get(oauth_redirect::handler)
+                .layer(ServiceBuilder::new().layer(CookieManagerLayer::new())),
         )
         .route(
             "/passwordless/{code}",

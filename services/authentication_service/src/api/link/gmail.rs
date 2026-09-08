@@ -32,7 +32,7 @@ const GMAIL_SCOPES: &str = "openid profile email https://www.googleapis.com/auth
 #[cfg(feature = "full-saas")]
 const IDENTITY_SCOPES: &str = "openid email";
 const FREE_INBOX_LIMIT: i64 = 2;
-const READ_PROFESSIONAL_FEATURES_PERMISSION: &str = "read_professional_features";
+const WRITE_ADMIN_PANEL_PERMISSION: &str = "write:admin_panel";
 const REAUTHENTICATION_REQUIRED_MESSAGE: &str = "reauthentication required";
 
 /// Which capabilities a consent request covers. Calendar surfaces ask for
@@ -140,7 +140,7 @@ pub async fn init_gmail_link_handler(
     enforce_inbox_paywall(
         db_permissions
             .permissions
-            .contains(READ_PROFESSIONAL_FEATURES_PERMISSION),
+            .contains(WRITE_ADMIN_PANEL_PERMISSION),
         || count_accessible_email_inboxes(&ctx.db, &authorization.authorization.user.macro_user_id),
     )
     .await?;
@@ -261,17 +261,17 @@ async fn count_accessible_email_inboxes(
     Ok(inboxes.len() as i64)
 }
 
-/// Enforces the inbox paywall. Free users can connect inboxes until they reach
-/// `FREE_INBOX_LIMIT`; professional users skip the count entirely.
+/// Enforces the inbox paywall. Regular users can connect inboxes until they
+/// reach `FREE_INBOX_LIMIT`; super admins skip the count entirely.
 async fn enforce_inbox_paywall<F, Fut>(
-    has_professional_features: bool,
+    is_super_admin: bool,
     count_connected_inboxes: F,
 ) -> Result<(), InitGmailLinkError>
 where
     F: FnOnce() -> Fut,
     Fut: std::future::Future<Output = anyhow::Result<i64>>,
 {
-    if !has_professional_features {
+    if !is_super_admin {
         let connected_inbox_count = count_connected_inboxes().await?;
         if connected_inbox_count >= FREE_INBOX_LIMIT {
             return Err(InitGmailLinkError::PaymentRequired);
