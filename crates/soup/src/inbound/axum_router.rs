@@ -846,6 +846,9 @@ impl IntoResponse for SoupHandlerErr {
             }
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
+        if status_code == StatusCode::INTERNAL_SERVER_ERROR {
+            tracing::error!(error = ?self, "soup request failed with internal server error");
+        }
         (
             status_code,
             Json(ErrorResponse {

@@ -172,6 +172,7 @@ maybe_env_vars! {
 }
 
 pub(crate) async fn run() -> anyhow::Result<()> {
+    let entrypoint = macro_entrypoint::MacroEntrypoint::default().init();
     let env = Environment::new_or_prod();
 
     let aws_config = macro_aws_config::get_macro_aws_config().await;
@@ -1463,6 +1464,7 @@ pub(crate) async fn run() -> anyhow::Result<()> {
         }
     }
 
+    entrypoint.shutdown();
     server_result
 }
 
