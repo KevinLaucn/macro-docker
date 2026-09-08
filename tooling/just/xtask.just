@@ -3,7 +3,7 @@
 # launcher) so the `local-stack` feature — off by default so bare CI builds
 # skip librdkafka — can be enabled to turn on the Kafka topic provisioning that
 # run-local needs.
-xtask := "cargo run --quiet --manifest-path Cargo.toml -p xtask_local --features local-stack --"
+xtask := "cargo run --quiet --manifest-path Cargo.toml -p xtask_local --bin xtask_local --features local-stack --"
 
 # Start a fully local DEV stack with Vite HMR on http://localhost:3000/app
 # (xtask: zigbuild + runtime image + infra + proxy + frontend).

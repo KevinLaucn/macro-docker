@@ -171,7 +171,7 @@ fn apply_reconcile_request(
     }
 
     let body_path = write_reconcile_body(work_dir, url, body)?;
-    let status = curl_status(
+    let mut status = curl_status(
         Command::new("curl")
             .arg("-sS")
             .arg("-o")
@@ -190,6 +190,27 @@ fn apply_reconcile_request(
             .arg(format!("@{}", body_path.display()))
             .arg(format!("{base_url}{url}")),
     )?;
+    if !(200..300).contains(&status) && method == "POST" {
+        status = curl_status(
+            Command::new("curl")
+                .arg("-sS")
+                .arg("-o")
+                .arg("/dev/null")
+                .arg("-w")
+                .arg("%{http_code}")
+                .arg("--max-time")
+                .arg("10")
+                .arg("-X")
+                .arg("PUT")
+                .arg("-H")
+                .arg(format!("Authorization: {}", identity::FUSIONAUTH_API_KEY))
+                .arg("-H")
+                .arg("Content-Type: application/json")
+                .arg("--data-binary")
+                .arg(format!("@{}", body_path.display()))
+                .arg(format!("{base_url}{url}")),
+        )?;
+    }
     if !(200..300).contains(&status) {
         bail!("FusionAuth reconcile request {method} {url} returned HTTP {status}");
     }

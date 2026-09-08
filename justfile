@@ -3,6 +3,7 @@ set positional-arguments
 # Freeze Docker Compose resources across checkouts/worktrees. Local setup is
 # single-instance by design; do not derive resource names from the directory.
 export COMPOSE_PROJECT_NAME := "macro"
+export PATH := env_var('HOME') + "/.cargo/bin:" + env_var('PATH')
 
 compose := "docker compose --project-directory . -f docker/docker-compose.yml"
 database_compose := "docker compose -f docker/docker-compose-databases.yml"

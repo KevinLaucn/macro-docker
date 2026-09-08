@@ -16,11 +16,27 @@ import {
 import { invalidateEmailLinks } from './link';
 
 const BACKFILL_SOUP_REFRESH_INTERVAL = 5_000;
+const STEADY_STATE_SOUP_REFRESH_INTERVAL = 3_000;
 
 const throttledBackfillSoupRefresh = leadingAndTrailing(
   throttle,
   invalidateAllSoup,
   BACKFILL_SOUP_REFRESH_INTERVAL
+);
+
+/**
+ * Throttled soup invalidation for steady-state email mutations. The
+ * notification-driven path (`browser_new_email_notification`) handles
+ * *inbound* messages with a targeted single-entity refetch, but outbound
+ * messages (replies/sends) never fire that notification. This throttled
+ * list-level invalidation closes the gap, ensuring view-membership changes
+ * (e.g. a reply promoting a thread into Important via `follow_up_required`)
+ * land without a manual page refresh.
+ */
+const throttledSteadyStateSoupRefresh = leadingAndTrailing(
+  throttle,
+  invalidateAllSoup,
+  STEADY_STATE_SOUP_REFRESH_INTERVAL
 );
 
 // The gateway double-encodes the payload, so callers must JSON-parse `data.data`
@@ -34,11 +50,15 @@ function asRefreshEmailEvent(payload: unknown): RefreshEmailEvent | undefined {
 }
 
 /**
- * Handles `refresh_email` websocket events. Steady-state mutations
- * (`upsert_message`, `update_labels`, `delete_message`) already invalidate soup
- * through the notification-driven path, and reacting to them again would
- * double-refetch, so only `backfill_progress`, `backfill`, `link_removed`, and
- * `photo_synced` act here.
+ * Handles `refresh_email` websocket events.
+ *
+ * Steady-state mutations (`upsert_message`, `update_labels`, `delete_message`)
+ * receive a throttled list-level soup invalidation. The notification-driven
+ * path already handles *inbound* messages with a targeted single-entity
+ * refetch, but *outbound* messages (replies/sends) never fire that
+ * notification, so this throttled invalidation is their only refresh signal
+ * for view-membership changes (e.g. a reply promoting a thread into
+ * Important).
  *
  * Backfill produces no notifications, so these are its only refresh signals.
  * `backfill_progress` carries live progress: it refetches soup (throttled,
@@ -105,5 +125,21 @@ export function handleRefreshEmail(payload: unknown): void {
         event.total_threads
       );
     }
+    return;
+  }
+
+  // Steady-state mutations: the notification-driven path handles inbound
+  // messages with a single-entity refetch, but outbound messages (replies/
+  // sends) never fire `browser_new_email_notification`. Without this,
+  // view-membership changes (e.g. a reply setting `follow_up_required` and
+  // promoting a thread into Important) require a manual page refresh.
+  // Throttled to avoid excessive refetches when multiple events arrive in
+  // quick succession (e.g. a batch of label syncs).
+  if (
+    event.event === 'upsert_message' ||
+    event.event === 'update_labels' ||
+    event.event === 'delete_message'
+  ) {
+    throttledSteadyStateSoupRefresh();
   }
 }
