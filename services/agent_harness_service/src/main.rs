@@ -374,6 +374,8 @@ async fn run() -> anyhow::Result<()> {
         CursorRepoUrl::parse(&config.cursor_repo_url)
             .context("CURSOR_REPO_URL is not a valid repository url")?,
         session_repo.clone(),
+        pool.clone(),
+        replica,
     );
     // Fixed system agents retain their deployment defaults. User/team agents
     // are resolved from agent_configs for every trigger so newly-created or
