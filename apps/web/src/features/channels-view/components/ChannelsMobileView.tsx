@@ -24,7 +24,7 @@ import { filterChannelsForScope } from '../queries';
 import type { ChannelsQueryScope } from '../types';
 import { channelMentionsUser } from '../utils';
 import { ChannelsEmptyState } from './ChannelsEmptyState';
-import { ConversationCard } from './rail/ConversationCard';
+import { ConversationCard } from './rail/ChannelRailItems';
 import { useChannelCalls } from './rail/hooks/useChannelCalls';
 import { useChannelRailActivity } from './rail/hooks/useChannelRailActivity';
 
@@ -58,10 +58,10 @@ export function ChannelsMobileView(props: {
     DEBUG_SETTING_KEYS.FORCE_EMPTY_STATES
   );
   const listId = createUniqueId();
-  const { callActivity, incomingCallIds, callStatuses } = useChannelCalls();
+  const channelCalls = useChannelCalls();
   const channelActivity = useChannelRailActivity(
     () => props.channels,
-    callActivity
+    channelCalls
   );
 
   const visibleChannels = createMemo(() =>
@@ -183,8 +183,10 @@ export function ChannelsMobileView(props: {
                       currentUserId()
                     )}
                     unread={channelActivity.unreadChannelIds().has(channel.id)}
-                    callStatus={callStatuses().get(channel.id)}
-                    incomingCallId={incomingCallIds().get(channel.id)}
+                    callStatus={channelActivity.callStatuses().get(channel.id)}
+                    incomingCallId={channelActivity
+                      .incomingCallIds()
+                      .get(channel.id)}
                     selected={state.selectedChannelId === channel.id}
                     focused={false}
                     onActivate={() => openChannel(channel)}

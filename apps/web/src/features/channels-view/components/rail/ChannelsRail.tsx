@@ -10,73 +10,123 @@ import {
   withSplitPanelOwner,
 } from '@components/app/split-layout/layoutUtils';
 import { createHotkeyGroup, registerHotkey } from '@core/hotkey/hotkeys';
+import { compareDateDesc } from '@core/util/date';
 import type { ChannelEntity } from '@entity';
-import { cn, Hotkey } from '@ui';
 import {
   createEffect,
+  createMemo,
   createSignal,
   createUniqueId,
-  Match,
   on,
   onCleanup,
-  Show,
-  Switch,
 } from 'solid-js';
 import { useChannelsView } from '../../channels-view-context';
 import type { ChannelsGroup, ChannelsTab } from '../../types';
-import { ChannelsRailBrowse } from './Browse';
-import { type ChannelRailContext, ChannelRailProvider } from './Context';
-import { ChannelsRailHeader } from './Header';
-import { useChannelCalls } from './hooks/useChannelCalls';
-import { useChannelRailActivity } from './hooks/useChannelRailActivity';
-import { useChannelRailRows } from './hooks/useChannelRailRows';
+import { channelHasMessages, isDirectMessage } from '../../utils';
 import {
-  CHANNEL_GROUPS,
   type ChannelRailRow,
+  type ChannelsRailContext,
+  ChannelsRailProvider,
+  domIdForRow,
   rowKeyForChannel,
   rowKeyForSection,
-} from './model';
-import { ChannelsRailRecents } from './Recents';
+} from './ChannelsRailContext';
+import { ExpandedChannelsRail } from './ExpandedChannelsRail';
+import { useChannelCalls } from './hooks/useChannelCalls';
+import { useChannelRailActivity } from './hooks/useChannelRailActivity';
+import { SlimChannelsRail } from './SlimChannelsRail';
 
+const CHANNEL_GROUPS: ChannelsGroup[] = ['channels', 'direct_messages'];
 const CHANNEL_TAB_IDS: ChannelsTab[] = ['browse', 'recents'];
 
-export function ChannelsRail(props: {
+export type ChannelsRailProps = {
   channels: ChannelEntity[];
   mode: 'full' | 'slim';
   onModeChange: (mode: 'full' | 'slim') => void;
-}) {
+};
+
+export function ChannelsRail(props: ChannelsRailProps) {
   const { state, setGroupOpen, setSelectedChannelId, setTab } =
     useChannelsView();
-
   const panel = useSplitPanelOrThrow();
-
   const listDomId = createUniqueId();
-
   const [sectionScrollRoots, setSectionScrollRoots] = createSignal<
     Partial<Record<ChannelsGroup, HTMLDivElement>>
   >({});
+  const [listRoot, setListRoot] = createSignal<HTMLDivElement>();
 
-  const { callActivity, incomingCallIds, callStatuses } = useChannelCalls();
-
+  const channelCalls = useChannelCalls();
   const channelActivity = useChannelRailActivity(
     () => props.channels,
-    callActivity
+    channelCalls
   );
 
-  useViewTabHotkeys({
-    scopeId: panel.splitHotkeyScope,
-    enabled: panel.isPanelActive,
-    ids: () => CHANNEL_TAB_IDS,
-    activeId: () => state.tab,
-    setActiveId: setTab,
-  });
+  const teamChannels = createMemo(() =>
+    props.channels.filter((channel) => !isDirectMessage(channel))
+  );
+  const directMessages = createMemo(() =>
+    props.channels.filter(isDirectMessage)
+  );
+  const recentConversations = createMemo(() =>
+    props.channels
+      .filter(channelHasMessages)
+      .sort((a, b) =>
+        compareDateDesc(
+          a.latestRootMessage?.createdAt,
+          b.latestRootMessage?.createdAt
+        )
+      )
+  );
 
-  const { directMessages, recentConversations, teamChannels, visibleRows } =
-    useChannelRailRows({
-      channels: () => props.channels,
-      tab: () => state.tab,
-      isGroupExpanded: (group) => state.expandedGroups[group],
+  const visibleRows = createMemo<ChannelRailRow[]>(() => {
+    if (state.tab === 'recents') {
+      return recentConversations().map((channel) => ({
+        kind: 'conversation',
+        id: `channel:${channel.id}`,
+        channel,
+      }));
+    }
+
+    const rows: ChannelRailRow[] = [
+      {
+        kind: 'section',
+        id: 'section:channels',
+        group: 'channels',
+      },
+    ];
+    if (state.expandedGroups.channels) {
+      rows.push(
+        ...teamChannels().map(
+          (channel): ChannelRailRow => ({
+            kind: 'conversation',
+            id: `channel:${channel.id}`,
+            group: 'channels',
+            channel,
+          })
+        )
+      );
+    }
+
+    rows.push({
+      kind: 'section',
+      id: 'section:direct_messages',
+      group: 'direct_messages',
     });
+    if (state.expandedGroups.direct_messages) {
+      rows.push(
+        ...directMessages().map(
+          (channel): ChannelRailRow => ({
+            kind: 'conversation',
+            id: `channel:${channel.id}`,
+            group: 'direct_messages',
+            channel,
+          })
+        )
+      );
+    }
+
+    return rows;
+  });
 
   const list = withSplitPanelOwner(listOwnedSlotName('controller'), () =>
     createListController<ChannelRailRow>({
@@ -98,51 +148,17 @@ export function ChannelsRail(props: {
     })
   );
 
-  const domIdForRow = (rowId: string) => `${listDomId}-${rowId}`;
-
-  const activityTargetId = (group: ChannelsGroup) => {
-    const channelId = channelActivity.targetChannelId(group);
-    return channelId === undefined
-      ? undefined
-      : domIdForRow(rowKeyForChannel(channelId));
-  };
-
-  const clearVisibleActivity = (
-    group: ChannelsGroup,
-    visibleTargetId: string
-  ) => {
-    const channelId = channelActivity.targetChannelId(group);
-    if (
-      channelId === undefined ||
-      domIdForRow(rowKeyForChannel(channelId)) !== visibleTargetId
-    ) {
-      return;
-    }
-
-    channelActivity.clearTarget(group, channelId);
-  };
-
-  let listRoot: HTMLDivElement | undefined;
-
-  const registerSectionScrollRef =
-    (group: ChannelsGroup) => (element: HTMLDivElement) => {
-      setSectionScrollRoots((current) => ({
-        ...current,
-        [group]: element,
-      }));
-    };
-
   const scrollHandle: ListScrollHandle = {
     scrollToIndex: (index) => {
       const row = list.items.at(index);
       if (!row) return;
 
-      const element = document.getElementById(domIdForRow(row.id));
+      const element = document.getElementById(domIdForRow(listDomId, row.id));
       const scrollRoot =
         row.kind === 'conversation' && row.group
           ? sectionScrollRoots()[row.group]
           : state.tab === 'recents'
-            ? listRoot
+            ? listRoot()
             : undefined;
       if (!element || !scrollRoot) return;
 
@@ -156,6 +172,14 @@ export function ChannelsRail(props: {
     },
   };
 
+  useViewTabHotkeys({
+    scopeId: panel.splitHotkeyScope,
+    enabled: panel.isPanelActive,
+    ids: () => CHANNEL_TAB_IDS,
+    activeId: () => state.tab,
+    setActiveId: setTab,
+  });
+
   withSplitPanelOwner(listOwnedSlotName('navigation-hotkeys'), () =>
     useListInteractions({
       controller: list,
@@ -164,7 +188,7 @@ export function ChannelsRail(props: {
       enabled: panel.isPanelActive,
       navigation: {
         onNavigate: (event) => {
-          listRoot?.focus({ preventScroll: true });
+          listRoot()?.focus({ preventScroll: true });
 
           const row = event.result?.item;
           if (row?.kind === 'conversation') {
@@ -188,7 +212,6 @@ export function ChannelsRail(props: {
       ? CHANNEL_GROUPS.indexOf(currentGroup)
       : -1;
     const origin = currentIndex === -1 ? (offset === 1 ? -1 : 0) : currentIndex;
-
     const nextIndex =
       (origin + offset + CHANNEL_GROUPS.length) % CHANNEL_GROUPS.length;
     const nextGroup = CHANNEL_GROUPS[nextIndex];
@@ -199,13 +222,12 @@ export function ChannelsRail(props: {
     });
     if (!result) return false;
 
-    listRoot?.focus({ preventScroll: true });
+    listRoot()?.focus({ preventScroll: true });
     scrollHandle.scrollToIndex(result.index);
     return true;
   };
 
   const sectionHotkeys = createHotkeyGroup();
-
   const sectionHotkeysEnabled = () =>
     panel.isPanelActive() && state.tab === 'browse';
 
@@ -216,7 +238,6 @@ export function ChannelsRail(props: {
     condition: sectionHotkeysEnabled,
     keyDownHandler: () => jumpToSection(1),
   }).withGroup(sectionHotkeys);
-
   registerHotkey({
     hotkey: '[',
     scopeId: panel.splitHotkeyScope,
@@ -224,19 +245,7 @@ export function ChannelsRail(props: {
     condition: sectionHotkeysEnabled,
     keyDownHandler: () => jumpToSection(-1),
   }).withGroup(sectionHotkeys);
-
-  onCleanup(() => {
-    sectionHotkeys.dispose();
-  });
-
-  const activateRow = (rowId: string) => {
-    list.activate.key(rowId, { reason: 'pointer' });
-  };
-
-  const activeDescendant = () => {
-    const rowId = list.focus.key();
-    return rowId === undefined ? undefined : domIdForRow(rowId);
-  };
+  onCleanup(() => sectionHotkeys.dispose());
 
   createEffect(
     on(
@@ -248,89 +257,50 @@ export function ChannelsRail(props: {
         const frame = requestAnimationFrame(() => {
           scrollHandle.scrollToIndex(focusedIndex);
         });
-
         onCleanup(() => cancelAnimationFrame(frame));
       },
       { defer: true }
     )
   );
 
-  const itemsForGroup = (group: ChannelsGroup) =>
-    group === 'channels' ? teamChannels() : directMessages();
+  const activateRow = (rowId: ChannelRailRow['id']) => {
+    list.activate.key(rowId, { reason: 'pointer' });
+  };
 
-  const railContext: ChannelRailContext = {
-    mode: () => props.mode,
+  const rail: ChannelsRailContext = {
+    railId: listDomId,
+    list,
     tab: () => state.tab,
-    setTab,
-    onModeChange: props.onModeChange,
-    items: itemsForGroup,
+    selectTab: setTab,
+    setMode: (mode) => props.onModeChange(mode),
+    teamChannels,
+    directMessages,
     recentConversations,
-    activity: {
-      isUnread: (channelId) =>
-        channelActivity.unreadChannelIds().has(channelId),
-      callStatus: (channelId) => callStatuses().get(channelId),
-      incomingCallId: (channelId) => incomingCallIds().get(channelId),
-      unreadCount: channelActivity.unreadCount,
-      targetId: activityTargetId,
-      label: channelActivity.targetLabel,
-      onVisible: clearVisibleActivity,
+    selectedChannelId: () => state.selectedChannelId,
+    isGroupOpen: (group) => state.expandedGroups[group],
+    registerRootRef: setListRoot,
+    activateRow,
+    registerScrollRef: (group, element) => {
+      setSectionScrollRoots((current) => ({
+        ...current,
+        [group]: element,
+      }));
     },
-    item: {
-      domId: (channelId) => domIdForRow(rowKeyForChannel(channelId)),
-      isSelected: (channelId) => state.selectedChannelId === channelId,
-      isFocused: (channelId) =>
-        list.focus.key() === rowKeyForChannel(channelId),
-      activate: (channelId) => activateRow(rowKeyForChannel(channelId)),
-    },
-    section: {
-      domId: (group) => domIdForRow(rowKeyForSection(group)),
-      isOpen: (group) => state.expandedGroups[group],
-      isFocused: (group) => list.focus.key() === rowKeyForSection(group),
-      containsFocus: (group) => list.focus.item()?.group === group,
-      activate: (group) => activateRow(rowKeyForSection(group)),
-      registerScrollRef: registerSectionScrollRef,
-    },
+    channelActivity,
   };
 
   return (
-    <ChannelRailProvider value={railContext}>
+    <ChannelsRailProvider value={rail}>
       <aside
         aria-label="Chat navigation"
         class="flex size-full min-h-0 flex-col gap-3 bg-inset pt-2"
       >
-        <ChannelsRailHeader />
-        <div class="flex min-h-0 flex-1 flex-col">
-          <div
-            ref={(element) => {
-              listRoot = element;
-            }}
-            role="tree"
-            tabIndex={-1}
-            aria-activedescendant={activeDescendant()}
-            class={cn(
-              'scrollbar-hidden min-h-0 flex-1 outline-none',
-              state.tab === 'browse' ? 'overflow-hidden' : 'overflow-y-auto'
-            )}
-          >
-            <Switch>
-              <Match when={state.tab === 'browse'}>
-                <ChannelsRailBrowse />
-              </Match>
-              <Match when={state.tab === 'recents'}>
-                <ChannelsRailRecents />
-              </Match>
-            </Switch>
-          </div>
-          <Show when={props.mode === 'full' && state.tab === 'browse'}>
-            <footer class="flex h-9 shrink-0 items-center justify-start gap-1 border-t border-edge-muted px-4 text-xxs text-ink-extra-muted">
-              <span>Use</span>
-              <Hotkey shortcut="[" theme="subtle" />
-              <Hotkey shortcut="]" theme="subtle" />
-              <span>to jump sections</span>
-            </footer>
-          </Show>
-        </div>
+        {props.mode === 'full' ? (
+          <ExpandedChannelsRail />
+        ) : (
+          <SlimChannelsRail />
+        )}
       </aside>
-    </ChannelRailProvider>
+    </ChannelsRailProvider>
   );
 }
