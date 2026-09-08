@@ -61,6 +61,7 @@ members = [
   "crates/maybe_send",
   "crates/memory",
   "crates/mcp_select",
+  "crates/mcp_toolset",
   "crates/pipedream_mcp",
   "crates/onboarding",
   "crates/predicate_index",
@@ -262,6 +263,7 @@ reqwest = { version = "0.13", default-features = false, features = [
   "rustls",
 ] }
 rmcp = "1.6.0"
+sse-stream = "0.2"
 rootcause = { version = "0.12", features = ["compat-anyhow1"] }
 rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs"] }
 rootcause-tracing = "0.12.1"
