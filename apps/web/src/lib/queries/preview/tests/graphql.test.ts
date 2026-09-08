@@ -1,9 +1,13 @@
 import type { CacheHost, ReadRecordsByKeysArgs } from '@graphql-cache/index';
 import { INITIAL_CACHE_REVISION } from '@graphql-cache/index';
-import type { ItemPreviewFieldsFragment } from '@service-storage/graphql/generated/graphql';
+import type {
+  ItemPreviewDetailsFieldsFragment,
+  ItemPreviewFieldsFragment,
+  ItemPreviewQuery,
+} from '@service-storage/graphql/generated/graphql';
 import { createRoot } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createUrqlQueryMock = vi.hoisted(() => vi.fn());
 const getGraphqlSoupCacheHostMock = vi.hoisted(() => vi.fn());
@@ -16,6 +20,7 @@ vi.mock('@app/lib/urql-solid', () => ({
 vi.mock('@service-storage/graphql-soup', () => ({
   getGraphqlSoupCacheHost: getGraphqlSoupCacheHostMock,
   getGraphqlSoupClient: getGraphqlSoupClientMock,
+  mapGraphqlProperties: (properties: unknown[]) => properties,
 }));
 
 import {
@@ -28,7 +33,14 @@ import {
   setGraphqlPreviewName,
   setGraphqlPreviewOnCreate,
 } from '../graphql';
-import type { PreviewItem } from '../types';
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  getGraphqlSoupClientMock.mockReturnValue({});
+  getGraphqlSoupCacheHostMock.mockReturnValue(undefined);
+  createUrqlQueryMock.mockClear();
+});
+afterEach(() => vi.useRealTimers());
 
 function cacheHost(
   read: (
@@ -67,6 +79,155 @@ describe('GraphQL item previews', () => {
       fileType: 'md',
       subType: { type: 'task', is_completed: true },
     });
+  });
+
+  it('carries loaded-empty properties and permission on the preview', () => {
+    const record = {
+      __typename: 'GraphqlSoupDocument',
+      id: 'task-1',
+      displayName: 'Task',
+      documentName: 'Task',
+      fileType: 'md',
+      subType: null,
+      properties: [],
+      viewerPermission: {
+        __typename: 'GraphqlAccessLevelPermission',
+        accessLevel: 'EDIT',
+      },
+    } satisfies ItemPreviewDetailsFieldsFragment;
+    expect(graphqlRecordToPreview(record)).toMatchObject({
+      documentMetadata: { properties: [], canEdit: true },
+    });
+    expect(
+      graphqlRecordToPreview({ ...record, viewerPermission: null })
+    ).toMatchObject({ documentMetadata: { canEdit: false } });
+  });
+
+  it('shares a live rich query, keyed cache read, and refresh for multiple previews', async () => {
+    const read = vi.fn(async () => []);
+    getGraphqlSoupCacheHostMock.mockReturnValue(cacheHost(read));
+    const [result, setResult] = createStore({
+      data: undefined as ItemPreviewQuery | undefined,
+      error: null,
+      isError: false,
+      isFetched: false,
+      isFetching: true,
+      isLoading: true,
+      isEnabled: true,
+      stale: false,
+      refetch: vi.fn(async () => undefined),
+    });
+    createUrqlQueryMock.mockReturnValue(result);
+    const { queries, dispose } = createRoot((dispose) => ({
+      queries: ['one', 'two', 'one'].map((id) =>
+        createGraphqlItemPreviewQuery(
+          () => ({ id, type: 'document' }),
+          () => true
+        )
+      ),
+      dispose,
+    }));
+    try {
+      expect(queries.every((q) => q.isLoading())).toBe(true);
+      await vi.advanceTimersByTimeAsync(30);
+      expect(createUrqlQueryMock).toHaveBeenCalledTimes(1);
+      expect(read).toHaveBeenCalledTimes(1);
+      const options = createUrqlQueryMock.mock.calls[0][0]();
+      expect(options.query.definitions[0].name.value).toBe('ItemPreviews');
+      expect(options.variables.input.initial.limit).toBe(2);
+      const records = ['one', 'two'].map((id) => ({
+        __typename: 'GraphqlSoupDocument' as const,
+        id,
+        displayName: id,
+        documentName: id,
+        fileType: 'md',
+        subType: null,
+      }));
+      setResult({
+        data: { user: { id: 'viewer', soup: { items: records } } },
+        isFetched: true,
+        isFetching: false,
+        isLoading: false,
+      });
+      expect(queries.map((q) => q.data())).toMatchObject([
+        { name: 'one' },
+        { name: 'two' },
+        { name: 'one' },
+      ]);
+      // Simulate a pushed normalized-cache update: all consumers remain live.
+      setResult('data', 'user', 'soup', 'items', 0, 'displayName', 'Renamed');
+      expect(queries[0].data()).toMatchObject({ name: 'Renamed' });
+      expect(queries[2].data()).toMatchObject({ name: 'Renamed' });
+      await Promise.all(queries.map((q) => q.refetch()));
+      expect(result.refetch).toHaveBeenCalledTimes(1);
+    } finally {
+      dispose();
+    }
+  });
+
+  it('isolates missing records and partial errors within a heterogeneous batch', async () => {
+    const [result] = createStore({
+      data: {
+        user: {
+          id: 'viewer',
+          soup: {
+            items: [
+              {
+                __typename: 'GraphqlSoupProject' as const,
+                id: 'same',
+                displayName: 'Project',
+                projectName: 'Project',
+              },
+              {
+                __typename: 'GraphqlSoupDocument' as const,
+                id: 'same',
+                displayName: 'Document',
+                documentName: 'Document',
+                fileType: 'md',
+                subType: null,
+              },
+            ],
+          },
+        },
+      },
+      error: new Error('A sibling resolver failed'),
+      isError: true,
+      isFetched: true,
+      isFetching: false,
+      isLoading: false,
+      isEnabled: true,
+      stale: false,
+      refetch: vi.fn(async () => undefined),
+    });
+    createUrqlQueryMock.mockReturnValue(result);
+    const { queries, dispose } = createRoot((dispose) => ({
+      queries: [
+        createGraphqlItemPreviewQuery(
+          () => ({ id: 'same', type: 'document' }),
+          () => true
+        ),
+        createGraphqlItemPreviewQuery(
+          () => ({ id: 'same', type: 'project' }),
+          () => true
+        ),
+        createGraphqlItemPreviewQuery(
+          () => ({ id: 'missing', type: 'document' }),
+          () => true
+        ),
+      ],
+      dispose,
+    }));
+    await vi.advanceTimersByTimeAsync(30);
+    expect(queries[0].data()).toMatchObject({ name: 'Document' });
+    expect(queries[1].data()).toMatchObject({ name: 'Project' });
+    expect(queries.map((query) => query.shouldFallback())).toEqual([
+      false,
+      false,
+      true,
+    ]);
+    dispose();
+    await queries[0].refetch();
+    expect(result.refetch).not.toHaveBeenCalled();
   });
 
   it('uses a cached viewer-relative direct-message name when available', () => {
@@ -176,6 +337,7 @@ describe('GraphQL item previews', () => {
           () => true
         );
 
+        vi.advanceTimersByTime(30);
         expect(query.data()).toBeUndefined();
         expect(query.shouldFallback()).toBe(false);
         dispose();
@@ -192,7 +354,7 @@ describe('GraphQL item previews', () => {
   it('keeps an established REST fallback selected during GraphQL refresh', () => {
     getGraphqlSoupCacheHostMock.mockReturnValue(undefined);
     const [result, setResult] = createStore({
-      data: undefined as PreviewItem | undefined,
+      data: undefined as ItemPreviewQuery | undefined,
       error: null,
       isError: false,
       isFetched: true,
@@ -210,17 +372,27 @@ describe('GraphQL item previews', () => {
         () => true
       );
 
+      vi.advanceTimersByTime(30);
       expect(query.shouldFallback()).toBe(true);
       setResult({ isFetching: true });
       expect(query.shouldFallback()).toBe(true);
       setResult({
         data: {
-          id: 'missing-doc',
-          type: 'document',
-          access: 'access',
-          loading: false,
-          rawName: 'Now available',
-          name: 'Now available',
+          user: {
+            id: 'user-1',
+            soup: {
+              items: [
+                {
+                  __typename: 'GraphqlSoupDocument',
+                  id: 'missing-doc',
+                  displayName: 'Now available',
+                  documentName: 'Now available',
+                  fileType: 'md',
+                  subType: null,
+                },
+              ],
+            },
+          },
         },
         isFetched: true,
         isFetching: false,
@@ -241,7 +413,7 @@ describe('GraphQL item previews', () => {
     );
     getGraphqlSoupCacheHostMock.mockReturnValue(cacheHost(() => read));
     const [result] = createStore({
-      data: undefined as PreviewItem | undefined,
+      data: undefined as ItemPreviewQuery | undefined,
       error: { networkError: new Error('offline') },
       isError: true,
       isFetched: true,
@@ -262,6 +434,7 @@ describe('GraphQL item previews', () => {
     }));
 
     try {
+      await vi.advanceTimersByTimeAsync(30);
       expect(query.shouldFallback()).toBe(true);
       finishRead([
         {
