@@ -84,7 +84,8 @@
       # Manifest or Cargo.lock changes still invalidate every leaf (the stub
       # layer embeds them all); those are the rare structural commits.
       #
-      # Soundness: a stale map fails loudly, not silently. A missing closure
+      # Soundness: a stale map fails loudly, not silently; this also documents
+      # the service-image rebuild boundary. A missing closure
       # crate means its stub (empty lib) gets compiled and the dependent
       # crate fails to resolve its items; a deleted dir fails at eval. CI
       # regenerates the map and rejects drift before merge.

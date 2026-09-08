@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# The built frontend bundle. This comment-only revision forces a fresh image
+# The built frontend bundle. This comment-only marker forces a fresh image
 # publish when the web job is intentionally re-run. Not a server — a one-shot
 # that unpacks the bundle
 # into the volume Caddy serves, so the app is static files behind the same

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# The provisioning image. Runs once per `macroctl up` and is idempotent:
+# The provisioning image. Runs once per `macroctl up` and stays idempotent:
 # creates the database and applies migrations, provisions object storage,
 # queues, tables and the KMS key, and creates the search indices.
 #
