@@ -103,6 +103,7 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 10. **上游原生运维入口优先**：遇到生产/本地环境状态漂移、服务初始化顺序、外部系统配置缺失、IaC 未落地、数据库/FusionAuth/LocalStack/OpenSearch/Redis/Kafka 等运行时状态不一致时，先查仓库原生脚本、Just recipes、Pulumi/Terraform/IaC 栈、Docker Compose、迁移与 README，再判断是否为“脚本未执行 / import 未完成 / reconcile 未覆盖”。禁止先写新的旁路补丁、手工 curl 脚本或业务代码兜底来掩盖漂移。
 11. **优先贴近 upstream 处理方式**：凡是 Macro 上游已有部署、初始化、导入、同步、回填、修复、seed、doctor、drift check、reconcile 等机制，优先复用或补齐调用路径；只有确认上游没有覆盖当前私有化场景时，才新增最小私有化封装，并明确标注原因与边界。
 12. **构建入口与镜像清单同步铁律**：新增、移动或重命名任何源码文件后，必须检查并同步所有构建入口、`Dockerfile`、`Nix`、`Cargo.toml`、`Workspace`、复制清单与缓存输入，确认后端服务与 `apps/web` 实际进入构建上下文和最终制品；仅桌面客户端、移动端客户端等非 Web 客户端可按发布目标排除。
+13. **上游同步分批提交原则**：处理 upstream sync、PR 冲突或版本合并时，默认使用一个 sync 分支与一个 GitHub PR，但必须按功能域拆成小提交逐步收敛差异，例如 Email/Gmail、GraphQL 契约、i18n/Activity、Web UI、构建元数据、SQLx 元数据。每个提交只暂存同一类文件，并在提交前完成该功能域的最小验证；可以阶段性 push 更新同一个远端分支/PR，但不得把未判断清楚的遥测、官方云依赖或二开冲突混入提交。
 
 
 ---
