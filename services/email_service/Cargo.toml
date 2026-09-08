@@ -78,6 +78,7 @@ local_auth = ["macro_authorization/local_auth"]
 local_queue = []
 self-host-email = [
   "attachment_upload",
+  "calendar",
   "connection_gateway",
   "contacts_sync",
   "event_broker",

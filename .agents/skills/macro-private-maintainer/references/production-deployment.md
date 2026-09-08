@@ -2,17 +2,16 @@
 
 ## 0. 当前生产环境默认入口
 
-- **默认生产主机**：飞牛 OS（fnOS）NAS，SSH 别名 `fnOS`。
-- **生产 Compose 目录**：`/vol1/1000/macro`。
-- **生产 Compose 文件**：`/vol1/1000/macro/docker-compose.yml`。
-- **默认操作规则**：凡用户说“生产环境”“线上”“部署”“生产 Docker Compose”“生产日志/容器”且未指定其它主机时，直接连接 `fnOS`，不要默认连接美国 VPS。
-- **美国 VPS 状态**：仍保留为备用/历史环境；只有用户明确提到美国 VPS、`tencent-us2h8g`、旧 VPS 或指定该主机时才连接。
+- **默认生产主机**：腾讯云 SG 2H8G，SSH 别名 `marc-sg-2h8g`。
+- **生产主路径**：`/home/ubuntu/marco/`。
+- **默认操作规则**：凡用户说“生产环境”“线上”“部署”“生产 Docker Compose”“生产日志/容器”且未指定其它主机时，直接连接 `marc-sg-2h8g`，并在 `/home/ubuntu/marco/` 下操作。
+- **历史环境状态**：飞牛 OS 与美国 VPS 均视为历史/备用环境；只有用户明确提到 `fnOS`、飞牛、美国 VPS、`tencent-us2h8g`、旧 VPS 或指定对应主机时才连接。
 
 ## 1. 生产环境拓扑
 
 - **容器化引擎**：Docker Compose，统一编排 Web 前端、核心 Rust 服务集群、PostgreSQL、Redis、OpenSearch 等。
 - **反向代理与 SSL**：基于 1Panel / OpenResty 或 Nginx 托管，负责公网 SSL 终结、请求限流与反向代理路由。
-- **配置分离**：业务配置和敏感环境变量落盘于 `/vol1/1000/macro/.env`，模板见 `self-host/.env.example`。
+- **配置分离**：业务配置和敏感环境变量落盘于生产主路径下的 `.env`，模板见 `self-host/.env.example`。
 
 ## 2. 生产镜像发布与 Profile 体系
 
@@ -26,14 +25,14 @@
 
 ## 3. 运维标准指令范式 (命令模板)
 
-- **容器状态核查**：`ssh fnOS "docker ps -a"`
-- **服务健康与实时日志**：`ssh fnOS "docker logs --tail 100 <service_name>"`
-- **单服务优雅更新**：`ssh fnOS "cd /vol1/1000/macro && docker compose pull <service_name> && docker compose up -d --force-recreate <service_name>"`
+- **容器状态核查**：`ssh marc-sg-2h8g "docker ps -a"`
+- **服务健康与实时日志**：`ssh marc-sg-2h8g "docker logs --tail 100 <service_name>"`
+- **单服务优雅更新**：`ssh marc-sg-2h8g "cd /home/ubuntu/marco && docker compose pull <service_name> && docker compose up -d --force-recreate <service_name>"`
 - **真实连接凭据**：详细主机 IP、端口与专用 SSH 密钥路径请直接查阅被本地 `.gitignore` 保护的 `.agents/skills/macro-private-maintainer/.local-production.md`。
 
 ## 4. 单用户/低资源生产环境推荐基线与排障规范 (Personal Self-Host Profile)
 
-针对飞牛 OS NAS 或 2C8G / 2C4G 等轻量自托管主机，生产环境已对默认高并发企业级资源配置进行了深度精简调优，收敛至高度确定且安全稳健的生产形态：
+针对腾讯云 SG 2H8G、2C8G / 2C4G 等轻量自托管主机，生产环境已对默认高并发企业级资源配置进行了深度精简调优，收敛至高度确定且安全稳健的生产形态：
 
 | 服务组件 | 推荐配置 | 稳态物理内存 | 定位与架构特性 |
 | :--- | :--- | :---: | :--- |

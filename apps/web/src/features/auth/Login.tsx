@@ -13,6 +13,7 @@ import { getNativeMobilePlatform } from '@core/util/platform';
 import IconApple from '@icon/macro-apple.svg';
 import IconGoogle from '@icon/macro-google.svg';
 import LogoIcon from '@icon/macro-logo.svg';
+import { t } from '@macro/i18n';
 import ArrowLeft from '@phosphor/arrow-left.svg';
 import ArrowRight from '@phosphor/arrow-right.svg';
 import { useUserInfo } from '@queries/auth';
@@ -127,7 +128,7 @@ function LoginPicker(props: {
         onClick={() => startSsoLogin(GOOGLE_GMAIL_IDP)}
       >
         <IconGoogle />
-        Continue with Google
+        {t('Continue with Google')}
       </Button>
 
       <Show when={showApple}>
@@ -137,12 +138,12 @@ function LoginPicker(props: {
           onClick={() => startSsoLogin('Apple')}
         >
           <IconApple />
-          Continue with Apple
+          {t('Continue with Apple')}
         </Button>
       </Show>
 
       <Button variant="outline" class="bg-surface" onClick={continueWithEmail}>
-        Continue with email
+        {t('Continue with email')}
       </Button>
     </div>
   );
@@ -241,7 +242,7 @@ function EmailFormNew(props: {
       class="flex flex-col gap-3"
     >
       <p class="text-xs text-ink-muted leading-snug">
-        We’ll send a one-time code to verify.
+        {t("We'll send a one-time code to verify.")}
       </p>
       <FormInput
         id="email"
@@ -251,12 +252,12 @@ function EmailFormNew(props: {
       />
       <FormError msg={submission.error?.message} />
       <Button variant="cta" type="submit" disabled={submission.pending}>
-        Continue
+        {t('Continue')}
         <ArrowRight class="size-4" />
       </Button>
       <Button variant="outline" class="bg-surface" onClick={props.onBack}>
         <ArrowLeft class="size-4" />
-        Back to sign in
+        {t('Back to sign in')}
       </Button>
     </form>
   );
@@ -383,7 +384,7 @@ function VerifyFormNew(props: {
       <input type="hidden" name="email" value={email() ?? ''} />
       <input type="hidden" name="one-time-code" value={code()} />
       <p class="text-xs text-ink-muted leading-snug">
-        Enter the 6-digit code we sent to{' '}
+        {t('Enter the 6-digit code we sent to')}{' '}
         <span class="text-ink font-medium break-all">{email()}</span>.
       </p>
       <OtpInput
@@ -400,7 +401,7 @@ function VerifyFormNew(props: {
         }}
       />
       <p class="text-center text-xs text-ink-muted" aria-live="polite">
-        Didn't receive a code?{' '}
+        {t("Didn't receive a code?")}{' '}
         <button
           type="button"
           onClick={handleResendCode}
@@ -412,8 +413,8 @@ function VerifyFormNew(props: {
           }
           class="font-medium text-ink transition-colors hover:text-ink-muted disabled:text-ink-extra-muted"
         >
-          <Show when={resendTimer() > 0} fallback="Resend">
-            Resend ({resendTimer()})
+          <Show when={resendTimer() > 0} fallback={t('Resend')}>
+            {t('Resend')} ({resendTimer()})
           </Show>
         </button>
       </p>
@@ -426,12 +427,12 @@ function VerifyFormNew(props: {
         type="submit"
         disabled={submission.pending || code().length !== 6 || !email()}
       >
-        Verify
+        {t('Verify')}
         <ArrowRight class="size-4" />
       </Button>
       <Button variant="outline" class="bg-surface" onClick={props.onBack}>
         <ArrowLeft class="size-4" />
-        Change email
+        {t('Change email')}
       </Button>
     </form>
   );
@@ -588,10 +589,10 @@ export function Login(props: { signupMode?: boolean }) {
                 <div class="flex flex-col gap-1.5">
                   <LogoIcon class="mb-2 size-9 text-accent" />
                   <h1 class="font-semibold tracking-tight text-ink text-2xl">
-                    Welcome to Macro
+                    {t('Welcome to Macro')}
                   </h1>
                   <p class="text-sm text-ink-muted">
-                    The open source workspace
+                    {t('The open source workspace')}
                   </p>
                 </div>
               </Show>
@@ -616,19 +617,19 @@ export function Login(props: { signupMode?: boolean }) {
             </div>
 
             <div class="text-center text-xs text-ink/50 wrap-break-word">
-              By continuing, you agree to our{' '}
+              {t('By continuing, you agree to our')}{' '}
               <a
                 class="underline underline-offset-2 hover:text-ink focus-visible:text-ink"
                 href="/terms"
               >
-                terms
+                {t('terms')}
               </a>{' '}
-              and{' '}
+              {t('and')}{' '}
               <a
                 class="underline underline-offset-2 hover:text-ink focus-visible:text-ink"
                 href="/privacy"
               >
-                privacy policy
+                {t('privacy policy')}
               </a>
               .
             </div>

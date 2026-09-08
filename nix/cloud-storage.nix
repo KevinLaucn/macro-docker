@@ -734,6 +734,11 @@
           binaries = [ "macro_db_migrate" ];
           featureArgs = "--features cli";
         }
+        {
+          serviceName = "localstack-provisioner";
+          packageName = "xtask_local";
+          binaries = [ "localstack_provision" ];
+        }
       ];
 
       # Strip --no-default-features from per-package featureArgs when building

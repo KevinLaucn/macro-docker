@@ -1,6 +1,6 @@
 ---
 name: macro-private-maintainer
-description: Master orchestration skill for maintaining, auditing, developing, and deploying KevinLaucn/macro. Enforces zero Macro cloud dependency, upstream compatibility, private fnOS/Docker production deployment, Gmail API architecture, and coordinates repo-local skills.
+description: Master orchestration skill for maintaining, auditing, developing, and deploying KevinLaucn/macro. Enforces zero Macro cloud dependency, upstream compatibility, private Tencent Cloud SG production deployment, Gmail API architecture, and coordinates repo-local skills.
 ---
 
 # Macro Private Maintainer (总控 / Router / Policy Entry)
@@ -38,7 +38,7 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 6. **本地开发默认热更新原则**：本地日常界面二开与联调默认采用**热更新开发模式**（`just run_local` 或 `just frontend`，端口 `3000`），避免使用静态产物挂载模式导致源码修改不生效；`just stack` 仅限 CI/自动化或发布验收使用；
 7. **本地数据持久化与防丢原则**：本分叉的本地开发命令不得默认删除 Docker 数据卷。`run_local`、`stop_local`、`destroy_local` 与无参 `just stack down` 都必须保留本地数据库、Redis、OpenSearch、Kafka 与 FusionAuth 数据卷；只有显式数据库重置命令可清空对应数据。
 8. **认证中心（FusionAuth）与业务库（MacroDB）一致性守则**：FusionAuth 与 MacroDB 为双层独立存储。若显式执行“清空/彻底重置数据库”，必须保持两者对齐（同步重置 FusionAuth 存储卷，或在重置 MacroDB 后立即自动补齐 FusionAuth 已有活跃账号的 `User` / `macro_user` 档案与权限），严禁只重置业务库而留下孤儿身份，导致无密码老用户因未触发 `user.create` 陷入建团队/绑邮箱 500 异常。
-9. **生产环境默认入口**：当前 Macro 生产环境运行在飞牛 OS（fnOS）NAS 上，SSH 别名为 `fnOS`，生产 Compose 路径为 `/vol1/1000/macro/docker-compose.yml`。凡用户说“生产环境”“线上”“部署”“生产 Docker Compose”“生产日志/容器”且未指定其它主机时，必须主动连接 `fnOS` 并在 `/vol1/1000/macro` 下操作。美国 VPS 仍保留为备用/历史环境；除非用户明确提到美国 VPS、`tencent-us2h8g`、旧 VPS 或指定该主机，不要主动连接或排查美国 VPS。
+9. **生产环境默认入口**：当前 Macro 生产环境运行在腾讯云 SG 2H8G 主机，SSH 别名为 `marc-sg-2h8g`，生产主路径为 `/home/ubuntu/marco/`。凡用户说“生产环境”“线上”“部署”“生产 Docker Compose”“生产日志/容器”且未指定其它主机时，必须主动连接 `marc-sg-2h8g` 并在 `/home/ubuntu/marco/` 下操作。飞牛 OS 与美国 VPS 均视为历史/备用环境；除非用户明确指定 `fnOS`、飞牛、美国 VPS、`tencent-us2h8g` 或旧 VPS，不要主动连接或排查。
 
 ---
 
@@ -51,17 +51,35 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 |---|---|---|
 | **✂️ 功能裁剪 / 依赖瘦身 / Change Planner** | “删功能”、“裁剪”、“不要某服务”、“减镜像”、“Email不需要”、“能不能删”、“瘦身”、“Change Planner”、“slim-plan” | **`skills/macro-upstream-decoupling/SKILL.md`**（Profile-driven Reachability Isolation、Change Planner 边际削减、cargo x slim-plan、五层可达性验收、两阶段物理删除门禁、Decoupling Report） |
 | **🏗️ Rust 后端架构 / 微服务二开** | `crates/**`、`services/**`、Hexagonal 架构、Domain 改造、Ports & Adapters、S3/DB 适配器 | **`../cloud-storage-hexagonal-architecture/SKILL.md`** |
+| **🧠 AI Tool / Toolset 二开** | 新增 AI 工具、`ai_toolset`、tool schema、`inbound/toolset`、工具前端入口 | **`../create-ai-tool/SKILL.md`**（先读 `crates/ai_toolset/TOOL_DESIGN.md` 与框架示例；禁止修改 `crates/ai_toolset/` 框架本身） |
 | **🧰 本地开发 / macOS / Docker / Local Stack** | macOS、Docker Desktop、OrbStack、Colima、`run_local`、`run_dev`、`doctor-local`、`status_local`、`stack up`、本地构建、端口冲突、Production Parity、本地复现 CI | **`skills/macro-local-environment/SKILL.md`** |
-| **🔍 运行时调试 / Crash 排查** | 容器退出、服务启动失败、500 报错、Connection Refused、端口无响应 | **`../debug-service/SKILL.md`** |
+| **🔍 本地运行栈链路调试 / 真实复现** | 本地栈已启动、前端复现、500、请求链路、trace/log、Grafana、Loki、Tempo、浏览器 CDP | **`../live-debug/SKILL.md`**（优先用于跨服务请求链路、前端复现与运行中容器日志；需要单 crate 手动启动二进制时再用 `../debug-service/SKILL.md`） |
+| **🔍 单 Rust 服务启动调试** | 单个 Rust crate/bin 启动失败、需要 `just run` + debug log、未运行完整本地栈 | **`../debug-service/SKILL.md`** |
 | **📊 数据库 Schema / 迁移** | Migration、PostgreSQL 表字段、Email/Gmail 数据表、Dump | **`../dump-schema/SKILL.md`** |
 | **🛡️ 发布前质检 / 审查门禁** | PR 审查、发布前验证、QC、精简度评估、稳定性检查 | **`../qc/SKILL.md`** |
 | **📦 依赖治理 / 漏洞升级** | Dependabot、Cargo/Bun/NPM 依赖冲突、CVE 修复 | **`../dependabot/skill.md`** |
-| **🔄 Upstream 同步 / Fork 差异治理** | `upstream/main`、同步分支、sync PR、merge 冲突、fork divergence、定制重叠、`FORK-CUSTOM` | **`skills/macro-upstream-sync/SKILL.md`**（Customization Manifest、语义冲突审查、定向 CI、专用 sync PR） |
+| **🔄 Upstream 同步 / 上游版本升级 / 冲突治理** | “同步上游”、“更新上游版本”、“Upstream Sync”、“sync PR”、“上游合并”、“解决冲突”、“定制保护”、“fork divergence”、“定制重叠”、“FORK-CUSTOM” | **`skills/macro-upstream-sync/SKILL.md`**（最高原则：绝不擅自做业务决策、专用 sync 分支保护 main、Customization Manifest 重叠分析、语义冲突非机械性审查、Generated 产物后置对齐、最终 Sync Report 门禁） |
 | **🌐 i18n 国际化 / 显式化二开** | 多语言、i18n、翻译、显式 t()、excludePatterns、audit、词条提取 | **`references/i18n-workflow.md`**（**优先通过 CodeGraph 快速定位组件**，索引缺失时执行 `codegraph sync`） |
 | **🎨 UI / UX / 设计系统二开** | 页面、组件、布局、颜色、字号、字体、图标、动效、交互、响应式、空状态、加载态、前端视觉调整 | **`skills/macro-ui-design/SKILL.md`**（官方组件优先、语义 Token、既有排版与动效、可访问性、真实浏览器验收） |
-| **🚀 飞牛 OS 生产运维 / 部署** | 生产环境、线上、部署、SSH、Docker Compose、生产更新、运维排障、fnOS、飞牛 | **`references/production-deployment.md`**（默认连接 `fnOS`，Compose 路径 `/vol1/1000/macro/docker-compose.yml`；美国 VPS 仅在用户明确指定时使用，凭据见 `.local-production.md`） |
+| **🚀 腾讯云 SG 生产运维 / 部署** | 生产环境、线上、部署、SSH、Docker Compose、生产更新、运维排障、腾讯云、SG、`marc-sg-2h8g` | **`references/production-deployment.md`**（默认连接 `marc-sg-2h8g`，主路径 `/home/ubuntu/marco/`；飞牛 OS 与美国 VPS 仅在用户明确指定时使用，凭据见 `.local-production.md`） |
 | **⚠️ 易疏忽小问题 / 生产暗坑排查** | 邮件延迟、通知收不到、鉴权401、Webhook推送失败、配置无报错但无法工作、常见小Bug与配置疏忽 | **`生产环境配置与避坑指南.local.md`**（**必读防坑手册**，排查高频暗坑、受众配置与网络透传） |
 | **🛡️ 推送与发布前契约门禁 / 离线对齐** | “推送”、“发布”、“发版”、“push”、“上线前检查”、“构建前校验”、“数据对不上”、“sqlx检查”、“离线编译” | **`../macro-pre-push-gate/SKILL.md`**（SQLx 离线元数据强一致性、SQLX_OFFLINE 生产编译仿真、未追踪孤儿文件扫描、前端轻量 tsc 与 Biome 审查） |
+
+### 常用仓库技能引用优先级
+这些技能是本仓库可直接复用的官方/仓库级能力。除非用户明确要求跳过，遇到对应任务时优先加载：
+
+- **`skills/macro-local-environment/SKILL.md`**：本地开发栈、Docker、端口、`run_local`、CI parity。
+- **`../live-debug/SKILL.md`**：运行中的本地栈排障、前端复现、跨服务 traces/logs/browser 调试。
+- **`skills/macro-ui-design/SKILL.md`**：`apps/web` 用户可见 UI/UX 改动。
+- **`skills/macro-upstream-decoupling/SKILL.md`**：功能裁剪、镜像瘦身、生产闭包隔离。
+- **`skills/macro-upstream-sync/SKILL.md`**：同步 `macro-inc/macro` upstream。
+- **`../cloud-storage-hexagonal-architecture/SKILL.md`**：Rust 后端架构与 ports/adapters 边界。
+- **`../create-ai-tool/SKILL.md`**：新增或修改 AI tool/toolset。
+- **`../dump-schema/SKILL.md`**：需要真实 MacroDB schema 证据。
+- **`../macro-pre-push-gate/SKILL.md`**：推送、发版、PR 前门禁。
+- **`../qc/SKILL.md`**：明确要求 QC 或发布前多视角审查。
+- **`../dependabot/skill.md`**：Dependabot/CVE 依赖升级计划。
+- **`../upgrade-model/SKILL.md`**：升级聊天模型 fast/good 槽位。
 
 ### 子技能路由调度准则
 当分发到上述子技能时：
@@ -85,6 +103,8 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 9. **二开代码必须贴合上游规范**：凡是本 fork 新增或本次触碰的二开代码，必须按上游现有目录边界、类型模型、query/service-client 分层、UI 组件规范、格式化与 lint 规则实现。若二开触发 warning/error，优先通过对齐上游模式修复；不要靠禁用规则、扩大类型、粗暴 cast、复制业务逻辑或改原始上游脚本来绕过。
 10. **上游原生运维入口优先**：遇到生产/本地环境状态漂移、服务初始化顺序、外部系统配置缺失、IaC 未落地、数据库/FusionAuth/LocalStack/OpenSearch/Redis/Kafka 等运行时状态不一致时，先查仓库原生脚本、Just recipes、Pulumi/Terraform/IaC 栈、Docker Compose、迁移与 README，再判断是否为“脚本未执行 / import 未完成 / reconcile 未覆盖”。禁止先写新的旁路补丁、手工 curl 脚本或业务代码兜底来掩盖漂移。
 11. **优先贴近 upstream 处理方式**：凡是 Macro 上游已有部署、初始化、导入、同步、回填、修复、seed、doctor、drift check、reconcile 等机制，优先复用或补齐调用路径；只有确认上游没有覆盖当前私有化场景时，才新增最小私有化封装，并明确标注原因与边界。
+12. **构建入口与镜像闭包同步铁律**：新增、移动或重命名任何源码文件后，必须检查并同步所有构建入口、`Dockerfile`、`Nix`、`Cargo.toml`、`Workspace`、复制清单与缓存输入，确认该文件实际进入镜像构建上下文和最终镜像，**严禁仅以本地编译通过判断构建完整**。
+
 
 ---
 

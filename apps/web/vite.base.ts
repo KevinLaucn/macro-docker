@@ -143,6 +143,7 @@ export const createAppViteConfig = (): UserConfigFn => {
             '/features/next-soup/soup-view/empty-states.tsx',
             '/features/command/Launcher.tsx',
             '/features/auth/banner/Banner.tsx',
+            '/features/auth/Login.tsx',
             '/lib/core/component/TopBar/LoginButton.tsx',
             '/lib/core/component/UserTooltip.tsx',
             '/features/block-email/component/EmailMessageTopBar.tsx',

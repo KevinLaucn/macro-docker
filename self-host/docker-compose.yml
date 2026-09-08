@@ -255,6 +255,21 @@ services:
         aliases:
           - localstack
 
+  # Reconciler sidecar: continuously watches LocalStack health and triggers
+  # upstream localstack_provision upon recovery (unhealthy -> healthy).
+  localstack_reconciler:
+    <<: *env
+    image: ${MACRO_IMAGE_INIT:-ghcr.io/kevinlaucn/macro-init-email}:${MACRO_VERSION:?set MACRO_VERSION in .env}
+    restart: unless-stopped
+    depends_on:
+      localstack:
+        condition: service_started
+    entrypoint: ["bash", "/app/reconcile-localstack.sh"]
+    networks:
+      - databases
+    volumes:
+      - ./init/reconcile-localstack.sh:/app/reconcile-localstack.sh:ro
+
   # ==========================================================================
   # Identity
   # ==========================================================================

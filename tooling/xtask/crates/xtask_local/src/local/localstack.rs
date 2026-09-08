@@ -9,6 +9,11 @@ use aws_sdk_s3::types as s3_types;
 use super::instance::{Instance, Port};
 use super::resources;
 
+/// Provision all LocalStack resources idempotently for a specific endpoint URL.
+pub async fn provision_url(url: &str) -> Result<()> {
+    provision_async(url).await
+}
+
 /// Provision all LocalStack resources idempotently. Blocking entry point: spins
 /// up a Tokio runtime so the orchestrator stays synchronous.
 pub fn provision(instance: &Instance) -> Result<()> {
@@ -17,7 +22,7 @@ pub fn provision(instance: &Instance) -> Result<()> {
         .enable_all()
         .build()
         .context("building tokio runtime")?;
-    rt.block_on(provision_async(&url))
+    rt.block_on(provision_url(&url))
 }
 
 async fn provision_async(url: &str) -> Result<()> {

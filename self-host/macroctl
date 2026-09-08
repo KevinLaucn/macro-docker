@@ -7,6 +7,8 @@
 #   ./macroctl pull               pull all images
 #   ./macroctl restart [service]  restart services
 #   ./macroctl status             container and endpoint state
+#   ./macroctl reconcile          idempotently heal OAuth/Gmail/GitHub and user parity
+#   ./macroctl doctor             probe 5-dimension deep-water business health & contracts
 #   ./macroctl logs [service]     follow logs
 #   ./macroctl backup [dir]       dump database + object storage + config
 #   ./macroctl restore <dir>      restore a backup taken by this script
@@ -254,16 +256,32 @@ cmd_up() {
   bold "Starting services"
   "${COMPOSE[@]}" "${profiles[@]}" up -d
 
+  # Non-blocking automatic idempotent self-healing in background:
+  # Waits for FusionAuth/LocalStack readiness, aligns OAuth/Gmail/GitHub IdPs,
+  # and heals user table foreign keys without noisy doctor check interruptions.
+  if [ -f "./scripts/reconcile_fusionauth_idp.py" ]; then
+    nohup python3 ./scripts/reconcile_fusionauth_idp.py > /tmp/macro_reconcile.log 2>&1 &
+  fi
+
   echo
   bold "Up. https://$(grep -E '^MACRO_DOMAIN=' "$ENV_FILE" | cut -d= -f2-)"
   echo "Certificates take a minute on first boot. './macroctl status' shows health."
 }
 
+cmd_reconcile() { need_env; python3 ./scripts/reconcile_fusionauth_idp.py "$@"; }
+cmd_doctor()  { need_env; python3 ./scripts/doctor.py "$@"; }
 cmd_down()    { need_env; "${COMPOSE[@]}" down; }
 cmd_status()  { need_env; "${COMPOSE[@]}" ps; }
 cmd_logs()    { need_env; "${COMPOSE[@]}" logs -f --tail=200 "$@"; }
 cmd_pull()    { need_env; bold "Pulling images"; "${COMPOSE[@]}" pull "$@"; }
-cmd_restart() { need_env; bold "Restarting services"; "${COMPOSE[@]}" restart "$@"; }
+cmd_restart() {
+  need_env
+  bold "Restarting services"
+  "${COMPOSE[@]}" restart "$@"
+  if [ -f "./scripts/reconcile_fusionauth_idp.py" ]; then
+    nohup python3 ./scripts/reconcile_fusionauth_idp.py > /tmp/macro_reconcile.log 2>&1 &
+  fi
+}
 
 cmd_destroy() {
   need_env
@@ -296,6 +314,9 @@ cmd_upgrade() {
   "${COMPOSE[@]}" run --rm init
   "${COMPOSE[@]}" run --rm kafka_init
   "${COMPOSE[@]}" up -d --remove-orphans
+  if [ -f "./scripts/reconcile_fusionauth_idp.py" ]; then
+    nohup python3 ./scripts/reconcile_fusionauth_idp.py > /tmp/macro_reconcile.log 2>&1 &
+  fi
   bold "Upgraded."
 }
 
@@ -381,12 +402,14 @@ case "${1:-}" in
   pull)     shift; cmd_pull "$@" ;;
   restart)  shift; cmd_restart "$@" ;;
   status)   shift; cmd_status "$@" ;;
+  reconcile) shift; cmd_reconcile "$@" ;;
+  doctor)   shift; cmd_doctor "$@" ;;
   logs)     shift; cmd_logs "$@" ;;
   backup)   shift; cmd_backup "$@" ;;
   restore)  shift; cmd_restore "$@" ;;
   upgrade)  shift; cmd_upgrade "$@" ;;
   destroy)  shift; cmd_destroy "$@" ;;
   ""|-h|--help|help)
-    sed -n '2,14p' "$SELF" | sed 's/^# \{0,1\}//' ;;
+    sed -n '2,15p' "$SELF" | sed 's/^# \{0,1\}//' ;;
   *) die "unknown command: $1 (try --help)" ;;
 esac

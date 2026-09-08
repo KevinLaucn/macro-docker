@@ -24,6 +24,7 @@ COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 # The migration runner: macro_db_migrator's CLI, which carries the migrations
 # compiled in. No sqlx-cli, no migrations directory to keep in sync.
 COPY --from=services /app/out/macro_db_migrate /usr/local/bin/macro_db_migrate
+COPY --from=services /app/out/localstack_provision /usr/local/bin/localstack_provision
 
 WORKDIR /app
 
@@ -32,12 +33,12 @@ COPY infra/stacks/opensearch/helpers /app/opensearch-helpers
 RUN cd /app/opensearch-helpers && bun install --frozen-lockfile
 
 COPY .github/kafka-cluster-topics.json /app/kafka-topics.json
-COPY self-host/init/resources.json /app/resources.json
 COPY self-host/init/provision.sh /app/provision.sh
+COPY self-host/init/reconcile-localstack.sh /app/reconcile-localstack.sh
 COPY self-host/init/render-kickstart.sh /app/render-kickstart.sh
 COPY self-host/kickstart /app/kickstart-templates
 COPY infra/stacks/fusionauth-instance/templates/reconcile_secondary_idp_link.js /app/kickstart-templates/reconcile_secondary_idp_link.js
 
-RUN chmod +x /app/provision.sh /app/render-kickstart.sh
+RUN chmod +x /app/provision.sh /app/reconcile-localstack.sh /app/render-kickstart.sh
 
 ENTRYPOINT ["/app/provision.sh"]

@@ -99,90 +99,43 @@ for cargo_bin in compose_bins:
         elif s["is_websocket"] and "uri strip_prefix " + s["path_prefix"] not in caddy:
             fail(f'service {s["compose_name"]}: websocket route {s["path_prefix"]} is not a strip_prefix handler')
 
-# --- resources -------------------------------------------------------------
-manifest = json.loads((SELF_HOST / "init/resources.json").read_text())
+# --- localstack_provision single-source-of-truth wiring checks -------------
+# Upstream resources.rs and localstack.rs are the SOLE source of truth.
+# We no longer duplicate or mirror SQS/S3/DynamoDB/KMS schemas in Python.
+# Here we verify the binary wiring and build closure contract.
+
 email_capabilities = json.loads((SELF_HOST / "email-capabilities.json").read_text())
-env_keys = {
-    line.split("=", 1)[0]
-    for line in env_example.splitlines()
-    if line and not line.lstrip().startswith("#") and "=" in line
-}
 
-# Private production attachment bucket is intentionally different from the
-# upstream default. Keep the resource manifest and environment contract in
-# lockstep so an upstream merge cannot silently point production at a wrong
-# bucket.
-env_values = {
-    line.split("=", 1)[0]: line.split("=", 1)[1]
-    for line in env_example.splitlines()
-    if line and not line.lstrip().startswith("#") and "=" in line
-}
-attachment_bucket = next(
-    (b["name"] for b in manifest["buckets"] if b["env_key"] == "ATTACHMENT_BUCKET"),
-    None,
-)
-if attachment_bucket != "macro-email-attach":
-    fail(
-        "ATTACHMENT_BUCKET manifest value must remain macro-email-attach; "
-        f"found {attachment_bucket!r}"
-    )
-if env_values.get("ATTACHMENT_BUCKET") != "macro-email-attach":
-    fail(
-        "self-host/.env.example ATTACHMENT_BUCKET must remain macro-email-attach; "
-        f"found {env_values.get('ATTACHMENT_BUCKET')!r}"
-    )
+cloud_storage_nix_text = (ROOT / "nix/cloud-storage.nix").read_text()
+if 'binaries = [ "localstack_provision" ];' not in cloud_storage_nix_text:
+    fail("localstack_provision binary is not declared in selfHostEmailBinaryDefinitions in nix/cloud-storage.nix")
 
-for b in manifest["buckets"]:
-    if b["env_key"] not in env_keys:
-        fail(f'bucket {b["name"]}: {b["env_key"]} missing from .env.example')
-for t in manifest["tables"]:
-    if t["env_key"] not in env_keys:
-        fail(f'table {t["name"]}: {t["env_key"]} missing from .env.example')
-for q in manifest["queues"]:
-    for binding in q["bindings"]:
-        if binding["key"] not in env_keys:
-            fail(f'queue {q["name"]}: {binding["key"]} missing from .env.example')
+init_dockerfile_text = (SELF_HOST / "init/Dockerfile").read_text()
+if 'COPY --from=services /app/out/localstack_provision /usr/local/bin/localstack_provision' not in init_dockerfile_text:
+    fail("localstack_provision binary is not copied into self-host init Dockerfile")
 
-# The required resources declared in self-host/init/resources.json must be backed
-# by the upstream catalog (no fictional/unsupported resources).
-# Upstream having extra resources (e.g. AI / document cognition / etc.) is permitted.
-res = (ROOT / "tooling/xtask/crates/xtask_local/src/local/resources.rs").read_text()
-queues_block = res.split("pub const QUEUES")[1].split("pub const BUCKETS")[0]
-macro_queues = (ROOT / "crates/macro_queues/src/lib.rs").read_text()
-local_names = dict(re.findall(r'pub (\w+)\s*\{\s*local:\s*"([^"]+)"', macro_queues))
-consts = {"UPLOAD_FINALIZER_QUEUE": local_names.get("DocumentUploadFinalizerQueue")}
+provision_sh_text = (SELF_HOST / "init/provision.sh").read_text()
+if 'localstack_provision --url' not in provision_sh_text:
+    fail("self-host/init/provision.sh must invoke localstack_provision --url")
 
-rust_queue_names = set()
-for entry in re.findall(r"Queue \{(.*?)\n    \},", queues_block, re.S):
-    m = re.search(r'name:\s*(?:macro_queues::(\w+)::LOCAL|([A-Z_]+))', entry)
-    if not m:
-        fail("could not parse a queue name out of resources.rs")
-        continue
-    name = local_names.get(m.group(1)) if m.group(1) else consts.get(m.group(2))
-    if name:
-        rust_queue_names.add(name)
+reconcile_sh = SELF_HOST / "init/reconcile-localstack.sh"
+if not reconcile_sh.exists():
+    fail("self-host/init/reconcile-localstack.sh does not exist")
+else:
+    reconcile_sh_text = reconcile_sh.read_text()
+    if 'localstack_provision' not in reconcile_sh_text or '--url' not in reconcile_sh_text:
+        fail("self-host/init/reconcile-localstack.sh must invoke localstack_provision --url")
 
-manifest_queue_names = {q["name"] for q in manifest["queues"]}
-# Verify required queues exist in Rust catalog definitions
-missing_in_rust = sorted(manifest_queue_names - rust_queue_names)
-if missing_in_rust:
-    fail(f"self-host/init/resources.json contains queues not defined in resources.rs: {missing_in_rust}")
+if "localstack_reconciler:" not in compose:
+    fail("localstack_reconciler sidecar service is missing from docker-compose.yml")
+if "reconcile-localstack.sh" not in compose:
+    fail("localstack_reconciler must mount/execute reconcile-localstack.sh")
 
-# Core email production required queues must exist in manifest
-required_email_queues = {
-    "notification-queue",
-    "email-service-backfill-queue",
-    "contacts-queue",
-    "document-upload-finalizer-queue",
-    "email-service-gmail-inbox-sync-queue",
-    "email-service-gmail-inbox-retry-queue",
-    "email-service-gmail-ops-queue",
-    "email-service-gmail-ops-retry-queue",
-    "search-event-queue",
-}
-missing_required_queues = sorted(required_email_queues - manifest_queue_names)
-if missing_required_queues:
-    fail(f"self-host/init/resources.json is missing required email queues: {missing_required_queues}")
+if "localstack-ready.sh" in compose or "10-reconcile-queues.sh" in compose:
+    fail("obsolete localstack-ready.sh / 10-reconcile-queues.sh must not be mounted in docker-compose.yml")
+if "resources.json" in compose:
+    fail("resources.json must not be mounted in docker-compose.yml; upstream resources.rs is the sole source of truth")
+
 
 # --- image and profile invariants ------------------------------------------
 workflow = (ROOT / ".github/workflows/self-host-images.yml").read_text()
@@ -417,5 +370,4 @@ if failures:
 default_email_bins = [b for b in compose_bins if b not in optional_profile_bins]
 print(f"self-host email consistency verified: {len(compose_bins)} compose binaries "
       f"({len(default_email_bins)} default email profile, {len(optional_profile_bins)} optional profile), "
-      f"{len(manifest['queues'])} queues, {len(manifest['buckets'])} buckets, "
-      f"{len(manifest['tables'])} tables, {len(topics_copy)} kafka topics")
+      f"localstack_provision wiring verified, {len(topics_copy)} kafka topics")

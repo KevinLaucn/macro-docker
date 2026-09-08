@@ -8,10 +8,11 @@ description: Push and release gatekeeper for KevinLaucn/macro. Validates offline
 ## ⚡ 核心目标与防线定位
 
 在向远端仓库推送（`git push origin main`）、提交 PR 或触发生产镜像构建前，**必须执行本门禁审查**。
-彻底消灭以下三大类“本地看似正常、CI 跑十几分钟后暴雷”的致命断层隐患：
-1. **SQLx 离线元数据断层**：修改了 SQL 语句但漏生成或漏提交 `.sqlx/query-*.json`，导致 CI 离线构建报 `SQLX_OFFLINE=true but there is no cached data for this query`；
-2. **在线与离线推断漂移**：迎合本地 live DB 动态推断私加 `.unwrap_or_default()` 或破坏强类型，导致 CI 离线构建报 `E0599` / `E0308` 编译崩溃；
-3. **未暂存孤儿元数据**：新生成的元数据或生成代码处于未追踪（Untracked，即绿色 `U`）状态被遗漏在本地，导致远端构建缺失依赖。
+彻底消灭以下四大类“本地看似正常、CI 跑十几分钟后暴雷”或“本地跑得通、镜像打包却漏文件”的致命断层隐患：
+1. **构建入口与镜像上下文断层（Build & Image Context Parity）**：新增、移动或重命名任何源码文件后，必须检查并同步所有构建入口、`Dockerfile`、`Nix`、`Cargo.toml`、`Workspace`、复制清单与缓存输入，确认该文件实际进入镜像构建上下文和最终镜像，**严禁仅以本地编译通过判断构建完整**；
+2. **SQLx 离线元数据断层**：修改了 SQL 语句但漏生成或漏提交 `.sqlx/query-*.json`，导致 CI 离线构建报 `SQLX_OFFLINE=true but there is no cached data for this query`；
+3. **在线与离线推断漂移**：迎合本地 live DB 动态推断私加 `.unwrap_or_default()` 或破坏强类型，导致 CI 离线构建报 `E0599` / `E0308` 编译崩溃；
+4. **未暂存孤儿元数据与脚本**：新编写的脚本、配置或生成的代码处于未追踪（Untracked，即绿色 `U`）状态被遗漏在本地，导致远端构建或部署缺失依赖。
 
 ---
 
@@ -26,6 +27,7 @@ git status -s
 ```
 - **红线拦截**：若发现 `.sqlx/` 目录下存在标红 `D`（已废弃）或标绿 `??`（新生成未追踪）的元数据，必须与当前代码改动一同执行 `git add .sqlx`，严禁只提交业务代码而留下元数据孤儿！
 - **代码生成契约**：若触碰了 OpenAPI、GraphQL 或 protobuf 定义，检查关联的生成的客户端文件（如 `generated/` 目录）是否已完整暂存。
+- **构建入口与镜像上下文闭环（重点铁律）**：**新增、移动或重命名任何源码文件后，必须检查并同步所有构建入口、`Dockerfile`、`Nix`（`nix/cloud-storage.nix` 等）、`Cargo.toml`、`Workspace`、复制清单（COPY 命令）与缓存输入，确认该文件实际进入镜像构建上下文和最终镜像，严禁仅以本地编译通过判断构建完整。**
 
 ### 关卡 2：SQLx 离线元数据一致性验证 (SQL Offline Parity)
 检查当前提交或工作区改动中是否触碰了任何 `.rs` 文件里的 SQL 查询（`sqlx::query`、`sqlx::query_as`、`sqlx::query_scalar`）：

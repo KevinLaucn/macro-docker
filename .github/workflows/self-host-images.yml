@@ -122,6 +122,24 @@ jobs:
           run_web=false
           run_workers=false
 
+          workflow_changed=false
+          setup_nix_changed=false
+
+          if has_match '^\.github/workflows/self-host-images\.yml$'; then
+            workflow_changed=true
+          fi
+
+          if has_match '^\.github/actions/setup-nix/'; then
+            setup_nix_changed=true
+          fi
+
+          if [ "$workflow_changed" = "true" ]; then
+            run_services=true
+            run_init=true
+            run_web=true
+            run_workers=true
+          fi
+
           if has_match \
             '^Cargo\.toml$' \
             '^Cargo\.lock$' \
@@ -130,8 +148,15 @@ jobs:
             '^\.sqlx/' \
             '^nix/cloud-storage\.nix$' \
             '^self-host/scripts/' \
-            '^\.github/actions/setup-nix/action\.yml$'; then
+            '^\.github/actions/setup-nix/'; then
             run_services=true
+          fi
+
+          if [ "$setup_nix_changed" = "true" ]; then
+            run_services=true
+            run_init=true
+            run_web=true
+            run_workers=true
           fi
 
           # init 镜像由自身配置 (self-host/init/*, opensearch 迁移 helpers, kafka topics 等)

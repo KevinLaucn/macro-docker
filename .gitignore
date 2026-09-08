@@ -61,6 +61,8 @@ infra/local/generated/
 /self-host/.env
 /self-host/.env.*
 /self-host/generated/
+/self-host/data/
+/data/
 *.pem
 *.key
 
