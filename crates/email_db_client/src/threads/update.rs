@@ -118,6 +118,34 @@ pub async fn set_thread_workflow_completed(
     Ok(())
 }
 
+/// Marks a thread as requiring follow-up in the Macro workflow (e.g. after an outbound reply).
+/// Sets `follow_up_required = true` and touches `updated_at`.
+#[tracing::instrument(skip(conn), err)]
+pub async fn set_thread_follow_up_required(
+    conn: &mut sqlx::PgConnection,
+    thread_id: Uuid,
+    link_id: Uuid,
+) -> anyhow::Result<()> {
+    sqlx::query(
+        r#"
+        UPDATE email_threads
+        SET
+            follow_up_required = true,
+            updated_at = NOW()
+        WHERE
+            id = $1 AND
+            link_id = $2 AND
+            follow_up_required = false
+        "#,
+    )
+    .bind(thread_id)
+    .bind(link_id)
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
 #[tracing::instrument(skip(executor), err)]
 pub async fn update_thread_read_status<'e, E>(
     executor: E,
@@ -394,6 +422,10 @@ pub async fn update_thread_metadata(
         latest_non_spam_message_ts,
     )
     .await?;
+
+    if latest_outbound_message_ts.is_some() {
+        set_thread_follow_up_required(&mut *tx, thread_db_id, link_id).await?;
+    }
 
     sync_thread_signal_flag(&mut *tx, thread_db_id).await?;
 

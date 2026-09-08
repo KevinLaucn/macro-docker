@@ -1122,10 +1122,10 @@ pub fn build_email_workflow_active_predicate(thread_alias: &str) -> String {
 }
 
 /// Builds the SQL predicate for checking if an email thread is active important.
-/// Equivalent to `is_signal AND workflow_active`.
+/// Equivalent to `(is_signal OR follow_up_required) AND workflow_active`.
 pub fn build_email_active_important_predicate(thread_alias: &str) -> String {
     format!(
-        "({thread_alias}.is_signal AND {})",
+        "(({thread_alias}.is_signal OR {thread_alias}.follow_up_required) AND {})",
         build_email_workflow_active_predicate(thread_alias)
     )
 }
@@ -1137,14 +1137,14 @@ mod tests {
     #[test]
     fn test_email_active_important_predicate_sql_structure() {
         let predicate = build_email_active_important_predicate("t");
-        assert!(predicate.contains("t.is_signal AND"));
+        assert!(predicate.contains("(t.is_signal OR t.follow_up_required) AND"));
         assert!(predicate.contains("t.follow_up_completed_at IS NULL"));
         assert!(predicate.contains("t.latest_inbound_message_ts > t.follow_up_completed_at"));
         assert!(predicate.contains("t.latest_outbound_message_ts > t.follow_up_completed_at"));
         assert!(!predicate.contains("updated_at"));
 
         let alias_et = build_email_active_important_predicate("et");
-        assert!(alias_et.contains("et.is_signal AND"));
+        assert!(alias_et.contains("(et.is_signal OR et.follow_up_required) AND"));
         assert!(alias_et.contains("et.follow_up_completed_at IS NULL"));
     }
 }
