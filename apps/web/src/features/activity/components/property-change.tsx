@@ -1,18 +1,17 @@
 import { t } from '@macro/i18n';
 import { PropertyValueIcon } from '@property/component/propertyValue/PropertyValueIcon';
-import { useAllProperties } from '@property/editor/hooks/useAllProperties';
 import { TagDot } from '@property/tags/TagDot';
 import type { PropertyDefinitionDomain } from '@property/types';
-import type { ActivityEvent } from '@queries/activity/graphql/entity';
 import { For, Show } from 'solid-js';
+import type { ActivityAction } from '../core/event';
 import {
   propertyValueLabel,
   selectOptionEntries,
-} from './property-change-label';
+} from '../queries/property-value';
 
 type PropertyChangedAction = Extract<
-  ActivityEvent['action'],
-  { __typename: 'GraphqlActivityPropertyChanged' }
+  ActivityAction,
+  { kind: 'property-changed' }
 >;
 
 /**
@@ -26,11 +25,10 @@ type PropertyChangedAction = Extract<
  */
 export function PropertyChangeText(props: {
   action: PropertyChangedAction;
+  definition: PropertyDefinitionDomain | undefined;
   capitalize?: boolean;
 }) {
-  const definitions = useAllProperties();
-  const definition = () =>
-    definitions().find((def) => def.id === props.action.property);
+  const definition = () => props.definition;
   const name = () => definition()?.displayName ?? 'a property';
   const cleared = () =>
     props.action.to === null || props.action.to === undefined;

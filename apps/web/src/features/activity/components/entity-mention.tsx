@@ -1,10 +1,7 @@
 import { StaticMarkdown } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { unifiedListMarkdownTheme } from '@core/component/LexicalMarkdown/theme';
-import type { usePropertyEntityDisplay } from '@property/hooks';
 import { Show } from 'solid-js';
-
-/** The resolved display accessors for one entity, from the shared resolver. */
-export type EntityDisplay = ReturnType<typeof usePropertyEntityDisplay>;
+import type { EntityDisplay } from '../context/activity-context';
 
 /**
  * An activity row's entity reference rendered as a real document mention —
@@ -12,10 +9,9 @@ export type EntityDisplay = ReturnType<typeof usePropertyEntityDisplay>;
  * preview, access states, and click-to-open. Entity kinds without a block
  * mapping fall back to a plain icon + name chip.
  *
- * Takes the already-resolved display from the row (which also needs it for
- * click-to-open) rather than resolving its own, so each row subscribes to
- * the entity's preview once. Must render under a `<StaticMarkdownContext>`
- * ancestor.
+ * Takes the already-resolved display from the view so each row
+ * subscribes to the entity's preview once. Must render under a
+ * `<StaticMarkdownContext>` ancestor.
  */
 export function EntityMention(props: {
   entityId: string;

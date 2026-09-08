@@ -1,23 +1,24 @@
 import { locale, t } from '@macro/i18n';
-import type { ActivityOverview } from '@queries/activity/graphql/overview';
 import { cn, Layer, Tooltip } from '@ui';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { createMemo, For, type JSX } from 'solid-js';
-import { OVERVIEW_TZ, parseOverviewDate } from './activity-dates';
+import { createMemo, For, type JSX, Show } from 'solid-js';
+import { match } from 'ts-pattern';
+import { OVERVIEW_TZ, parseOverviewDate } from '../core/activity-dates';
 import {
   type ActivityStats,
   formatDayLabel,
   formatMonthName,
   formatStreak,
   summarizeActivity,
-} from './activity-stats';
+} from '../core/activity-stats';
 import {
   buildContributionGrid,
   type ContributionDay,
   type ContributionWeek,
-} from './contribution-grid';
-import { INTENSITY_CLASS } from './intensity';
+} from '../core/contribution-grid';
+import type { ActivityOverview } from '../core/event';
+import type { ActivityIntensity } from '../core/intensity';
 
 const WEEKDAY_LABELS_EN = ['', 'M', '', 'W', '', 'F', ''];
 const WEEKDAY_LABELS_ZH = ['', '一', '', '三', '', '五', ''];
@@ -64,8 +65,15 @@ function dayStat(date: string | null): string {
  * The actions heatmap as a side-panel-style card: a titled header row, the
  * year of day cells, and a compact stats row, divided like `SidePanel.Card`
  * so it reads as list chrome rather than a dashboard tile.
+ *
+ * With `skeleton`, the same layout renders shimmer placeholders in place of
+ * the numbers and day cells. Pass a `placeholderOverview` so the geometry
+ * matches the card that replaces it.
  */
-export function ActionGraph(props: { overview: ActivityOverview }) {
+export function ActionGraph(props: {
+  overview: ActivityOverview;
+  skeleton?: boolean;
+}) {
   const grid = createMemo(() => buildContributionGrid(props.overview));
   const monthLabels = createMemo(
     () =>
@@ -77,27 +85,46 @@ export function ActionGraph(props: { overview: ActivityOverview }) {
       )
   );
   const stats = createMemo(() => summarizeActivity(props.overview));
+  const skeleton = () => props.skeleton === true;
 
   return (
     <Layer depth={2}>
       <section
         class="overflow-hidden rounded-lg border border-edge-muted bg-surface"
         aria-labelledby="activity-actions-heading"
+        aria-busy={skeleton() || undefined}
+        data-activity-graph-skeleton={skeleton() || undefined}
       >
         <div class="divide-y divide-edge-muted text-xs">
-          <ActionGraphHeader total={props.overview.total} />
+          <ActionGraphHeader
+            total={props.overview.total}
+            skeleton={skeleton()}
+          />
           <ContributionHeatmap
             weeks={grid().weeks}
             monthLabels={monthLabels()}
+            skeleton={skeleton()}
           />
-          <ActionGraphStats stats={stats()} />
+          <ActionGraphStats stats={stats()} skeleton={skeleton()} />
         </div>
       </section>
     </Layer>
   );
 }
 
-function ActionGraphHeader(props: { total: number }) {
+function SkeletonText(props: { class?: string }) {
+  return (
+    <span
+      aria-hidden
+      class={cn(
+        'skeleton-shimmer inline-block h-3 rounded bg-skeleton align-middle',
+        props.class
+      )}
+    />
+  );
+}
+
+function ActionGraphHeader(props: { total: number; skeleton: boolean }) {
   return (
     <header class="flex min-h-7 items-center gap-2 px-4 py-2">
       <h2
@@ -105,9 +132,11 @@ function ActionGraphHeader(props: { total: number }) {
         class="font-semibold text-ink-muted text-xs"
       >
         Actions{' '}
-        <span class="text-ink-extra-muted tabular-nums">
-          ({props.total.toLocaleString()})
-        </span>
+        <Show when={!props.skeleton} fallback={<SkeletonText class="w-8" />}>
+          <span class="text-ink-extra-muted tabular-nums">
+            ({props.total.toLocaleString()})
+          </span>
+        </Show>
       </h2>
       <IntensityLegend />
     </header>
@@ -120,7 +149,7 @@ function IntensityLegend() {
       <span>{t('Fewer')}</span>
       <For each={[0, 1, 2, 3, 4] as const}>
         {(level) => (
-          <span class={`size-2.5 rounded-[3px] ${INTENSITY_CLASS[level]}`} />
+          <IntensitySwatch level={level} class="size-2.5 rounded-[3px]" />
         )}
       </For>
       <span>{t('More')}</span>
@@ -131,6 +160,7 @@ function IntensityLegend() {
 function ContributionHeatmap(props: {
   weeks: ContributionWeek[];
   monthLabels: Map<number, string>;
+  skeleton: boolean;
 }) {
   return (
     <div class="overflow-x-auto px-4 py-3 scrollbar-hidden">
@@ -146,7 +176,7 @@ function ContributionHeatmap(props: {
           <WeekdayGutter />
           <WeekRow>
             <For each={props.weeks}>
-              {(week) => <HeatmapWeek week={week} />}
+              {(week) => <HeatmapWeek week={week} skeleton={props.skeleton} />}
             </For>
           </WeekRow>
         </div>
@@ -171,10 +201,12 @@ function WeekdayGutter() {
   );
 }
 
-function HeatmapWeek(props: { week: ContributionWeek }) {
+function HeatmapWeek(props: { week: ContributionWeek; skeleton: boolean }) {
   return (
     <WeekColumn class="flex flex-col gap-[3px]">
-      <For each={props.week}>{(day) => <DaySquare day={day} />}</For>
+      <For each={props.week}>
+        {(day) => <DaySquare day={day} skeleton={props.skeleton} />}
+      </For>
     </WeekColumn>
   );
 }
@@ -187,7 +219,7 @@ function MonthLetter(props: { label?: string }) {
   );
 }
 
-function DaySquare(props: { day: ContributionDay | null }) {
+function DaySquare(props: { day: ContributionDay | null; skeleton: boolean }) {
   const day = props.day;
   if (!day) {
     return <span class="aspect-square w-full shrink-0" />;
@@ -195,17 +227,54 @@ function DaySquare(props: { day: ContributionDay | null }) {
 
   const label = actionLabel(day);
   return (
-    <Tooltip
-      as="span"
-      placement="top"
-      class="aspect-square w-full shrink-0"
-      label={label}
+    <Show
+      when={!props.skeleton}
+      fallback={
+        <span
+          aria-hidden
+          data-activity-day
+          class="skeleton-shimmer block aspect-square w-full shrink-0 rounded-[3px] bg-skeleton"
+        />
+      }
     >
-      <span
-        aria-label={label}
-        class={`block size-full rounded-[3px] ${INTENSITY_CLASS[day.intensity]}`}
-      />
-    </Tooltip>
+      <Tooltip
+        as="span"
+        placement="top"
+        class="aspect-square w-full shrink-0"
+        label={label}
+      >
+        <IntensitySwatch
+          level={day.intensity}
+          class="block size-full rounded-[3px]"
+          aria-label={label}
+          data-activity-day
+        />
+      </Tooltip>
+    </Show>
+  );
+}
+
+function IntensitySwatch(props: {
+  level: ActivityIntensity;
+  class?: string;
+  'aria-label'?: string;
+  'data-activity-day'?: boolean;
+}) {
+  return (
+    <span
+      aria-label={props['aria-label']}
+      data-activity-day={props['data-activity-day'] || undefined}
+      class={cn(
+        match(props.level)
+          .with(0, () => 'bg-ink/10')
+          .with(1, () => 'bg-accent/25')
+          .with(2, () => 'bg-accent/45')
+          .with(3, () => 'bg-accent/70')
+          .with(4, () => 'bg-accent')
+          .exhaustive(),
+        props.class
+      )}
+    />
   );
 }
 
@@ -230,35 +299,41 @@ function WeekRow(props: { class?: string; children?: JSX.Element }) {
   );
 }
 
-function ActionGraphStats(props: { stats: ActivityStats }) {
+function ActionGraphStats(props: { stats: ActivityStats; skeleton: boolean }) {
   return (
     <dl class="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2">
       <Stat
         label={t('Most active month')}
         value={monthStat(props.stats.mostActiveMonth)}
+        skeleton={props.skeleton}
       />
       <Stat
         label={t('Most active day')}
         value={dayStat(props.stats.mostActiveDay)}
+        skeleton={props.skeleton}
       />
       <Stat
         label={t('Longest streak')}
         value={formatStreak(props.stats.longestStreak)}
+        skeleton={props.skeleton}
       />
       <Stat
         label={t('Current streak')}
         value={formatStreak(props.stats.currentStreak)}
+        skeleton={props.skeleton}
       />
     </dl>
   );
 }
 
-function Stat(props: { label: string; value: string }) {
+function Stat(props: { label: string; value: string; skeleton: boolean }) {
   return (
     <div class="flex min-w-0 items-center gap-1.5">
       <dt class="shrink-0 text-ink-extra-muted">{props.label}</dt>
       <dd class="min-w-0 truncate font-medium text-ink tabular-nums">
-        {props.value}
+        <Show when={!props.skeleton} fallback={<SkeletonText class="w-12" />}>
+          {props.value}
+        </Show>
       </dd>
     </div>
   );
