@@ -90,7 +90,11 @@ export function GitHubCard() {
       >
         <Show
           when={!githubLink.isLoading}
-          fallback={<span class="text-xs text-ink-muted">{t('Loading…', { context: 'github' })}</span>}
+          fallback={
+            <span class="text-xs text-ink-muted">
+              {t('Loading…', { context: 'github' })}
+            </span>
+          }
         >
           <Switch
             fallback={

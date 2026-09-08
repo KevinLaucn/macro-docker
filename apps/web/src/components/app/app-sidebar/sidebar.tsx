@@ -69,12 +69,11 @@ import { activateClosestDOMScope } from '@core/hotkey/utils';
 import { getDisplayName, tryMacroId } from '@core/user';
 import LogoIcon from '@icon/macro-logo.svg';
 import { AnimatedActivityIcon } from '@icon/wide-activity';
+import WideCalendarIcon from '@icon/wide-calendar.svg';
 import { AnimatedChannelIcon } from '@icon/wide-channel';
 import { AnimatedCompanyIcon } from '@icon/wide-company';
 import { AnimatedEmailIcon } from '@icon/wide-email';
 import { AnimatedFileMdIcon } from '@icon/wide-fileMd';
-import WideCalendarIcon from '@icon/wide-calendar.svg';
-import { CalendarSidebarPreview } from './calendar-sidebar-preview';
 import { AnimatedHomeIcon } from '@icon/wide-home';
 import { AnimatedInboxIcon } from '@icon/wide-inbox';
 import { AnimatedSearchIcon } from '@icon/wide-search';
@@ -117,6 +116,7 @@ import {
   Suspense,
 } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
+import { CalendarSidebarPreview } from './calendar-sidebar-preview';
 
 // TODO(sidebar-next): move to app-sidebar/navigation.tsx once SidebarRail ships.
 export interface SidebarItem {
@@ -968,7 +968,9 @@ export const SidebarSettingsWidget = (props: SidebarSettingsWidgetProps) => {
             <span class="size-5 flex items-center justify-center">
               <GearIcon class="size-4 shrink-0 text-ink-extra-muted" />
             </span>
-            <span class="flex-1 text-ink">{t('Settings', { context: 'sidebar' })}</span>
+            <span class="flex-1 text-ink">
+              {t('Settings', { context: 'sidebar' })}
+            </span>
             <Hotkey
               token={TOKENS.global.toggleSettings}
               theme="subtle"

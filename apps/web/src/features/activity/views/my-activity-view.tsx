@@ -133,7 +133,9 @@ export function MyActivityView(props: {
                 )}
               </Match>
               <Match when={state.feed().t === 'loading'}>
-                <FeedStatus>{t('Loading…', { context: 'activity' })}</FeedStatus>
+                <FeedStatus>
+                  {t('Loading…', { context: 'activity' })}
+                </FeedStatus>
               </Match>
               <Match when={state.feed().t === 'error'}>
                 <FeedStatus>

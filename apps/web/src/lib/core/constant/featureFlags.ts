@@ -17,7 +17,7 @@ const parseBooleanOverride = (value: unknown): boolean | undefined =>
 /**
  * Reads a `VITE_<flagName>` env override or a runtime `window.__MACRO_ENV__` override.
  * Returns `undefined` when unset, so callers can fall through to PostHog rather than forcing the flag off.
- * 
+ *
  * 在开发环境读取 Vite 编译期注入的环境变量 (VITE_<flagName>)，
  * 在自托管与生产环境读取 /app/env-config.js 动态挂载的 window.__MACRO_ENV__。
  */
@@ -26,9 +26,14 @@ export function getFeatureFlagOverride(flagName: string): boolean | undefined {
   if (viteVal !== undefined) return viteVal;
 
   if (typeof window !== 'undefined') {
-    const macroEnv = (window as unknown as { __MACRO_ENV__?: Record<string, unknown> }).__MACRO_ENV__;
+    const macroEnv = (
+      window as unknown as { __MACRO_ENV__?: Record<string, unknown> }
+    ).__MACRO_ENV__;
     if (macroEnv) {
-      const runtimeVal = parseBooleanOverride(macroEnv[flagName] ?? (macroEnv.FEATURES as Record<string, unknown> | undefined)?.[flagName]);
+      const runtimeVal = parseBooleanOverride(
+        macroEnv[flagName] ??
+          (macroEnv.FEATURES as Record<string, unknown> | undefined)?.[flagName]
+      );
       if (runtimeVal !== undefined) return runtimeVal;
     }
   }

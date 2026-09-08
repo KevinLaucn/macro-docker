@@ -8,6 +8,7 @@ import {
 import { DEFAULT_THREAD_MESSAGES_LIMIT } from '@core/constant/pagination';
 import { catchToResult, throwOnErr } from '@core/util/result';
 import ArrowCounterClockwise from '@phosphor-icons/core/regular/arrow-counter-clockwise.svg?component-solid';
+import { queryClient } from '@queries/client';
 import { emailClient } from '@service-email/client';
 import type {
   ApiDraftInput,
@@ -20,7 +21,6 @@ import {
   useInfiniteQuery,
   useMutation,
 } from '@tanstack/solid-query';
-import { queryClient } from '@queries/client';
 import { err, ok } from 'neverthrow';
 import type { Accessor } from 'solid-js';
 import {

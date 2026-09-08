@@ -178,7 +178,9 @@ export function Harness() {
             <Show
               when={!cursorStatus.isPlaceholderData}
               fallback={
-                <p class="mt-4 text-xs text-ink-muted">{t('Loading…', { context: 'harness' })}</p>
+                <p class="mt-4 text-xs text-ink-muted">
+                  {t('Loading…', { context: 'harness' })}
+                </p>
               }
             >
               <Show

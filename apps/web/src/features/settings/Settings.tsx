@@ -38,10 +38,10 @@ import {
   Suspense,
   untrack,
 } from 'solid-js';
+import { Extensions } from '../extensions/Extensions';
 import { Account } from './Account';
 import { Admin } from './Admin';
 import { Agent } from './Agent';
-import { Extensions } from '../extensions/Extensions';
 import { Agents } from './Agents';
 import { ApiKeys } from './ApiKeys';
 import { Appearance } from './Appearance';
