@@ -15,6 +15,7 @@ import {
   useMutation,
   useQuery,
 } from '@tanstack/solid-query';
+import { type Accessor, createMemo } from 'solid-js';
 
 const KEYS = {
   all: ['pipedreamConnectors'] as const,
@@ -53,6 +54,35 @@ export function usePipedreamConnectionsQuery(options?: {
       : undefined,
     placeholderData: NO_CONNECTIONS,
   }));
+}
+
+/**
+ * The app slugs the current user has connected, as a set, plus whether the
+ * answer is known yet. `ready` is false while the query is still serving the
+ * `neverSuspend` placeholder, which callers must not read as "connected to
+ * nothing". Shared by every surface that shows a connected/not-connected
+ * indicator so they cannot disagree.
+ */
+export function usePipedreamConnectedSlugs(options?: {
+  refetchInterval?: number;
+}): {
+  slugs: Accessor<ReadonlySet<string>>;
+  ready: Accessor<boolean>;
+} {
+  const query = usePipedreamConnectionsQuery({
+    neverSuspend: true,
+    refetchInterval: options?.refetchInterval,
+  });
+  const slugs = createMemo<ReadonlySet<string>>(
+    () =>
+      new Set(
+        (query.isSuccess ? query.data : NO_CONNECTIONS).map(
+          (connection) => connection.app_slug
+        )
+      )
+  );
+  const ready = () => !query.isPlaceholderData && !query.isPending;
+  return { slugs, ready };
 }
 
 /**
@@ -167,6 +197,8 @@ export async function connectPipedreamApp(args: {
   appSlug: string;
   /** Display name stored on the connection row. */
   serverName?: string;
+  /** Where the Connect iframe mounts; see `openPipedreamConnectUI`. */
+  container?: HTMLElement;
 }): Promise<PipedreamConnectOutcome> {
   if (pipedreamUnsupported) return 'unsupported';
 
@@ -184,6 +216,7 @@ export async function connectPipedreamApp(args: {
     const ui = openPipedreamConnectUI({
       token: token.value.token,
       app: args.appSlug,
+      container: args.container,
       onEvent: (event) => {
         if (event.type === 'success' && !settled) {
           settled = true;

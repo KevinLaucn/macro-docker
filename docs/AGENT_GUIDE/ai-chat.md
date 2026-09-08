@@ -53,6 +53,19 @@ used in chat and channels; they serialize as `<m-document-mention>` tags in the 
 the agent sees. Agent replies that emit those tags render as clickable chips in the
 transcript (and in the originating channel thread).
 
+On mobile the composer (and any queued prompts above it) floats in the bottom
+accessory region above the dock — same placement as channel and AI chat — so it
+stays tappable and clear of the home indicator. The box is full width; the text
+sits on top and a footer row holds the model name (left, e.g. `Auto ⌄`) and
+**Send** (right). Tapping the model name opens a bottom sheet listing every
+model with a check on the current one — pick a row to switch. On desktop the
+transcript and composer are half the pane wide so expanding **Context** only
+grows vertically; your messages are right-aligned bubbles and the model pill
+sits above the box. Tap the session title
+to open the title menu (caret), then **Rename** — that opens the same style of
+rename dialog automations use. Do not expect a tap on the name itself to start
+an inline edit.
+
 - Sending is never blocked by a running turn. A prompt sent mid-turn is queued
   **server-side** and dispatches automatically when the current turn ends, one per turn.
   The queue holds at most 50 entries; past that a send is refused with an error rather
@@ -67,7 +80,11 @@ transcript (and in the originating channel thread).
   user message in the transcript.
 - Keyboard: Up at the very start of the composer input moves focus into the
   bottom (next-to-send) queue row; further Up presses walk toward newer entries, Down
-  walks back and past the bottom row returns to the input.
+  walks back and past the bottom row returns to the input. When the composer is empty
+  and a prompt is queued, its action becomes `Send next queued message` (an Enter
+  symbol); pressing Enter or clicking that button cancels the current turn so the next
+  queued prompt starts immediately. Typed composer text still takes priority and Enter
+  queues that new prompt normally.
 - The stop button cancels only the **current** turn. The queue keeps draining: the next
   queued prompt starts a new turn. To fully quiesce a session, remove the queued
   entries, then stop.

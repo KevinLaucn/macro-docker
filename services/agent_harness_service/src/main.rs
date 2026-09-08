@@ -48,11 +48,13 @@ use agent_harness::outbound::forward::RedisCommandForwarder;
 use agent_harness::outbound::local::{LocalContainerManager, LocalSettings};
 use agent_harness::outbound::routing::RoutedContainerManager;
 use agent_harness::outbound::runtime_registry::{HarnessKeyedConnections, RuntimeRegistry};
+use agent_inmem::outbound::acp_mcp::AcpMcpConnector;
+use agent_inmem::outbound::egress_mcp::EgressMcpClient;
 use agent_inmem::outbound::log_frames::LogFrameSource;
 use agent_inmem::outbound::manager::InMemAgentManager;
 use agent_inmem::outbound::rig_engine::RigTurnEngine;
 use agent_runtime_directory::PgAgentRuntimeDirectory;
-use agent_session::domain::model::ReplicaId;
+use agent_session::domain::model::{AgentMcpServers, ReplicaId};
 use agent_session::domain::ports::{NoOpRealtime, SessionOwnership as _};
 use agent_session::domain::service::AgentSessionServiceImpl;
 use agent_session::inbound::axum_router::{
@@ -265,6 +267,62 @@ async fn run() -> anyhow::Result<()> {
     // Tracks event publishes the in-memory agent's tool context starts;
     // closed and drained on shutdown so nothing is dropped mid-publish.
     let event_broker_tracker = tokio_util::task::TaskTracker::new();
+    // MCP connections: the same rows the chat tool path reads, so an app
+    // connected in Macro is an app the sandbox can reach, with nothing to
+    // keep in sync. The rows hold no secrets - Pipedream owns the grants.
+    let mcp_connections = Arc::new(PgConnectionRepo::new(pool.clone()));
+
+    // The client that addresses Pipedream's remote MCP server, built from the
+    // same credentials `document_cognition_service` uses.
+    let pipedream = PipedreamClient::new(PipedreamConfig {
+        client_id: config.pipedream_client_id.to_string(),
+        client_secret: config.pipedream_client_secret.to_string(),
+        project_id: config.pipedream_project_id.to_string(),
+        environment: config.pipedream_environment.clone(),
+        api_url: config.pipedream_api_url.clone(),
+        mcp_url: config.pipedream_mcp_url.clone(),
+        // Only Connect tokens carry allowed origins, and this service never
+        // mints one: connecting apps stays in the app.
+        allowed_origins: Vec::new(),
+    })
+    .context("failed to build Pipedream client")?;
+
+    // Every session's MCP servers: Macro's own under the reserved `macro`
+    // slug, then the owner's Pipedream connections. The `macro` credential is
+    // signed inline with the same key authentication_service holds; what this
+    // process hands out is always single-user and minutes from expiry.
+    let mcp_credentials = WithMacroMcp::new(
+        PipedreamMcpCredentials::new(Arc::clone(&mcp_connections), pipedream),
+        MacroApiTokenSigner::new(
+            pool.clone(),
+            config.macro_api_token_issuer.as_ref(),
+            config.macro_api_token_private_secret_key.as_ref(),
+        ),
+        url::Url::parse(&config.macro_mcp_url).context("MACRO_MCP_URL is not a url")?,
+        // The one gate on cleartext: a local stack's mcp-service is dialed
+        // across the compose bridge, where TLS would be theater. Everywhere
+        // else, an http URL refuses to boot.
+        matches!(config.environment, Environment::Local),
+    )
+    .context("the macro MCP upstream is misconfigured")?;
+
+    // The egress proxy: one binary today, its own listener from the start.
+    // Shared with the in-memory runtime, which calls it directly rather than
+    // through that listener.
+    let egress = Arc::new(EgressServiceImpl::new(
+        StoredTokenSessionAuthority::new(PgAgentSessionRepo::new(pool.clone())),
+        mcp_credentials,
+        GithubAppTokens::new(InstallationTokenService::new(
+            InstallationTokenConfig {
+                client_id: config.github_sync_app_client_id.clone(),
+                private_key_pem: config.github_sync_app_pem_secret_key.as_ref().to_owned(),
+            },
+            PgGithubSyncRepo::new(pool.clone()),
+            GithubSyncClientImpl::default(),
+        )),
+        ReqwestForwarder::new()?,
+    ));
+
     let inmem = match inmem_bot {
         Some(_) => {
             let tool_context = ai_tools::build_tool_service_context_from_env(
@@ -278,7 +336,13 @@ async fn run() -> anyhow::Result<()> {
             // their model context from the same log every frame lands in.
             let frames = Arc::new(LogFrameSource::new(session_repo.clone()));
             Some(InMemRuntime {
-                manager: InMemAgentManager::new(engine, frames),
+                manager: InMemAgentManager::new(
+                    engine,
+                    frames,
+                    Arc::new(AcpMcpConnector::new(EgressMcpClient::new(Arc::clone(
+                        &egress,
+                    )))),
+                ),
             })
         }
         None => None,
@@ -321,6 +385,7 @@ async fn run() -> anyhow::Result<()> {
             model: config.harness_model.clone(),
             harness: config.harness_slug.clone(),
             instructions: String::new(),
+            mcp_servers: AgentMcpServers::OwnerConnections,
         },
     )];
     if let Some(inmem_bot) = inmem_bot {
@@ -331,6 +396,7 @@ async fn run() -> anyhow::Result<()> {
                 model: config.inmem_model.clone(),
                 harness: config.inmem_harness_slug.clone(),
                 instructions: String::new(),
+                mcp_servers: AgentMcpServers::OwnerConnections,
             },
         ));
     }
@@ -341,6 +407,7 @@ async fn run() -> anyhow::Result<()> {
             model: config.harness_model.clone(),
             harness: "cursor".to_owned(),
             instructions: String::new(),
+            mcp_servers: AgentMcpServers::OwnerConnections,
         },
     ));
     let runtime_directory =
@@ -431,26 +498,6 @@ async fn run() -> anyhow::Result<()> {
             // in-process too; only mentioning the coder bot gets a sandbox.
             .with_managed_bot(bot);
     }
-
-    // MCP connections: the same rows the chat tool path reads, so an app
-    // connected in Macro is an app the sandbox can reach, with nothing to
-    // keep in sync. The rows hold no secrets - Pipedream owns the grants.
-    let mcp_connections = Arc::new(PgConnectionRepo::new(pool.clone()));
-
-    // The client that addresses Pipedream's remote MCP server, built from the
-    // same credentials `document_cognition_service` uses.
-    let pipedream = PipedreamClient::new(PipedreamConfig {
-        client_id: config.pipedream_client_id.to_string(),
-        client_secret: config.pipedream_client_secret.to_string(),
-        project_id: config.pipedream_project_id.to_string(),
-        environment: config.pipedream_environment.clone(),
-        api_url: config.pipedream_api_url.clone(),
-        mcp_url: config.pipedream_mcp_url.clone(),
-        // Only Connect tokens carry allowed origins, and this service never
-        // mints one: connecting apps stays in the app.
-        allowed_origins: Vec::new(),
-    })
-    .context("failed to build Pipedream client")?;
 
     let harness = Arc::new(AgentHarnessService::new(
         sessions,
@@ -593,39 +640,6 @@ async fn run() -> anyhow::Result<()> {
         config.internal_api_key.clone(),
     ));
 
-    // Every session's MCP servers: Macro's own under the reserved `macro`
-    // slug, then the owner's Pipedream connections. The `macro` credential is
-    // signed inline with the same key authentication_service holds; what this
-    // process hands out is always single-user and minutes from expiry.
-    let mcp_credentials = WithMacroMcp::new(
-        PipedreamMcpCredentials::new(mcp_connections, pipedream),
-        MacroApiTokenSigner::new(
-            pool.clone(),
-            config.macro_api_token_issuer.as_ref(),
-            config.macro_api_token_private_secret_key.as_ref(),
-        ),
-        url::Url::parse(&config.macro_mcp_url).context("MACRO_MCP_URL is not a url")?,
-        // The one gate on cleartext: a local stack's mcp-service is dialed
-        // across the compose bridge, where TLS would be theater. Everywhere
-        // else, an http URL refuses to boot.
-        matches!(config.environment, Environment::Local),
-    )
-    .context("the macro MCP upstream is misconfigured")?;
-
-    // The egress proxy: one binary today, its own listener from the start.
-    let egress = EgressServiceImpl::new(
-        StoredTokenSessionAuthority::new(PgAgentSessionRepo::new(pool.clone())),
-        mcp_credentials,
-        GithubAppTokens::new(InstallationTokenService::new(
-            InstallationTokenConfig {
-                client_id: config.github_sync_app_client_id.clone(),
-                private_key_pem: config.github_sync_app_pem_secret_key.as_ref().to_owned(),
-            },
-            PgGithubSyncRepo::new(pool.clone()),
-            GithubSyncClientImpl::default(),
-        )),
-        ReqwestForwarder::new()?,
-    );
     let egress_port = config.egress_port;
     let egress_http = tokio::spawn(async move {
         if let Err(error) = api::serve_egress(egress, egress_port, shutdown_signal()).await {
