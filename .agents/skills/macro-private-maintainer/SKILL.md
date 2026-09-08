@@ -34,11 +34,12 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 2. **私有化零官方云依赖**：`Zero Macro Cloud Dependency`，切断一切无感知 `macro.com` fallback；
 3. **保护四大核心支柱**：**Email**（Gmail 同步/写信）、**Contacts**（联系人）、**CRM**（客户时间线）、**Search**（检索）；
 4. **保留上游源码，解除生产依赖**：`Preserve upstream source; remove production dependency.`；
-5. **Profile 驱动可达性隔离**：目标 Domain 源码可以继续保留，但在指定 Product Profile 下必须不可进入编译闭包、生产制品、Docker 镜像与运行时图；
-6. **本地开发默认热更新原则**：本地日常界面二开与联调默认采用**热更新开发模式**（`just run_local` 或 `just frontend`，端口 `3000`），避免使用静态产物挂载模式导致源码修改不生效；`just stack` 仅限 CI/自动化或发布验收使用；
-7. **本地数据持久化与防丢原则**：本分叉的本地开发命令不得默认删除 Docker 数据卷。`run_local`、`stop_local`、`destroy_local` 与无参 `just stack down` 都必须保留本地数据库、Redis、OpenSearch、Kafka 与 FusionAuth 数据卷；只有显式数据库重置命令可清空对应数据。
-8. **认证中心（FusionAuth）与业务库（MacroDB）一致性守则**：FusionAuth 与 MacroDB 为双层独立存储。若显式执行“清空/彻底重置数据库”，必须保持两者对齐（同步重置 FusionAuth 存储卷，或在重置 MacroDB 后立即自动补齐 FusionAuth 已有活跃账号的 `User` / `macro_user` 档案与权限），严禁只重置业务库而留下孤儿身份，导致无密码老用户因未触发 `user.create` 陷入建团队/绑邮箱 500 异常。
-9. **生产环境默认入口**：当前 Macro 生产环境运行在腾讯云 SG 2H8G 主机，SSH 别名为 `marc-sg-2h8g`，生产主路径为 `/home/ubuntu/marco/`。凡用户说“生产环境”“线上”“部署”“生产 Docker Compose”“生产日志/容器”且未指定其它主机时，必须主动连接 `marc-sg-2h8g` 并在 `/home/ubuntu/marco/` 下操作。飞牛 OS 与美国 VPS 均视为历史/备用环境；除非用户明确指定 `fnOS`、飞牛、美国 VPS、`tencent-us2h8g` 或旧 VPS，不要主动连接或排查。
+5. **全量构建原则**：后端服务与 `apps/web` 默认全量构建、全量进入验证范围；生产目标是完整自托管 Macro，而不是服务级最小集合；
+6. **客户端排除边界**：构建与发布默认只排除桌面客户端、移动端客户端等非 Web 客户端；`apps/web` 必须全量构建，不按页面、功能或业务域拆分构建；
+7. **本地开发默认热更新原则**：本地日常界面二开与联调默认采用**热更新开发模式**（`just run_local` 或 `just frontend`，端口 `3000`），避免使用静态产物挂载模式导致源码修改不生效；`just stack` 仅限 CI/自动化或发布验收使用；
+8. **本地数据持久化与防丢原则**：本分叉的本地开发命令不得默认删除 Docker 数据卷。`run_local`、`stop_local`、`destroy_local` 与无参 `just stack down` 都必须保留本地数据库、Redis、OpenSearch、Kafka 与 FusionAuth 数据卷；只有显式数据库重置命令可清空对应数据。
+9. **认证中心（FusionAuth）与业务库（MacroDB）一致性守则**：FusionAuth 与 MacroDB 为双层独立存储。若显式执行“清空/彻底重置数据库”，必须保持两者对齐（同步重置 FusionAuth 存储卷，或在重置 MacroDB 后立即自动补齐 FusionAuth 已有活跃账号的 `User` / `macro_user` 档案与权限），严禁只重置业务库而留下孤儿身份，导致无密码老用户因未触发 `user.create` 陷入建团队/绑邮箱 500 异常。
+10. **生产环境默认入口**：当前 Macro 生产环境运行在腾讯云 SG 2H8G 主机，SSH 别名为 `marc-sg-2h8g`，生产主路径为 `/home/ubuntu/marco/`。凡用户说“生产环境”“线上”“部署”“生产 Docker Compose”“生产日志/容器”且未指定其它主机时，必须主动连接 `marc-sg-2h8g` 并在 `/home/ubuntu/marco/` 下操作。飞牛 OS 与美国 VPS 均视为历史/备用环境；除非用户明确指定 `fnOS`、飞牛、美国 VPS、`tencent-us2h8g` 或旧 VPS，不要主动连接或排查。
 
 ---
 
@@ -49,7 +50,6 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 
 | 用户意图 / 任务类型 | 触发特征 / 关键词 | 优先分发路由 (Target Sub-Skill / Spec) |
 |---|---|---|
-| **✂️ 功能裁剪 / 依赖瘦身 / Change Planner** | “删功能”、“裁剪”、“不要某服务”、“减镜像”、“Email不需要”、“能不能删”、“瘦身”、“Change Planner”、“slim-plan” | **`skills/macro-upstream-decoupling/SKILL.md`**（Profile-driven Reachability Isolation、Change Planner 边际削减、cargo x slim-plan、五层可达性验收、两阶段物理删除门禁、Decoupling Report） |
 | **🏗️ Rust 后端架构 / 微服务二开** | `crates/**`、`services/**`、Hexagonal 架构、Domain 改造、Ports & Adapters、S3/DB 适配器 | **`../cloud-storage-hexagonal-architecture/SKILL.md`** |
 | **🧠 AI Tool / Toolset 二开** | 新增 AI 工具、`ai_toolset`、tool schema、`inbound/toolset`、工具前端入口 | **`../create-ai-tool/SKILL.md`**（先读 `crates/ai_toolset/TOOL_DESIGN.md` 与框架示例；禁止修改 `crates/ai_toolset/` 框架本身） |
 | **🧰 本地开发 / macOS / Docker / Local Stack** | macOS、Docker Desktop、OrbStack、Colima、`run_local`、`run_dev`、`doctor-local`、`status_local`、`stack up`、本地构建、端口冲突、Production Parity、本地复现 CI | **`skills/macro-local-environment/SKILL.md`** |
@@ -71,7 +71,6 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 - **`skills/macro-local-environment/SKILL.md`**：本地开发栈、Docker、端口、`run_local`、CI parity。
 - **`../live-debug/SKILL.md`**：运行中的本地栈排障、前端复现、跨服务 traces/logs/browser 调试。
 - **`skills/macro-ui-design/SKILL.md`**：`apps/web` 用户可见 UI/UX 改动。
-- **`skills/macro-upstream-decoupling/SKILL.md`**：功能裁剪、镜像瘦身、生产闭包隔离。
 - **`skills/macro-upstream-sync/SKILL.md`**：同步 `macro-inc/macro` upstream。
 - **`../cloud-storage-hexagonal-architecture/SKILL.md`**：Rust 后端架构与 ports/adapters 边界。
 - **`../create-ai-tool/SKILL.md`**：新增或修改 AI tool/toolset。
@@ -94,7 +93,7 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 
 1. **证据先于假设**：禁止仅凭模型记忆猜测 Macro 实现，必须以当前 Git 状态、真实代码、运行时日志、官方文档为真凭实据。
 2. **零官方云外发**：禁止向 `*.macro.com` 外发用户敏感数据，禁止将本地请求失败隐式自动 fallback 到官方云。
-3. **禁止无意义删除**：严禁仅因功能不用就大面积删除 upstream 源码。必须先判定能否通过解耦实现。
+3. **禁止服务级最小集合导向**：不得为了减少构建范围而移除后端服务、Web 页面或 Web 功能。除桌面客户端、移动端客户端等非 Web 客户端外，默认保持全量源码、全量构建、全量验证。
 4. **修改优先级原则**：配置 > 环境变量 > Adapter 替换 > 依赖注入 > 反代 Proxy > 小范围 Patch > 修改 Domain。
 5. **凭据安全红线**：严禁在 Git 追踪的文件中硬编码真实服务器 IP、私钥、OAuth Secret 或 API Key。
 6. **UI 设计系统一致性**：前端二开必须复用 Macro 官方 `@ui`、Kobalte primitives、Theme 语义 Token、既有字号与动效语言；禁止建立平行组件库、私有颜色体系、任意字号或无障碍不受控的自定义交互。
@@ -103,16 +102,16 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 9. **二开代码必须贴合上游规范**：凡是本 fork 新增或本次触碰的二开代码，必须按上游现有目录边界、类型模型、query/service-client 分层、UI 组件规范、格式化与 lint 规则实现。若二开触发 warning/error，优先通过对齐上游模式修复；不要靠禁用规则、扩大类型、粗暴 cast、复制业务逻辑或改原始上游脚本来绕过。
 10. **上游原生运维入口优先**：遇到生产/本地环境状态漂移、服务初始化顺序、外部系统配置缺失、IaC 未落地、数据库/FusionAuth/LocalStack/OpenSearch/Redis/Kafka 等运行时状态不一致时，先查仓库原生脚本、Just recipes、Pulumi/Terraform/IaC 栈、Docker Compose、迁移与 README，再判断是否为“脚本未执行 / import 未完成 / reconcile 未覆盖”。禁止先写新的旁路补丁、手工 curl 脚本或业务代码兜底来掩盖漂移。
 11. **优先贴近 upstream 处理方式**：凡是 Macro 上游已有部署、初始化、导入、同步、回填、修复、seed、doctor、drift check、reconcile 等机制，优先复用或补齐调用路径；只有确认上游没有覆盖当前私有化场景时，才新增最小私有化封装，并明确标注原因与边界。
-12. **构建入口与镜像闭包同步铁律**：新增、移动或重命名任何源码文件后，必须检查并同步所有构建入口、`Dockerfile`、`Nix`、`Cargo.toml`、`Workspace`、复制清单与缓存输入，确认该文件实际进入镜像构建上下文和最终镜像，**严禁仅以本地编译通过判断构建完整**。
+12. **构建入口与镜像清单同步铁律**：新增、移动或重命名任何源码文件后，必须检查并同步所有构建入口、`Dockerfile`、`Nix`、`Cargo.toml`、`Workspace`、复制清单与缓存输入，确认后端服务与 `apps/web` 实际进入构建上下文和最终制品；仅桌面客户端、移动端客户端等非 Web 客户端可按发布目标排除。
 
 
 ---
 
 ## 四、代码关系链与构建闭包穿透准则 (Cargo Tree 与 CodeGraph AST 双轨制)
 
-解耦重构与依赖排查必须严格遵循「Cargo 特性闭包」与「AST 语法树调用」双轨定位机制，严禁盲目递归 grep：
+依赖排查、构建入口核验与代码影响面分析必须严格遵循「Cargo 特性图」与「AST 语法树调用」双轨定位机制，严禁盲目递归 grep：
 
-1. **Cargo 特性依赖图与闭包穿透（谁把依赖拉进来的）**：
+1. **Cargo 特性依赖图（谁把依赖拉进来的）**：
    - **反查是谁引入了目标依赖**：`cargo tree -p <service> -i <target_crate> [--no-default-features]`（0.1 秒秒级输出精准的反向依赖树，直接透视如 `rdkafka`、`call`、`ai_toolset` 是经由哪几条链条引入的，无需翻阅任何代码文件）。
    - **透视是哪个 Feature Flag 激活的**：`cargo tree -p <service> -e features -i <target_crate>`（精准定位是哪个可选 feature 级联打开了重依赖）。
 
@@ -147,15 +146,20 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 
 ---
 
-## 六、辅助目录管理策略
+## 六、构建范围与辅助目录管理策略
 
-1. **`.sqlx/`（必须保留与 CI 一致性守则）**：
+1. **构建范围默认值**：
+   - 后端 Rust workspace、服务镜像与 `apps/web` 默认全量构建；
+   - 不再维护服务级最小集合、Email-only Profile 或类似的局部构建工作流；
+   - 桌面客户端、移动端客户端等非 Web 客户端可以从发布构建中排除，但不得影响 `apps/web` 全量构建。
+
+2. **`.sqlx/`（必须保留与 CI 一致性守则）**：
    - 离线查询元数据，修改 SQL 后必须在根目录执行 `nix develop --command just prepare_db` 更新，严禁手动编辑 JSON 文件。
    - **CI 离线构建与类型强对齐铁律**：GitHub Actions CI、Nix 容器镜像打包与发布流水线均在严格离线模式下编译（`SQLX_OFFLINE=true`，无直连数据库），Rust 编译类型严格由 `.sqlx/` 静态元数据决定。
    - **严禁私加 unwrap 破坏离线编译**：严禁为了迎合本地 live DB 的动态推断（例如 LEFT JOIN 从表字段被本地数据库临时推断为 `Option<T>`）而给字段盲目添加 `.unwrap_or_default()` 或破坏上游强类型契约。若 `.sqlx/` 中对应字段被录制为非空（`nullable: false`，如原生 `String`），调用 `unwrap_or_default()` 会在 CI / Nix 离线构建时抛出致命 `E0599` 错误导致整个流水线崩溃。
    - **对齐排查标准**：遇到 SQLx 类型存疑时，必须以 `SQLX_OFFLINE=true cargo check -p <crate>` 作为与 CI 离线构建对齐的真凭实据；如确需修改查询非空约束，应在 SQL 中使用 `AS "col!"` 强类型断言，并按规范执行 `just prepare_db` 同步更新 `.sqlx/` 目录。
-2. **`.claude/`（保留）**：Claude 开发规范资产，不作为业务运行时删除。
-3. **`.cursor/`（可清理）**：Cursor Cloud 开发辅助环境配置，自托管与生产部署不依赖。
+3. **`.claude/`（保留）**：Claude 开发规范资产，不作为业务运行时删除。
+4. **`.cursor/`（可清理）**：Cursor Cloud 开发辅助环境配置，自托管与生产部署不依赖。
 
 ---
 
