@@ -80,7 +80,7 @@ services:
             cognition: false,
             scheduledActions: false,
             agents: true,
-            docsCollab: false,
+            docsCollab: true,
             enableNewAppViews: false
           }
         };
@@ -621,7 +621,6 @@ services:
   # Workers (Cloudflare Workers running on workerd, via wrangler)
   # ==========================================================================
   sync_service:
-    profiles: ["docs-collab", "full"]
     <<: *env
     image: ${MACRO_IMAGE_SYNC:-ghcr.io/kevinlaucn/macro-sync-service}:${MACRO_VERSION:?set MACRO_VERSION in .env}
     restart: unless-stopped
@@ -644,7 +643,6 @@ services:
       test: ["CMD", "node", "-e", "fetch('http://localhost:8787/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
 
   lexical_service:
-    profiles: ["docs-collab", "full"]
     <<: *env
     image: ${MACRO_IMAGE_LEXICAL:-ghcr.io/kevinlaucn/macro-lexical-service}:${MACRO_VERSION:?set MACRO_VERSION in .env}
     restart: unless-stopped

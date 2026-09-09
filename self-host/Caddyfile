@@ -105,11 +105,14 @@ http://{$MACRO_DOMAIN} {
 
 	# The CDN fan-out CloudFront serves in the hosted product: API and internal
 	# paths to the service, everything else straight out of the bucket.
-	route /static-file/* {
+	@static_file_api path /static-file/api/* /static-file/internal/*
+	handle @static_file_api {
 		uri strip_prefix /static-file
-		@svc path /api/* /internal/*
-		reverse_proxy @svc static-file-service:8080
-		rewrite * /static-file-storage{uri}
+		reverse_proxy static-file-service:8080
+	}
+
+	handle_path /static-file/* {
+		rewrite * /static-file-storage{path}
 		reverse_proxy localstack:4566
 	}
 
