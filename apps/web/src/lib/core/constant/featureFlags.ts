@@ -22,9 +22,6 @@ const parseBooleanOverride = (value: unknown): boolean | undefined =>
  * 在自托管与生产环境读取 /app/env-config.js 动态挂载的 window.__MACRO_ENV__。
  */
 export function getFeatureFlagOverride(flagName: string): boolean | undefined {
-  const viteVal = parseBooleanOverride(import.meta.env[`VITE_${flagName}`]);
-  if (viteVal !== undefined) return viteVal;
-
   if (typeof window !== 'undefined') {
     const macroEnv = (
       window as unknown as { __MACRO_ENV__?: Record<string, unknown> }
@@ -37,6 +34,9 @@ export function getFeatureFlagOverride(flagName: string): boolean | undefined {
       if (runtimeVal !== undefined) return runtimeVal;
     }
   }
+
+  const viteVal = parseBooleanOverride(import.meta.env[`VITE_${flagName}`]);
+  if (viteVal !== undefined) return viteVal;
 
   return undefined;
 }

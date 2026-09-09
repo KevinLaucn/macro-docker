@@ -1125,7 +1125,7 @@ jobs:
             NODE_OPTIONS=--max-old-space-size=6144 \
             VITE_LOCAL_SERVERS=ALL \
             VITE_LOCAL_BACKEND_ORIGIN=same-origin \
-            VITE_ENABLE_MARKDOWN_LIVE_COLLABORATION=false \
+            VITE_ENABLE_MARKDOWN_LIVE_COLLABORATION=true \
               bun run --bun build
           '
           mkdir -p self-host/build/dist
