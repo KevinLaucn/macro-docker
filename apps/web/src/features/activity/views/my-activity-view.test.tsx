@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library';
+import type { JSX } from 'solid-js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ActivityContextProvider } from '../context/activity-context';
 import { placeholderOverview } from '../core/placeholder-overview';
@@ -10,6 +11,29 @@ import { MyActivityView } from './my-activity-view';
 vi.mock('@components/app/split-layout/components/SplitHeader', () => ({
   SplitHeaderLeft: (props: { children: unknown }) => props.children,
 }));
+
+// jsdom has no layout, so the virtualizer renders every row and exposes a
+// fake handle plus its scroll callback so tests can drive paging.
+const virtual = vi.hoisted(() => ({
+  onScroll: undefined as ((offset: number) => void) | undefined,
+  handle: { scrollSize: 3000, viewportSize: 800, scrollOffset: 0 },
+}));
+
+vi.mock('virtua/solid', async () => {
+  const { For } = await import('solid-js');
+  return {
+    Virtualizer: (props: {
+      data: readonly unknown[];
+      children: (row: unknown, index: () => number) => JSX.Element;
+      ref?: (handle: unknown) => void;
+      onScroll?: (offset: number) => void;
+    }) => {
+      props.ref?.(virtual.handle);
+      virtual.onScroll = props.onScroll;
+      return <For each={props.data}>{(row, i) => props.children(row, i)}</For>;
+    },
+  };
+});
 
 vi.mock(
   '@core/component/LexicalMarkdown/component/core/StaticMarkdown',
@@ -35,6 +59,8 @@ vi.mock('@service-storage/websocket', () => ({
 }));
 
 afterEach(cleanup);
+
+const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 function renderView() {
   const context = createMockActivityContext();
@@ -85,8 +111,8 @@ describe('MyActivityView', () => {
     );
   });
 
-  it('renders grouped rows with actor names and pages on Show more', async () => {
-    const { graphql } = renderView();
+  it('renders grouped rows with actor names and pages when scrolled near the end', () => {
+    const { container, graphql } = renderView();
     graphql
       .latest('MyActivity')
       .resolve(feedPage([createdEvent, messagedEvent], 'cursor-2'));
@@ -95,16 +121,75 @@ describe('MyActivityView', () => {
     expect(rows()[0]?.getAttribute('data-activity-action')).toBe('created');
     expect(rows()[1]?.getAttribute('data-activity-action')).toBe('messaged');
     expect(screen.getAllByText('sarah')).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull();
+    expect(container.querySelector('[data-activity-feed-tail]')).not.toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+    const scroll = virtual.onScroll;
+    if (!scroll) throw new Error('virtualizer did not register onScroll');
+    const feedRequests = () =>
+      graphql.pending.filter((op) => op.name === 'MyActivity').length;
+    expect(feedRequests()).toBe(1);
+
+    // Far from the end: 3000 - 800 - 0 > max(100, 800).
+    scroll(0);
+    expect(feedRequests()).toBe(1);
+
+    // Within one viewport of the end.
+    scroll(1500);
+    expect(feedRequests()).toBe(2);
     const next = graphql.latest('MyActivity');
     expect(next.variables).toEqual({
       input: { limit: 50, cursor: 'cursor-2' },
     });
+    expect(container.textContent).toContain('Loading…');
+
+    // A second scroll while the page is in flight does not double-fetch.
+    scroll(1600);
+    expect(feedRequests()).toBe(2);
 
     next.resolve(feedPage([{ ...createdEvent, id: 'evt-99' }], null));
     expect(rows()).toHaveLength(3);
-    expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull();
+    expect(container.querySelector('[data-activity-feed-tail]')).toBeNull();
+
+    // No more pages: scrolling to the end fetches nothing.
+    scroll(2200);
+    expect(feedRequests()).toBe(2);
+  });
+
+  it('offers a retry instead of re-paging when the next page fails', async () => {
+    const { container, graphql } = renderView();
+    graphql
+      .latest('MyActivity')
+      .resolve(feedPage([createdEvent, messagedEvent], 'cursor-2'));
+    const scroll = virtual.onScroll;
+    if (!scroll) throw new Error('virtualizer did not register onScroll');
+    const feedRequests = () =>
+      graphql.pending.filter((op) => op.name === 'MyActivity').length;
+
+    scroll(1500);
+    expect(feedRequests()).toBe(2);
+    graphql.latest('MyActivity').fail('boom');
+    await settle();
+
+    const tail = container.querySelector('[data-activity-feed-tail]');
+    expect(tail?.textContent).toContain("Couldn't load more.");
+    expect(tail?.textContent).not.toContain('Loading…');
+
+    // Still resting near the end: no automatic re-fetch.
+    scroll(1500);
+    scroll(1600);
+    expect(feedRequests()).toBe(2);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await settle();
+    expect(feedRequests()).toBe(3);
+    expect(container.textContent).toContain('Loading…');
+
+    graphql
+      .latest('MyActivity')
+      .resolve(feedPage([{ ...createdEvent, id: 'evt-99' }], null));
+    expect(rows()).toHaveLength(3);
+    expect(container.querySelector('[data-activity-feed-tail]')).toBeNull();
   });
 
   it('asks the host to open the row entity', () => {
