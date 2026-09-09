@@ -76,11 +76,12 @@ services:
           ENABLE_NEW_APP_VIEWS: "false", // 恢复经典单栏全局收件箱 SoupView 布局
           ENABLE_CHAT_V3_AGENTS: "true", // 启用 AI 助手与运行环境设置及频道 Mention
           ENABLE_AGENTS: "true",
+          ENABLE_DOCS_COLLAB: "true",
           FEATURES: {
             cognition: false,
             scheduledActions: false,
-            agents: true,
-            docsCollab: true,
+            agents: false,
+            docsCollab: false,
             enableNewAppViews: false
           }
         };
