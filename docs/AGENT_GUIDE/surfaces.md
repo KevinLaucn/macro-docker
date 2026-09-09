@@ -45,6 +45,45 @@ Full email client. Tabs: `Signal` / `Noise` / `Sent` / `Calendar` / `Drafts` / `
 shows `Connect your email` (Gmail/Google Workspace OAuth) — most functionality needs a
 connected account. Search is `Ctrl+F` within the surface.
 
+Threads open at `/app/email/<thread-id>`. Click a message header to expand or
+collapse it; `Show N hidden messages` reveals the collapsed middle of a longer
+conversation. A link with `?email_message_id=<message-id>` reveals that message.
+Collapsed thread cards use a compact text snippet; expanding mounts the message
+body and its attachments.
+Replies appear inline on desktop and in a composer drawer on touch devices.
+`R` and `Alt+R` (`Option+R` on macOS) open reply-all for the selected message,
+or the latest message when none is selected. `F` opens a forward and focuses To.
+While an editable field is focused, Escape is handled by that field before the
+close-reply shortcut.
+An edited reply remains a draft when navigating away and returning. Standalone
+compose also flushes pending edits when leaving through app navigation. During
+send or discard, its sender and scheduling controls cannot change the operation.
+Attachments that can be opened are buttons named by their filename; Tab to one
+and press Enter or Space. Removal is a separate button named `Remove <filename>`.
+Removing a forwarded file keeps the received original.
+AI email tool drafts persist body-only edits; changing recipients or the subject
+is not required to save the body.
+The three-dot button beneath a body reveals quoted content and a trimmed
+signature. Plaintext and Macro Markdown use the existing Markdown renderer;
+Macro Markdown messages retain document mentions. Ordinary HTML bodies use an
+open shadow root: Playwright text locators can reach them, but a card's ordinary
+`innerText` or `querySelector` does not traverse that root.
+
+After a successful send, the `Email sent` notice offers `Undo`. Undo restores the
+sent envelope and editable content, including when the reply used another inbox;
+a slow background refresh must not keep the restored editor disabled. A rejected
+send reports failure and restores its original reply editor if it is still mounted.
+A failure from an older, unmounted editor must not overwrite a newer edited reply.
+A presentation or refresh error after successful delivery is not a reason to send
+again.
+
+While a schedule change is pending, immediate send and further schedule changes
+are disabled. Reply recipients cannot be edited or dragged during scheduling,
+sending, or discarding. A failed schedule or unschedule keeps the last confirmed time.
+If scheduling succeeds but marking the thread done fails, the email remains
+scheduled and a notice explains the separate failure. Check the confirmed time
+before retrying; do not treat that notice as a failed schedule.
+
 With the new app views enabled, mobile and tablet Email use a floating, horizontally
 scrolling row of those tabs, with `Open email filters` at the left. The rest of the
 view is the email list, which scrolls beneath the header and supports pull to refresh
