@@ -9,6 +9,7 @@ import type {
   MessagePart,
   PlanEntry,
 } from '@service-agent-fold/generated/types';
+import { t } from '@macro/i18n';
 import { diffLines } from 'diff';
 import type { CountItem } from '../ui';
 
@@ -105,17 +106,32 @@ export function activityCounts(messages: FoldedMessage[]): CountItem[] {
     {
       key: 'edit',
       count: counts.edit,
-      one: 'file edited',
-      other: 'files edited',
+      one: t('file edited'),
+      other: t('files edited'),
     },
-    { key: 'read', count: counts.read, one: 'file read', other: 'files read' },
-    { key: 'search', count: counts.search, one: 'search', other: 'searches' },
+    {
+      key: 'read',
+      count: counts.read,
+      one: t('file read'),
+      other: t('files read'),
+    },
+    {
+      key: 'search',
+      count: counts.search,
+      one: t('search'),
+      other: t('searches'),
+    },
     {
       key: 'terminal',
       count: counts.terminal,
-      one: 'command',
-      other: 'commands',
+      one: t('command'),
+      other: t('commands'),
     },
-    { key: 'fetch', count: counts.fetch, one: 'fetch', other: 'fetches' },
+    {
+      key: 'fetch',
+      count: counts.fetch,
+      one: t('fetch'),
+      other: t('fetches'),
+    },
   ];
 }

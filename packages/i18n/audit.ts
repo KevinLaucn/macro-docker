@@ -8,41 +8,12 @@ const traverse = (traverseModule as any).default || traverseModule;
 const webSrcDir = path.resolve(__dirname, "../../apps/web/src");
 const diffDir = path.resolve(__dirname, "./diff");
 
-const IGNORED_TAGS = new Set([
-  "code",
-  "pre",
-  "script",
-  "style",
-  "svg",
-  "path",
-]);
-
-const TRANSLATABLE_ATTRIBUTES = new Set([
-  "placeholder",
-  "title",
-  "aria-label",
-  "label",
-  "tooltip",
-  "emptyText",
-  "heading",
-  "subheading",
-  "description",
-  "confirmText",
-  "cancelText",
-  "buttonText",
-]);
-
-function shouldAuditText(text: string): boolean {
-  const norm = text.trim().replace(/\s+/g, " ");
-  if (!norm || norm.length < 2) return false;
-  if (!/[a-zA-Z]/.test(norm)) return false;
-  if (norm.startsWith("http://") || norm.startsWith("https://")) return false;
-  if (norm.startsWith("/") || norm.startsWith("./") || norm.startsWith("../")) return false;
-  if (/^[a-z0-9-_]+:[a-z0-9-_]+$/i.test(norm)) return false;
-  if (/^(--|\$|\.)[a-z0-9_-]+/i.test(norm)) return false;
-  if (/^\[data-/.test(norm)) return false;
-  return true;
-}
+import {
+  TRANSLATABLE_ATTRIBUTES,
+  IGNORED_TAGS,
+  shouldTranslateText as shouldAuditText,
+  isIgnoredPath,
+} from "./ast-utils";
 
 function getAllFiles(dir: string, ext: RegExp, list: string[] = []): string[] {
   const files = fs.readdirSync(dir);
@@ -88,6 +59,7 @@ async function audit() {
   const untranslated: { file: string; line: number; type: string; snippet: string }[] = [];
 
   for (const file of files) {
+    if (isIgnoredPath(file)) continue;
     const rel = path.relative(webSrcDir, file);
     const code = fs.readFileSync(file, "utf-8");
     if (!file.endsWith(".tsx") && !code.includes("toast")) continue;

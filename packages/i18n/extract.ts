@@ -41,6 +41,20 @@ import {
   parseSimpleTemplateLiteral,
 } from "./ast-utils";
 
+interface LocationInfo {
+  file: string;
+  line: number;
+  type: string;
+  attrName?: string;
+}
+
+interface CallMetadata {
+  occurrences: string[];
+  context?: string;
+  explicit?: boolean;
+  locs: LocationInfo[];
+}
+
 async function run() {
   const files = getAllFiles(webSrcDir, /\.[tj]sx?$/).filter(
     (f) => !f.endsWith(".test.ts") && !f.endsWith(".test.tsx")
@@ -54,8 +68,8 @@ async function run() {
     ? JSON.parse(fs.readFileSync(zhDictPath, "utf-8"))
     : {};
 
-  const currentCalls = new Map<string, { occurrences: string[]; context?: string; explicit?: boolean; locs: { file: string; line: number }[] }>();
-  const explicitCalls = new Map<string, { occurrences: string[]; context?: string; locs: { file: string; line: number }[] }>();
+  const currentCalls = new Map<string, CallMetadata>();
+  const explicitCalls = new Map<string, CallMetadata>();
   const parseFailures: { file: string; error: string }[] = [];
 
   function recordCall(
@@ -63,11 +77,13 @@ async function run() {
     rel: string,
     context: string | undefined,
     isExplicit = false,
-    line = 0
+    line = 0,
+    type = "unknown",
+    attrName?: string
   ) {
     const existing = currentCalls.get(dictKey) || { occurrences: [], locs: [] };
     existing.occurrences.push(rel);
-    if (line > 0) existing.locs.push({ file: rel, line });
+    if (line > 0) existing.locs.push({ file: rel, line, type, attrName });
     if (context) existing.context = context;
     if (isExplicit) existing.explicit = true;
     currentCalls.set(dictKey, existing);
@@ -75,7 +91,7 @@ async function run() {
     if (isExplicit) {
       const explicitExisting = explicitCalls.get(dictKey) || { occurrences: [], locs: [] };
       explicitExisting.occurrences.push(rel);
-      if (line > 0) explicitExisting.locs.push({ file: rel, line });
+      if (line > 0) explicitExisting.locs.push({ file: rel, line, type: "t()" });
       if (context) explicitExisting.context = context;
       explicitCalls.set(dictKey, explicitExisting);
     }
@@ -85,6 +101,7 @@ async function run() {
     if (isIgnoredPath(file) && !file.startsWith(__dirname)) continue;
     const rel = path.relative(webSrcDir, file);
     const code = fs.readFileSync(file, "utf-8");
+    const isActivityDesc = file.includes("describe-action") || file.includes("activity");
 
     try {
       const ast = parse(code, {
@@ -137,7 +154,36 @@ async function run() {
 
               const dictKey = context ? `${key}@@${context}` : key;
               const line = p.node.loc?.start?.line ?? 0;
-              recordCall(dictKey, rel, context, true, line);
+              recordCall(dictKey, rel, context, true, line, "t()");
+            }
+            return;
+          }
+
+          // Check toast calls: toast.success, toast.error, toast.info, toast.warning, toast.loading, toast(...)
+          const isToast =
+            (callee.type === "MemberExpression" &&
+              callee.object?.name === "toast" &&
+              ["success", "error", "info", "warning", "loading", "message"].includes(
+                callee.property?.name
+              )) ||
+            (callee.type === "Identifier" && callee.name === "toast");
+
+          if (isToast && p.node.arguments.length > 0) {
+            const firstArg = p.node.arguments[0];
+            let rawToastText: string | undefined;
+            if (firstArg.type === "StringLiteral") {
+              rawToastText = firstArg.value;
+            } else if (firstArg.type === "TemplateLiteral" && firstArg.quasis.length === 1) {
+              rawToastText = firstArg.quasis[0].value.raw;
+            }
+            if (rawToastText) {
+              const norm = normalizeKey(rawToastText);
+              if (shouldTranslateText(norm) || existingZh[norm]) {
+                const dictKey = fileContext ? `${norm}@@${fileContext}` : norm;
+                const line = p.node.loc?.start?.line ?? 0;
+                const toastProp = callee.property?.name ? `toast.${callee.property.name}` : "toast";
+                recordCall(dictKey, rel, fileContext, false, line, toastProp);
+              }
             }
           }
         },
@@ -152,7 +198,8 @@ async function run() {
             const norm = normalizeKey(unit.template);
             if (shouldTranslateText(norm) || existingZh[norm]) {
               const dictKey = fileContext ? `${norm}@@${fileContext}` : norm;
-              recordCall(dictKey, rel, fileContext);
+              const line = p.node.loc?.start?.line ?? 0;
+              recordCall(dictKey, rel, fileContext, false, line, "JSXMixedChildren");
             }
           }
         },
@@ -161,26 +208,66 @@ async function run() {
           const norm = normalizeKey(raw);
           if (shouldTranslateText(norm) || existingZh[norm]) {
             const dictKey = fileContext ? `${norm}@@${fileContext}` : norm;
-            recordCall(dictKey, rel, fileContext);
+            const line = p.node.loc?.start?.line ?? 0;
+            recordCall(dictKey, rel, fileContext, false, line, "JSXText");
           }
         },
         JSXAttribute(p: any) {
           const attrName = p.node.name?.name;
-          if (TRANSLATABLE_ATTRIBUTES.has(attrName) && p.node.value?.type === "StringLiteral") {
-            const val = normalizeKey(p.node.value.value);
-            if (shouldTranslateText(val) || existingZh[val]) {
-              const dictKey = fileContext ? `${val}@@${fileContext}` : val;
-              recordCall(dictKey, rel, fileContext);
+          if (TRANSLATABLE_ATTRIBUTES.has(attrName)) {
+            const line = p.node.loc?.start?.line ?? 0;
+            if (p.node.value?.type === "StringLiteral") {
+              const val = normalizeKey(p.node.value.value);
+              if (shouldTranslateText(val) || existingZh[val]) {
+                const dictKey = fileContext ? `${val}@@${fileContext}` : val;
+                recordCall(dictKey, rel, fileContext, false, line, `JSXAttribute(${attrName})`, attrName);
+              }
+            } else if (p.node.value?.type === "JSXExpressionContainer") {
+              const exp = p.node.value.expression;
+              if (exp.type === "StringLiteral") {
+                const val = normalizeKey(exp.value);
+                if (shouldTranslateText(val) || existingZh[val]) {
+                  const dictKey = fileContext ? `${val}@@${fileContext}` : val;
+                  recordCall(dictKey, rel, fileContext, false, line, `JSXAttribute(${attrName})`, attrName);
+                }
+              } else if (exp.type === "TemplateLiteral") {
+                if (exp.quasis.length === 1 && exp.expressions.length === 0) {
+                  const val = normalizeKey(exp.quasis[0].value.raw);
+                  if (shouldTranslateText(val) || existingZh[val]) {
+                    const dictKey = fileContext ? `${val}@@${fileContext}` : val;
+                    recordCall(dictKey, rel, fileContext, false, line, `JSXAttribute(${attrName})`, attrName);
+                  }
+                } else {
+                  const unit = parseSimpleTemplateLiteral(exp);
+                  if (unit) {
+                    const norm = normalizeKey(unit.template);
+                    if (shouldTranslateText(norm) || existingZh[norm]) {
+                      const dictKey = fileContext ? `${norm}@@${fileContext}` : norm;
+                      recordCall(dictKey, rel, fileContext, false, line, `JSXAttribute(${attrName})`, attrName);
+                    }
+                  }
+                }
+              }
             }
           }
         },
         StringLiteral(p: any) {
           const val = normalizeKey(p.node.value);
+          const line = p.node.loc?.start?.line ?? 0;
           if (existingZh[val]) {
-            recordCall(val, rel, undefined);
+            recordCall(val, rel, undefined, false, line, "StringLiteral");
           }
           if (fileContext && existingZh[`${val}@@${fileContext}`]) {
-            recordCall(`${val}@@${fileContext}`, rel, fileContext);
+            recordCall(`${val}@@${fileContext}`, rel, fileContext, false, line, "StringLiteral");
+          }
+
+          if (isActivityDesc) {
+            if (p.parent?.type === "ReturnStatement" || p.parent?.type === "ArrowFunctionExpression") {
+              if (shouldTranslateText(val) || existingZh[val]) {
+                const dictKey = fileContext ? `${val}@@${fileContext}` : val;
+                recordCall(dictKey, rel, fileContext, false, line, "ActivityDesc");
+              }
+            }
           }
         },
       });
@@ -200,8 +287,9 @@ async function run() {
       traverse(ast, {
         StringLiteral(p: any) {
           const val = normalizeKey(p.node.value);
+          const line = p.node.loc?.start?.line ?? 0;
           if (existingZh[val]) {
-            recordCall(val, rel, undefined, false);
+            recordCall(val, rel, undefined, false, line, "TestStringLiteral");
           }
         },
       });
@@ -211,6 +299,19 @@ async function run() {
   }
 
   const missing: Record<string, string> = {};
+  const missingExplicit: Record<string, { locs: LocationInfo[]; context?: string }> = {};
+  const missingUi: Record<string, { locs: LocationInfo[]; context?: string }> = {};
+  const missingDetails: Record<
+    string,
+    {
+      baseKey: string;
+      context?: string;
+      isExplicit: boolean;
+      occurrences: string[];
+      locs: LocationInfo[];
+    }
+  > = {};
+
   const inUse: Record<string, string[]> = {};
   const ambiguous: Record<string, string[]> = {};
   const obsolete: Record<string, string> = {};
@@ -220,12 +321,28 @@ async function run() {
     inUse[key] = Array.from(new Set(meta.occurrences));
   }
 
-  // Missing translations: only explicit t() / __t() calls that have no translation in zh-CN
-  for (const [key, meta] of explicitCalls.entries()) {
-    if (!existingZh[key]) {
-      const baseKey = key.includes("@@") ? key.split("@@")[0] : key;
-      if (!existingZh[baseKey]) {
-        missing[key] = "";
+  // Missing translations: comprehensive check across all extracted keys
+  for (const [key, meta] of currentCalls.entries()) {
+    const baseKey = key.includes("@@") ? key.split("@@")[0] : key;
+    const isTranslated = Boolean(existingZh[key] || existingZh[baseKey]);
+    if (!isTranslated) {
+      missing[key] = "";
+      const uniqueLocs = meta.locs.filter(
+        (loc, idx, arr) => arr.findIndex((l) => l.file === loc.file && l.line === loc.line) === idx
+      );
+      const uniqueOccurrences = Array.from(new Set(meta.occurrences));
+      missingDetails[key] = {
+        baseKey,
+        context: meta.context,
+        isExplicit: !!meta.explicit,
+        occurrences: uniqueOccurrences,
+        locs: uniqueLocs,
+      };
+
+      if (meta.explicit) {
+        missingExplicit[key] = { locs: uniqueLocs, context: meta.context };
+      } else {
+        missingUi[key] = { locs: uniqueLocs, context: meta.context };
       }
     }
   }
@@ -253,28 +370,60 @@ async function run() {
   }
 
   fs.writeFileSync(path.join(diffDir, "missing.json"), JSON.stringify(missing, null, 2), "utf-8");
+  fs.writeFileSync(path.join(diffDir, "missing-details.json"), JSON.stringify(missingDetails, null, 2), "utf-8");
   fs.writeFileSync(path.join(diffDir, "in-use.json"), JSON.stringify(inUse, null, 2), "utf-8");
   fs.writeFileSync(path.join(diffDir, "parse-failures.json"), JSON.stringify(parseFailures, null, 2), "utf-8");
   fs.writeFileSync(path.join(diffDir, "obsolete.json"), JSON.stringify(obsolete, null, 2), "utf-8");
   fs.writeFileSync(path.join(diffDir, "ambiguous.json"), JSON.stringify(ambiguous, null, 2), "utf-8");
 
-  console.log("==========================================");
-  console.log(`✅ i18n Translation Sync Report:`);
-  console.log(`  - Explicit t() Keys Found: ${explicitCalls.size}`);
-  console.log(`  - Missing in zh-CN:        ${Object.keys(missing).length}`);
-  console.log(`  - Obsolete in zh-CN:       ${Object.keys(obsolete).length}`);
-  console.log(`  - Ambiguous Context Keys:  ${Object.keys(ambiguous).length}`);
-  console.log(`  - Parse Failures:          ${parseFailures.length}`);
+  const explicitMissingCount = Object.keys(missingExplicit).length;
+  const uiMissingCount = Object.keys(missingUi).length;
+  const totalMissingCount = Object.keys(missing).length;
 
-  const missingKeys = Object.keys(missing);
-  if (missingKeys.length > 0) {
-    console.log(`\n❌ Missing Translations (need translation in zh-CN.json):`);
-    for (const key of missingKeys) {
-      const meta = explicitCalls.get(key);
-      const locList = meta?.locs?.length
-        ? meta.locs.map((l) => `apps/web/src/${l.file}:${l.line}`).join(", ")
-        : meta?.occurrences?.map((f) => `apps/web/src/${f}`).join(", ") || "unknown location";
+  console.log("==========================================");
+  console.log(`✅ i18n Comprehensive Translation Sync Report:`);
+  console.log(`  - Total In-Use Keys Scanned:     ${currentCalls.size}`);
+  console.log(`  - Explicit t() Keys Found:       ${explicitCalls.size}`);
+  console.log(`  - Missing Explicit t() in zh-CN: ${explicitMissingCount}`);
+  console.log(`  - Missing UI Text/Attrs in zh-CN:${uiMissingCount}`);
+  console.log(`  - Total Missing Translations:    ${totalMissingCount}`);
+  console.log(`  - Obsolete Keys in zh-CN:        ${Object.keys(obsolete).length}`);
+  console.log(`  - Ambiguous Context Keys:        ${Object.keys(ambiguous).length}`);
+  console.log(`  - Parse Failures:                ${parseFailures.length}`);
+
+  if (explicitMissingCount > 0) {
+    console.log(`\n❌ Missing Explicit t() Translations (High Priority - Code calls t(), but key missing in zh-CN):`);
+    for (const [key, item] of Object.entries(missingExplicit)) {
+      const locList = item.locs.length
+        ? item.locs.map((l) => `apps/web/src/${l.file}:${l.line}`).join(", ")
+        : "unknown location";
       console.log(`  - "${key}"\n    Location: ${locList}`);
+    }
+  }
+
+  if (uiMissingCount > 0) {
+    console.log(`\n⚠️  Untranslated UI Literals & Attributes (Sample of ${uiMissingCount} total):`);
+    // Group by file for clean reading
+    const byFile: Record<string, { line: number; type: string; key: string }[]> = {};
+    for (const [key, item] of Object.entries(missingUi)) {
+      for (const loc of item.locs) {
+        if (!byFile[loc.file]) byFile[loc.file] = [];
+        byFile[loc.file].push({ line: loc.line, type: loc.type, key });
+      }
+    }
+
+    const topFiles = Object.entries(byFile).slice(0, 10);
+    for (const [file, items] of topFiles) {
+      console.log(`  📁 apps/web/src/${file} (${items.length} untranslated):`);
+      for (const item of items.slice(0, 5)) {
+        console.log(`     - Line ${item.line} [${item.type}]: "${item.key.slice(0, 60)}"`);
+      }
+      if (items.length > 5) {
+        console.log(`     ... and ${items.length - 5} more in this file`);
+      }
+    }
+    if (Object.keys(byFile).length > 10) {
+      console.log(`  ... and ${Object.keys(byFile).length - 10} more files (see packages/i18n/diff/missing-details.json)`);
     }
   }
 
@@ -286,7 +435,7 @@ async function run() {
     }
   }
 
-  console.log(`\nReports saved in packages/i18n/diff/`);
+  console.log(`\nDetailed reports saved in packages/i18n/diff/`);
   console.log("==========================================");
 }
 

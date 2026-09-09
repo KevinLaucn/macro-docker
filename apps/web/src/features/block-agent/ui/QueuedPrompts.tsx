@@ -14,6 +14,7 @@
 
 import { buildConfig } from '@core/component/LexicalMarkdown/builder/MarkdownConfigBuilder';
 import { MarkdownShell } from '@core/component/LexicalMarkdown/builder/MarkdownShell';
+import { t } from '@macro/i18n';
 import XIcon from '@phosphor-icons/core/regular/x.svg?component-solid';
 import { Button, Surface } from '@ui';
 import {
@@ -140,16 +141,16 @@ function QueuedRow(props: QueuedRowProps) {
             <PromptBody {...props} />
           </Show>
           <div class="text-xs text-ink-extra-muted">
-            Queued
+            {t('Queued')}
             <Show when={props.item.queuedBy}>
-              {(name) => <> by {name()}</>}
+              {(name) => <>{t(' by {name}', { name: name() })}</>}
             </Show>
           </div>
         </div>
         <Button
           variant="ghost"
           size="icon-sm"
-          label="Remove queued message"
+          label={t('Remove queued message')}
           onClick={() => props.onRemove()}
           class="shrink-0"
         >
@@ -260,7 +261,7 @@ function CompactBody(props: QueuedRowProps) {
         }
       }}
     >
-      Compact the conversation
+      {t('Compact the conversation')}
     </div>
   );
 }

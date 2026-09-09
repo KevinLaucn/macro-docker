@@ -6,6 +6,7 @@ import { LoadErrorPanel } from '@core/component/EntityLoadGate';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { LinkedConversationDrawer } from '@core/linked-conversation';
 import { nativeNetworkStatus } from '@core/mobile/native-network-status';
+import { t } from '@macro/i18n';
 import { Show, useContext } from 'solid-js';
 
 import {
@@ -40,7 +41,7 @@ function AgentBlockContent() {
       when={!loadUnavailable()}
       fallback={
         <LoadErrorPanel
-          title="Unable to load this document"
+          title={t('Unable to load this document')}
           onRetry={loadRetryable() ? retryLoad : undefined}
         />
       }

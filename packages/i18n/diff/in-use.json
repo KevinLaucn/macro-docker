@@ -623,6 +623,58 @@
     "features/next-soup/soup-view/empty-states.tsx",
     "features/entity/bulk-edit/BulkMoveToProjectView.tsx"
   ],
+  "search": [
+    "features/next-soup/soup-view/empty-states.tsx",
+    "features/next-soup/soup-view/filters-bar/soup-view-search-bar.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-filters-state.ts",
+    "features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx",
+    "features/next-soup/soup-view/soup-view-tabs.tsx",
+    "features/next-soup/soup-view/soup-view.tsx",
+    "features/settings/PipedreamIntegrations.tsx",
+    "features/settings/PipedreamAppPicker.tsx",
+    "features/property/editors/selectors/PropertyDateSelector.tsx",
+    "features/property/tags/tagNavigation.ts",
+    "features/entity/types/search.ts",
+    "features/entity/queries/key.ts",
+    "features/inbox-view/queries/use-inbox-query.ts",
+    "features/block-pdf/signal/search.ts",
+    "features/block-pdf/signal/location.ts",
+    "features/block-agent/component/parts/SearchToolCall.tsx",
+    "features/block-agent/component/parts/ToolCallPart.tsx",
+    "features/block-agent/state/session-summary.ts",
+    "features/block-agent/debug/Gallery.tsx",
+    "features/command/useCommandItems.ts",
+    "features/command/CommandMenu.tsx",
+    "features/command/mobile/MobileSearchInput.tsx",
+    "features/block-email/component/date-selector.tsx",
+    "components/view-shell/SearchBar.tsx",
+    "components/app/app-sidebar/sidebar.tsx",
+    "components/app/mobile/MobileDockRow.tsx",
+    "components/app/mobile/mobile-dock-views.ts",
+    "components/app/mobile/mobile-nav-views.ts",
+    "components/app/mobile/MobileViewsRow.tsx",
+    "components/app/sidebar-next/search-bar-button.tsx",
+    "components/app/split-layout/componentRegistry.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/presentation.ts",
+    "lib/constants/list-views.ts",
+    "lib/queries/channel/graphql.ts",
+    "lib/queries/history/graphql.ts",
+    "lib/service-clients/service-cognition/client.ts",
+    "lib/service-clients/service-agent-fold/generated/types.ts",
+    "lib/graphql-cache/host/worker-host.ts",
+    "lib/graphql-cache/telemetry.ts",
+    "lib/graphql-cache/protocol.ts",
+    "lib/graphql-cache/worker/coordinator-protocol.ts",
+    "lib/graphql-cache/worker/worker-core.ts",
+    "features/next-soup/sidebar/soup-filter-presets.test.ts",
+    "features/block-agent/state/session-summary.test.ts",
+    "lib/core/component/AI/component/message/AssistantMessageParts.test.tsx",
+    "lib/queries/channel/tests/graphql.test.ts",
+    "lib/queries/history/tests/graphql.test.ts",
+    "lib/graphql-cache/host/worker-host.test.ts",
+    "lib/graphql-cache/worker/worker-core.test.ts",
+    "lib/graphql-cache/worker/coordinator-protocol.test.ts"
+  ],
   "No items to show": [
     "features/next-soup/soup-view/empty-states.tsx"
   ],
@@ -1347,6 +1399,19 @@
     "features/activity/core/describe-action.test.ts",
     "features/entity/tests/notification-description.test.ts"
   ],
+  "Link copied to clipboard": [
+    "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
+    "features/next-soup/actions/make-copy-link-action.ts",
+    "features/block-md/component/MarkdownPopup.tsx",
+    "features/entity/extractors-notification/notification-copy-link.ts",
+    "features/block-pdf/component/TopBar.tsx",
+    "features/block-agent/component/AgentSplitHeader.tsx",
+    "features/channel/Channel/create-channel-message-actions.ts",
+    "features/block-canvas/component/TopBar.tsx",
+    "features/block-project/component/TopBar.tsx",
+    "lib/core/comments/Comment.tsx",
+    "lib/core/comments/discussion/Discussion.tsx"
+  ],
   "Copy link": [
     "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
     "features/next-soup/actions/use-entity-action-hotkeys.ts",
@@ -1358,6 +1423,9 @@
     "lib/core/component/LexicalMarkdown/component/menu/FloatingLinkMenu.tsx"
   ],
   "Delete view": [
+    "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx"
+  ],
+  "View saved": [
     "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx"
   ],
   "Views": [
@@ -1528,6 +1596,9 @@
     "components/app/GlobalHotkeys.tsx",
     "lib/queries/email/thread.ts"
   ],
+  "Restored from Trash": [
+    "features/next-soup/actions/make-delete-action.ts"
+  ],
   "Mark done": [
     "features/next-soup/actions/use-entity-action-hotkeys.ts",
     "features/next-soup/actions/use-block-entity-commands.ts",
@@ -1617,6 +1688,9 @@
   ],
   "Marked {count} items as not done": [
     "features/next-soup/actions/make-mark-not-done-action.ts"
+  ],
+  "ID copied to clipboard": [
+    "features/next-soup/actions/make-copy-entity-id-action.ts"
   ],
   "from": [
     "features/next-soup/actions/make-favorite-action.ts",
@@ -2030,6 +2104,9 @@
   "Automatically add new sign-ups whose email matches the team owner's domain.": [
     "features/settings/Team.tsx"
   ],
+  "GitHub autolink URL copied": [
+    "features/settings/Team.tsx"
+  ],
   "Delete Team": [
     "features/settings/Team.tsx"
   ],
@@ -2217,6 +2294,9 @@
   "Email read receipts for": [
     "features/settings/ReadReceiptsSection.tsx"
   ],
+  "Inbox removed": [
+    "features/settings/Email.tsx"
+  ],
   "Gmail": [
     "features/settings/Email.tsx"
   ],
@@ -2301,6 +2381,12 @@
   "Edit signature": [
     "features/settings/Email.tsx"
   ],
+  "Edit signature for {email_address}": [
+    "features/settings/Email.tsx"
+  ],
+  "Reconnect {email_address}": [
+    "features/settings/Email.tsx"
+  ],
   "Reconnect": [
     "features/settings/Email.tsx",
     "features/settings/GitHub.tsx",
@@ -2308,6 +2394,9 @@
     "features/auth/GmailReauthenticationPrompt.tsx",
     "features/block-calendar/components/SetupStatus.tsx",
     "features/auth/GithubReauthenticationPrompt.test.tsx"
+  ],
+  "Enable calendar for {email_address}": [
+    "features/settings/Email.tsx"
   ],
   "Enable calendar": [
     "features/settings/Email.tsx",
@@ -2318,7 +2407,16 @@
     "features/settings/Email.tsx",
     "features/calendar/components/TurnOffCalendarDialog.tsx"
   ],
+  "Turn off calendar for {email_address}": [
+    "features/settings/Email.tsx"
+  ],
   "Force sync": [
+    "features/settings/Email.tsx"
+  ],
+  "Force sync {email_address}": [
+    "features/settings/Email.tsx"
+  ],
+  "Remove {email_address}": [
     "features/settings/Email.tsx"
   ],
   "Last connected {time}": [
@@ -2390,6 +2488,9 @@
     "features/settings/Harness.tsx",
     "features/settings/ApiKeys.tsx",
     "features/settings/Harness.test.tsx"
+  ],
+  "{CURSOR_KEY_PREFIX}…": [
+    "features/settings/Harness.tsx"
   ],
   "Create an API key in Cursor and paste it here. Macro stores it encrypted.": [
     "features/settings/Harness.tsx"
@@ -2617,6 +2718,9 @@
   "App Update": [
     "features/settings/Account.tsx"
   ],
+  "Connector removed": [
+    "features/settings/PipedreamIntegrations.tsx"
+  ],
   "Enabled": [
     "features/settings/PipedreamIntegrations.tsx",
     "features/settings/Integrations.tsx"
@@ -2703,7 +2807,9 @@
     "features/settings/ApiKeys.tsx"
   ],
   "Delete {name}": [
-    "features/settings/ApiKeys.tsx"
+    "features/settings/ApiKeys.tsx",
+    "features/settings/Agents.tsx",
+    "features/settings/Appearance.tsx"
   ],
   "API key created": [
     "features/settings/ApiKeys.tsx"
@@ -2763,6 +2869,15 @@
     "features/settings/ConnectedAccounts.tsx",
     "features/calendar/components/CalendarSettingsDropdown.tsx"
   ],
+  "Agent created": [
+    "features/settings/Agents.tsx"
+  ],
+  "Agent updated": [
+    "features/settings/Agents.tsx"
+  ],
+  "Agent deleted": [
+    "features/settings/Agents.tsx"
+  ],
   "Create agents with their own identity, instructions, and runtime.": [
     "features/settings/Agents.tsx"
   ],
@@ -2792,6 +2907,13 @@
     "features/settings/Agents.tsx"
   ],
   "@{tag}": [
+    "features/settings/Agents.tsx"
+  ],
+  "Edit {name}": [
+    "features/settings/Agents.tsx",
+    "features/settings/Appearance.tsx"
+  ],
+  "{name} avatar": [
     "features/settings/Agents.tsx"
   ],
   "Delete {agentName}?": [
@@ -3008,6 +3130,12 @@
   "Clear formatting": [
     "features/settings/SignatureEditor.tsx"
   ],
+  "Signature saved": [
+    "features/settings/SignatureSection.tsx"
+  ],
+  "Signature removed": [
+    "features/settings/SignatureSection.tsx"
+  ],
   "Update your signature on desktop.": [
     "features/settings/SignatureSection.tsx"
   ],
@@ -3086,6 +3214,9 @@
   "Team label already exists": [
     "features/settings/Tags.tsx"
   ],
+  "Use team label": [
+    "features/settings/Tags.tsx"
+  ],
   "Your team already has a label named": [
     "features/settings/Tags.tsx"
   ],
@@ -3162,6 +3293,9 @@
   "No apps selected yet. Search above to add one.": [
     "features/settings/PipedreamAppPicker.tsx"
   ],
+  "Remove {server_name}": [
+    "features/settings/PipedreamAppPicker.tsx"
+  ],
   "This pairing code is invalid, expired, or already claimed.": [
     "features/settings/HarnessPairingDialog.tsx",
     "features/settings/HarnessPairingDialog.test.tsx"
@@ -3234,6 +3368,12 @@
   "Copy theme": [
     "features/settings/Appearance.tsx"
   ],
+  "Copy {name}": [
+    "features/settings/Appearance.tsx"
+  ],
+  "Theme copied to clipboard": [
+    "features/settings/Appearance.tsx"
+  ],
   "Edit theme": [
     "features/settings/Appearance.tsx"
   ],
@@ -3243,6 +3383,9 @@
   "Theme": [
     "features/settings/Appearance.tsx",
     "lib/core/component/LexicalMarkdown/component/debug/MarkdownParseTestPage.tsx"
+  ],
+  "Theme saved": [
+    "features/settings/Appearance.tsx"
   ],
   "Filter themes…": [
     "features/settings/Appearance.tsx"
@@ -3430,6 +3573,9 @@
     "lib/queries/channel/reaction.ts",
     "lib/service-clients/service-storage/generated/schemas/reactionAction.ts",
     "lib/service-clients/service-storage/generated/zod.ts"
+  ],
+  "Server removed": [
+    "features/settings/Integrations.tsx"
   ],
   "Last attempt failed": [
     "features/settings/Integrations.tsx"
@@ -3703,6 +3849,12 @@
   "{source} · {reason}": [
     "features/home/home-hub.tsx"
   ],
+  "{label} with AI about {title}": [
+    "features/home/home-hub.tsx"
+  ],
+  "Open {title}": [
+    "features/home/home-hub.tsx"
+  ],
   "We couldn’t load this section. Try again, or view details if the issue continues.": [
     "features/home/home-section-boundary.tsx"
   ],
@@ -3780,6 +3932,9 @@
     "features/block-pr/side-panel/github-pull-request.tsx"
   ],
   "passed": [
+    "features/block-pr/side-panel/github-pull-request.tsx"
+  ],
+  "Open {name} on GitHub": [
     "features/block-pr/side-panel/github-pull-request.tsx"
   ],
   "Every week": [
@@ -3893,6 +4048,15 @@
   ],
   "Scheduled actions are unavailable in this profile.": [
     "features/block-automation/component/Automation.tsx"
+  ],
+  "Duplicated": [
+    "features/block-automation/component/Automation.tsx"
+  ],
+  "Deleted": [
+    "features/block-automation/component/Automation.tsx",
+    "components/app/split-layout/components/SplitFileMenu.tsx",
+    "lib/core/component/ItemPreview.tsx",
+    "lib/core/component/AI/component/tool/CalendarTools.tsx"
   ],
   "Automation not found.": [
     "features/block-automation/component/Automation.tsx"
@@ -4040,6 +4204,9 @@
   "Changes apply to all occurrences": [
     "features/calendar/components/composer/EventForm.tsx"
   ],
+  "{label} time": [
+    "features/calendar/components/composer/EventDateTimeRangeFields.tsx"
+  ],
   "Start": [
     "features/calendar/components/composer/EventDateTimeRangeFields.tsx"
   ],
@@ -4083,10 +4250,14 @@
   "{usedSlots} / {REMINDER_OVERRIDES_MAX}": [
     "features/calendar/components/composer/EventPropertyPills.tsx"
   ],
+  "{usedSlots} of {REMINDER_OVERRIDES_MAX} notifications selected": [
+    "features/calendar/components/composer/EventPropertyPills.tsx"
+  ],
   "Repeats": [
     "features/calendar/components/composer/EventPropertyPills.tsx",
     "features/entity/composed/list-entity/calendar.tsx",
-    "features/block-calendar/components/CalendarSearch.tsx"
+    "features/block-calendar/components/CalendarSearch.tsx",
+    "features/block-agent/component/parts/UserToolCall.tsx"
   ],
   "Event kind": [
     "features/calendar/components/composer/EventPropertyPills.tsx"
@@ -4104,6 +4275,9 @@
     "features/calendar/components/composer/EventPropertyPills.tsx"
   ],
   "Choose": [
+    "features/calendar/components/composer/EventDateTimeInputs.tsx"
+  ],
+  "{label} date": [
     "features/calendar/components/composer/EventDateTimeInputs.tsx"
   ],
   "date": [
@@ -4153,6 +4327,9 @@
   ],
   "occurrences": [
     "features/calendar/components/composer/RecurrenceBuilder.tsx"
+  ],
+  "Calendar turned off": [
+    "features/calendar/components/TurnOffCalendarDialog.tsx"
   ],
   "Turn off calendar for": [
     "features/calendar/components/TurnOffCalendarDialog.tsx"
@@ -4207,6 +4384,9 @@
     "features/inbox-view/queries/inbox-results.test.ts",
     "features/channel/Message/tests/date-divider.test.tsx",
     "lib/core/util/dateSearch/useDateSearch.test.ts"
+  ],
+  "Availability copied": [
+    "features/calendar/availability/CopyAvailabilityButton.tsx"
   ],
   "Copy availability": [
     "features/calendar/availability/CopyAvailabilityButton.tsx"
@@ -4349,18 +4529,58 @@
     "features/block-md/component/TouchSelectionToolbar.tsx",
     "lib/core/component/LexicalMarkdown/component/decorator/MediaButtons.tsx"
   ],
+  "Failed to copy link to clipboard": [
+    "features/block-md/component/ComposeSkill.tsx",
+    "features/block-md/component/ComposeTask.tsx"
+  ],
+  "Skill created": [
+    "features/block-md/component/ComposeSkill.tsx"
+  ],
+  "Link copied": [
+    "features/block-md/component/ComposeSkill.tsx",
+    "features/block-md/component/ComposeTask.tsx"
+  ],
+  "Open (New Split)": [
+    "features/block-md/component/ComposeSkill.tsx",
+    "features/block-md/component/ComposeTask.tsx"
+  ],
+  "Failed to create Skill": [
+    "features/block-md/component/ComposeSkill.tsx"
+  ],
+  "Please give this skill a name": [
+    "features/block-md/component/ComposeSkill.tsx"
+  ],
+  "Create skill": [
+    "features/block-md/component/ComposeSkill.tsx",
+    "features/command/Launcher.tsx"
+  ],
   "Continue editing in split": [
     "features/block-md/component/ComposeSkill.tsx",
     "features/block-md/component/ComposeTask.tsx"
   ],
+  "Add instructions...": [
+    "features/block-md/component/ComposeSkill.tsx"
+  ],
   "Create Skill": [
     "features/block-md/component/ComposeSkill.tsx"
+  ],
+  "Stop": [
+    "features/block-md/component/DocumentAiEditBar.tsx",
+    "features/block-agent/ui/AgentInput.tsx",
+    "lib/core/component/AI/component/debug/Component.tsx",
+    "lib/core/component/AI/component/debug/StaticMarkdownStream.tsx",
+    "features/block-agent/ui/AgentInput.test.tsx"
   ],
   "Describe the edit…": [
     "features/block-md/component/DocumentAiEditBar.tsx"
   ],
   "Send edit": [
     "features/block-md/component/DocumentAiEditBar.tsx"
+  ],
+  "Toggle Side Panel": [
+    "features/block-md/component/TopBar.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
+    "features/block-email/component/TopBar.tsx"
   ],
   "Chat": [
     "features/block-md/component/TopBar.tsx",
@@ -4400,6 +4620,9 @@
   ],
   "You haven't added any media yet!": [
     "features/block-md/component/MediaSelector.tsx"
+  ],
+  "Task created": [
+    "features/block-md/component/ComposeTask.tsx"
   ],
   "Create task": [
     "features/block-md/component/ComposeTask.tsx",
@@ -4498,7 +4721,23 @@
   "Find...": [
     "features/block-md/component/FindAndReplace.tsx"
   ],
+  "Previous Match": [
+    "features/block-md/component/FindAndReplace.tsx"
+  ],
+  "Next Match": [
+    "features/block-md/component/FindAndReplace.tsx"
+  ],
+  "Close Search Bar": [
+    "features/block-md/component/FindAndReplace.tsx"
+  ],
   "Replace with...": [
+    "features/block-md/component/FindAndReplace.tsx"
+  ],
+  "Replace": [
+    "features/block-md/component/FindAndReplace.tsx",
+    "features/entity/bulk-edit/BulkRenameEntitiesView.tsx"
+  ],
+  "Replace All": [
     "features/block-md/component/FindAndReplace.tsx"
   ],
   "Possible duplicate tasks": [
@@ -4608,6 +4847,9 @@
   "Insert Table": [
     "features/block-md/component/TableInsert.tsx"
   ],
+  "Task prompt copied to clipboard": [
+    "features/block-md/component/DispatchAgentMenu.tsx"
+  ],
   "Agent options": [
     "features/block-md/component/DispatchAgentMenu.tsx"
   ],
@@ -4633,6 +4875,9 @@
   "How would you like this text rewritten?": [
     "features/block-md/component/MarkdownPopup.tsx"
   ],
+  "Check for spelling and grammar errors": [
+    "features/block-md/component/MarkdownPopup.tsx"
+  ],
   "Accept Changes": [
     "features/block-md/component/MarkdownPopup.tsx"
   ],
@@ -4649,6 +4894,9 @@
   "Exit": [
     "features/block-md/history/OldOverlay.tsx",
     "features/command/Launcher.tsx"
+  ],
+  "just now@@activity": [
+    "features/block-md/history/activityRows.ts"
   ],
   "edited": [
     "features/block-md/history/HistorySessionList.tsx",
@@ -4697,6 +4945,12 @@
   "Entity actions": [
     "features/auth/mobile-onboarding/OnboardingInbox.tsx",
     "features/soup/SoupEntityActionDrawer.tsx"
+  ],
+  "GitHub connected (debug)": [
+    "features/auth/mobile-onboarding/OnboardingConnectAccounts.tsx"
+  ],
+  "GitHub connected": [
+    "features/auth/mobile-onboarding/OnboardingConnectAccounts.tsx"
   ],
   "Connect More Accounts": [
     "features/auth/mobile-onboarding/OnboardingConnectAccounts.tsx"
@@ -4774,6 +5028,9 @@
   "Create an account to get started.": [
     "features/auth/banner/Banner.tsx"
   ],
+  "Account connected": [
+    "features/auth/EmailAuth.tsx"
+  ],
   "One-time code": [
     "features/auth/OtpInput.tsx"
   ],
@@ -4797,6 +5054,9 @@
   ],
   "Enter number...": [
     "features/property/editors/inline/InlineNumberEditor.tsx"
+  ],
+  "Set {displayName}...": [
+    "features/property/editors/inline/InlineTextEditor.tsx"
   ],
   "Enter URL...": [
     "features/property/editors/inline/InlineLinkEditor.tsx"
@@ -4937,6 +5197,12 @@
   "Filter by tag": [
     "features/property/tags/EntityRowTags.tsx"
   ],
+  "Filter by {label}": [
+    "features/property/tags/EntityRowTags.tsx"
+  ],
+  "Edit {label}": [
+    "features/property/tags/EntityRowTags.tsx"
+  ],
   "Filter by": [
     "features/property/tags/EntityRowTags.tsx"
   ],
@@ -4958,6 +5224,10 @@
   ],
   "Remove from entity": [
     "features/property/side-panel/properties/EntityPropertiesSection.tsx"
+  ],
+  "Add {displayName}": [
+    "features/property/side-panel/properties/EntityPropertiesSection.tsx",
+    "features/property/extractors/PropertyAddButton.tsx"
   ],
   "No matching properties found": [
     "features/property/editor/PropertyEditorModal.tsx"
@@ -5125,11 +5395,20 @@
     "lib/core/component/References.tsx",
     "features/activity/core/describe-action.test.ts"
   ],
+  "md@@activity": [
+    "features/activity/tests/mock-context.ts"
+  ],
   "an item": [
     "features/activity/queries/property-value.ts"
   ],
   "{0} items": [
     "features/activity/queries/property-value.ts"
+  ],
+  "Automation@@activity": [
+    "features/activity/primitives/actor-name.ts"
+  ],
+  "You@@activity": [
+    "features/activity/primitives/actor-name.ts"
   ],
   "Most active": [
     "features/activity/components/top-entities.tsx",
@@ -5148,6 +5427,9 @@
     "features/activity/components/action-graph.tsx"
   ],
   "Fewer": [
+    "features/activity/components/action-graph.tsx"
+  ],
+  "bg-accent@@activity": [
     "features/activity/components/action-graph.tsx"
   ],
   "Most active month": [
@@ -5210,9 +5492,6 @@
   ],
   "Due Date": [
     "features/entity/mocks/mockEntityData.ts"
-  ],
-  "Replace": [
-    "features/entity/bulk-edit/BulkRenameEntitiesView.tsx"
   ],
   "Mode": [
     "features/entity/bulk-edit/BulkRenameEntitiesView.tsx"
@@ -5317,6 +5596,10 @@
   "Pending": [
     "features/entity/composed/list-entity/foreign.tsx"
   ],
+  "Queued": [
+    "features/entity/composed/list-entity/foreign.tsx",
+    "features/block-agent/ui/QueuedPrompts.tsx"
+  ],
   "Success": [
     "features/entity/composed/list-entity/foreign.tsx",
     "lib/core/internal/IconGallery.tsx",
@@ -5352,6 +5635,9 @@
   "#{number}": [
     "features/entity/extractors/entity-title.tsx"
   ],
+  "Email copied@@email": [
+    "features/entity/extractors/entity-email-participants.tsx"
+  ],
   "Email copied": [
     "features/entity/extractors/entity-email-participants.tsx",
     "lib/core/component/UserTooltip.tsx"
@@ -5364,6 +5650,9 @@
   ],
   "jk": [
     "features/entity/debug/DebugEntityView.tsx"
+  ],
+  "Copied event to clipboard": [
+    "features/block-calendar/copy-event-mention.ts"
   ],
   "Team out of office": [
     "features/block-calendar/components/SidePanelSections.tsx"
@@ -5512,6 +5801,9 @@
   "Remove from favorites": [
     "features/favorites/sidebar/favorites-section.tsx"
   ],
+  "Contact hidden.": [
+    "features/contacts/Contact/ContactSharingSection.tsx"
+  ],
   "Visible in CRM": [
     "features/contacts/Contact/ContactSharingSection.tsx",
     "features/companies/Company/CompanySharingSection.tsx"
@@ -5539,6 +5831,9 @@
   "Contact name": [
     "features/contacts/Contact/ContactHeader.tsx",
     "features/companies/CreateContactModal.tsx"
+  ],
+  "Loading contact…": [
+    "features/contacts/Contact/ContactHeader.tsx"
   ],
   "Already in your workspace — click to open": [
     "features/setup/primitives.tsx"
@@ -5585,6 +5880,9 @@
     "features/setup/flow/SummaryStep.tsx"
   ],
   "Nothing queued — you can always ask Macro AI to bring things in later.": [
+    "features/setup/flow/SummaryStep.tsx"
+  ],
+  "we couldn't look through your {serverName}.": [
     "features/setup/flow/SummaryStep.tsx"
   ],
   "looking through your": [
@@ -5731,6 +6029,9 @@
   "This is where the document should go!": [
     "features/block-pdf/component/Document.tsx"
   ],
+  "File downloaded successfully": [
+    "features/block-pdf/component/TopBar.tsx"
+  ],
   "Print": [
     "features/block-pdf/component/TopBar.tsx"
   ],
@@ -5756,13 +6057,18 @@
   "reference": [
     "features/block-pdf/component/DefinitionLookup/ReferencesAccordion.tsx"
   ],
-  "Stop": [
+  "Message the agent, @mention anything": [
     "features/block-agent/ui/AgentInput.tsx",
-    "lib/core/component/AI/component/debug/Component.tsx",
-    "lib/core/component/AI/component/debug/StaticMarkdownStream.tsx"
+    "features/block-agent/component/AgentComposer.tsx"
   ],
   "Send next queued message": [
-    "features/block-agent/ui/AgentInput.tsx"
+    "features/block-agent/ui/AgentInput.tsx",
+    "features/block-agent/ui/AgentInput.test.tsx"
+  ],
+  "Model": [
+    "features/block-agent/ui/AgentModelSelector.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
+    "lib/core/component/AI/component/input/ModelCatalogPicker.tsx"
   ],
   "Agent model": [
     "features/block-agent/ui/AgentModelSelector.tsx"
@@ -5770,10 +6076,14 @@
   "Choose a model": [
     "features/block-agent/ui/AgentModelSelector.tsx"
   ],
-  "Queued": [
-    "features/block-agent/ui/QueuedPrompts.tsx"
+  "Models": [
+    "features/block-agent/ui/AgentModelSelector.tsx"
   ],
-  "by": [
+  "Search models": [
+    "features/block-agent/ui/AgentModelSelector.tsx",
+    "lib/core/component/AI/component/input/ModelCatalogPicker.tsx"
+  ],
+  "by {name}": [
     "features/block-agent/ui/QueuedPrompts.tsx"
   ],
   "Remove queued message": [
@@ -5791,6 +6101,9 @@
   "lines)": [
     "features/block-agent/ui/PierreDiff.tsx"
   ],
+  "Copy error": [
+    "features/block-agent/ui/ToolErrorCard.tsx"
+  ],
   "No answer": [
     "features/block-agent/ui/QuestionAnswers.tsx"
   ],
@@ -5804,8 +6117,27 @@
   "{key}={value}": [
     "features/block-agent/ui/ToolCard.tsx"
   ],
-  "Model": [
-    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx"
+  "Starting": [
+    "features/block-agent/ui/SessionStatusPill.tsx"
+  ],
+  "Ready": [
+    "features/block-agent/ui/SessionStatusPill.tsx",
+    "components/ui/components/Badge.test.tsx"
+  ],
+  "Agent session": [
+    "features/block-agent/component/AgentSplitHeader.tsx"
+  ],
+  "Failed to rename agent session": [
+    "features/block-agent/component/AgentSplitHeader.tsx"
+  ],
+  "Open externally": [
+    "features/block-agent/component/AgentSplitHeader.tsx"
+  ],
+  "Open in {provider}": [
+    "features/block-agent/component/AgentSplitHeader.tsx"
+  ],
+  "Open repository": [
+    "features/block-agent/component/AgentSplitHeader.tsx"
   ],
   "Plan": [
     "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx"
@@ -5817,8 +6149,91 @@
     "features/block-agent/component/Block.tsx",
     "lib/core/component/DocumentBlockContainer.tsx"
   ],
+  "Setting model to {model}…": [
+    "features/block-agent/component/parts/ControlPart.tsx"
+  ],
+  "Model set to {model}": [
+    "features/block-agent/component/parts/ControlPart.tsx"
+  ],
+  "Couldn't switch to {model}": [
+    "features/block-agent/component/parts/ControlPart.tsx"
+  ],
+  "Compacting context…": [
+    "features/block-agent/component/parts/ControlPart.tsx"
+  ],
+  "Context compacted": [
+    "features/block-agent/component/parts/ControlPart.tsx",
+    "features/block-agent/debug/Gallery.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/presentation.ts"
+  ],
+  "Couldn't compact the context": [
+    "features/block-agent/component/parts/ControlPart.tsx",
+    "features/block-agent/component/parts/ControlPart.test.tsx"
+  ],
+  "Couldn't stop the agent": [
+    "features/block-agent/component/parts/ControlPart.tsx"
+  ],
+  "Stopped": [
+    "features/block-agent/component/parts/ControlPart.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/presentation.ts",
+    "features/block-agent/component/parts/ControlPart.test.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/presentation.test.ts"
+  ],
+  "1 tool": [
+    "features/block-agent/component/parts/SubagentToolCall.tsx"
+  ],
+  "{count} tools": [
+    "features/block-agent/component/parts/SubagentToolCall.tsx"
+  ],
+  "background": [
+    "features/block-agent/component/parts/SubagentToolCall.tsx",
+    "features/theme/signals/themeReactive.ts",
+    "lib/core/component/AI/component/input/sendMode.ts",
+    "lib/core/email/parse-email-html.ts",
+    "components/app/split-layout/tests/layoutManager.test.ts",
+    "lib/core/component/AI/component/input/sendMode.test.ts"
+  ],
+  "{count} files": [
+    "features/block-agent/component/parts/shared.ts"
+  ],
+  "fetch": [
+    "features/block-agent/component/parts/OutputToolCall.tsx",
+    "features/block-agent/component/parts/ToolCallPart.tsx",
+    "features/block-agent/state/session-summary.ts",
+    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/presentation.ts",
+    "lib/service-clients/orval.config.ts",
+    "lib/service-clients/service-agent-fold/generated/types.ts",
+    "lib/service-clients/service-storage/graphql-soup.test.ts"
+  ],
+  "Answered": [
+    "features/block-agent/component/parts/PermissionPart.tsx",
+    "features/block-agent/component/parts/UserToolCall.tsx",
+    "features/block-agent/component/parts/ToolCallPart.test.tsx"
+  ],
   "Permission requested": [
     "features/block-agent/component/parts/PermissionPart.tsx"
+  ],
+  "Awaiting you": [
+    "features/block-agent/component/parts/UserToolCall.tsx",
+    "features/block-agent/component/parts/ToolCallPart.test.tsx"
+  ],
+  "Edited": [
+    "features/block-agent/component/parts/UserToolCall.tsx",
+    "features/block-agent/component/parts/ToolCallPart.test.tsx"
+  ],
+  "Saved as draft": [
+    "features/block-agent/component/parts/UserToolCall.tsx",
+    "features/block-agent/component/parts/ToolCallPart.test.tsx"
+  ],
+  "Rejected": [
+    "features/block-agent/component/parts/UserToolCall.tsx",
+    "lib/core/component/AI/component/tool/calendar/ChatCompose.tsx",
+    "lib/core/component/AI/component/tool/SendEmail.tsx",
+    "lib/core/component/AI/component/tool/CalendarTools.tsx",
+    "lib/service-clients/service-cognition/generated/tools/schemas.ts",
+    "lib/service-clients/service-cognition/generated/tools/types.ts",
+    "lib/service-clients/service-cognition/generated/schemas/userToolResponseValue.ts",
+    "features/block-agent/component/parts/ToolCallPart.test.tsx"
   ],
   "To": [
     "features/block-agent/component/parts/UserToolCall.tsx",
@@ -5843,11 +6258,64 @@
     "features/block-email/component/BaseInput.tsx",
     "lib/queries/email/graphql/mapper.test.ts"
   ],
-  "Message the agent, @mention anything": [
-    "features/block-agent/component/AgentComposer.tsx"
+  "{email} (optional)": [
+    "features/block-agent/component/parts/UserToolCall.tsx"
+  ],
+  "When": [
+    "features/block-agent/component/parts/UserToolCall.tsx"
+  ],
+  "Where": [
+    "features/block-agent/component/parts/UserToolCall.tsx"
+  ],
+  "Attendees": [
+    "features/block-agent/component/parts/UserToolCall.tsx"
+  ],
+  "Waking the agent's sandbox…": [
+    "features/block-agent/component/AgentComposer.tsx",
+    "features/block-agent/debug/Gallery.tsx"
   ],
   "Reply to this": [
     "features/block-agent/component/ReplyToSelection.tsx"
+  ],
+  "file edited": [
+    "features/block-agent/state/session-summary.ts"
+  ],
+  "files edited": [
+    "features/block-agent/state/session-summary.ts"
+  ],
+  "file read": [
+    "features/block-agent/state/session-summary.ts",
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "files read": [
+    "features/block-agent/state/session-summary.ts",
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "searches": [
+    "features/block-agent/state/session-summary.ts",
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "command": [
+    "features/block-agent/state/session-summary.ts",
+    "features/command/state.ts",
+    "features/command/useCommandItems.ts",
+    "features/command/FavoritesCommands.tsx",
+    "features/command/mobile/mobileSearchState.ts",
+    "lib/core/hotkey/utils.ts",
+    "lib/core/hotkey/types.ts",
+    "lib/core/hotkey/hotkeys.ts",
+    "lib/constants/hotkeys.ts"
+  ],
+  "commands": [
+    "features/block-agent/state/session-summary.ts",
+    "features/channel/Input/Root.tsx",
+    "features/command/useCommandItems.ts",
+    "features/command/CommandMenu.tsx",
+    "features/command/types.ts",
+    "components/app/GlobalHotkeys.tsx"
+  ],
+  "fetches": [
+    "features/block-agent/state/session-summary.ts"
   ],
   "Auto": [
     "features/block-agent/debug/Gallery.tsx",
@@ -5869,9 +6337,6 @@
     "features/block-agent/debug/Gallery.tsx"
   ],
   "Model set to claude-opus-5": [
-    "features/block-agent/debug/Gallery.tsx"
-  ],
-  "Context compacted": [
     "features/block-agent/debug/Gallery.tsx"
   ],
   "Couldn't switch to openai/gpt-5": [
@@ -5940,9 +6405,6 @@
   "none": [
     "features/block-agent/debug/replay/Replay.tsx"
   ],
-  "1.5s": [
-    "features/block-agent/debug/replay/Replay.tsx"
-  ],
   "overlap": [
     "features/block-agent/debug/replay/Replay.tsx"
   ],
@@ -5995,6 +6457,9 @@
     "features/team-invitations/TeamInviteAcceptance.tsx"
   ],
   "Invite friends and teammates to Macro. You'll get $100 in credits for each person who signs up.": [
+    "features/team-invitations/invite-modal.tsx"
+  ],
+  "name@company.com colleague@company.com": [
     "features/team-invitations/invite-modal.tsx"
   ],
   "Or share your personal referral link:": [
@@ -6050,6 +6515,9 @@
     "features/channel/Bots/CreateBotTokenDialog.tsx",
     "features/channel/Bots/BotInviteSelect.tsx",
     "features/channel/Participants/ChannelBotRow.tsx"
+  ],
+  "{name} webhook URL@@chat": [
+    "features/channel/Bots/BotCreationResult.tsx"
   ],
   "Webhook token@@chat": [
     "features/channel/Bots/BotCreationResult.tsx"
@@ -6234,8 +6702,19 @@
   "Search channels…@@chat": [
     "features/channel/Bots/ChannelMultiSelect.tsx"
   ],
+  "Remove {name}@@chat": [
+    "features/channel/Bots/ChannelMultiSelect.tsx",
+    "features/channel/Participants/ChannelBotRow.tsx",
+    "features/channel/Input/Attachments.tsx"
+  ],
   "No available channels@@chat": [
     "features/channel/Bots/ChannelMultiSelect.tsx"
+  ],
+  "Bot updated@@chat": [
+    "features/channel/Bots/BotDetailPage.tsx"
+  ],
+  "Bot deleted@@chat": [
+    "features/channel/Bots/BotDetailPage.tsx"
   ],
   "Update how this bot appears in channels and mentions.@@chat": [
     "features/channel/Bots/BotDetailPage.tsx"
@@ -6249,11 +6728,18 @@
   "Participants@@chat": [
     "features/channel/Participants/ChannelParticipantsTab.tsx"
   ],
+  "Open {name}@@chat": [
+    "features/channel/Participants/ChannelBotRow.tsx"
+  ],
   "Copy webhook URL@@chat": [
     "features/channel/Participants/ChannelBotRow.tsx"
   ],
   "Webhook URL@@chat": [
     "features/channel/Participants/ChannelBotRow.tsx"
+  ],
+  "Webhook URL copied@@chat": [
+    "features/channel/Participants/ChannelBotsPanel.tsx",
+    "features/block-channel/component/useChannelBotManagement.ts"
   ],
   "Bots@@chat": [
     "features/channel/Participants/ChannelBotsPanel.tsx"
@@ -6379,6 +6865,10 @@
   "reacted with@@chat": [
     "features/channel/Message/ReactionChip.tsx"
   ],
+  "React {emoji}@@chat": [
+    "features/channel/Message/ActionMenu.tsx",
+    "features/channel/Mobile/ActionDrawer.tsx"
+  ],
   "Mark as read@@chat": [
     "features/channel/Message/NewDivider.tsx"
   ],
@@ -6431,6 +6921,12 @@
     "features/notifications/notification-event-catalog.ts",
     "lib/core/component/EntityIcon.tsx",
     "../../../packages/i18n/context.test.ts"
+  ],
+  "Link copied to clipboard@@chat": [
+    "features/channel/Channel/create-channel-message-actions.ts"
+  ],
+  "Message copied to clipboard@@chat": [
+    "features/channel/Channel/create-channel-message-actions.ts"
   ],
   "Scroll to bottom@@chat": [
     "features/channel/Channel/ScrollToBottomOverlay.tsx"
@@ -6669,16 +7165,28 @@
     "features/theme/components/ColorPickerPopover.tsx",
     "lib/core/util/cron.ts"
   ],
+  "Remove {label}": [
+    "features/theme/components/ThemeTokenEditor.tsx"
+  ],
   "custom": [
     "features/theme/components/ThemeTokenEditor.tsx"
   ],
   "link": [
     "features/theme/components/ThemeTokenEditor.tsx"
   ],
+  "{token} linked token": [
+    "features/theme/components/ThemeTokenEditor.tsx"
+  ],
   "mix": [
     "features/theme/components/ThemeTokenEditor.tsx"
   ],
+  "{token} first mix token": [
+    "features/theme/components/ThemeTokenEditor.tsx"
+  ],
   "Mix": [
+    "features/theme/components/ThemeTokenEditor.tsx"
+  ],
+  "{token} second mix token": [
     "features/theme/components/ThemeTokenEditor.tsx"
   ],
   "Ramp editor": [
@@ -6689,6 +7197,12 @@
   ],
   "Overwrite custom stops": [
     "features/theme/components/ThemeTokenEditor.tsx"
+  ],
+  "{token} ramp position": [
+    "features/theme/components/ThemeTokenEditor.tsx"
+  ],
+  "Full theme JSON copied to clipboard": [
+    "features/theme/components/ThemeEdit3.tsx"
   ],
   "Theme editor V3": [
     "features/theme/components/ThemeEdit3.tsx"
@@ -6941,6 +7455,12 @@
   "Align objects": [
     "features/block-canvas/component/FloatingMenu.tsx"
   ],
+  "Line weight": [
+    "features/block-canvas/component/FloatingMenu.tsx"
+  ],
+  "Corner rounding": [
+    "features/block-canvas/component/FloatingMenu.tsx"
+  ],
   "Connector": [
     "features/block-canvas/component/ToolBar.tsx"
   ],
@@ -7068,6 +7588,9 @@
     "features/soup/createSoupEntityActions.ts",
     "features/block-email/component/TopBar.tsx",
     "lib/core/component/AI/component/tool/SetSenderPolicy.tsx"
+  ],
+  "Your plan has been activated!": [
+    "features/paywall/use-checkout-completion-listener.ts"
   ],
   "Unlock Premium features": [
     "features/paywall/PaywallComponent.tsx"
@@ -7205,6 +7728,15 @@
   "At": [
     "features/reminders/ReminderForm.tsx"
   ],
+  "Reminder set": [
+    "features/reminders/ReminderComposerModal.tsx"
+  ],
+  "Set reminder": [
+    "features/reminders/ReminderComposerModal.tsx"
+  ],
+  "Reminder updated": [
+    "features/reminders/ReminderEditorSplit.tsx"
+  ],
   "This reminder is no longer available.": [
     "features/reminders/ReminderEditorSplit.tsx"
   ],
@@ -7275,6 +7807,12 @@
   ],
   "Owner@@crm": [
     "features/companies/crm/display-options.ts"
+  ],
+  "Loading company…": [
+    "features/companies/Company/CompanyHeader.tsx"
+  ],
+  "Company hidden.": [
+    "features/companies/Company/CompanySharingSection.tsx"
   ],
   "Shows this company in your team's CRM lists and search. Hide companies that aren't relevant to your team's CRM.": [
     "features/companies/Company/CompanySharingSection.tsx"
@@ -7437,12 +7975,27 @@
     "features/block-email/util/emailHotkeys.ts",
     "features/block-email/component/TopBar.tsx"
   ],
+  "Send cancelled@@email": [
+    "features/block-email/util/undoSend.ts"
+  ],
+  "Recipients can now view this file@@email": [
+    "features/block-email/util/makeAttachmentPublic.ts"
+  ],
+  "Subject copied@@email": [
+    "features/block-email/component/CopySubjectButton.tsx"
+  ],
   "Copy subject@@email": [
     "features/block-email/component/CopySubjectButton.tsx"
   ],
   "Clear@@email": [
     "features/block-email/component/email-date-selector.tsx",
     "features/block-email/component/date-selector.tsx"
+  ],
+  "Marked as unread@@email": [
+    "features/block-email/component/EmailContext.tsx"
+  ],
+  "Marked as read@@email": [
+    "features/block-email/component/EmailContext.tsx"
   ],
   "Actions@@email": [
     "features/block-email/component/Email.tsx"
@@ -7452,6 +8005,12 @@
   ],
   "Task@@email": [
     "features/block-email/component/Email.tsx"
+  ],
+  "Moved to Trash@@email": [
+    "features/block-email/component/TopBar.tsx"
+  ],
+  "Restored from Trash@@email": [
+    "features/block-email/component/TopBar.tsx"
   ],
   "This is a Draft Email@@email": [
     "features/block-email/component/TopBar.tsx",
@@ -7488,6 +8047,15 @@
   ],
   "Current:@@email": [
     "features/block-email/component/date-selector.tsx"
+  ],
+  "Email sent@@email": [
+    "features/block-email/component/compose/Compose.tsx",
+    "features/block-email/component/BaseInput.tsx",
+    "lib/core/component/AI/component/tool/email/ChatCompose.tsx"
+  ],
+  "Email unscheduled@@email": [
+    "features/block-email/component/compose/Compose.tsx",
+    "features/block-email/component/BaseInput.tsx"
   ],
   "Draft options@@email": [
     "features/block-email/component/compose/Compose.tsx"
@@ -7691,6 +8259,9 @@
   "Clear search": [
     "components/view-shell/SearchBar.tsx"
   ],
+  "{label} actions": [
+    "components/app/app-sidebar/sidebar-promo.tsx"
+  ],
   "Auto-dismiss countdown": [
     "components/app/app-sidebar/sidebar-promo.tsx"
   ],
@@ -7739,6 +8310,9 @@
     "lib/core/component/LexicalMarkdown/component/dom-factory/diff-factory.tsx",
     "lib/core/component/LexicalMarkdown/component/menu/GenerateMenu.tsx"
   ],
+  "Removed from sidebar": [
+    "components/app/app-sidebar/sidebar.tsx"
+  ],
   "Workspace": [
     "components/app/app-sidebar/sidebar.tsx",
     "lib/core/constant/settingsTabsConfig.tsx"
@@ -7775,7 +8349,8 @@
     "components/app/app-sidebar/sidebar.tsx"
   ],
   "Go to {label}": [
-    "components/app/app-sidebar/sidebar.tsx"
+    "components/app/app-sidebar/sidebar.tsx",
+    "components/app/sidebar-next/list-nav.tsx"
   ],
   "Create@@dock": [
     "components/app/mobile/MobileDockRow.tsx"
@@ -7839,10 +8414,19 @@
   "Next item": [
     "components/app/split-layout/components/SplitHeader.tsx"
   ],
+  "Debug info copied to clipboard": [
+    "components/app/split-layout/components/SplitHeader.tsx"
+  ],
   "Open in this split": [
     "components/app/split-layout/components/SplitHeader.tsx"
   ],
   "File actions": [
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "Renamed": [
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "Moved to folder": [
     "components/app/split-layout/components/SplitFileMenu.tsx"
   ],
   "Create new split": [
@@ -7903,8 +8487,17 @@
   "{bucket} - ({searchText})": [
     "lib/core/context/quickAccess/debug/QuickAccessAll.tsx"
   ],
+  "Copied image URL to clipboard": [
+    "lib/core/util/imageActions.ts"
+  ],
   "Copied to clipboard": [
     "lib/core/util/imageActions.ts"
+  ],
+  "Downloaded image": [
+    "lib/core/util/imageActions.ts"
+  ],
+  "Branch name copied to clipboard": [
+    "lib/core/util/branchName.ts"
   ],
   "Archived": [
     "lib/core/util/linearImport.ts"
@@ -8144,6 +8737,9 @@
   "Icon only": [
     "lib/core/internal/ThemeDebug.tsx"
   ],
+  "Add ({variant}, {size})": [
+    "lib/core/internal/ThemeDebug.tsx"
+  ],
   "Text only": [
     "lib/core/internal/ThemeDebug.tsx"
   ],
@@ -8291,6 +8887,10 @@
   "· Repeats": [
     "lib/core/component/DocumentPreview.tsx"
   ],
+  "Copied document link to clipboard": [
+    "lib/core/component/DocumentPreview.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/DocumentCard.tsx"
+  ],
   "Collapse Reference": [
     "lib/core/component/DocumentPreview.tsx"
   ],
@@ -8356,6 +8956,9 @@
   "Confirm scheduled time": [
     "lib/core/component/DatePicker/DatePickerUI.tsx"
   ],
+  "View References": [
+    "lib/core/component/ReferencesModal.tsx"
+  ],
   "Emoji Selector": [
     "lib/core/component/Emoji/EmojiSelector.tsx"
   ],
@@ -8389,10 +8992,6 @@
   "No Access": [
     "lib/core/component/ItemPreview.tsx"
   ],
-  "Deleted": [
-    "lib/core/component/ItemPreview.tsx",
-    "lib/core/component/AI/component/tool/CalendarTools.tsx"
-  ],
   "Send As Group Message": [
     "lib/core/component/ForwardToChannel.tsx"
   ],
@@ -8403,6 +9002,12 @@
     "lib/core/component/ForwardToChannel.tsx"
   ],
   "Optional message": [
+    "lib/core/component/ForwardToChannel.tsx"
+  ],
+  "Message sent successfully": [
+    "lib/core/component/ForwardToChannel.tsx"
+  ],
+  "Messages sent successfully": [
     "lib/core/component/ForwardToChannel.tsx"
   ],
   "can": [
@@ -8488,6 +9093,9 @@
     "lib/core/component/AI/component/tool/Crm.tsx"
   ],
   "Loading calendar editor": [
+    "lib/core/component/AI/component/tool/calendar/ChatCompose.tsx"
+  ],
+  "Calendar event created": [
     "lib/core/component/AI/component/tool/calendar/ChatCompose.tsx"
   ],
   "Only the chat owner can create or edit this calendar event.": [
@@ -8727,6 +9335,9 @@
   "chat markown area": [
     "lib/core/component/AI/component/debug/Component.tsx"
   ],
+  "model selector": [
+    "lib/core/component/AI/component/debug/Component.tsx"
+  ],
   "Chat input - not connected to backend": [
     "lib/core/component/AI/component/debug/Component.tsx"
   ],
@@ -8902,6 +9513,18 @@
   "Access level": [
     "lib/core/component/TopBar/ShareButton.tsx"
   ],
+  "Link copied to clipboard.": [
+    "lib/core/component/TopBar/ShareButton.tsx"
+  ],
+  "Removed channel access": [
+    "lib/core/component/TopBar/ShareButton.tsx"
+  ],
+  "Removed folder access": [
+    "lib/core/component/TopBar/ShareButton.tsx"
+  ],
+  "Changed channel access level": [
+    "lib/core/component/TopBar/ShareButton.tsx"
+  ],
   "Share:": [
     "lib/core/component/TopBar/ShareButton.tsx"
   ],
@@ -8917,6 +9540,9 @@
   ],
   "Formatting": [
     "lib/core/component/LexicalMarkdown/plugins/actions/types.ts"
+  ],
+  "Copied cells": [
+    "lib/core/component/LexicalMarkdown/component/misc/TableSelectionActionBar.tsx"
   ],
   "Move cells": [
     "lib/core/component/LexicalMarkdown/component/misc/TableMoveHandle.tsx"
@@ -8956,6 +9582,9 @@
   "Convert to Inline Mention": [
     "lib/core/component/LexicalMarkdown/component/decorator/DocumentCard.tsx"
   ],
+  "Unknown": [
+    "lib/core/component/LexicalMarkdown/component/decorator/DocumentMention.tsx"
+  ],
   "Saving Image...": [
     "lib/core/component/LexicalMarkdown/component/decorator/MarkdownImage.tsx"
   ],
@@ -8986,6 +9615,9 @@
   ],
   "Escape": [
     "lib/core/component/LexicalMarkdown/component/menu/GenerateMenu.tsx"
+  ],
+  "Copied link to clipboard": [
+    "lib/core/component/LexicalMarkdown/component/menu/FloatingLinkMenu.tsx"
   ],
   "Edit link": [
     "lib/core/component/LexicalMarkdown/component/menu/FloatingLinkMenu.tsx"
@@ -9031,6 +9663,9 @@
   ],
   "Snippets": [
     "lib/core/component/LexicalMarkdown/component/menu/SnippetsMenu/SnippetsMenu.tsx"
+  ],
+  "Copied code to clipboard": [
+    "lib/core/component/LexicalMarkdown/component/accessory/CodeBoxAccessory.tsx"
   ],
   "Delete Code": [
     "lib/core/component/LexicalMarkdown/component/accessory/CodeBoxAccessory.tsx"
@@ -9146,8 +9781,8 @@
   "{label}&nbsp": [
     "lib/core/component/SlidableNumberInput.tsx"
   ],
-  "&nbsp": [
-    "lib/core/component/SlidableNumberInput.tsx"
+  "resize at {index}": [
+    "lib/core/component/Resize/Resize.tsx"
   ],
   "No email account connected.": [
     "lib/core/component/EmailPermissionsBanner.tsx"
@@ -9167,6 +9802,9 @@
   ],
   "The Macro iOS app is currently built for iPhone. Some parts of the app may feel off on iPad. Full iPad support coming soon.": [
     "lib/core/mobile/IpadUnsupportedDialog.tsx"
+  ],
+  "Account connected@@email": [
+    "lib/core/email-link/index.ts"
   ],
   "Failed to connect to this surface.": [
     "lib/core/collab-surface/CollabMdSurface.tsx"
@@ -9213,8 +9851,44 @@
   "Short-circuits sidebar nav views to their empty state regardless of content, for debugging empty states.": [
     "lib/debugSettings.ts"
   ],
+  "Joined team": [
+    "lib/queries/team/invitations.ts"
+  ],
+  "Invitation declined": [
+    "lib/queries/team/invitations.ts"
+  ],
+  "Team created": [
+    "lib/queries/team/teams.ts"
+  ],
+  "Team updated": [
+    "lib/queries/team/teams.ts"
+  ],
+  "Team deleted": [
+    "lib/queries/team/teams.ts"
+  ],
+  "Member removed": [
+    "lib/queries/team/members.ts"
+  ],
+  "Invitation sent": [
+    "lib/queries/team/invites.ts"
+  ],
+  "Invitation cancelled": [
+    "lib/queries/team/invites.ts"
+  ],
   "Chats": [
     "lib/queries/soup/grouped/api.ts"
+  ],
+  "Sender blocked@@email": [
+    "lib/queries/email/thread.ts"
+  ],
+  "Sender unblocked@@email": [
+    "lib/queries/email/thread.ts"
+  ],
+  "Sender filter removed@@email": [
+    "lib/queries/email/thread.ts"
+  ],
+  "Inbox synced@@email": [
+    "lib/queries/email/sync.ts"
   ],
   "System": [
     "lib/service-clients/service-email/generated/schemas/labelType.ts",

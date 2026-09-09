@@ -10,6 +10,7 @@
  */
 
 import type { MessagePart } from '@service-agent-fold/generated/types';
+import { t } from '@macro/i18n';
 import { match } from 'ts-pattern';
 import { ActionLine } from '../../ui';
 
@@ -21,36 +22,39 @@ function label(part: ControlPartData): string {
     match([part.control, part.outcome] as const)
       .with(
         [{ kind: 'set_model' }, { kind: 'pending' }],
-        ([control]) => `Setting model to ${control.model}…`
+        ([control]) =>
+          t('Setting model to {model}…', { model: control.model })
       )
       .with(
         [{ kind: 'set_model' }, { kind: 'accepted' }],
-        ([control]) => `Model set to ${control.model}`
+        ([control]) =>
+          t('Model set to {model}', { model: control.model })
       )
       .with(
         [{ kind: 'set_model' }, { kind: 'rejected' }],
-        ([control]) => `Couldn't switch to ${control.model}`
+        ([control]) =>
+          t("Couldn't switch to {model}", { model: control.model })
       )
       .with(
         [{ kind: 'compact' }, { kind: 'pending' }],
-        () => 'Compacting context…'
+        () => t('Compacting context…')
       )
       .with(
         [{ kind: 'compact' }, { kind: 'accepted' }],
-        () => 'Context compacted'
+        () => t('Context compacted')
       )
       .with(
         [{ kind: 'compact' }, { kind: 'rejected' }],
-        () => "Couldn't compact the context"
+        () => t("Couldn't compact the context")
       )
       // A stop is acknowledged the moment it is issued — nothing answers it, so
       // it has no pending state worth naming and cannot be refused.
       .with(
         [{ kind: 'stop' }, { kind: 'rejected' }],
-        () => "Couldn't stop the agent"
+        () => t("Couldn't stop the agent")
       )
-      .with([{ kind: 'stop' }, { kind: 'pending' }], () => 'Stopped')
-      .with([{ kind: 'stop' }, { kind: 'accepted' }], () => 'Stopped')
+      .with([{ kind: 'stop' }, { kind: 'pending' }], () => t('Stopped'))
+      .with([{ kind: 'stop' }, { kind: 'accepted' }], () => t('Stopped'))
       .exhaustive()
   );
 }

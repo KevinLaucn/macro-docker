@@ -9,6 +9,7 @@ import type {
   SubagentResult,
   ToolDetail,
 } from '@service-agent-fold/generated/types';
+import { t } from '@macro/i18n';
 import { For, type JSX, Show } from 'solid-js';
 import { match } from 'ts-pattern';
 import { FoldedOutput, Thought, ToolCard } from '../../ui';
@@ -22,7 +23,11 @@ type SubagentDetail = Extract<ToolDetail, { kind: 'subagent' }>;
 function resultSummary(result: SubagentResult): string | undefined {
   const facts: string[] = [];
   if (result.toolUses != null) {
-    facts.push(result.toolUses === 1 ? '1 tool' : `${result.toolUses} tools`);
+    facts.push(
+      result.toolUses === 1
+        ? t('1 tool')
+        : t('{count} tools', { count: result.toolUses })
+    );
   }
   if (result.durationMs != null) {
     facts.push(
@@ -86,13 +91,16 @@ export function SubagentToolCall(props: {
       inFlight: working() && props.context.inFlight,
     };
   const subtitle = () =>
-    [props.detail.agentType, props.detail.background ? 'background' : undefined]
+    [
+      props.detail.agentType,
+      props.detail.background ? t('background') : undefined,
+    ]
       .filter(Boolean)
       .join(' · ') || undefined;
   const trailing = () =>
     props.common.trailing ??
     (props.detail.result?.error != null ? (
-      <span class="text-ink">Failed</span>
+      <span class="text-ink">{t('Failed')}</span>
     ) : props.detail.result ? (
       <Show when={resultSummary(props.detail.result)}>
         {(summary) => <span>{summary()}</span>}

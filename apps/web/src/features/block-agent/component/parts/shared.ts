@@ -6,6 +6,7 @@
  */
 
 import type { ToolName } from '@service-agent-fold/generated/types';
+import { t } from '@macro/i18n';
 import type { JSX } from 'solid-js';
 import type { ToolStatus } from '../../ui';
 
@@ -49,5 +50,5 @@ export function toolLabel(name: ToolName): string {
 export function pathsSubtitle(paths: string[]): string | undefined {
   if (paths.length === 0) return undefined;
   if (paths.length === 1) return paths[0];
-  return `${paths.length} files`;
+  return t('{count} files', { count: paths.length });
 }

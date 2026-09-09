@@ -14,6 +14,7 @@ import { isMobile } from '@core/mobile/isMobile';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { useTouchOutsideToDismissKeyboard } from '@core/mobile/useTouchOutsideToDismissKeyboard';
 import { $insertReferencedPaste } from '@macro-inc/lexical-core';
+import { t } from '@macro/i18n';
 import EnterIcon from '@phosphor-icons/core/regular/arrow-bend-down-left.svg?component-solid';
 import { Button, SendButton, Surface } from '@ui';
 import { createSignal, type JSX, onCleanup, onMount, Show } from 'solid-js';
@@ -189,7 +190,7 @@ export function AgentInput(props: AgentInputProps) {
             <MarkdownShell
               config={editor}
               placeholder={
-                props.placeholder ?? 'Message the agent, @mention anything'
+                props.placeholder ?? t('Message the agent, @mention anything')
               }
               autofocus={props.autofocus}
             />
@@ -205,7 +206,7 @@ export function AgentInput(props: AgentInputProps) {
                 when={props.busy && props.onStop}
                 fallback={
                   <SendButton
-                    tooltip="Send"
+                    tooltip={t('Send')}
                     disabled={!canSend()}
                     onClick={send}
                   />
@@ -217,7 +218,7 @@ export function AgentInput(props: AgentInputProps) {
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      label="Stop"
+                      label={t('Stop')}
                       onClick={() => props.onStop?.()}
                       class="rounded-[11px] size-7.5 text-ink-extra-muted not-disabled:bg-ink/5 not-disabled:hover:bg-ink/10"
                     >
@@ -226,8 +227,8 @@ export function AgentInput(props: AgentInputProps) {
                   }
                 >
                   <SendButton
-                    aria-label="Send next queued message"
-                    tooltip="Send next queued message"
+                    aria-label={t('Send next queued message')}
+                    tooltip={t('Send next queued message')}
                     shortcut="Enter"
                     onClick={sendNext}
                   >

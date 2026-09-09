@@ -102,18 +102,6 @@
     "snippet": "Clear all"
   },
   {
-    "file": "features/next-soup/soup-view/filters-bar/sort-dropdown.tsx",
-    "line": 32,
-    "type": "JSXAttribute(label)",
-    "snippet": "Sort"
-  },
-  {
-    "file": "features/next-soup/soup-view/filters-bar/sort-dropdown.tsx",
-    "line": 35,
-    "type": "JSXText",
-    "snippet": "Sort"
-  },
-  {
     "file": "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
     "line": 986,
     "type": "JSXAttribute(label)",
@@ -222,36 +210,6 @@
     "snippet": "Clear all"
   },
   {
-    "file": "features/next-soup/soup-view/filters-bar/group-dropdown.tsx",
-    "line": 25,
-    "type": "JSXAttribute(label)",
-    "snippet": "Group"
-  },
-  {
-    "file": "features/next-soup/soup-view/filters-bar/group-dropdown.tsx",
-    "line": 33,
-    "type": "JSXText",
-    "snippet": "Group"
-  },
-  {
-    "file": "features/next-soup/soup-view/filters-bar/soup-active-filters-bar.tsx",
-    "line": 25,
-    "type": "JSXAttribute(tooltip)",
-    "snippet": "Add filters"
-  },
-  {
-    "file": "features/next-soup/soup-view/filters-bar/soup-active-filters-bar.tsx",
-    "line": 58,
-    "type": "JSXAttribute(tooltip)",
-    "snippet": "Clear active filters"
-  },
-  {
-    "file": "features/next-soup/soup-view/filters-bar/soup-active-filters-bar.tsx",
-    "line": 61,
-    "type": "JSXText",
-    "snippet": "Clear all"
-  },
-  {
     "file": "features/next-soup/soup-view/views/tasks/TaskListHeader.tsx",
     "line": 110,
     "type": "JSXAttribute(label)",
@@ -262,114 +220,6 @@
     "line": 115,
     "type": "JSXAttribute(label)",
     "snippet": "Updated"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 80,
-    "type": "JSXAttribute(label)",
-    "snippet": "Copy link"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 84,
-    "type": "JSXAttribute(label)",
-    "snippet": "Copy link"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 93,
-    "type": "JSXAttribute(label)",
-    "snippet": "Delete view"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 97,
-    "type": "JSXAttribute(label)",
-    "snippet": "Delete view"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 201,
-    "type": "JSXText",
-    "snippet": "Views"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 207,
-    "type": "JSXText",
-    "snippet": "My views"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 210,
-    "type": "JSXText",
-    "snippet": "No saved views"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 230,
-    "type": "JSXText",
-    "snippet": "Team views"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 233,
-    "type": "JSXText",
-    "snippet": "No team views"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 268,
-    "type": "JSXText",
-    "snippet": "Save current view…"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 284,
-    "type": "JSXAttribute(placeholder)",
-    "snippet": "View name"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 293,
-    "type": "JSXAttribute(aria-label)",
-    "snippet": "View visibility"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 306,
-    "type": "JSXText",
-    "snippet": "Save"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 317,
-    "type": "JSXText",
-    "snippet": "Copy link to current view"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 346,
-    "type": "JSXAttribute(label)",
-    "snippet": "Display options"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 350,
-    "type": "JSXAttribute(label)",
-    "snippet": "Display options"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 360,
-    "type": "JSXText",
-    "snippet": "List columns"
-  },
-  {
-    "file": "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "line": 392,
-    "type": "JSXText",
-    "snippet": "Show hidden companies"
   },
   {
     "file": "features/next-soup/soup-view/FolderDropZone.tsx",
@@ -424,156 +274,6 @@
     "line": 1546,
     "type": "JSXText",
     "snippet": "Load More"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 462,
-    "type": "JSXText",
-    "snippet": "Document AST Playground"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 467,
-    "type": "JSXText",
-    "snippet": "Endpoint"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 481,
-    "type": "JSXText",
-    "snippet": "Expression shape"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 489,
-    "type": "JSXText",
-    "snippet": "OR selected clauses"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 490,
-    "type": "JSXText",
-    "snippet": "AND selected clauses"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 491,
-    "type": "JSXText",
-    "snippet": "OR selected, grouping markdown subtypes"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 494,
-    "type": "JSXText",
-    "snippet": "NOT selected clauses"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 499,
-    "type": "JSXText",
-    "snippet": "Examples"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 517,
-    "type": "JSXText",
-    "snippet": "Document clauses"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 545,
-    "type": "JSXText",
-    "snippet": "Custom include fields"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 548,
-    "type": "JSXAttribute(placeholder)",
-    "snippet": "document ids, comma separated"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 554,
-    "type": "JSXAttribute(placeholder)",
-    "snippet": "owner ids, comma separated"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 560,
-    "type": "JSXAttribute(placeholder)",
-    "snippet": "project ids, comma separated"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 567,
-    "type": "JSXAttribute(placeholder)",
-    "snippet": "updated >= ISO"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 573,
-    "type": "JSXAttribute(placeholder)",
-    "snippet": "updated <= ISO"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 581,
-    "type": "JSXText",
-    "snippet": "Limit"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 595,
-    "type": "JSXText",
-    "snippet": "Edit JSON"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 603,
-    "type": "JSXText",
-    "snippet": "Run"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 610,
-    "type": "JSXText",
-    "snippet": "documentWhere JSON"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 622,
-    "type": "JSXText",
-    "snippet": "documentWhere expression"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 635,
-    "type": "JSXText",
-    "snippet": "Simple soup cannot express the plain-markdown exclusion for\n"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 650,
-    "type": "JSXText",
-    "snippet": "Soup entities ("
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 659,
-    "type": "JSXText",
-    "snippet": "Load more"
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 666,
-    "type": "JSXText",
-    "snippet": "Loading..."
-  },
-  {
-    "file": "features/next-soup/debug/DocumentWherePlayground.tsx",
-    "line": 671,
-    "type": "JSXText",
-    "snippet": "returned soup items were\n                not displayable ent"
   },
   {
     "file": "features/settings/Settings.tsx",
@@ -1018,6 +718,12 @@
     "line": 627,
     "type": "JSXText",
     "snippet": "Cancel"
+  },
+  {
+    "file": "features/settings/Account.tsx",
+    "line": 636,
+    "type": "JSXAttribute(fallback)",
+    "snippet": "Delete My Account"
   },
   {
     "file": "features/settings/Account.tsx",
@@ -1597,6 +1303,12 @@
   },
   {
     "file": "features/settings/Tags.tsx",
+    "line": 367,
+    "type": "JSXAttribute(confirmLabel)",
+    "snippet": "Share"
+  },
+  {
+    "file": "features/settings/Tags.tsx",
     "line": 374,
     "type": "JSXText",
     "snippet": "moves into the"
@@ -1612,6 +1324,12 @@
     "line": 381,
     "type": "JSXAttribute(title)",
     "snippet": "Team label already exists"
+  },
+  {
+    "file": "features/settings/Tags.tsx",
+    "line": 382,
+    "type": "JSXAttribute(confirmLabel)",
+    "snippet": "Use team label"
   },
   {
     "file": "features/settings/Tags.tsx",
@@ -2623,6 +2341,12 @@
   },
   {
     "file": "features/calendar/components/CalendarGrid.tsx",
+    "line": 244,
+    "type": "JSXAttribute(allDayText)",
+    "snippet": "All day"
+  },
+  {
+    "file": "features/calendar/components/CalendarGrid.tsx",
     "line": 387,
     "type": "JSXText",
     "snippet": "New event"
@@ -2938,30 +2662,6 @@
     "line": 507,
     "type": "JSXAttribute(aria-label)",
     "snippet": "More options"
-  },
-  {
-    "file": "features/block-md/component/ComposeSkill.tsx",
-    "line": 180,
-    "type": "JSXText",
-    "snippet": "New skill"
-  },
-  {
-    "file": "features/block-md/component/ComposeSkill.tsx",
-    "line": 377,
-    "type": "JSXAttribute(tooltip)",
-    "snippet": "Continue editing in split"
-  },
-  {
-    "file": "features/block-md/component/ComposeSkill.tsx",
-    "line": 388,
-    "type": "JSXAttribute(tooltip)",
-    "snippet": "Close"
-  },
-  {
-    "file": "features/block-md/component/ComposeSkill.tsx",
-    "line": 439,
-    "type": "JSXText",
-    "snippet": "Create Skill"
   },
   {
     "file": "features/block-md/component/InstructionsEditor.tsx",
@@ -3628,6 +3328,12 @@
     "line": 181,
     "type": "JSXAttribute(placeholder)",
     "snippet": "Enter URL..."
+  },
+  {
+    "file": "features/property/editors/inline/InlineLinkEditor.tsx",
+    "line": 255,
+    "type": "JSXAttribute(alt)",
+    "snippet": "favicon"
   },
   {
     "file": "features/property/editors/popover/EntityEditor.tsx",
@@ -4462,6 +4168,12 @@
     "line": 247,
     "type": "JSXText",
     "snippet": "Attached items"
+  },
+  {
+    "file": "features/entity/components/CollapsibleList.tsx",
+    "line": 33,
+    "type": "JSXAttribute(fallback)",
+    "snippet": "Show less"
   },
   {
     "file": "features/entity/components/Badges.tsx",
@@ -5610,6 +5322,12 @@
     "snippet": "Text"
   },
   {
+    "file": "features/block-pdf/component/placeables/Signature.tsx",
+    "line": 188,
+    "type": "JSXAttribute(alt)",
+    "snippet": "signature"
+  },
+  {
     "file": "features/block-pdf/component/DefinitionLookup/index.tsx",
     "line": 261,
     "type": "JSXText",
@@ -5670,6 +5388,12 @@
     "snippet": "Choose a model"
   },
   {
+    "file": "features/block-agent/ui/AgentModelSelector.tsx",
+    "line": 231,
+    "type": "JSXAttribute(searchPlaceholder)",
+    "snippet": "Search models"
+  },
+  {
     "file": "features/block-agent/ui/QueuedPrompts.tsx",
     "line": 142,
     "type": "JSXText",
@@ -5724,130 +5448,10 @@
     "snippet": "Exit code"
   },
   {
-    "file": "features/block-agent/component/AgentRenameModal.tsx",
-    "line": 85,
-    "type": "JSXAttribute(title)",
-    "snippet": "Rename"
-  },
-  {
-    "file": "features/block-agent/component/AgentRenameModal.tsx",
-    "line": 101,
-    "type": "JSXAttribute(placeholder)",
-    "snippet": "Enter title..."
-  },
-  {
-    "file": "features/block-agent/component/AgentRenameModal.tsx",
-    "line": 107,
-    "type": "JSXAttribute(confirmText)",
-    "snippet": "Rename"
-  },
-  {
-    "file": "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "line": 68,
-    "type": "JSXAttribute(title)",
-    "snippet": "Details"
-  },
-  {
-    "file": "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "line": 70,
-    "type": "JSXAttribute(label)",
-    "snippet": "Status"
-  },
-  {
-    "file": "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "line": 75,
-    "type": "JSXAttribute(label)",
-    "snippet": "Agent"
-  },
-  {
-    "file": "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "line": 82,
-    "type": "JSXAttribute(label)",
-    "snippet": "Harness"
-  },
-  {
-    "file": "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "line": 89,
-    "type": "JSXAttribute(label)",
-    "snippet": "Model"
-  },
-  {
-    "file": "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "line": 98,
-    "type": "JSXAttribute(label)",
-    "snippet": "Repository"
-  },
-  {
-    "file": "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "line": 112,
-    "type": "JSXAttribute(label)",
-    "snippet": "Created"
-  },
-  {
-    "file": "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "line": 123,
-    "type": "JSXAttribute(label)",
-    "snippet": "Last updated"
-  },
-  {
-    "file": "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "line": 137,
-    "type": "JSXAttribute(title)",
-    "snippet": "Plan"
-  },
-  {
-    "file": "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "line": 153,
-    "type": "JSXAttribute(label)",
-    "snippet": "Changed files"
-  },
-  {
-    "file": "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "line": 183,
-    "type": "JSXAttribute(title)",
-    "snippet": "Activity"
-  },
-  {
-    "file": "features/block-agent/component/Block.tsx",
-    "line": 43,
-    "type": "JSXAttribute(title)",
-    "snippet": "Unable to load this document"
-  },
-  {
-    "file": "features/block-agent/component/parts/SubagentToolCall.tsx",
-    "line": 95,
-    "type": "JSXText",
-    "snippet": "Failed"
-  },
-  {
-    "file": "features/block-agent/component/parts/PermissionPart.tsx",
-    "line": 24,
-    "type": "JSXAttribute(title)",
-    "snippet": "Permission requested"
-  },
-  {
     "file": "features/block-agent/component/parts/UserToolCall.tsx",
     "line": 206,
     "type": "JSXText",
     "snippet": "Subject"
-  },
-  {
-    "file": "features/block-agent/component/parts/ToolCallPart.tsx",
-    "line": 40,
-    "type": "JSXText",
-    "snippet": "Failed"
-  },
-  {
-    "file": "features/block-agent/component/AgentComposer.tsx",
-    "line": 76,
-    "type": "JSXAttribute(placeholder)",
-    "snippet": "Message the agent, @mention anything"
-  },
-  {
-    "file": "features/block-agent/component/ReplyToSelection.tsx",
-    "line": 74,
-    "type": "JSXText",
-    "snippet": "Reply to this"
   },
   {
     "file": "features/block-agent/debug/Gallery.tsx",
@@ -5965,6 +5569,12 @@
   },
   {
     "file": "features/block-agent/debug/Gallery.tsx",
+    "line": 482,
+    "type": "JSXAttribute(error)",
+    "snippet": "Bash: command timed out after 120s: cargo test -p agent_fold"
+  },
+  {
+    "file": "features/block-agent/debug/Gallery.tsx",
     "line": 486,
     "type": "JSXAttribute(label)",
     "snippet": "DiffChanges"
@@ -6022,12 +5632,6 @@
     "line": 188,
     "type": "JSXText",
     "snippet": "none"
-  },
-  {
-    "file": "features/block-agent/debug/replay/Replay.tsx",
-    "line": 189,
-    "type": "JSXText",
-    "snippet": "1.5s"
   },
   {
     "file": "features/block-agent/debug/replay/Replay.tsx",
@@ -6142,6 +5746,18 @@
     "line": 258,
     "type": "JSXText",
     "snippet": "has invited you to join as\n          a"
+  },
+  {
+    "file": "features/team-invitations/TeamInviteAcceptance.tsx",
+    "line": 271,
+    "type": "JSXAttribute(fallback)",
+    "snippet": "Accept Invitation"
+  },
+  {
+    "file": "features/team-invitations/TeamInviteAcceptance.tsx",
+    "line": 282,
+    "type": "JSXAttribute(fallback)",
+    "snippet": "Decline"
   },
   {
     "file": "features/team-invitations/invite-modal.tsx",
@@ -6859,6 +6475,12 @@
   },
   {
     "file": "features/channel/Channel/UnifiedReplyInput.tsx",
+    "line": 41,
+    "type": "JSXAttribute(fallback)",
+    "snippet": "Replying to thread"
+  },
+  {
+    "file": "features/channel/Channel/UnifiedReplyInput.tsx",
     "line": 44,
     "type": "JSXText",
     "snippet": "Replying to"
@@ -7090,6 +6712,18 @@
     "line": 113,
     "type": "JSXAttribute(aria-label)",
     "snippet": "Next media"
+  },
+  {
+    "file": "features/channel/Media/MediaImage.tsx",
+    "line": 105,
+    "type": "JSXAttribute(alt)",
+    "snippet": "preview"
+  },
+  {
+    "file": "features/channel/Media/MediaImage.tsx",
+    "line": 119,
+    "type": "JSXAttribute(alt)",
+    "snippet": "preview"
   },
   {
     "file": "features/integrations/import-linear/ImportLinear.tsx",
@@ -7390,270 +7024,6 @@
     "line": 231,
     "type": "JSXText",
     "snippet": "Pick a color to make it custom, or compose it from another r"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 89,
-    "type": "JSXAttribute(label)",
-    "snippet": "Hotkey Debugger"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 93,
-    "type": "JSXText",
-    "snippet": "active scope:"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 97,
-    "type": "JSXText",
-    "snippet": "pressed keys:"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 104,
-    "type": "JSXText",
-    "snippet": "commands"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 136,
-    "type": "JSXText",
-    "snippet": "Lvl"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 137,
-    "type": "JSXText",
-    "snippet": "Scope"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 138,
-    "type": "JSXText",
-    "snippet": "Description"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 141,
-    "type": "JSXText",
-    "snippet": "Hotkey"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 142,
-    "type": "JSXText",
-    "snippet": "Token"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 143,
-    "type": "JSXText",
-    "snippet": "Flags"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 204,
-    "type": "JSXAttribute(title)",
-    "snippet": "hide === true — not shown in command menu / hotkey UI"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 205,
-    "type": "JSXText",
-    "snippet": "hidden"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 212,
-    "type": "JSXAttribute(title)",
-    "snippet": "Shadowed by a command with the same hotkey in a more specifi"
-  },
-  {
-    "file": "features/devtools/HotkeyDebugger.tsx",
-    "line": 213,
-    "type": "JSXText",
-    "snippet": "shadowed"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 107,
-    "type": "JSXText",
-    "snippet": "AI Projection Playground"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 108,
-    "type": "JSXText",
-    "snippet": "POST /ai-projections · gateway `ai_projection_updated`"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 115,
-    "type": "JSXText",
-    "snippet": "Projection id"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 121,
-    "type": "JSXText",
-    "snippet": "The cache key. Same id + same prompt/model/schema = cached r"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 128,
-    "type": "JSXText",
-    "snippet": "Prompt"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 137,
-    "type": "JSXText",
-    "snippet": "Output"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 156,
-    "type": "JSXText",
-    "snippet": "Model"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 172,
-    "type": "JSXAttribute(placeholder)",
-    "snippet": "provider/model, e.g. cerebras/llama-3.3-70b"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 177,
-    "type": "JSXText",
-    "snippet": "Unroutable ids silently fall back to the server default."
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 183,
-    "type": "JSXText",
-    "snippet": "Request behavior"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 190,
-    "type": "JSXText",
-    "snippet": "await — generate inline and return the finished result"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 200,
-    "type": "JSXText",
-    "snippet": "enabled — reactive; off = the query never fires"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 210,
-    "type": "JSXText",
-    "snippet": "cadence: high"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 211,
-    "type": "JSXText",
-    "snippet": "cadence: medium"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 212,
-    "type": "JSXText",
-    "snippet": "cadence: low"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 221,
-    "type": "JSXText",
-    "snippet": "expiry: day"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 222,
-    "type": "JSXText",
-    "snippet": "expiry: week"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 223,
-    "type": "JSXText",
-    "snippet": "expiry: month"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 234,
-    "type": "JSXText",
-    "snippet": "Send request"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 242,
-    "type": "JSXText",
-    "snippet": "Force regenerate"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 250,
-    "type": "JSXText",
-    "snippet": "status:"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 253,
-    "type": "JSXText",
-    "snippet": "generating:"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 256,
-    "type": "JSXText",
-    "snippet": "fetching:"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 260,
-    "type": "JSXText",
-    "snippet": "generated"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 265,
-    "type": "JSXText",
-    "snippet": "stale"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 276,
-    "type": "JSXText",
-    "snippet": "Result"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 280,
-    "type": "JSXText",
-    "snippet": "No result yet. Enable the query (or hit “Send request”) to\n "
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 294,
-    "type": "JSXText",
-    "snippet": "Raw response"
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 303,
-    "type": "JSXText",
-    "snippet": "Gateway events ("
-  },
-  {
-    "file": "features/devtools/debug/ProjectionPlayground.tsx",
-    "line": 309,
-    "type": "JSXText",
-    "snippet": "No `ai_projection_updated` frames received yet."
   },
   {
     "file": "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
@@ -8262,282 +7632,6 @@
     "snippet": "Get notified about new messages, mentions, comments, and ema"
   },
   {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 164,
-    "type": "JSXText",
-    "snippet": "No extractable data"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 170,
-    "type": "JSXText",
-    "snippet": "Loading..."
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 175,
-    "type": "JSXText",
-    "snippet": "Visual Preview"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 187,
-    "type": "JSXText",
-    "snippet": "Title"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 195,
-    "type": "JSXText",
-    "snippet": "Description (Body)"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 200,
-    "type": "JSXText",
-    "snippet": "(empty)"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 205,
-    "type": "JSXText",
-    "snippet": "Icon"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 217,
-    "type": "JSXText",
-    "snippet": "Raw JSON ▸"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 240,
-    "type": "JSXText",
-    "snippet": "Enable Browser Notifications"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 247,
-    "type": "JSXText",
-    "snippet": "Notifications Enabled"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 263,
-    "type": "JSXText",
-    "snippet": "Custom Message Builder"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 266,
-    "type": "JSXText",
-    "snippet": "Test markdown rendering"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 271,
-    "type": "JSXText",
-    "snippet": "Message Content"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 277,
-    "type": "JSXAttribute(placeholder)",
-    "snippet": "Type your markdown message here... (use @ for mentions)"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 281,
-    "type": "JSXText",
-    "snippet": "Full markdown editor with syntax highlighting, code blocks, "
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 291,
-    "type": "JSXText",
-    "snippet": "🔔 Test Browser Notification"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 297,
-    "type": "JSXText",
-    "snippet": "Live Preview"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 325,
-    "type": "JSXText",
-    "snippet": "notification"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 368,
-    "type": "JSXText",
-    "snippet": "🔔 Test Notification"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 375,
-    "type": "JSXText",
-    "snippet": "Compact Row"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 376,
-    "type": "JSXText",
-    "snippet": "One-line variant used in the right-panel notifications card."
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 386,
-    "type": "JSXText",
-    "snippet": "Notifications Card"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 387,
-    "type": "JSXText",
-    "snippet": "What the right-panel card looks like when several notificati"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 401,
-    "type": "JSXText",
-    "snippet": "Expanded Row"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 402,
-    "type": "JSXText",
-    "snippet": "Same header as compact, but the content moves below and rend"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 415,
-    "type": "JSXText",
-    "snippet": "Expanded Row · no mark-done"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 418,
-    "type": "JSXText",
-    "snippet": "Same variant with"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 419,
-    "type": "JSXText",
-    "snippet": "showMarkDone={false}"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 419,
-    "type": "JSXText",
-    "snippet": "— the\n          check button is suppressed and the timestamp"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 432,
-    "type": "JSXText",
-    "snippet": "Both variants side by side"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 435,
-    "type": "JSXText",
-    "snippet": "Same notification in both variants — fonts, colors, indicato"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 442,
-    "type": "JSXText",
-    "snippet": "compact"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 450,
-    "type": "JSXText",
-    "snippet": "expanded"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 464,
-    "type": "JSXText",
-    "snippet": "Browser Notification Format"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 472,
-    "type": "JSXText",
-    "snippet": "Raw Notification Data ▸"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 606,
-    "type": "JSXText",
-    "snippet": "Loading notifications..."
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 609,
-    "type": "JSXText",
-    "snippet": "Fetching from server"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 618,
-    "type": "JSXText",
-    "snippet": "Notifications Playground"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 622,
-    "type": "JSXText",
-    "snippet": "total"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 624,
-    "type": "JSXText",
-    "snippet": "types"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 645,
-    "type": "JSXText",
-    "snippet": "Custom Message Test"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 650,
-    "type": "JSXText",
-    "snippet": "Builder"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 679,
-    "type": "JSXAttribute(title)",
-    "snippet": "Select a notification type"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 680,
-    "type": "JSXAttribute(description)",
-    "snippet": "Choose a type from the left sidebar to see all notifications"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 706,
-    "type": "JSXAttribute(title)",
-    "snippet": "Select a notification"
-  },
-  {
-    "file": "features/notifications/components/Playground.tsx",
-    "line": 707,
-    "type": "JSXAttribute(description)",
-    "snippet": "Choose a notification from the list to see detailed renderin"
-  },
-  {
     "file": "features/reminders/ReminderForm.tsx",
     "line": 405,
     "type": "JSXAttribute(aria-label)",
@@ -8598,10 +7692,22 @@
     "snippet": "New reminder"
   },
   {
+    "file": "features/reminders/ReminderComposerModal.tsx",
+    "line": 152,
+    "type": "JSXAttribute(submitLabel)",
+    "snippet": "Set reminder"
+  },
+  {
     "file": "features/reminders/ReminderEditorSplit.tsx",
     "line": 137,
     "type": "JSXAttribute(placeholder)",
     "snippet": "Reminder description"
+  },
+  {
+    "file": "features/reminders/ReminderEditorSplit.tsx",
+    "line": 138,
+    "type": "JSXAttribute(submitLabel)",
+    "snippet": "Save"
   },
   {
     "file": "features/reminders/ReminderEditorSplit.tsx",
@@ -8629,13 +7735,13 @@
   },
   {
     "file": "features/companies/CreateContactModal.tsx",
-    "line": 179,
+    "line": 181,
     "type": "JSXAttribute(placeholder)",
     "snippet": "jane"
   },
   {
     "file": "features/companies/CreateCompanyModal.tsx",
-    "line": 155,
+    "line": 157,
     "type": "JSXAttribute(placeholder)",
     "snippet": "acme.com"
   },
@@ -9402,10 +8508,22 @@
     "snippet": "Subscribe to remove watermark"
   },
   {
+    "file": "features/block-email/component/MessageContainer.tsx",
+    "line": 372,
+    "type": "JSXAttribute(loadingText)",
+    "snippet": "Loading messages"
+  },
+  {
     "file": "features/block-email/component/MobileEmailComposeDrawer.tsx",
     "line": 55,
     "type": "JSXAttribute(aria-label)",
     "snippet": "Reply composer"
+  },
+  {
+    "file": "features/block-email/component/MobileEmailComposeDrawer.tsx",
+    "line": 64,
+    "type": "JSXAttribute(loadingText)",
+    "snippet": "Loading messages"
   },
   {
     "file": "features/block-project/component/sidepanel/ProjectSidePanelSections.tsx",
@@ -10591,6 +9709,12 @@
   },
   {
     "file": "lib/core/internal/UserIconDemo.tsx",
+    "line": 65,
+    "type": "JSXAttribute(alt)",
+    "snippet": "Random"
+  },
+  {
+    "file": "lib/core/internal/UserIconDemo.tsx",
     "line": 76,
     "type": "JSXAttribute(title)",
     "snippet": "UserIcon - All Sizes"
@@ -10776,6 +9900,12 @@
     "snippet": "Sorry, an unexpected error has occurred."
   },
   {
+    "file": "lib/core/component/Link.tsx",
+    "line": 94,
+    "type": "JSXAttribute(alt)",
+    "snippet": "ico"
+  },
+  {
     "file": "lib/core/component/DetailsDrawer.tsx",
     "line": 23,
     "type": "JSXAttribute(title)",
@@ -10926,6 +10056,12 @@
     "snippet": "Close"
   },
   {
+    "file": "lib/core/component/Lightbox/Lightbox.tsx",
+    "line": 171,
+    "type": "JSXAttribute(alt)",
+    "snippet": "preview"
+  },
+  {
     "file": "lib/core/component/ItemPreview.tsx",
     "line": 142,
     "type": "JSXText",
@@ -11068,6 +10204,12 @@
     "line": 181,
     "type": "JSXText",
     "snippet": "Delete image"
+  },
+  {
+    "file": "lib/core/component/ImagePreview.tsx",
+    "line": 201,
+    "type": "JSXAttribute(alt)",
+    "snippet": "preview"
   },
   {
     "file": "lib/core/component/AI/component/input/useAiDataConsent.tsx",
@@ -11832,30 +10974,6 @@
     "snippet": "Tool Response Stream Done"
   },
   {
-    "file": "lib/core/component/AI/component/debug/stream/StreamDebugger.tsx",
-    "line": 53,
-    "type": "JSXText",
-    "snippet": "Stream"
-  },
-  {
-    "file": "lib/core/component/AI/component/debug/stream/StreamDebugger.tsx",
-    "line": 63,
-    "type": "JSXText",
-    "snippet": "Reset"
-  },
-  {
-    "file": "lib/core/component/AI/component/debug/stream/StreamDebugger.tsx",
-    "line": 97,
-    "type": "JSXText",
-    "snippet": "chunks:"
-  },
-  {
-    "file": "lib/core/component/AI/component/debug/stream/StreamDebugger.tsx",
-    "line": 99,
-    "type": "JSXText",
-    "snippet": "isDone:"
-  },
-  {
     "file": "lib/core/component/AI/component/debug/stream/StreamStatus.tsx",
     "line": 16,
     "type": "JSXText",
@@ -12250,6 +11368,12 @@
     "line": 173,
     "type": "JSXText",
     "snippet": "Delete image"
+  },
+  {
+    "file": "lib/core/component/ImageGalleryPreview.tsx",
+    "line": 206,
+    "type": "JSXAttribute(alt)",
+    "snippet": "preview"
   },
   {
     "file": "lib/core/component/TopBar/ShareButton.tsx",
@@ -13026,72 +12150,6 @@
     "snippet": "test buildMentionMarkdownString(info: MentionInfo)"
   },
   {
-    "file": "lib/core/component/LexicalMarkdown/component/debug/LexicalStateDebugger.tsx",
-    "line": 264,
-    "type": "JSXText",
-    "snippet": "No Selection"
-  },
-  {
-    "file": "lib/core/component/LexicalMarkdown/component/debug/LexicalStateDebugger.tsx",
-    "line": 290,
-    "type": "JSXText",
-    "snippet": "selected nodes -"
-  },
-  {
-    "file": "lib/core/component/LexicalMarkdown/component/debug/LexicalStateDebugger.tsx",
-    "line": 291,
-    "type": "JSXText",
-    "snippet": "anchor offset -"
-  },
-  {
-    "file": "lib/core/component/LexicalMarkdown/component/debug/LexicalStateDebugger.tsx",
-    "line": 292,
-    "type": "JSXText",
-    "snippet": "focus offset -"
-  },
-  {
-    "file": "lib/core/component/LexicalMarkdown/component/debug/LexicalStateDebugger.tsx",
-    "line": 301,
-    "type": "JSXText",
-    "snippet": "selected nodes -"
-  },
-  {
-    "file": "lib/core/component/LexicalMarkdown/component/debug/LexicalStateDebugger.tsx",
-    "line": 348,
-    "type": "JSXText",
-    "snippet": "Peer ID:"
-  },
-  {
-    "file": "lib/core/component/LexicalMarkdown/component/debug/LexicalStateDebugger.tsx",
-    "line": 431,
-    "type": "JSXText",
-    "snippet": "JSON state"
-  },
-  {
-    "file": "lib/core/component/LexicalMarkdown/component/debug/LexicalStateDebugger.tsx",
-    "line": 436,
-    "type": "JSXText",
-    "snippet": "Copy"
-  },
-  {
-    "file": "lib/core/component/LexicalMarkdown/component/debug/LexicalStateDebugger.tsx",
-    "line": 444,
-    "type": "JSXText",
-    "snippet": "Import JSON"
-  },
-  {
-    "file": "lib/core/component/LexicalMarkdown/component/debug/LexicalStateDebugger.tsx",
-    "line": 447,
-    "type": "JSXAttribute(placeholder)",
-    "snippet": "{\"root\":{\"children\":[...]}}"
-  },
-  {
-    "file": "lib/core/component/LexicalMarkdown/component/debug/LexicalStateDebugger.tsx",
-    "line": 462,
-    "type": "JSXText",
-    "snippet": "Import"
-  },
-  {
     "file": "lib/core/component/LexicalMarkdown/builder/BuilderTestPage.tsx",
     "line": 56,
     "type": "JSXAttribute(label)",
@@ -13108,12 +12166,6 @@
     "line": 66,
     "type": "JSXAttribute(label)",
     "snippet": "Markdown Editor Builder Pattern Test"
-  },
-  {
-    "file": "lib/core/component/SlidableNumberInput.tsx",
-    "line": 159,
-    "type": "JSXText",
-    "snippet": "&nbsp"
   },
   {
     "file": "lib/core/component/EmailPermissionsBanner.tsx",

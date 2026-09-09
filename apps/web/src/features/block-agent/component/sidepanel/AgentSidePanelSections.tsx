@@ -16,6 +16,7 @@ import { registerHotkey } from '@core/hotkey/hotkeys';
 import { TOKENS } from '@core/hotkey/tokens';
 import { formatDate } from '@core/util/date';
 import { openExternalUrl } from '@core/util/url';
+import { t } from '@macro/i18n';
 import GitBranch from '@phosphor/git-branch.svg';
 import { createMemo, For, onCleanup, Show } from 'solid-js';
 import { useAgentSession } from '../../context/AgentSessionContext';
@@ -52,7 +53,7 @@ export function AgentSidePanelSections() {
       hotkey: ']',
       scopeId: splitPanel.splitHotkeyScope,
       hotkeyToken: TOKENS.block.toggleSidePanel,
-      description: 'Toggle Side Panel',
+      description: t('Toggle Side Panel'),
       keyDownHandler: () => {
         if (!sidePanel) return false;
         if (!sidePanel.hasSections()) return false;
@@ -65,28 +66,28 @@ export function AgentSidePanelSections() {
 
   return (
     <>
-      <SidePanel.Section id="details" title="Details" defaultOpen order={10}>
+      <SidePanel.Section id="details" title={t('Details')} defaultOpen order={10}>
         <SidePanel.Grid>
-          <SidePanel.Row label="Status">
+          <SidePanel.Row label={t('Status')}>
             <SessionStatusPill status={status()} />
           </SidePanel.Row>
           <Show when={bot()?.name}>
             {(name) => (
-              <SidePanel.Row label="Agent">
+              <SidePanel.Row label={t('Agent')}>
                 <SidePanel.Pill>
                   <span class="truncate">{name()}</span>
                 </SidePanel.Pill>
               </SidePanel.Row>
             )}
           </Show>
-          <SidePanel.Row label="Harness">
+          <SidePanel.Row label={t('Harness')}>
             <SidePanel.Pill>
               <span class="truncate">{harnessTitle(session()?.harness)}</span>
             </SidePanel.Pill>
           </SidePanel.Row>
           <Show when={metadata()?.model ?? session()?.model}>
             {(model) => (
-              <SidePanel.Row label="Model">
+              <SidePanel.Row label={t('Model')}>
                 <SidePanel.Pill>
                   <span class="truncate">{model()}</span>
                 </SidePanel.Pill>
@@ -95,7 +96,7 @@ export function AgentSidePanelSections() {
           </Show>
           <Show when={session()?.repoUrl}>
             {(url) => (
-              <SidePanel.Row label="Repository">
+              <SidePanel.Row label={t('Repository')}>
                 <button
                   type="button"
                   class={`${SidePanel.pillClass} hover:bg-hover`}
@@ -109,7 +110,7 @@ export function AgentSidePanelSections() {
           </Show>
           <Show when={session()?.createdAt}>
             {(created) => (
-              <SidePanel.Row label="Created">
+              <SidePanel.Row label={t('Created')}>
                 <SidePanel.Pill>
                   <span class="truncate">
                     {formatDate(created(), { showTime: true })}
@@ -120,7 +121,7 @@ export function AgentSidePanelSections() {
           </Show>
           <Show when={session()?.modifiedAt}>
             {(modified) => (
-              <SidePanel.Row label="Last updated">
+              <SidePanel.Row label={t('Last updated')}>
                 <SidePanel.Pill>
                   <span class="truncate">
                     {formatDate(modified(), { showTime: true })}
@@ -134,7 +135,7 @@ export function AgentSidePanelSections() {
 
       <Show when={plan()}>
         {(entries) => (
-          <SidePanel.Section id="plan" title="Plan" defaultOpen order={15}>
+          <SidePanel.Section id="plan" title={t('Plan')} defaultOpen order={15}>
             <TodoList
               todos={entries().map((entry) => ({
                 content: entry.content,
@@ -150,7 +151,7 @@ export function AgentSidePanelSections() {
           id="files"
           title={
             <SidePanel.CountTitle
-              label="Changed files"
+              label={t('Changed files')}
               count={files().length}
             />
           }
@@ -180,7 +181,7 @@ export function AgentSidePanelSections() {
       </Show>
 
       <Show when={activity().some((item) => item.count > 0)}>
-        <SidePanel.Section id="activity" title="Activity" order={30}>
+        <SidePanel.Section id="activity" title={t('Activity')} order={30}>
           <div class="text-xs text-ink-muted">
             <CountSummary items={activity()} />
           </div>

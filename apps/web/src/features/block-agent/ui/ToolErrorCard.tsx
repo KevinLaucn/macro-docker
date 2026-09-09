@@ -13,6 +13,7 @@ import CaretRight from '@phosphor/caret-right.svg';
 import Check from '@phosphor/check.svg';
 import Copy from '@phosphor/copy.svg';
 import Prohibit from '@phosphor/prohibit.svg';
+import { t } from '@macro/i18n';
 import { Button } from '@ui';
 import { createMemo, createSignal, Show } from 'solid-js';
 
@@ -63,9 +64,9 @@ export function ToolErrorCard(props: ToolErrorCardProps) {
   /** First "head: rest" segment of the error, capitalized; "Failed" if none. */
   const subtitle = createMemo(() => {
     const parts = tail().split(': ');
-    if (parts.length <= 1) return 'Failed';
+    if (parts.length <= 1) return t('Failed');
     const head = (parts[0] ?? '').trim();
-    if (!head) return 'Failed';
+    if (!head) return t('Failed');
     return head[0].toUpperCase() + head.slice(1);
   });
 
@@ -117,7 +118,7 @@ export function ToolErrorCard(props: ToolErrorCardProps) {
             size="sm"
             noTouchResize
             class="shrink-0 px-1 text-ink-extra-muted hover:text-ink-muted"
-            aria-label={copied() ? 'Copied' : 'Copy error'}
+            aria-label={copied() ? t('Copied') : t('Copy error')}
             onMouseDown={(event) => event.preventDefault()}
             onClick={(event) => {
               event.stopPropagation();

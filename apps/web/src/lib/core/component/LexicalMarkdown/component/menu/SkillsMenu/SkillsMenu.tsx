@@ -11,6 +11,7 @@ import clickOutside from '@core/directive/clickOutside';
 import { debouncedDependent } from '@core/util/debounce';
 import { useIsKeyPressActive } from '@core/util/useIsKeyPressActive';
 import PlusIcon from '@phosphor/plus.svg';
+import { t } from '@macro/i18n';
 import { useSystemSkillsQuery } from '@queries/storage/system-skills';
 import type { SystemSkillSummary } from '@service-storage/generated/schemas/systemSkillSummary';
 import { cn, Surface } from '@ui';
@@ -270,13 +271,13 @@ function SkillsMenuInner(props: SkillsMenuProps) {
             class="pt-2 pb-1.5 shadow-lg shadow-drop-shadow rounded-xl"
           >
             <div class="px-3.5 pb-1 text-xs font-medium text-ink-muted">
-              Skills
+              {t('Skills')}
             </div>
             <Show
               when={skills().length > 0}
               fallback={
                 <div class="px-3.5 pb-1 text-ink-extra-muted">
-                  {searchTerm() ? 'No results' : 'No skills yet'}
+                  {searchTerm() ? t('No results') : t('No skills yet')}
                 </div>
               }
             >
@@ -321,7 +322,7 @@ function SkillsMenuInner(props: SkillsMenuProps) {
                   <PlusIcon class="size-4 text-ink-muted" />
                 </div>
                 <span class="text-ink text-xs sm:text-sm font-medium">
-                  New skill
+                  {t('New skill')}
                 </span>
               </div>
             </div>

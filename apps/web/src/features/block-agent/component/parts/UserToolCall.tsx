@@ -11,6 +11,7 @@
  */
 
 import { ItemPreview } from '@core/component/ItemPreview';
+import { t } from '@macro/i18n';
 import type {
   ToolDetail,
   UserToolOutcome,
@@ -37,14 +38,14 @@ type UserToolDetail = Extract<ToolDetail, { kind: 'user_tool' }>;
 /** The one-line reading of an outcome, for the card's trailing slot. */
 function outcomeLabel(outcome: UserToolOutcome): string {
   return match(outcome)
-    .with({ kind: 'pending' }, () => 'Awaiting you')
-    .with({ kind: 'edited' }, () => 'Edited')
-    .with({ kind: 'sent' }, () => 'Sent')
-    .with({ kind: 'draft' }, () => 'Saved as draft')
-    .with({ kind: 'completed' }, () => 'Done')
-    .with({ kind: 'rejected' }, () => 'Rejected')
-    .with({ kind: 'failed' }, () => 'Failed')
-    .with({ kind: 'unrecognized' }, () => 'Answered')
+    .with({ kind: 'pending' }, () => t('Awaiting you'))
+    .with({ kind: 'edited' }, () => t('Edited'))
+    .with({ kind: 'sent' }, () => t('Sent'))
+    .with({ kind: 'draft' }, () => t('Saved as draft'))
+    .with({ kind: 'completed' }, () => t('Done'))
+    .with({ kind: 'rejected' }, () => t('Rejected'))
+    .with({ kind: 'failed' }, () => t('Failed'))
+    .with({ kind: 'unrecognized' }, () => t('Answered'))
     .exhaustive();
 }
 
@@ -185,9 +186,9 @@ function EmailDraft(props: { email: SendEmail; inFlight: boolean }) {
   const body = createMemo(() => emailBody(props.email.body));
   const recipients = () =>
     [
-      ['To', props.email.to],
-      ['Cc', props.email.cc ?? []],
-      ['Bcc', props.email.bcc ?? []],
+      [t('To'), props.email.to],
+      [t('Cc'), props.email.cc ?? []],
+      [t('Bcc'), props.email.bcc ?? []],
     ] as const;
   return (
     <div class="flex flex-col gap-2">
@@ -203,7 +204,7 @@ function EmailDraft(props: { email: SendEmail; inFlight: boolean }) {
           )}
         </For>
         <Show when={props.email.subject.trim() !== ''}>
-          <dt class="text-ink-muted">Subject</dt>
+          <dt class="text-ink-muted">{t('Subject')}</dt>
           <dd class="text-ink wrap-break-word">{props.email.subject}</dd>
         </Show>
       </dl>
@@ -248,22 +249,24 @@ function localDate(date: string): Date {
 }
 
 function attendeeLabel(attendee: AttendeeInput): string {
-  return attendee.isOptional ? `${attendee.email} (optional)` : attendee.email;
+  return attendee.isOptional
+    ? t('{email} (optional)', { email: attendee.email })
+    : attendee.email;
 }
 
 function EventDraft(props: { event: CreateCalendarEvent }) {
   const rows = () =>
     [
-      ['When', eventWhen(props.event.time)],
-      ['Where', props.event.location?.trim() || undefined],
+      [t('When'), eventWhen(props.event.time)],
+      [t('Where'), props.event.location?.trim() || undefined],
       [
-        'Attendees',
+        t('Attendees'),
         props.event.attendees?.length
           ? props.event.attendees.map(attendeeLabel).join(', ')
           : undefined,
       ],
       [
-        'Repeats',
+        t('Repeats'),
         props.event.recurrenceLines?.length
           ? props.event.recurrenceLines.join('; ')
           : undefined,

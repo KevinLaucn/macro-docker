@@ -6,6 +6,7 @@
 
 import { useUserId } from '@core/context/user';
 import { idToDisplayName } from '@core/user/util';
+import { t } from '@macro/i18n';
 import { Show } from 'solid-js';
 import { useAgentSession } from '../context/AgentSessionContext';
 import {
@@ -70,10 +71,10 @@ export function AgentComposer() {
         </div>
       </Show>
       <Show when={resuming()}>
-        <ComposerNotice text="Waking the agent's sandbox…" active />
+        <ComposerNotice text={t("Waking the agent's sandbox…")} active />
       </Show>
       <AgentInput
-        placeholder="Message the agent, @mention anything"
+        placeholder={t('Message the agent, @mention anything')}
         autofocus={autofocus}
         busy={composer.busy()}
         hasQueuedMessages={queuedItems().length > 0}

@@ -56,6 +56,14 @@ jobs:
             console.log("✅ Zero AST parse failures detected across all scanned files.");
           '
 
+      - name: Upload i18n diff artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: i18n-diff-reports
+          path: packages/i18n/diff/
+          retention-days: 14
+
       - name: Generate i18n Status Report
         if: always()
         run: |
@@ -63,25 +71,96 @@ jobs:
             const fs = require("fs");
             try {
               const missing = fs.existsSync("packages/i18n/diff/missing.json") ? JSON.parse(fs.readFileSync("packages/i18n/diff/missing.json", "utf8")) : {};
+              const details = fs.existsSync("packages/i18n/diff/missing-details.json") ? JSON.parse(fs.readFileSync("packages/i18n/diff/missing-details.json", "utf8")) : {};
               const obsolete = fs.existsSync("packages/i18n/diff/obsolete.json") ? JSON.parse(fs.readFileSync("packages/i18n/diff/obsolete.json", "utf8")) : {};
               const ambiguous = fs.existsSync("packages/i18n/diff/ambiguous.json") ? JSON.parse(fs.readFileSync("packages/i18n/diff/ambiguous.json", "utf8")) : {};
               const dict = fs.existsSync("packages/i18n/locales/zh-CN.json") ? JSON.parse(fs.readFileSync("packages/i18n/locales/zh-CN.json", "utf8")) : {};
 
+              const explicitList = [];
+              const uiList = [];
+              for (const [key, meta] of Object.entries(details)) {
+                if (meta.isExplicit) {
+                  explicitList.push({ key, ...meta });
+                } else {
+                  uiList.push({ key, ...meta });
+                }
+              }
+
               const missingCount = Object.keys(missing).length;
+              const explicitCount = explicitList.length;
+              const uiCount = uiList.length;
               const obsoleteCount = Object.keys(obsolete).length;
               const ambiguousCount = Object.keys(ambiguous).length;
               const translatedCount = Object.keys(dict).length;
 
-              const summary = `
-          ## 🌐 i18n Infrastructure Health Report
-          - **Translated Entries**: ${translatedCount}
-          - **Missing Translations**: ${missingCount} ⚠️ (Advisory only)
-          - **Obsolete Translations**: ${obsoleteCount}
-          - **Ambiguous Context Keys**: ${ambiguousCount}
-          - **AST Parse Failures**: 0 ✅
+              let summary = "## 🌐 i18n Infrastructure & Quality Report\n\n";
+              summary += "| Metric | Count | Status |\n";
+              summary += "| :--- | :--- | :--- |\n";
+              summary += `| 📖 Translated Dictionary Entries (\`zh-CN.json\`) | **${translatedCount}** | ✅ Healthy |\n`;
+              summary += `| 🚨 Missing Explicit \`t()\` Translations | **${explicitCount}** | ${explicitCount > 0 ? "⚠️ Needs Dictionary Update" : "✅ All Translated"} |\n`;
+              summary += `| 📝 Untranslated UI Literals & Attributes | **${uiCount}** | ℹ️ Advisory |\n`;
+              summary += `| 📦 Total Missing Translations | **${missingCount}** | ℹ️ |\n`;
+              summary += `| 🧹 Obsolete Keys in \`zh-CN.json\` | **${obsoleteCount}** | ℹ️ |\n`;
+              summary += `| 🔀 Ambiguous Context Keys | **${ambiguousCount}** | ℹ️ |\n`;
+              summary += `| 🛡️ AST Parse Failures | **0** | ✅ Clean |\n\n`;
 
-          > **Status**: Core i18n infrastructure is healthy and runtime tests passed.
-          `;
+              if (explicitCount > 0) {
+                summary += `### 🚨 Missing Explicit \`t()\` Translations (${explicitCount})\n`;
+                summary += `> High Priority: These keys are invoked via \`t()\` or \`__t()\` in frontend code, but missing from \`zh-CN.json\`.\n\n`;
+                summary += "| Missing Key | Code Location(s) |\n";
+                summary += "| :--- | :--- |\n";
+                for (const item of explicitList) {
+                  const locs = item.locs.map(l => `\`apps/web/src/${l.file}:${l.line}\``).join("<br>");
+                  const safeKey = item.key.replace(/\|/g, "\\|").replace(/</g, "&lt;");
+                  summary += `| \`${safeKey}\` | ${locs} |\n`;
+                }
+                summary += "\n";
+              }
+
+              if (uiCount > 0) {
+                const byFile = {};
+                for (const item of uiList) {
+                  for (const loc of item.locs) {
+                    if (!byFile[loc.file]) byFile[loc.file] = [];
+                    byFile[loc.file].push({ line: loc.line, type: loc.type, key: item.key });
+                  }
+                }
+                const affectedFiles = Object.keys(byFile);
+
+                summary += `<details>\n`;
+                summary += `<summary><b>⚠️ Untranslated UI Literals & Attributes (${uiCount} keys across ${affectedFiles.length} files) - Click to Expand</b></summary>\n\n`;
+                summary += `> These strings appear in JSX text, translatable attributes (placeholder, label, etc.), toasts, or template literals but have not yet been translated in \`zh-CN.json\`:\n\n`;
+
+                const displayFiles = affectedFiles.slice(0, 50);
+                for (const file of displayFiles) {
+                  const items = byFile[file];
+                  summary += `#### 📁 \`apps/web/src/${file}\` (${items.length} items)\n`;
+                  for (const item of items.slice(0, 10)) {
+                    const safeKey = item.key.replace(/`/g, "\\`").replace(/</g, "&lt;").slice(0, 120);
+                    summary += `- Line ${item.line} \`[${item.type}]\`: \`${safeKey}\`\n`;
+                  }
+                  if (items.length > 10) {
+                    summary += `- ... and ${items.length - 10} more items in this file\n`;
+                  }
+                  summary += "\n";
+                }
+                if (affectedFiles.length > 50) {
+                  summary += `> ℹ️ Showing first 50 files. Download the workflow artifact **i18n-diff-reports** for complete file-by-file details.\n\n`;
+                }
+                summary += `</details>\n\n`;
+              }
+
+              if (obsoleteCount > 0) {
+                summary += `<details>\n<summary><b>🧹 Obsolete Keys in \`zh-CN.json\` (${obsoleteCount}) - Click to Expand</b></summary>\n\n`;
+                summary += "| English Key | Current Chinese Translation |\n| :--- | :--- |\n";
+                for (const [k, v] of Object.entries(obsolete)) {
+                  const safeK = k.replace(/\|/g, "\\|").replace(/</g, "&lt;");
+                  const safeV = String(v).replace(/\|/g, "\\|").replace(/</g, "&lt;");
+                  summary += `| \`${safeK}\` | ${safeV} |\n`;
+                }
+                summary += `</details>\n\n`;
+              }
+
               if (process.env.GITHUB_STEP_SUMMARY) {
                 fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
               }

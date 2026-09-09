@@ -26,6 +26,7 @@ import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import Check from '@phosphor/check.svg';
 import CaretDown from '@phosphor-icons/core/regular/caret-down.svg?component-solid';
 import type { ModelOption } from '@service-agent-fold/generated/types';
+import { t } from '@macro/i18n';
 import { Button, cn, Dropdown } from '@ui';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 import { TextShimmer } from './TextShimmer';
@@ -87,7 +88,7 @@ export function AgentModelSelector(props: AgentModelSelectorProps) {
   const label = () =>
     props.options.find((option) => option.id === shown())?.name ??
     shown() ??
-    'Model';
+    t('Model');
   const catalogOptions = () =>
     props.options.map((option) => ({
       id: option.id,
@@ -117,7 +118,7 @@ export function AgentModelSelector(props: AgentModelSelectorProps) {
         as={Button}
         variant="ghost"
         size="sm"
-        aria-label="Agent model"
+        aria-label={t('Agent model')}
         disabled={disabled()}
         class="h-8 max-w-[60vw] min-w-0 justify-start gap-1 rounded-lg border-none bg-transparent px-1.5 text-left text-sm text-ink-muted hover:bg-hover"
       >
@@ -130,7 +131,7 @@ export function AgentModelSelector(props: AgentModelSelectorProps) {
       </MobileDrawer.Trigger>
       <MobileDrawer.Portal>
         <MobileDrawer.Overlay class="fixed inset-0 z-modal-overlay bg-modal-overlay pattern-diagonal-4 pattern-edge-muted" />
-        <MobileDrawer.Content aria-label="Choose a model">
+        <MobileDrawer.Content aria-label={t('Choose a model')}>
           <MobileDrawer.Handle />
           <MobileDrawer.ScrollBody>
             <For each={groups()}>
@@ -143,7 +144,7 @@ export function AgentModelSelector(props: AgentModelSelectorProps) {
                   </Show>
                   <MobileDrawer.Section
                     role="radiogroup"
-                    aria-label={group.label ?? 'Models'}
+                    aria-label={group.label ?? t('Models')}
                     class="mb-3 flex shrink-0 flex-col"
                   >
                     <For each={group.options}>
@@ -227,8 +228,8 @@ export function AgentModelSelector(props: AgentModelSelectorProps) {
             options={catalogOptions()}
             onSelect={pick}
             disabled={disabled()}
-            ariaLabel="Agent model"
-            searchPlaceholder="Search models"
+            ariaLabel={t('Agent model')}
+            searchPlaceholder={t('Search models')}
             triggerClass={PILL_TRIGGER_CLASS}
             contentClass="overflow-hidden"
             placement="top-start"

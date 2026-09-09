@@ -20,6 +20,7 @@ import { registerHotkey, useHotkeyDOMScope } from '@core/hotkey/hotkeys';
 import { createSkill } from '@core/util/create';
 import { buildSimpleEntityUrl } from '@core/util/url';
 import { mergeRegister } from '@lexical/utils';
+import { t } from '@macro/i18n';
 import ArrowSquareOutIcon from '@phosphor/arrow-square-out.svg';
 import ArrowsOutIcon from '@phosphor/arrows-out.svg';
 import SplitIcon from '@phosphor/square-half.svg';
@@ -178,7 +179,7 @@ function ComposeSkillTitleEditor(props: {
       />
       <Show when={showPlaceholder()}>
         <div class="pointer-events-none absolute top-1.5 text-xl font-medium text-ink-placeholder">
-          New skill
+          {t('New skill')}
         </div>
       </Show>
     </div>
@@ -231,14 +232,14 @@ export function ComposeSkill(props: ComposeSkillProps) {
       await navigator.clipboard.writeText(url);
       linkCopied = true;
     } catch {
-      toast.failure('Failed to copy link to clipboard');
+      toast.failure(t('Failed to copy link to clipboard'));
     }
 
-    toast.success('Skill created', {
-      subtext: linkCopied ? 'Link copied' : undefined,
+    toast.success(t('Skill created'), {
+      subtext: linkCopied ? t('Link copied') : undefined,
       actions: [
         {
-          label: 'Open',
+          label: t('Open'),
           icon: ArrowSquareOutIcon,
           onClick: () => {
             openWithSplit(
@@ -248,7 +249,7 @@ export function ComposeSkill(props: ComposeSkillProps) {
           },
         },
         {
-          label: 'Open (New Split)',
+          label: t('Open (New Split)'),
           icon: SplitIcon,
           onClick: () => {
             openWithSplit(
@@ -277,7 +278,7 @@ export function ComposeSkill(props: ComposeSkillProps) {
     setIsCreating(false);
 
     if (!documentId) {
-      toast.failure('Failed to create Skill');
+      toast.failure(t('Failed to create Skill'));
       return null;
     }
 
@@ -295,7 +296,7 @@ export function ComposeSkill(props: ComposeSkillProps) {
     if (isCreating()) return;
 
     if (!title().trim()) {
-      setErrorMessage('Please give this skill a name');
+      setErrorMessage(t('Please give this skill a name'));
       return;
     }
     setErrorMessage('');
@@ -334,7 +335,7 @@ export function ComposeSkill(props: ComposeSkillProps) {
   registerHotkey({
     hotkey: 'cmd+enter',
     scopeId: composeHotkeyScope,
-    description: 'Create skill',
+    description: t('Create skill'),
     keyDownHandler: () => {
       handleCreateSkill();
       return true;
@@ -374,7 +375,7 @@ export function ComposeSkill(props: ComposeSkillProps) {
               onMouseDown={handleContinueInSplit}
               disabled={isCreating()}
               tabIndex={-1}
-              tooltip="Continue editing in split"
+              tooltip={t('Continue editing in split')}
               size="icon-sm"
             >
               <ArrowsOutIcon />
@@ -385,7 +386,7 @@ export function ComposeSkill(props: ComposeSkillProps) {
           <Button
             onMouseDown={handleClose}
             tabIndex={-1}
-            tooltip="Close"
+            tooltip={t('Close')}
             size="icon-sm"
           >
             <XIcon />
@@ -413,7 +414,7 @@ export function ComposeSkill(props: ComposeSkillProps) {
             <MarkdownShell
               config={editorConfig}
               initialValue={props.initialContent || undefined}
-              placeholder={props.placeholder ?? 'Add instructions...'}
+              placeholder={props.placeholder ?? t('Add instructions...')}
               portalScope={portalScope()}
             />
           </Scroll>
@@ -437,7 +438,7 @@ export function ComposeSkill(props: ComposeSkillProps) {
           depth={3}
           class="gap-3 rounded-lg border-0"
         >
-          Create Skill
+          {t('Create Skill')}
           <Hotkey shortcut="cmd+enter" theme="current" />
         </Button>
       </div>

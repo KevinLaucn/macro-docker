@@ -1,4 +1,9 @@
 {
+  "New skill": [
+    "features/next-soup/soup-view/empty-states.tsx",
+    "features/block-md/component/ComposeSkill.tsx",
+    "lib/core/component/LexicalMarkdown/component/menu/SkillsMenu/SkillsMenu.tsx"
+  ],
   "Save": [
     "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
     "features/settings/Team.tsx",
@@ -26,12 +31,19 @@
   ],
   "Copied": [
     "features/settings/Team.tsx",
+    "features/block-agent/ui/ToolErrorCard.tsx",
     "features/channel/Bots/CredentialField.tsx",
     "lib/core/component/AI/component/McpSetupCards.tsx"
+  ],
+  "Harness": [
+    "features/settings/Harness.tsx",
+    "features/settings/Agents.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx"
   ],
   "Close": [
     "features/settings/ApiKeys.tsx",
     "features/settings/HarnessPairingDialog.tsx",
+    "features/block-md/component/ComposeSkill.tsx",
     "features/companies/CreateContactModal.tsx",
     "features/companies/CreateCompanyModal.tsx",
     "components/app/split-layout/components/SplitHeader.tsx"
@@ -46,5 +58,17 @@
     "features/settings/Agents.tsx",
     "features/block-automation/component/AutomationComposer.tsx",
     "features/companies/CreateCompanyModal.tsx"
+  ],
+  "Done": [
+    "features/settings/ApiKeys.tsx",
+    "features/settings/HarnessPairingDialog.tsx",
+    "features/block-agent/component/parts/UserToolCall.tsx"
+  ],
+  "Failed": [
+    "features/block-agent/ui/ToolErrorCard.tsx",
+    "features/block-agent/component/parts/SubagentToolCall.tsx",
+    "features/block-agent/component/parts/PermissionPart.tsx",
+    "features/block-agent/component/parts/UserToolCall.tsx",
+    "features/block-agent/component/parts/ToolCallPart.tsx"
   ]
 }

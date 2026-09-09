@@ -19,6 +19,17 @@ export const TRANSLATABLE_ATTRIBUTES = new Set([
   "helperText",
   "loadingText",
   "alt",
+  "confirmLabel",
+  "cancelLabel",
+  "actionLabel",
+  "submitLabel",
+  "deleteLabel",
+  "searchPlaceholder",
+  "emptyTitle",
+  "emptyDescription",
+  "badgeText",
+  "headerText",
+  "dialogTitle",
 ]);
 
 export const IGNORED_TAGS = new Set([
@@ -55,6 +66,8 @@ export function shouldTranslateText(text: string): boolean {
   if (!normalized || normalized.length < 2) return false;
   // Must contain at least one ASCII letter
   if (!/[a-zA-Z]/.test(normalized)) return false;
+  // Ignore HTML entities like &nbsp; &amp; &times;
+  if (/^&(?:nbsp|amp|quot|lt|gt|middot|times);?$/i.test(normalized)) return false;
   // Ignore URLs, file paths, CSS selectors, MIME types, technical IDs
   if (normalized.startsWith("http://") || normalized.startsWith("https://")) return false;
   if (normalized.startsWith("/") || normalized.startsWith("./") || normalized.startsWith("../")) return false;
@@ -65,6 +78,11 @@ export function shouldTranslateText(text: string): boolean {
   if (/^(property|header|category|loadmore):/i.test(normalized)) return false;
   if (normalized.includes("{DOCS_BASE}")) return false;
   if (/^\{[a-z0-9_-]+\}\/\{[a-z0-9_-]+\}/i.test(normalized)) return false; // e.g. {owner}/{repo}
+  // Ignore pure hex colors, uuids, css units, git shas
+  if (/^#[0-9a-fA-F]{3,8}$/.test(normalized)) return false;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized)) return false;
+  if (/^\d+(\.\d+)?(px|rem|em|vh|vw|ms|s|%|fr)$/i.test(normalized)) return false;
+  if (/^[0-9a-f]{7,40}$/i.test(normalized)) return false;
   return true;
 }
 
