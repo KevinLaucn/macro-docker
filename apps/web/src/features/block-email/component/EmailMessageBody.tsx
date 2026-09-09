@@ -1,3 +1,13 @@
+import {
+  stripBlockedTrackingPixelsFromHtml,
+  useGlobalExtensionSettingsQuery,
+} from '@app/features/email-read-receipts';
+import {
+  emailTranslationEnabled,
+  getCachedMessageTranslation,
+  isMessageTranslated,
+  isTranslationSupported,
+} from '@app/features/email-translation';
 import { StaticMarkdown } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { channelTheme } from '@core/component/LexicalMarkdown/theme';
 import { DEV_MODE_ENV } from '@core/constant/featureFlags';
@@ -9,6 +19,7 @@ import {
 } from '@core/email';
 import { interceptMailtoLinks } from '@core/util/interceptMailtoLinks';
 import DotsThree from '@phosphor/dots-three.svg';
+import { usePrimaryEmailLinkId } from '@queries/email/link';
 import type { ApiMessage } from '@service-email/generated/schemas';
 import { Button, cn } from '@ui';
 import {
@@ -51,6 +62,14 @@ export function EmailMessageBody(props: EmailMessageBodyProps) {
   const [showFullHTML, setShowFullHTML] = createSignal<boolean>(false);
   const userEmail = useEmail();
 
+  const messageId = () => props.message.db_id;
+  const threadId = () => props.message.thread_db_id;
+  const isTranslated = () =>
+    emailTranslationEnabled() &&
+    isTranslationSupported() &&
+    isMessageTranslated(threadId(), messageId());
+  const cachedTranslation = () => getCachedMessageTranslation(messageId());
+
   if (DEV_MODE_ENV) {
     console.log(
       'labels',
@@ -58,22 +77,36 @@ export function EmailMessageBody(props: EmailMessageBodyProps) {
     );
   }
 
+  const primaryLinkId = usePrimaryEmailLinkId();
+  const extSettings = useGlobalExtensionSettingsQuery(primaryLinkId);
+
   // Strip the sender's own receipt pixel while the markup is still inert,
   // before parseEmailContent can rewrite remote images through Macro's image
   // proxy. This closes the false-positive path that caused upstream #3943 to
   // be abandoned: opening your own Sent copy must not look like a recipient
   // open.
   const renderBodyHtml = createMemo(() => {
-    const html = props.message.body_html_sanitized?.toString();
-    if (!html || !props.message.is_sent) return html;
-    return stripOwnTrackingPixelsFromHtml(html);
+    let html = props.message.body_html_sanitized?.toString();
+    if (!html) return html;
+    if (props.message.is_sent) {
+      return stripOwnTrackingPixelsFromHtml(html);
+    }
+    // PRIVATE-HOOK: read_receipts:block-received-pixels
+    if (extSettings.data?.email_tracking_pixel_blocking_enabled) {
+      html = stripBlockedTrackingPixelsFromHtml(html);
+    }
+    return html;
   });
 
   // If we don't have body replyless, it may be because it hasn't been generated yet. For instance, this is the case immediately after a message is sent. We can use the HTML to parse the message correctly.
   const bodyReplyless = createMemo(() => {
     let replyless = props.message.body_replyless?.toString() ?? '';
-    if (replyless && props.message.is_sent) {
-      replyless = stripOwnTrackingPixelsFromHtml(replyless);
+    if (replyless) {
+      if (props.message.is_sent) {
+        replyless = stripOwnTrackingPixelsFromHtml(replyless);
+      } else if (extSettings.data?.email_tracking_pixel_blocking_enabled) {
+        replyless = stripBlockedTrackingPixelsFromHtml(replyless);
+      }
     }
     if (!replyless) {
       const fullHtml = renderBodyHtml();
@@ -164,11 +197,32 @@ export function EmailMessageBody(props: EmailMessageBodyProps) {
     styleEl.textContent = `${EMAIL_BODY_CONTAINMENT_CSS}${fontOverride}`;
     shadow.appendChild(styleEl);
     const messageDiv = document.createElement('div');
-    messageDiv.innerHTML = source()?.mainContent ?? '';
+    // PRIVATE-HOOK: email_translation:body-html
+    const translatedSource = createMemo(() => {
+      if (!isTranslated()) return undefined;
+      const cached = cachedTranslation();
+      if (!cached) return undefined;
+
+      const shouldUseReplyless =
+        !showFullHTML() && !props.isFirstMessageInThread;
+
+      const targetHtml =
+        shouldUseReplyless && cached.translatedReplylessHtml
+          ? cached.translatedReplylessHtml
+          : cached.translatedHtml;
+
+      if (!targetHtml) return undefined;
+
+      return parseEmailContent(targetHtml, !showFullHTML(), !showFullHTML());
+    });
+    messageDiv.innerHTML =
+      translatedSource()?.mainContent ?? source()?.mainContent ?? '';
+
     // Defense in depth in case a future parser path reintroduces the pixel.
     if (props.message.is_sent) {
       removeOwnTrackingPixels(messageDiv);
     }
+
     // Mark button-like anchors so the font override doesn't break their sizing
     for (const a of messageDiv.querySelectorAll<HTMLAnchorElement>(
       'a[style]'
@@ -363,6 +417,18 @@ export function EmailMessageBody(props: EmailMessageBodyProps) {
         }}
       >
         <Switch>
+          {/* PRIVATE-HOOK: email_translation:body-markdown */}
+          <Match when={isTranslated() && cachedTranslation()?.translatedText}>
+            {(translatedText) => {
+              return (
+                <StaticMarkdown
+                  markdown={translatedText()}
+                  theme={channelTheme}
+                  target="internal"
+                />
+              );
+            }}
+          </Match>
           {/* If available, we use body_macro to render "Macro-fied" email content in static markdown with, e.g. correctly styled document mentions. */}
           <Match when={!showFullHTML() && props.message.body_macro}>
             {(bodyMacro) => {

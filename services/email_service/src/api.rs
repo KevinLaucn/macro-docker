@@ -14,7 +14,7 @@ mod health;
 #[cfg(feature = "calendar")]
 mod calendar_watch;
 mod email;
-mod tracking;
+use crate::features;
 
 // Misc
 pub(crate) mod context;
@@ -73,9 +73,8 @@ fn api_router(state: ApiContext) -> Router<ApiContext> {
     let router = Router::new()
         .nest("/email", email::router(state.clone()))
         .nest("/gmail", gmail::router())
-        // Public tracking pixel endpoint. Recipient mail clients cannot
-        // authenticate, so this intentionally sits outside the email auth tree.
-        .nest("/t", tracking::router())
+        // PRIVATE-HOOK: read_receipts:public_router
+        .nest("/t", features::read_receipts::public_router())
         .nest("/internal", internal::router());
 
     #[cfg(feature = "calendar")]

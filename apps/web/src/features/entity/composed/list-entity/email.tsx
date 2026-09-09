@@ -1,8 +1,21 @@
+import {
+  emailTranslationEnabled,
+  getRowTranslation,
+  isEmailListTranslated,
+  isTranslationSupported,
+  toggleRowTranslation,
+} from '@app/features/email-translation';
 import { inboxIconProps } from '@core/component/inboxIcon';
 import { UserIcon } from '@core/component/UserIcon';
 import { useEmailLinksContext } from '@core/context/emailLinks';
 import { cn } from '@ui';
-import { type Accessor, createMemo, type JSX, Show } from 'solid-js';
+import {
+  type Accessor,
+  createEffect,
+  createMemo,
+  type JSX,
+  Show,
+} from 'solid-js';
 import { DraftBadge } from '../../components/Badges';
 import { Entity } from '../../entity';
 import { HitSnippet } from '../../extractors-search/HitSnippet';
@@ -99,18 +112,36 @@ export function EmailNarrowBody(props: {
   showHitSnippet: boolean;
   setContainerRef: (el: HTMLElement) => void;
 }) {
+  const rowTranslation = () => getRowTranslation(props.entity.id);
+  const isTranslated = () =>
+    isEmailListTranslated() && rowTranslation()?.status === 'translated';
+
   return (
     <Entity.Slot placement="body" class="flex flex-col pb-2 min-h-[2lh] pr-4">
-      <Entity.Title entity={props.entity} />
+      <Show
+        when={isTranslated() && rowTranslation()?.translatedName}
+        fallback={<Entity.Title entity={props.entity} />}
+      >
+        <span class="font-medium truncate">
+          {rowTranslation()!.translatedName}
+        </span>
+      </Show>
       <span
         ref={props.setContainerRef}
         class="text-ink/50 font-medium truncate"
       >
-        <EmailSnippet
-          entity={props.entity}
-          showHitSnippet={props.showHitSnippet}
-          chars={props.chars}
-        />
+        <Show
+          when={isTranslated() && rowTranslation()?.translatedSnippet}
+          fallback={
+            <EmailSnippet
+              entity={props.entity}
+              showHitSnippet={props.showHitSnippet}
+              chars={props.chars}
+            />
+          }
+        >
+          <span>{rowTranslation()!.translatedSnippet}</span>
+        </Show>
       </span>
     </Entity.Slot>
   );
@@ -126,6 +157,25 @@ export function EmailWideContent(props: {
   setContainerRef: (el: HTMLElement) => void;
   tagsSlot?: JSX.Element;
 }) {
+  const rowTranslation = () => getRowTranslation(props.entity.id);
+  const isTranslated = () =>
+    isEmailListTranslated() && rowTranslation()?.status === 'translated';
+
+  createEffect(() => {
+    if (
+      emailTranslationEnabled() &&
+      isTranslationSupported() &&
+      isEmailListTranslated() &&
+      !rowTranslation()
+    ) {
+      toggleRowTranslation(
+        props.entity.id,
+        props.entity.name,
+        props.entity.snippet
+      );
+    }
+  });
+
   return (
     <>
       <span class="w-(--title-width) shrink-0 flex items-center gap-2">
@@ -137,17 +187,29 @@ export function EmailWideContent(props: {
       {/* [FORK-FEATURE]: Left-side tags slot (between sender column and title) */}
       {props.tagsSlot}
       <span class="truncate">
-        <Entity.Title entity={props.entity} />
+        <Show
+          when={isTranslated() && rowTranslation()?.translatedName}
+          fallback={<Entity.Title entity={props.entity} />}
+        >
+          <span>{rowTranslation()!.translatedName}</span>
+        </Show>
       </span>
       <span
         ref={props.setContainerRef}
         class="text-ink/50 font-medium truncate flex-1 inline-flex items-center"
       >
-        <EmailSnippet
-          entity={props.entity}
-          showHitSnippet={props.showHitSnippet}
-          chars={props.chars}
-        />
+        <Show
+          when={isTranslated() && rowTranslation()?.translatedSnippet}
+          fallback={
+            <EmailSnippet
+              entity={props.entity}
+              showHitSnippet={props.showHitSnippet}
+              chars={props.chars}
+            />
+          }
+        >
+          <span>{rowTranslation()!.translatedSnippet}</span>
+        </Show>
       </span>
     </>
   );

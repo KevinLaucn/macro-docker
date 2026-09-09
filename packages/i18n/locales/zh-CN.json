@@ -2552,5 +2552,15 @@
   "Send backward": "下移一层",
   "Bring to front": "置于顶层",
   "Send to back": "置于底层",
-  "Ungroup": "取消组合"
+  "Ungroup": "取消组合",
+  "Email open tracking": "邮件打开追踪",
+  "Show when sent emails are opened.": "查看已发送邮件是否被打开。",
+  "Block tracking pixels": "拦截追踪像素",
+  "Hide tiny tracking images in received emails.": "隐藏收到邮件中的微型追踪图片。",
+  "Not opened yet": "尚未打开",
+  "Opened {time}": "{time} 已打开",
+  "Opened {time} · {count} times": "{time} 已打开 · {count} 次",
+  "Open tracking off": "打开追踪已关闭",
+  "Email opened": "邮件已打开",
+  "Opened from tracking pixel": "通过追踪像素记录"
 }

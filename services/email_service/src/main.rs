@@ -51,6 +51,8 @@ use system_properties::{PgSystemPropertiesRepository, SystemPropertiesServiceImp
 use tokio_util::task::TaskTracker;
 
 mod api;
+// PRIVATE-HOOK: read_receipts:features
+mod features;
 mod utils;
 
 #[tokio::main]

@@ -1,3 +1,4 @@
+import { EmailThreadTranslateButton } from '@app/features/email-translation';
 import { useEmailContext } from '@block-email/component/EmailContext';
 import { isScrollingToMessage } from '@block-email/signal/scrollState';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
@@ -127,7 +128,14 @@ export function MessageList(props: MessageListProps) {
               class={isTouchDevice() ? 'text-xl pt-1 pb-0' : 'text-2xl pb-1.5'}
             />
             <Show when={!isTouchDevice()}>
-              <EmailParticipants />
+              <div class="flex items-center justify-between gap-2">
+                <EmailParticipants />
+                {/* PRIVATE-HOOK: email_translation:thread */}
+                <EmailThreadTranslateButton
+                  threadId={context.thread()?.db_id}
+                  messages={context.messages.unfiltered()}
+                />
+              </div>
             </Show>
           </div>
         </div>

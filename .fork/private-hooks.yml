@@ -1,0 +1,116 @@
+version: 1
+
+# Protected fork hook markers embedded in upstream-owned files.
+# Keep hooks small: marker + the expected one-line import/call/router/component
+# entry that connects upstream code to private feature modules.
+hooks:
+  - id: crm_backfill_populate_all_inboxes
+    file: services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
+    marker: "// PRIVATE-HOOK: crm_backfill:populate_all_inboxes"
+    expected: "let links = email_db_client::links::get::fetch_inboxes_for_macro_id(&ctx.db, macro_id_str)"
+    context:
+      - "for link in links {"
+  - id: crm_backfill_depopulate_all_inboxes
+    file: services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
+    marker: "// PRIVATE-HOOK: crm_backfill:depopulate_all_inboxes"
+    expected: "let links = email_db_client::links::get::fetch_inboxes_for_macro_id(&ctx.db, macro_id_str)"
+    context:
+      - "for link in links {"
+  - id: email_read_receipts_features
+    file: services/email_service/src/main.rs
+    marker: "// PRIVATE-HOOK: read_receipts:features"
+    expected: "mod features;"
+    context:
+      - "mod api;"
+  - id: email_read_receipts_features_openapi
+    file: services/email_service/src/openapi.rs
+    marker: "// PRIVATE-HOOK: read_receipts:features"
+    expected: "mod features;"
+    context:
+      - "mod api;"
+  - id: email_read_receipts_send
+    file: services/email_service/src/util/gmail/send/mod.rs
+    marker: "// PRIVATE-HOOK: read_receipts:send"
+    expected: "self::open_tracking::attach_open_tracking_pixel(db, message_to_send).await;"
+    context:
+      - "pub async fn attach_open_tracking_pixel"
+  - id: email_read_receipts_public_router
+    file: services/email_service/src/api.rs
+    marker: "// PRIVATE-HOOK: read_receipts:public_router"
+    expected: ".nest(\"/t\", features::read_receipts::public_router())"
+    context:
+      - "fn api_router(state: ApiContext) -> Router<ApiContext> {"
+  - id: email_read_receipts_settings_router
+    file: services/email_service/src/api/email/settings.rs
+    marker: "// PRIVATE-HOOK: read_receipts:settings_router"
+    expected: ".merge(crate::features::read_receipts::settings_router())"
+    context:
+      - "pub fn router(state: ApiContext) -> Router<ApiContext> {"
+  - id: email_read_receipts_messages_router
+    file: services/email_service/src/api/email/messages.rs
+    marker: "// PRIVATE-HOOK: read_receipts:messages_router"
+    expected: ".merge(crate::features::read_receipts::messages_router())"
+    context:
+      - "pub fn router(_state: ApiContext) -> Router<ApiContext> {"
+  - id: email_read_receipts_settings
+    file: apps/web/src/features/extensions/Extensions.tsx
+    marker: "{/* PRIVATE-HOOK: read_receipts:settings */}"
+    expected: "<ReadReceiptsSection />"
+    context:
+      - "<PixelBlockingSection />"
+  - id: email_read_receipts_sent_status_topbar
+    file: apps/web/src/features/block-email/component/EmailMessageTopBar.tsx
+    marker: "{/* PRIVATE-HOOK: read_receipts:sent-status */}"
+    expected: "<ReadReceiptStatus message={props.message} showIconOnly />"
+    context:
+      - "<MessageActions"
+  - id: email_read_receipts_sent_status_collapsed
+    file: apps/web/src/features/block-email/component/CollapsedMessage.tsx
+    marker: "{/* PRIVATE-HOOK: read_receipts:sent-status */}"
+    expected: "<ReadReceiptStatus message={props.message} showIconOnly />"
+    context:
+      - "props.message.internal_date_ts"
+  - id: email_read_receipts_block_received_pixels
+    file: apps/web/src/features/block-email/component/EmailMessageBody.tsx
+    marker: "// PRIVATE-HOOK: read_receipts:block-received-pixels"
+    expected: "html = stripBlockedTrackingPixelsFromHtml(html);"
+    context:
+      - "if (extSettings.data?.email_tracking_pixel_blocking_enabled) {"
+  - id: email_translation_settings
+    file: apps/web/src/features/extensions/Extensions.tsx
+    marker: "{/* PRIVATE-HOOK: email_translation:settings */}"
+    expected: "<EmailTranslationSection />"
+    context:
+      - "<PixelBlockingSection />"
+  - id: email_translation_list_toolbar
+    file: apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
+    marker: "{/* PRIVATE-HOOK: email_translation:list-toolbar */}"
+    expected: "<SoupListTranslateButton"
+    context:
+      - "id=\"soup-toolbar-translate\""
+  - id: email_translation_thread
+    file: apps/web/src/features/block-email/component/MessageList.tsx
+    marker: "{/* PRIVATE-HOOK: email_translation:thread */}"
+    expected: "<EmailThreadTranslateButton"
+    context:
+      - "<EmailParticipants />"
+  - id: email_translation_message
+    file: apps/web/src/features/block-email/component/EmailMessageTopBar.tsx
+    marker: "{/* PRIVATE-HOOK: email_translation:message */}"
+    expected: "<EmailTranslateButton"
+    context:
+      - "isMessageTranslated(threadId(), messageId())"
+  - id: email_translation_body_html
+    file: apps/web/src/features/block-email/component/EmailMessageBody.tsx
+    marker: "// PRIVATE-HOOK: email_translation:body-html"
+    expected: "const translatedSource = createMemo(() => {"
+    context:
+      - "translatedSource()?.mainContent ?? source()?.mainContent ?? '';"
+  - id: email_translation_collapsed_snippet
+    file: apps/web/src/features/block-email/component/CollapsedMessage.tsx
+    marker: "// PRIVATE-HOOK: email_translation:collapsed-snippet"
+    expected: "if (isTranslated()) {"
+    context:
+      - "const cached = getCachedMessageTranslation(props.message.db_id);"
+
+

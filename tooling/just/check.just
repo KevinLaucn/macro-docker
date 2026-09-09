@@ -11,6 +11,9 @@
 # Override the diff base with CHECK_BASE=<ref> (useful in shallow clones,
 # where no origin/main merge-base exists and the scope silently narrows to
 # uncommitted work only).
+private-hook-check:
+    ruby .github/scripts/check-private-hooks.rb
+
 check *ARGS:
     #!/usr/bin/env bash
     set -uo pipefail

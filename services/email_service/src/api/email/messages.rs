@@ -22,6 +22,7 @@ pub fn router(_state: ApiContext) -> Router<ApiContext> {
         >())
         .route("/labels", patch(labels::handler))
         .route("/batch", post(get::batch_handler))
-        .route("/tracking", post(tracking::batch_handler))
+        // PRIVATE-HOOK: read_receipts:messages_router
+        .merge(crate::features::read_receipts::messages_router())
         .route("/{id}", get(get::handler))
 }

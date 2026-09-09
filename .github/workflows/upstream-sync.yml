@@ -45,6 +45,9 @@ jobs:
           git remote add upstream https://github.com/macro-inc/macro.git
           git fetch --no-tags upstream main
 
+      - name: Validate protected private hooks
+        run: ruby .github/scripts/check-private-hooks.rb
+
       - name: Validate manifest and detect overlaps
         id: overlap
         env:

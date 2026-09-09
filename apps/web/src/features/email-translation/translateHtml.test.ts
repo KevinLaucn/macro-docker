@@ -1,0 +1,292 @@
+// @vitest-environment jsdom
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { destroyDetector } from './languageDetector';
+import { planAndTranslateText } from './textPlanner';
+import { detectProtectedSpans, restoreProtectedSpans } from './tokenProtection';
+import { clearTranslationCache } from './translationCache';
+import { planAndTranslateHtml } from './translationPlanner';
+import { destroyAllTranslators } from './translatorClient';
+
+describe('DOM-aware Email Translation Planner', () => {
+  let mockTranslateFn: any;
+  let mockDetectFn: any;
+
+  beforeEach(() => {
+    destroyAllTranslators();
+    destroyDetector();
+    clearTranslationCache();
+
+    mockTranslateFn = vi.fn(async (text: string) => {
+      // Mock translator behavior: prefix with "[译] "
+      return `[译] ${text}`;
+    });
+
+    mockDetectFn = vi.fn(async (text: string) => {
+      // Simple heuristic for mock LanguageDetector
+      if (/[\u4e00-\u9fa5]/.test(text)) {
+        return [{ detectedLanguage: 'zh', confidence: 0.99 }];
+      }
+      return [{ detectedLanguage: 'en', confidence: 0.95 }];
+    });
+
+    (globalThis as any).LanguageDetector = {
+      create: vi.fn(async () => ({
+        detect: mockDetectFn,
+        destroy: vi.fn(),
+      })),
+    };
+
+    (globalThis as any).Translator = {
+      availability: vi.fn(async () => 'readily'),
+      create: vi.fn(async ({ _sourceLanguage, _targetLanguage }: any) => ({
+        translate: mockTranslateFn,
+        destroy: vi.fn(),
+      })),
+    };
+  });
+
+  // CASE 1: 真实 DSN 邮件测试 (中英混合)
+  it('CASE 1: DSN mixed language email keeps Chinese intact and translates English DNS Error', async () => {
+    const inputHtml = `
+      <div>
+        <p>找不到地址</p>
+        <p>系统找不到网域 test.com，因此无法将您的邮件递送至 test@test.com。请检查该网域名称是否书写正确或存在多余的空格，然后重试。</p>
+        <p>响应如下：</p>
+        <p>DNS Error: DNS type 'mx' lookup of test.com responded with code NOERROR DNS type 'mx' lookup of test.com had no relevant answers.</p>
+      </div>
+    `;
+
+    const result = await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    // 中文段落应 100% 保持原文
+    expect(result).toContain('找不到地址');
+    expect(result).toContain(
+      '系统找不到网域 test.com，因此无法将您的邮件递送至 test@test.com。请检查该网域名称是否书写正确或存在多余的空格，然后重试。'
+    );
+    expect(result).toContain('响应如下：');
+
+    // 绝对不能把“找不到地址”翻译成“平地城镇”
+    expect(result).not.toContain('平地城镇');
+    expect(result).not.toContain('下一篇');
+
+    // 英文 DNS Error 必须被翻译
+    expect(result).toContain('[译]');
+
+    // 保护 token (test.com, test@test.com, mx, NOERROR) 必须保持原样
+    expect(result).toContain('test.com');
+    expect(result).toContain('test@test.com');
+    expect(result).toContain('mx');
+    expect(result).toContain('NOERROR');
+  });
+
+  // CASE 2: 100% 中文邮件
+  it('CASE 2: 100% Chinese email invokes Translator 0 times when target is zh', async () => {
+    const inputHtml = `
+      <div>
+        <h1>项目周报</h1>
+        <p>本周我们完成了微服务架构梳理和数据库性能调优。</p>
+        <p>下周计划推进前端组件库升级与国际化支持。</p>
+      </div>
+    `;
+
+    const result = await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    expect(result).toContain('项目周报');
+    expect(result).toContain('本周我们完成了微服务架构梳理和数据库性能调优。');
+    expect(mockTranslateFn).toHaveBeenCalledTimes(0);
+  });
+
+  // CASE 3: 100% 英文邮件
+  it('CASE 3: 100% English email is detected as en and translated', async () => {
+    const inputHtml = `
+      <div>
+        <h1>Weekly Status Report</h1>
+        <p>All microservices are functioning normally without latency degradation.</p>
+      </div>
+    `;
+
+    const result = await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    expect(result).toContain('[译]');
+    expect(mockTranslateFn).toHaveBeenCalled();
+  });
+
+  // CASE 4: 单个 Paragraph 中英混合
+  it('CASE 4: Mixed Chinese and English in a single paragraph keeps Chinese intact and preserves email', async () => {
+    const inputText =
+      '客户已经回复。Please send the revised invoice to test@test.com tomorrow.';
+    const result = await planAndTranslateText(inputText, { targetLang: 'zh' });
+
+    expect(result).toContain('客户已经回复。');
+    expect(result).toContain('test@test.com');
+    expect(result).toContain('[译]');
+  });
+
+  // CASE 5: Inline markup 结构与属性保护
+  it('CASE 5: Preserves inline tags (strong, a) hierarchy, href, and attributes', async () => {
+    const inputHtml = `
+      <p>
+        DNS <strong>Error</strong>: lookup of
+        <a href="https://example.com" class="link-blue" data-test="anchor">test.com</a>
+        failed.
+      </p>
+    `;
+
+    const result = await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    expect(result).toContain('href="https://example.com"');
+    expect(result).toContain('class="link-blue"');
+    expect(result).toContain('data-test="anchor"');
+    expect(result).toContain('<strong>');
+    expect(result).toContain('</a>');
+    expect(result).toContain('test.com');
+  });
+
+  // CASE 6: 连续多语言独立判断
+  it('CASE 6: Independent run decisions for alternating languages', async () => {
+    const inputHtml = `
+      <div>
+        <p>第一段：这是纯中文通知。</p>
+        <p>Second paragraph: Server overload detected.</p>
+        <p>第三段：请运维人员及时响应。</p>
+      </div>
+    `;
+
+    const result = await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    expect(result).toContain('第一段：这是纯中文通知。');
+    expect(result).toContain('第三段：请运维人员及时响应。');
+    expect(result).toContain('[译]');
+  });
+
+  // CASE 7: 局部翻译失败隔离 (Failure isolation)
+  it('CASE 7: Segment failure preserves original text and does not shift other segments', async () => {
+    mockTranslateFn = vi.fn(async (text: string) => {
+      if (text.includes('FAIL_ME')) {
+        throw new Error('Translator crash');
+      }
+      return `[译] ${text}`;
+    });
+
+    const inputHtml = `
+      <div>
+        <p>First paragraph: OK to translate.</p>
+        <p>Second paragraph: FAIL_ME should be kept intact.</p>
+        <p>Third paragraph: OK to translate as well.</p>
+      </div>
+    `;
+
+    const result = await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    expect(result).toContain('[译]');
+    expect(result).toContain('FAIL_ME should be kept intact');
+  });
+
+  // CASE 8: AbortController 支持
+  it('CASE 8: Aborting controller terminates work without corrupting results', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    const inputHtml = `<p>Immediate abort test.</p>`;
+    const result = await planAndTranslateHtml(inputHtml, {
+      targetLang: 'zh',
+      signal: controller.signal,
+    });
+
+    expect(result).toBe(inputHtml);
+    expect(mockTranslateFn).toHaveBeenCalledTimes(0);
+  });
+
+  // CASE 9: 避免二次翻译与幂等性
+  it('CASE 9: Idempotency: does not double-translate or lose accuracy across repeated calls', async () => {
+    const input = 'This is a clean email text.';
+    const translatedOnce = await planAndTranslateText(input, {
+      targetLang: 'zh',
+    });
+    const callCountAfterFirst = mockTranslateFn.mock.calls.length;
+
+    const translatedTwice = await planAndTranslateText(input, {
+      targetLang: 'zh',
+    });
+    expect(translatedTwice).toBe(translatedOnce);
+    expect(mockTranslateFn.mock.calls.length).toBe(callCountAfterFirst);
+  });
+
+  // CASE 10: 不可翻译实体保护层全面验收 (Protected Non-Translatable Entities)
+  it('CASE 10: Protects all specified high-certainty non-translatable entities without modification', async () => {
+    const text = [
+      'Please check email test@example.com and visit https://example.com/docs.',
+      'Server IP is 192.168.1.1 or 2001:db8::1, running on domain api.service.io.',
+      'Order ID: ORD-99281, SKU: SKU-8842, Tracking Number: 1Z9999999999999999, Serial Number: SN1002.',
+      'Username: dev_admin and Account ID: ACC-9901.',
+      'Check file /var/log/app.log and backup config.json.',
+      'DNS Error: MX lookup of test.com returned NOERROR code 550 and status 5.1.1.',
+      'We shipped 500 cartons weighing 1200 kg with total price 480 USD.',
+      'UUID is 123e4567-e89b-12d3-a456-426614174000 and Message-ID is <msg123@mail.com>.',
+    ].join(' ');
+
+    const { protectedText, spanMap } = detectProtectedSpans(text);
+
+    // Verify entities are replaced with ⟦P0⟧, ⟦P1⟧...
+    expect(protectedText).toContain('⟦P0⟧');
+    expect(protectedText).not.toContain('test@example.com');
+    expect(protectedText).not.toContain('https://example.com/docs');
+
+    // Simulate translation modifying English but keeping placeholders
+    let mockTranslated = protectedText
+      .replace('Please check email', '请检查邮箱')
+      .replace('and visit', '并访问')
+      .replace('Server IP is', '服务器 IP 是')
+      .replace('Check file', '检查文件')
+      .replace('DNS Error:', 'DNS 错误：')
+      .replace('lookup of', '查询')
+      .replace('returned', '返回')
+      .replace('We shipped', '我们发运了')
+      .replace('weighing', '重量为')
+      .replace('with total price', '总价格为');
+
+    const restored = restoreProtectedSpans(mockTranslated, text, spanMap);
+
+    // Verify all original protected values are 100% restored
+    expect(restored).toContain('test@example.com');
+    expect(restored).toContain('https://example.com/docs');
+    expect(restored).toContain('192.168.1.1');
+    expect(restored).toContain('2001:db8::1');
+    expect(restored).toContain('api.service.io');
+    expect(restored).toContain('ORD-99281');
+    expect(restored).toContain('SKU-8842');
+    expect(restored).toContain('1Z9999999999999999');
+    expect(restored).toContain('SN1002');
+    expect(restored).toContain('dev_admin');
+    expect(restored).toContain('ACC-9901');
+    expect(restored).toContain('/var/log/app.log');
+    expect(restored).toContain('config.json');
+    expect(restored).toContain('MX');
+    expect(restored).toContain('NOERROR');
+    expect(restored).toContain('550');
+    expect(restored).toContain('5.1.1');
+    expect(restored).toContain('500 cartons');
+    expect(restored).toContain('1200 kg');
+    expect(restored).toContain('480 USD');
+    expect(restored).toContain('123e4567-e89b-12d3-a456-426614174000');
+    expect(restored).toContain('<msg123@mail.com>');
+  });
+
+  // CASE 11: 占位符校验失败时保留原文 (Validation & Fallback)
+  it('CASE 11: Falls back to original text if placeholders are mangled or count mismatch occurs', () => {
+    const original =
+      'Visit https://example.com with token sk-abcdef1234567890123456';
+    const { spanMap } = detectProtectedSpans(original);
+
+    // Simulate translator dropping one placeholder
+    const corruptedTranslation = '请访问 ⟦P0⟧，缺少了 token';
+    const safeRestored = restoreProtectedSpans(
+      corruptedTranslation,
+      original,
+      spanMap
+    );
+
+    // Must fall back to original text to prevent corrupting data
+    expect(safeRestored).toBe(original);
+  });
+});

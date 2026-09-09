@@ -3,6 +3,7 @@ pub mod body_replyless;
 pub mod generic_email;
 pub mod normalize_contact;
 pub mod open_tracking;
+pub mod read_receipts;
 pub mod sanitizer;
 pub mod token_cache_key;
 

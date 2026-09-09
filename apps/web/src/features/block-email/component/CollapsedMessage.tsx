@@ -1,17 +1,17 @@
+import { ReadReceiptStatus } from '@app/features/email-read-receipts';
+import {
+  emailTranslationEnabled,
+  getCachedMessageTranslation,
+  isMessageTranslated,
+  isTranslationSupported,
+} from '@app/features/email-translation';
 import { UserIcon, type UserIconProps } from '@core/component/UserIcon';
 import { useEmail } from '@core/context/user';
-import EyeIcon from '@phosphor-icons/core/regular/eye.svg?component-solid';
-import { useReadReceiptStatusQuery } from '@queries/email/readReceipts';
 import type { ApiMessage } from '@service-email/generated/schemas';
 import { Tooltip } from '@ui';
 import { createMemo, Show } from 'solid-js';
 import { getSenderDisplayName, getSenderMacroId } from '../util/emailUser';
 import { formatFullDate, formatShortDate } from '../util/formatEmailDate';
-import {
-  formatSeenLabel,
-  formatSeenTooltip,
-  statusSeenAt,
-} from '../util/readReceipts';
 import { EmailUserTooltip } from './EmailUserTooltip';
 
 interface CollapsedMessageProps {
@@ -21,12 +21,6 @@ interface CollapsedMessageProps {
 /** Collapsed thread row: sender, snippet, date. The chrome is MessageCard's. */
 export function CollapsedMessage(props: CollapsedMessageProps) {
   const currentUserEmail = useEmail();
-
-  const readReceiptQuery = useReadReceiptStatusQuery(
-    () => props.message.db_id,
-    () => props.message.is_sent && !props.message.is_draft
-  );
-  const seenAt = createMemo(() => statusSeenAt(readReceiptQuery.data));
 
   const senderDisplay = createMemo(() =>
     getSenderDisplayName(props.message, currentUserEmail())
@@ -39,7 +33,19 @@ export function CollapsedMessage(props: CollapsedMessageProps) {
     return { email: props.message.from?.email ?? '', photoUrl };
   });
 
+  const isTranslated = () =>
+    emailTranslationEnabled() &&
+    isTranslationSupported() &&
+    isMessageTranslated(props.message.thread_db_id, props.message.db_id);
+
   const snippet = createMemo(() => {
+    // PRIVATE-HOOK: email_translation:collapsed-snippet
+    if (isTranslated()) {
+      const cached = getCachedMessageTranslation(props.message.db_id);
+      if (cached?.translatedSnippet) {
+        return cached.translatedSnippet;
+      }
+    }
     if (props.message.body_text) {
       return props.message.body_text.replace(/\s+/g, ' ').trim();
     }
@@ -75,21 +81,8 @@ export function CollapsedMessage(props: CollapsedMessageProps) {
         {snippet()}
       </div>
       <div class="flex items-center min-h-6 justify-self-end gap-1.5 shrink-0 @max-[480px]/message:col-start-2 @max-[480px]/message:row-start-1">
-        <Show when={seenAt()}>
-          {(openedAt) => (
-            <Tooltip
-              label={
-                readReceiptQuery.data
-                  ? `${formatSeenLabel(openedAt())} · ${formatSeenTooltip(readReceiptQuery.data)}`
-                  : formatSeenLabel(openedAt())
-              }
-            >
-              <span class="shrink-0 inline-flex items-center text-ink-extra-muted cursor-default">
-                <EyeIcon class="size-3.5" />
-              </span>
-            </Tooltip>
-          )}
-        </Show>
+        {/* PRIVATE-HOOK: read_receipts:sent-status */}
+        <ReadReceiptStatus message={props.message} showIconOnly />
         <Show when={props.message.internal_date_ts}>
           <Tooltip
             as="span"

@@ -6,6 +6,8 @@ mod backfill_init_service;
 #[cfg(feature = "calendar")]
 mod calendar_outbox;
 mod config;
+// PRIVATE-HOOK: read_receipts:features
+mod features;
 mod outbound;
 mod pubsub;
 mod util;

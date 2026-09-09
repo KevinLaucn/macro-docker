@@ -85,3 +85,24 @@ fn inject_after_strip_leaves_one_tracking_pixel() {
     assert_eq!(injected.matches("/t/o/").count(), 1);
     assert!(injected.contains(TOKEN));
 }
+
+#[test]
+fn strip_blocked_pixels_removes_1x1_and_preserves_cid_and_regular_images() {
+    let html = r#"
+        <p>Hello world</p>
+        <img src="https://tracker.com/pixel.gif" width="1" height="1" alt="">
+        <img src="https://tracker.com/pixel2.gif" style="width: 1px; height: 1px;">
+        <img src="https://macro.com/t/o/some-token">
+        <img src="cid:image001.png@01D" width="1" height="1">
+        <img src="https://cdn.example.com/logo.png" width="200" height="50">
+    "#;
+
+    let cleaned = strip_blocked_tracking_pixels(html);
+
+    assert!(!cleaned.contains("pixel.gif"));
+    assert!(!cleaned.contains("pixel2.gif"));
+    assert!(!cleaned.contains("/t/o/some-token"));
+    assert!(cleaned.contains("cid:image001.png@01D"));
+    assert!(cleaned.contains("logo.png"));
+    assert!(cleaned.contains("<p>Hello world</p>"));
+}

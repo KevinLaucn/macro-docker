@@ -1,9 +1,18 @@
+import { ReadReceiptStatus } from '@app/features/email-read-receipts';
+import {
+  EmailTranslateButton,
+  emailTranslationEnabled,
+  getCachedMessageTranslation,
+  isMessageTranslated,
+  isTranslationSupported,
+  setCachedMessageTranslation,
+  setMessageOverride,
+  translateSingleMessage,
+} from '@app/features/email-translation';
 import { useEmail } from '@core/context/user';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { t } from '@macro/i18n';
 import CaretRight from '@phosphor/caret-right.svg';
-import EyeIcon from '@phosphor-icons/core/regular/eye.svg?component-solid';
-import { useReadReceiptStatusQuery } from '@queries/email/readReceipts';
 import type { ApiMessage } from '@service-email/generated/schemas';
 import { Button, cn, Tooltip } from '@ui';
 import {
@@ -20,11 +29,6 @@ import {
   getSenderDisplayName,
 } from '../util/emailUser';
 import { formatFullDate, formatShortDate } from '../util/formatEmailDate';
-import {
-  formatSeenLabel,
-  formatSeenTooltip,
-  statusSeenAt,
-} from '../util/readReceipts';
 
 import { EmailUserTooltip } from './EmailUserTooltip';
 import { type EmailMessageAction, MessageActions } from './MessageActions';
@@ -154,11 +158,6 @@ function HeaderTopRow(props: {
     ...props.message.to,
     ...props.message.cc,
   ]);
-  const readReceiptQuery = useReadReceiptStatusQuery(
-    () => props.message.db_id,
-    () => props.message.is_sent && !props.message.is_draft
-  );
-  const seenAt = createMemo(() => statusSeenAt(readReceiptQuery.data));
 
   return (
     <div class="flex flex-row w-full min-w-0 flex-1 items-center gap-2 text-sm">
@@ -206,6 +205,45 @@ function HeaderTopRow(props: {
         </div>
       </div>
       <div class="flex flex-row items-center shrink-0">
+        {/* PRIVATE-HOOK: email_translation:message */}
+        <Show when={emailTranslationEnabled() && isTranslationSupported()}>
+          {(() => {
+            const messageId = () => props.message.db_id;
+            const threadId = () => props.message.thread_db_id;
+            const translated = () =>
+              isMessageTranslated(threadId(), messageId());
+            const cached = () => getCachedMessageTranslation(messageId());
+            const btnState = () => {
+              if (cached()?.status === 'loading') return 'loading';
+              if (translated()) return 'translated';
+              return 'idle';
+            };
+
+            const handleToggle = async () => {
+              const mid = messageId();
+              if (translated()) {
+                setMessageOverride(mid, 'original');
+              } else {
+                setMessageOverride(mid, 'translated');
+                if (cached()?.status !== 'translated') {
+                  setCachedMessageTranslation(mid, { status: 'loading' });
+                  const data = await translateSingleMessage(props.message);
+                  setCachedMessageTranslation(mid, data);
+                }
+              }
+            };
+
+            return (
+              <EmailTranslateButton
+                state={btnState()}
+                scope="message"
+                onClick={handleToggle}
+              />
+            );
+          })()}
+        </Show>
+        {/* PRIVATE-HOOK: read_receipts:sent-status */}
+        <ReadReceiptStatus message={props.message} showIconOnly />
         <MessageActions
           message={props.message}
           showActions={true}
@@ -214,22 +252,6 @@ function HeaderTopRow(props: {
           hiddenActions={props.hiddenActions}
         />
       </div>
-      <Show when={seenAt()}>
-        {(openedAt) => (
-          <Tooltip
-            label={
-              readReceiptQuery.data
-                ? formatSeenTooltip(readReceiptQuery.data)
-                : formatSeenLabel(openedAt())
-            }
-          >
-            <span class="flex items-center gap-1 text-xs text-ink-extra-muted cursor-default shrink-0">
-              <EyeIcon class="size-3.5" />
-              <span>{formatSeenLabel(openedAt())}</span>
-            </span>
-          </Tooltip>
-        )}
-      </Show>
       <Show when={props.message.internal_date_ts}>
         <Tooltip
           as="span"

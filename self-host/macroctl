@@ -48,6 +48,18 @@ uuid4() {
     "$(printf '%x' $(( 0x8 + RANDOM % 4 )))" "${h:17:3}" "${h:20:12}"
 }
 
+rand_rsa() {
+  if command -v openssl >/dev/null 2>&1; then
+    local priv pub
+    priv=$(openssl genrsa 2048 2>/dev/null)
+    pub=$(printf '%s\n' "$priv" | openssl rsa -pubout 2>/dev/null)
+    priv_rsa=$(printf '%s\n' "$priv" | awk '{printf "%s\\n", $0}')
+    pub_rsa=$(printf '%s\n' "$pub" | awk '{printf "%s\\n", $0}')
+  else
+    die "openssl is required to generate RSA key pairs for MACRO_API_TOKEN"
+  fi
+}
+
 cmd_generate_secrets() {
   local domain="" acme="" smtp_host="" smtp_port="587" smtp_user="" smtp_pass="" admin="" macro_version=""
   while [ "$#" -gt 0 ]; do
@@ -92,6 +104,7 @@ cmd_generate_secrets() {
   local pg_pw fa_db_pw internal dss doc_perm internal_call url_signing jwt
   local fa_api fa_client_secret os_pw aws_secret admin_pw mcp_key
   local app_id tenant_id key_id template_id
+  local priv_rsa pub_rsa
   pg_pw=$(rand_hex 24);        fa_db_pw=$(rand_hex 24)
   internal=$(rand_b64 32);     dss=$(rand_b64 32)
   doc_perm=$(rand_b64 32);     internal_call=$(rand_b64 32)
@@ -100,6 +113,7 @@ cmd_generate_secrets() {
   os_pw=$(rand_hex 24);        aws_secret=$(rand_hex 20)
   admin_pw=$(rand_b64 18);     mcp_key=$(rand_b64_strict)
   app_id=$(uuid4); tenant_id=$(uuid4); key_id=$(uuid4); template_id=$(uuid4)
+  rand_rsa
 
   local s3_domain="s3.${domain}" fa_domain="auth.${domain}"
 
@@ -111,6 +125,7 @@ cmd_generate_secrets() {
   JWT="$jwt" FA_API="$fa_api" FA_CLIENT_SECRET="$fa_client_secret" OS_PW="$os_pw" \
   AWS_SECRET="$aws_secret" ADMIN_PW="$admin_pw" MCP_KEY="$mcp_key" \
   APP_ID="$app_id" TENANT_ID="$tenant_id" KEY_ID="$key_id" TEMPLATE_ID="$template_id" \
+  PRIV_RSA="\"${priv_rsa}\"" PUB_RSA="\"${pub_rsa}\"" \
   MACRO_VERSION="$macro_version" \
   awk '
     function env(n) { return ENVIRON[n] }
@@ -152,6 +167,8 @@ cmd_generate_secrets() {
       v["FUSIONAUTH_DOMAIN"]                    = env("FUSIONAUTH_DOMAIN")
       v["ISSUER"]                               = env("MACRO_DOMAIN")
       v["MACRO_API_TOKEN_ISSUER"]               = env("MACRO_DOMAIN")
+      v["MACRO_API_TOKEN_PUBLIC_KEY"]           = env("PUB_RSA")
+      v["MACRO_API_TOKEN_PRIVATE_SECRET_KEY"]   = env("PRIV_RSA")
       v["SENDER_BASE_ADDRESS"]                  = env("MACRO_DOMAIN")
       v["MACRO_VERSION"]                        = env("MACRO_VERSION")
     }

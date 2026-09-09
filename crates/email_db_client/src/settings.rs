@@ -58,18 +58,7 @@ pub async fn fetch_settings(
 /// for a link. Links without a settings row use the feature default: enabled.
 #[tracing::instrument(skip(pool), err)]
 pub async fn fetch_read_receipts_enabled(pool: &PgPool, link_id: Uuid) -> anyhow::Result<bool> {
-    let enabled = sqlx::query_scalar::<_, bool>(
-        r#"
-        SELECT read_receipts_enabled
-        FROM email_settings
-        WHERE link_id = $1
-        "#,
-    )
-    .bind(link_id)
-    .fetch_optional(pool)
-    .await?;
-
-    Ok(enabled.unwrap_or(true))
+    crate::read_receipts::settings::fetch_read_receipts_enabled(pool, link_id).await
 }
 
 /// Updates only the read-receipt preference without touching signature
@@ -81,25 +70,5 @@ pub async fn set_read_receipts_enabled(
     link_id: Uuid,
     enabled: bool,
 ) -> anyhow::Result<bool> {
-    let value = sqlx::query_scalar::<_, bool>(
-        r#"
-        INSERT INTO email_settings (
-            link_id,
-            signature_on_replies_forwards,
-            read_receipts_enabled
-        )
-        VALUES ($1, FALSE, $2)
-        ON CONFLICT (link_id)
-        DO UPDATE SET
-            read_receipts_enabled = EXCLUDED.read_receipts_enabled,
-            updated_at = NOW()
-        RETURNING read_receipts_enabled
-        "#,
-    )
-    .bind(link_id)
-    .bind(enabled)
-    .fetch_one(pool)
-    .await?;
-
-    Ok(value)
+    crate::read_receipts::settings::set_read_receipts_enabled(pool, link_id, enabled).await
 }

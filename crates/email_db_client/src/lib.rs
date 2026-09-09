@@ -8,6 +8,7 @@ pub mod links;
 pub mod links_history;
 pub mod messages;
 pub mod parse;
+pub mod read_receipts;
 pub mod settings;
 pub mod sfs_mappings;
 pub mod sync_tokens;

@@ -453,18 +453,19 @@ pub async fn update_thread_metadata(
     let effective_inbox_visible =
         inbox_visible || is_follow_up_active || latest_outbound_message_ts.is_some();
 
-    let effective_inbound_or_draft_ts = if is_follow_up_active || latest_outbound_message_ts.is_some() {
-        [
-            latest_inbound_timestamp_ts,
-            latest_draft_ts,
-            latest_outbound_message_ts,
-        ]
-        .into_iter()
-        .flatten()
-        .max()
-    } else {
-        latest_inbound_or_draft_ts
-    };
+    let effective_inbound_or_draft_ts =
+        if is_follow_up_active || latest_outbound_message_ts.is_some() {
+            [
+                latest_inbound_timestamp_ts,
+                latest_draft_ts,
+                latest_outbound_message_ts,
+            ]
+            .into_iter()
+            .flatten()
+            .max()
+        } else {
+            latest_inbound_or_draft_ts
+        };
 
     update_db_thread_metadata(
         &mut *tx,

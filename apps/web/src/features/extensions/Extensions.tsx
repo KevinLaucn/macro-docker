@@ -12,6 +12,11 @@ import { Dropdown, Layer } from '@ui';
 import { createSignal, For } from 'solid-js';
 import { awaitingReplyTagId, setAwaitingReplyTagId } from './extensionsState';
 import { TagSelectorDropdown } from './TagSelectorDropdown';
+import {
+  PixelBlockingSection,
+  ReadReceiptsSection,
+} from '@app/features/email-read-receipts';
+import { EmailTranslationSection } from '@app/features/email-translation';
 
 const LANGUAGE_OPTIONS: { label: string; value: SupportedLocale }[] = [
   { label: 'English', value: 'en-US' },
@@ -89,6 +94,11 @@ export function Extensions() {
               onChange={(tagId) => setAwaitingReplyTagId(tagId)}
             />
           </SettingsRow>
+          {/* PRIVATE-HOOK: read_receipts:settings */}
+          <ReadReceiptsSection />
+          <PixelBlockingSection />
+          {/* PRIVATE-HOOK: email_translation:settings */}
+          <EmailTranslationSection />
         </SettingsCard>
       </SettingsSection>
     </SettingsPage>
