@@ -22,6 +22,7 @@ import { EventComposerSplit } from '@block-calendar/components/EventComposerSpli
 import { ChannelCompose } from '@block-channel/component/Compose';
 import { EmailCompose } from '@block-email/component/compose/Compose';
 import { ComposeSkill } from '@block-md/component/ComposeSkill';
+import { ComposeTask } from '@block-md/component/ComposeTask';
 import {
   CRM_VIEW_URL_PARAM,
   type CrmViewConfig,
@@ -428,6 +429,26 @@ registerComponent(
 );
 
 registerComponent(
+  'tasks',
+  withAuth(() => {
+    usePageViewTracking('tasks');
+    const user = useUserContext();
+    const preset = getViewPreset('tasks', undefined, {
+      userId: user.userId(),
+      isTeamAdmin: false,
+    });
+    return (
+      <SoupView
+        viewName="Tasks"
+        initialFilters={preset?.filters}
+        initialClientFilters={preset?.clientFilters}
+        initialGroupBy={preset?.groupBy}
+      />
+    );
+  })
+);
+
+registerComponent(
   'channels',
   withAuth(() => {
     usePageViewTracking('channels');
@@ -601,6 +622,11 @@ registerComponent('email-compose', (params) => {
   const draftID =
     typeof params.draftID === 'string' ? params.draftID : undefined;
   return <EmailCompose draftID={draftID} initialTo={initialTo} />;
+});
+
+registerComponent('task-compose', (params) => {
+  usePageViewTracking('task-compose');
+  return <ComposeTask {...params} />;
 });
 
 registerComponent('calendar-event-compose', (params) => {

@@ -29,6 +29,7 @@ import { useMaybeSoupView } from './soup-view-context';
 // Which blocks to show as create options per view, in order
 const VIEW_CREATE_BLOCKNAMES: Partial<Record<ListView, CreatableName[]>> = {
   documents: ['md', 'snippet', 'canvas', 'code', 'project'],
+  tasks: ['task'],
   agents: ['agent', 'chat', 'automation', 'skill'],
   mail: ['email'],
   channels: ['channel'],
@@ -74,6 +75,7 @@ const VIEW_CREATE_LABELS: Partial<Record<ListView, string>> = {
   folders: 'Folder',
   mail: 'Email',
   reminders: 'Reminder',
+  tasks: 'Task',
 };
 
 function getViewCreateOptions(

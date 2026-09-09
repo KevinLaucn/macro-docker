@@ -250,6 +250,10 @@ const ROUTES: RouteDefinition[] = [
     component: LAYOUT_ROUTE.component,
   },
   {
+    path: '/tasks',
+    component: LAYOUT_ROUTE.component,
+  },
+  {
     path: '/channels',
     component: LAYOUT_ROUTE.component,
   },

@@ -5,6 +5,7 @@ import { AnimatedEmailIcon } from '@icon/wide-email';
 import { AnimatedFileMdIcon } from '@icon/wide-fileMd';
 import { AnimatedInboxIcon } from '@icon/wide-inbox';
 import { AnimatedStarIcon } from '@icon/wide-star';
+import { AnimatedTaskIcon } from '@icon/wide-task';
 import BellIcon from '@phosphor/bell-simple.svg';
 import { type Accessor, createMemo } from 'solid-js';
 import type { MobileTouchIconComponent } from './MobileTouchMenu';
@@ -40,6 +41,7 @@ const MOBILE_DOCK_VIEWS: MobileDockView[] = [
   { id: 'mail', label: 'Email', icon: AnimatedEmailIcon },
   { id: 'channels', label: 'Channels', icon: AnimatedChannelIcon },
   { id: 'documents', label: 'Files', icon: AnimatedFileMdIcon },
+  { id: 'tasks', label: 'Tasks', icon: AnimatedTaskIcon },
   { id: 'agents', label: 'Agents', icon: AnimatedStarIcon },
 ];
 
