@@ -54,6 +54,7 @@ infra/local/generated/
 *.local.md
 /生产环境配置与避坑指南*.local.md
 /生产环境配置与避坑指南*.md
+/二开功能检查清单.md
 
 # Production/self-host runtime secrets generated from templates.
 /production.env
@@ -62,9 +63,16 @@ infra/local/generated/
 /self-host/.env.*
 /self-host/generated/
 /self-host/data/
+/self-host/localstack-data
 /data/
 *.pem
 *.key
 
 # Per-instance production Compose topology; keep the local file out of GitHub.
 /docker-compose.yml
+
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+

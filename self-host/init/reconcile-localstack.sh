@@ -19,6 +19,7 @@ fi
 echo "Starting LocalStack reconciler sidecar watching ${ENDPOINT} (poll interval: ${INTERVAL}s)..."
 
 prev_state="down"
+rm -f /tmp/localstack-ready
 
 while true; do
   if curl -fsS "${ENDPOINT}/_localstack/health" >/dev/null 2>&1; then
@@ -26,9 +27,11 @@ while true; do
       echo "LocalStack is healthy (transitioned from ${prev_state}). Reconciling upstream resources via ${PROVISIONER}..."
       if "$PROVISIONER" --url "$ENDPOINT"; then
         echo "LocalStack resources successfully reconciled."
+        touch /tmp/localstack-ready
         prev_state="up"
       else
         echo "WARNING: localstack_provision failed. Will retry on next check."
+        rm -f /tmp/localstack-ready
       fi
     fi
   else
@@ -36,6 +39,7 @@ while true; do
       echo "LocalStack transitioned to unhealthy or restarting. Waiting for recovery..."
     fi
     prev_state="down"
+    rm -f /tmp/localstack-ready
   fi
   sleep "$INTERVAL"
 done

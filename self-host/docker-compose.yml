@@ -177,7 +177,7 @@ services:
       - databases
 
   opensearch:
-    image: opensearchproject/opensearch:2.17.1
+    image: koha/opensearch-icu:3.5.0
     restart: unless-stopped
     environment:
       discovery.type: single-node
@@ -234,22 +234,23 @@ services:
   # weak point of the stack and the first thing to replace with managed
   # services if you have them. PERSISTENCE keeps state across restarts.
   localstack:
-    image: localstack/localstack:4
+    image: gresau/localstack-persist:4.14.0
     restart: unless-stopped
     mem_limit: 750m
     environment:
       SERVICES: s3,sqs,dynamodb,kms
       PERSISTENCE: ${LOCALSTACK_PERSISTENCE:-1}
+      PERSISTED_VOLUME_DIR: /persisted-data
       DEBUG: "0"
       DYNAMODB_HEAP_SIZE: ${DYNAMODB_HEAP_SIZE:-64m}
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:4566/_localstack/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS --connect-timeout 1 --max-time 4 http://127.0.0.1:4566/_localstack/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 20
       start_period: 30s
     volumes:
-      - localstack_data:/var/lib/localstack
+      - ./localstack-data:/persisted-data
     networks:
       databases:
         aliases:
@@ -265,6 +266,12 @@ services:
       localstack:
         condition: service_started
     entrypoint: ["bash", "/app/reconcile-localstack.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/localstack-ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 10s
     networks:
       - databases
     volumes:
@@ -408,10 +415,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      opensearch:
+        condition: service_healthy
       connection_gateway:
         condition: service_started
       authentication-service:
         condition: service_started
+      localstack_reconciler:
+        condition: service_healthy
     networks:
       databases:
       services:
@@ -427,7 +438,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      localstack:
+      localstack_reconciler:
         condition: service_healthy
     networks:
       - databases
@@ -449,6 +460,8 @@ services:
         condition: service_started
       static_file_service:
         condition: service_started
+      localstack_reconciler:
+        condition: service_healthy
     networks:
       databases:
       services:
@@ -466,7 +479,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      localstack:
+      localstack_reconciler:
         condition: service_healthy
       email_service:
         condition: service_started
@@ -525,7 +538,7 @@ services:
         condition: service_healthy
       opensearch:
         condition: service_healthy
-      localstack:
+      localstack_reconciler:
         condition: service_healthy
     networks:
       databases:
@@ -542,7 +555,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      localstack:
+      localstack_reconciler:
         condition: service_healthy
     networks:
       databases:

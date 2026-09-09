@@ -1,4 +1,4 @@
-import os, sys, json, time, requests, subprocess
+import os, sys, json, time, requests, subprocess, random, uuid
 
 # Load environment configuration
 env_paths = [
@@ -44,6 +44,34 @@ def get_fusionauth_base():
 
 base = get_fusionauth_base()
 headers = {"Authorization": fa_api_key, "Content-Type": "application/json"}
+
+def uuid7():
+    ts_ms = int(time.time() * 1000)
+    rand_a = random.getrandbits(12)
+    rand_b = random.getrandbits(62)
+    value = (ts_ms << 80) | (0x7 << 76) | (rand_a << 64) | (0x2 << 62) | rand_b
+    return str(uuid.UUID(int=value))
+
+def run_psql(sql, timeout=10):
+    res = subprocess.run(
+        f'docker exec $(docker ps -q -f name=postgres) psql -U macro -d macrodb -tAc "{sql}"',
+        shell=True, capture_output=True, text=True, timeout=timeout
+    )
+    if res.returncode != 0:
+        raise RuntimeError(res.stderr.strip() or res.stdout.strip())
+    return res
+
+def send_backfill_message(message, timeout=10):
+    body = json.dumps(message, separators=(",", ":"))
+    subprocess.run(
+        [
+            "docker", "exec", "macro-selfhost-localstack-1",
+            "awslocal", "sqs", "send-message",
+            "--queue-url", "http://localstack:4566/000000000000/email-service-backfill-queue",
+            "--message-body", body,
+        ],
+        check=True, capture_output=True, text=True, timeout=timeout
+    )
 
 # 1. Wait for FusionAuth to be ready (Timing resilience: retry up to 60s)
 print(f"Checking FusionAuth availability at {base}...")
@@ -207,6 +235,68 @@ try:
 except Exception as e:
     pass
 
+# 7. Reconcile stuck Email Backfill Completion Outbox.
+# Some backfills can persist every thread but miss the final completion event if
+# Redis/SQS restarts at the exact handoff point. PostgreSQL is the source of truth:
+# a stale InProgress job with retrieved >= total is safe to re-enter through the
+# official completion outbox.
+try:
+    check_sql = '''
+    SELECT job.id, job.link_id
+    FROM email_backfill_jobs job
+    LEFT JOIN email_backfill_completion_outbox outbox
+      ON outbox.backfill_job_id = job.id
+    WHERE job.status = 'InProgress'
+      AND job.total_threads > 0
+      AND job.threads_retrieved_count >= job.total_threads
+      AND job.updated_at < now() - interval '10 minutes'
+      AND outbox.backfill_job_id IS NULL;
+    '''
+    res = run_psql(check_sql)
+    lines = [line.strip() for line in res.stdout.splitlines() if line.strip()]
+    for l in lines:
+        parts = l.split("|")
+        if len(parts) < 2:
+            continue
+        job_id, link_id = parts[0], parts[1]
+        outbox_id = uuid7()
+        repair_sql = f'''
+        BEGIN;
+        UPDATE email_backfill_jobs
+        SET status = 'Complete',
+            initialized_at = COALESCE(initialized_at, now()),
+            init_lease_token = NULL,
+            init_lease_expires_at = NULL,
+            updated_at = now()
+        WHERE id = '{job_id}'
+          AND status = 'InProgress'
+          AND total_threads > 0
+          AND threads_retrieved_count >= total_threads
+          AND updated_at < now() - interval '10 minutes';
+        INSERT INTO email_backfill_completion_outbox (id, backfill_job_id)
+        SELECT '{outbox_id}', '{job_id}'
+        WHERE EXISTS (
+            SELECT 1 FROM email_backfill_jobs
+            WHERE id = '{job_id}' AND status = 'Complete'
+        )
+        ON CONFLICT (backfill_job_id) DO NOTHING;
+        COMMIT;
+        '''
+        run_psql(repair_sql)
+        msg = {
+            "backfillOperation": {
+                "finalize_backfill": {
+                    "link_id": link_id,
+                    "job_id": job_id
+                }
+            }
+        }
+        send_backfill_message(msg)
+        run_psql(
+            f"UPDATE email_backfill_completion_outbox SET published_at = now() WHERE backfill_job_id = '{job_id}' AND published_at IS NULL;"
+        )
+        print(f"  - Auto-healed completed email backfill job {job_id} (dispatched finalize to SQS)")
+except Exception as e:
+    print(f"  - Email Backfill Completion reconcile error: {e}")
+
 print("All idempotent reconciliations finished successfully.")
-
-
