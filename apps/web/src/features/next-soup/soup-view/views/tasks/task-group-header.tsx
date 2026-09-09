@@ -3,6 +3,7 @@ import { SoupSectionHeader } from '@app/features/next-soup/soup-view/section-hea
 import { useSoupView } from '@app/features/next-soup/soup-view/soup-view-context';
 import { UserIcon } from '@core/component/UserIcon';
 import { getDisplayName, type MacroId, tryMacroId } from '@core/user';
+import { t } from '@macro/i18n';
 import ChevronRightIcon from '@phosphor/caret-right.svg';
 import CircleDashed from '@phosphor/circle-dashed.svg';
 import { PROPERTY_OPTION_IDS, SYSTEM_PROPERTY_IDS } from '@property';
@@ -105,7 +106,7 @@ export const TaskGroupHeader = (
         >
           <CircleDashed class="size-3.5 text-ink-extra-muted" />
 
-          <span class="truncate">{props.group.label}</span>
+          <span class="truncate">{t(props.group.label)}</span>
         </Match>
         <Match
           when={typeof props.group.value === 'string' && props.group.value}
@@ -113,7 +114,7 @@ export const TaskGroupHeader = (
           {(value) => (
             <>
               <PropertyValueIcon optionId={value()} class="size-3.5" />
-              <span class="truncate">{props.group.label}</span>
+              <span class="truncate">{t(props.group.label)}</span>
             </>
           )}
         </Match>

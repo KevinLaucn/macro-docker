@@ -1,4 +1,5 @@
 import { useMaybeBlockId } from '@core/block';
+import { t } from '@macro/i18n';
 import CircleDashedEmpty from '@phosphor/circle-dashed.svg';
 import { Property } from '@property';
 import { usePropertiesContext } from '@property/context/PropertiesContext';
@@ -86,7 +87,7 @@ export const ListPropertyValue: Component<ListPropertyValueProps> = (props) => {
                 <>
                   <CircleDashedEmpty class="size-3 shrink-0 opacity-50" />
                   <span class="truncate flex-1 opacity-50 @max-[840px]/u-list:hidden">
-                    {props.property.displayName}
+                    {t(props.property.displayName)}
                   </span>
                 </>
               }

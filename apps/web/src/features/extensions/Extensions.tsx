@@ -8,14 +8,9 @@ import { DropdownMenu as KobalteDropdownMenu } from '@kobalte/core/dropdown-menu
 import { locale, type SupportedLocale, setLocale, t } from '@macro/i18n';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import CheckIcon from '@phosphor/check.svg';
-import { Dropdown, Layer, ToggleSwitch } from '@ui';
+import { Dropdown, Layer } from '@ui';
 import { createSignal, For } from 'solid-js';
-import {
-  awaitingReplyTagId,
-  importantIncludeOutbound,
-  setAwaitingReplyTagId,
-  setImportantIncludeOutbound,
-} from './extensionsState';
+import { awaitingReplyTagId, setAwaitingReplyTagId } from './extensionsState';
 import { TagSelectorDropdown } from './TagSelectorDropdown';
 
 const LANGUAGE_OPTIONS: { label: string; value: SupportedLocale }[] = [
@@ -83,17 +78,6 @@ export function Extensions() {
       {/* 2. Email Custom Features */}
       <SettingsSection title={t('Email Enhancements')}>
         <SettingsCard>
-          <SettingsRow
-            label={t('Include outbound in Important')}
-            description={t('Keep sent emails in Important (Gmail style).')}
-          >
-            <ToggleSwitch
-              size="md"
-              checked={importantIncludeOutbound()}
-              onChange={(checked) => setImportantIncludeOutbound(checked)}
-            />
-          </SettingsRow>
-
           <SettingsRow
             label={t('Awaiting reply badge')}
             description={t(

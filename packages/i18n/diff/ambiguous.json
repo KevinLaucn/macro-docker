@@ -1,4 +1,9 @@
 {
+  "Save": [
+    "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
+    "features/settings/Team.tsx",
+    "features/settings/Harness.tsx"
+  ],
   "Failed to mark as done": [
     "features/next-soup/actions/make-mark-done-action.ts",
     "features/entity/extractors-notification/notification-actions.tsx",
@@ -27,11 +32,19 @@
   "Close": [
     "features/settings/ApiKeys.tsx",
     "features/settings/HarnessPairingDialog.tsx",
+    "features/companies/CreateContactModal.tsx",
+    "features/companies/CreateCompanyModal.tsx",
     "components/app/split-layout/components/SplitHeader.tsx"
+  ],
+  "Name": [
+    "features/settings/ApiKeys.tsx",
+    "features/companies/CreateContactModal.tsx",
+    "features/companies/CreateCompanyModal.tsx"
   ],
   "Creating…": [
     "features/settings/ApiKeys.tsx",
     "features/settings/Agents.tsx",
-    "features/block-automation/component/AutomationComposer.tsx"
+    "features/block-automation/component/AutomationComposer.tsx",
+    "features/companies/CreateCompanyModal.tsx"
   ]
 }

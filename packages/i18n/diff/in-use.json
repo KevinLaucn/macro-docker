@@ -109,7 +109,9 @@
   ],
   "Sent": [
     "features/next-soup/filters/inbox-filters.ts",
-    "features/next-soup/soup-view/tab-lists.ts"
+    "features/next-soup/soup-view/tab-lists.ts",
+    "features/block-agent/component/parts/UserToolCall.tsx",
+    "features/block-agent/component/parts/ToolCallPart.test.tsx"
   ],
   "Signal": [
     "features/next-soup/filters/inbox-filters.ts",
@@ -175,18 +177,37 @@
     "features/property/mocks/mockProperties.ts",
     "features/entity/mocks/mockEntityData.ts",
     "features/inbox-view/inbox-facets.ts",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
     "features/theme/components/ThemeTokenEditor.tsx",
     "features/soup/filters/facets/constants.ts",
     "lib/core/util/linearImport.ts",
     "lib/queries/soup/graphql/ast.ts",
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.test.ts",
     "features/property/extractors/PropertyPill.test.tsx",
-    "features/activity/property-change.test.ts",
+    "features/activity/queries/property-value.test.ts",
     "components/ui/components/Badge.test.tsx",
     "lib/core/component/AI/component/tool/ReadActivity.test.tsx",
     "lib/queries/properties/entity.test.tsx",
     "lib/queries/properties/graphql/entity.test.ts",
     "lib/queries/properties/graphql-optimistic.test.ts"
+  ],
+  "and": [
+    "features/next-soup/filters/filter-store/compile.ts",
+    "features/next-soup/filters/filter-store/types.ts",
+    "features/next-soup/filters/configs/document-type-query.ts",
+    "features/block-md/history/HistorySessionList.tsx",
+    "features/auth/Login.tsx",
+    "features/block-pdf/model/Section.ts",
+    "features/soup/filters/facets/evaluate.ts",
+    "features/soup/filters/facets/types.ts",
+    "features/soup/filters/facets/clause.ts",
+    "features/onboarding/MobileWebWelcome.tsx",
+    "features/block-email/component/compose/Compose.tsx",
+    "features/block-channel/component/Compose.tsx",
+    "lib/core/component/AI/component/tool/Reminders.tsx",
+    "features/next-soup/filters/filter-store/compile.test.ts",
+    "features/next-soup/filters/configs/document-type-query.test.ts",
+    "features/soup/filters/facets/evaluate.test.ts"
   ],
   "or": [
     "features/next-soup/filters/filter-store/types.ts",
@@ -220,6 +241,7 @@
     "features/inbox-view/queries/use-inbox-query.ts",
     "features/inbox-view/queries/inbox-search.ts",
     "features/inbox-view/queries/inbox-query.ts",
+    "features/inbox-view/queries/inbox-item-filter.ts",
     "features/inbox-view/inbox-facets.ts",
     "features/inbox-view/inbox-view.tsx",
     "features/inbox-view/inbox-view-context.tsx",
@@ -231,9 +253,11 @@
     "lib/core/component/AI/component/tool/Notifications.tsx",
     "lib/core/component/AI/component/tool/Reminders.tsx",
     "lib/constants/list-views.ts",
+    "lib/queries/calendar/mutations.ts",
     "lib/queries/reminders/keys.ts",
     "features/next-soup/sidebar/soup-filter-presets.test.ts",
-    "features/inbox-view/queries/inbox-results.test.ts"
+    "features/inbox-view/queries/inbox-results.test.ts",
+    "features/inbox-view/queries/inbox-item-filter.test.ts"
   ],
   "Select up": [
     "features/next-soup/soup-view/use-soup-navigation-hotkeys.ts",
@@ -267,9 +291,10 @@
   ],
   "Automation": [
     "features/next-soup/soup-view/soup-view-create-button.tsx",
-    "features/activity/actor-name.tsx",
+    "features/activity/primitives/actor-name.ts",
     "features/command/Launcher.tsx",
-    "lib/core/component/EntityIcon.tsx"
+    "lib/core/component/EntityIcon.tsx",
+    "features/activity/primitives/actor-name.test.ts"
   ],
   "Agent": [
     "features/next-soup/soup-view/soup-view-create-button.tsx",
@@ -277,6 +302,8 @@
     "features/settings/Agents.tsx",
     "features/home/chat-tips.tsx",
     "features/block-automation/component/automationUtils.ts",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
+    "features/block-agent/debug/Gallery.tsx",
     "features/channel/Bots/BotAgentSection.tsx",
     "features/command/Launcher.tsx",
     "lib/core/component/EntityIcon.tsx",
@@ -284,6 +311,9 @@
     "lib/core/constant/settingsTabsConfig.tsx",
     "lib/core/constant/SettingsState.tsx",
     "lib/service-clients/service-scheduled-action/generated/schemas/actionKind.ts",
+    "features/block-agent/context/create-agent-session-feed.test.ts",
+    "features/block-agent/component/parts/ToolCallPart.test.tsx",
+    "features/block-agent/state/session-summary.test.ts",
     "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/presentation.test.ts",
     "lib/queries/agent-session/session-fold.test.ts"
   ],
@@ -554,6 +584,8 @@
     "features/settings/Harness.test.tsx",
     "features/settings/HarnessPairingDialog.test.tsx",
     "features/settings/Agents.test.tsx",
+    "features/calendar/components/composer/create-calendar-event-form-controller.test.ts",
+    "features/activity/primitives/entity-opener.test.ts",
     "lib/core/component/TopBar/linkShare.test.ts"
   ],
   "CRM is disabled": [
@@ -601,6 +633,7 @@
     "features/next-soup/soup-view/empty-states.tsx",
     "features/next-soup/actions/entity-action-context.ts",
     "features/home/home-hub.tsx",
+    "features/activity/tests/wire.ts",
     "features/entity/bulk-edit/BulkMoveToProjectView.tsx",
     "features/entity/entity-modal/MoveToProjectView.tsx",
     "features/dynamic-ui/schema.ts",
@@ -696,6 +729,7 @@
     "features/block-calendar/components/Workspace.tsx",
     "features/inbox-view/inbox-facets.ts",
     "features/notifications/notification-event-catalog.ts",
+    "components/app/app-sidebar/sidebar.tsx",
     "components/app/mobile/mobile-dock-views.ts",
     "components/app/sidebar-next/nav-items.ts",
     "lib/core/component/EntityIcon.tsx",
@@ -761,10 +795,13 @@
     "features/settings/HarnessPairingDialog.tsx",
     "features/block-automation/component/AutomationTimePicker.tsx",
     "features/entity/mocks/mockEntityData.ts",
+    "features/block-agent/component/parts/UserToolCall.tsx",
     "lib/core/component/AI/component/tool/Subagent.tsx",
     "lib/core/component/AI/component/tool/CalendarTools.tsx",
     "features/settings/HarnessPairingDialog.test.tsx",
-    "features/activity/describe-action.test.ts",
+    "features/activity/core/describe-action.test.ts",
+    "features/activity/queries/decode.test.ts",
+    "features/block-agent/component/parts/ToolCallPart.test.tsx",
     "lib/core/util/linearImport.test.ts",
     "lib/core/component/AI/component/message/AssistantMessageParts.test.tsx",
     "lib/core/component/AI/component/tool/Properties.test.tsx"
@@ -842,6 +879,7 @@
   "Search": [
     "features/next-soup/soup-view/filters-bar/soup-view-search-bar.tsx",
     "features/next-soup/soup-view/soup-view.tsx",
+    "features/block-agent/debug/Gallery.tsx",
     "features/channel/Participants/ParticipantsSearchInput.tsx",
     "features/command/CommandMenu.tsx",
     "components/app/app-sidebar/sidebar.tsx",
@@ -915,6 +953,8 @@
   "Read": [
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
     "features/inbox-view/inbox-facets.ts",
+    "features/block-agent/ui/ToolErrorCard.tsx",
+    "features/block-agent/debug/Gallery.tsx",
     "lib/core/component/AI/component/tool/ReadMetadata.tsx",
     "lib/core/component/AI/component/tool/ReadChannel.tsx",
     "lib/core/component/AI/component/tool/ReadChat.tsx",
@@ -943,7 +983,7 @@
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
     "features/entity/mocks/mockEntityData.ts",
     "features/entity/utils/task-properties.ts",
-    "features/activity/property-change.test.ts",
+    "features/activity/queries/property-value.test.ts",
     "lib/core/util/linearImport.test.ts",
     "lib/queries/properties/options.test.ts"
   ],
@@ -964,7 +1004,7 @@
     "lib/core/internal/ThemeDebug.tsx",
     "lib/tauri/TauriProvider.tsx",
     "lib/document-processing-types/jobTypes/jobStatus.ts",
-    "features/activity/property-change.test.ts",
+    "features/activity/queries/property-value.test.ts",
     "lib/core/component/AI/component/tool/ReadActivity.test.tsx",
     "lib/graphql-cache/exchange/normalized-cache-exchange.test.ts"
   ],
@@ -1175,13 +1215,27 @@
   "Clear active filters": [
     "features/next-soup/soup-view/filters-bar/soup-active-filters-bar.tsx"
   ],
+  "Last viewed": [
+    "features/next-soup/soup-view/sort-options.tsx"
+  ],
+  "Last updated": [
+    "features/next-soup/soup-view/sort-options.tsx",
+    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
+    "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
+    "components/app/side-panel/FileSidePanelSections.tsx",
+    "lib/core/component/DetailsDrawer.tsx"
+  ],
+  "Date created": [
+    "features/next-soup/soup-view/sort-options.tsx"
+  ],
   "Link": [
     "features/next-soup/soup-view/soup-view-context.tsx",
     "features/settings/SignatureEditor.tsx",
     "features/block-md/component/FormatTools.tsx",
     "features/property/utils/display.ts",
     "features/property/api/converters.ts",
-    "features/activity/property-change-label.ts",
+    "features/activity/queries/property-value.ts",
     "features/entity/extractors-property/property-helpers.ts",
     "lib/core/component/TopBar/ShareButton.tsx",
     "lib/core/component/LexicalMarkdown/plugins/actions/actions.ts",
@@ -1193,12 +1247,16 @@
     "lib/service-clients/service-properties/generated/zod.ts",
     "lib/service-clients/service-search/generated/models/propertyValueOneOfOnethreeType.ts"
   ],
+  "Not set": [
+    "features/next-soup/soup-view/soup-view-context.tsx"
+  ],
   "Open": [
     "features/next-soup/soup-view/use-soup-view-hotkeys.ts",
     "features/home/home-hub.tsx",
     "features/block-md/component/ComposeSkill.tsx",
     "features/block-md/component/ComposeTask.tsx",
     "features/command/CommandMenu.tsx",
+    "components/app/app-sidebar/calendar-sidebar-preview.tsx",
     "lib/core/internal/App.tsx",
     "lib/core/component/AI/component/tool/calendar/ChatCompose.tsx",
     "lib/core/component/LexicalMarkdown/component/decorator/ContactMention.tsx",
@@ -1230,6 +1288,7 @@
     "features/block-md/component/MarkdownEditor.tsx",
     "features/block-md/component/ComposeTask.tsx",
     "features/property/utils/display.ts",
+    "features/block-agent/ui/ToolErrorCard.tsx",
     "features/channel/Input/TaskModeSwitch.tsx",
     "features/channel/Input/TaskComposer.tsx",
     "features/channel/Message/ActionMenu.tsx",
@@ -1260,27 +1319,32 @@
   ],
   "opened": [
     "features/next-soup/soup-view/views/inbox/inbox-card-layouts.tsx",
-    "features/activity/describe-action.ts",
+    "features/activity/core/describe-action.ts",
+    "features/activity/core/event.ts",
+    "features/activity/queries/decode.ts",
     "lib/core/component/AI/component/tool/ReadActivity.tsx",
     "lib/service-clients/service-notification/generated/schemas/githubPrEventAction.ts",
     "lib/service-clients/service-notification/generated/zod.ts",
     "lib/service-clients/service-cognition/generated/tools/schemas.ts",
     "lib/service-clients/service-cognition/generated/tools/types.ts",
+    "features/activity/core/describe-action.test.ts",
+    "features/activity/queries/decode.test.ts",
     "features/entity/tests/notification.test.ts",
     "features/notifications/tests/notification-platform.test.ts"
   ],
   "You": [
     "features/next-soup/soup-view/views/inbox/inbox-card-layouts.tsx",
-    "features/activity/actor-name.tsx",
+    "features/activity/primitives/actor-name.ts",
     "features/channel/Message/ReactionChip.tsx",
     "features/onboarding/sandbox/sandbox-store.ts",
+    "features/activity/primitives/actor-name.test.ts",
     "features/channel/Message/tests/reactions.test.tsx"
   ],
   "sent a message": [
     "features/next-soup/soup-view/views/inbox/inbox-card-layouts.tsx",
-    "features/activity/describe-action.ts",
+    "features/activity/core/describe-action.ts",
     "features/entity/extractors-notification/notification-description-helpers.ts",
-    "features/activity/describe-action.test.ts",
+    "features/activity/core/describe-action.test.ts",
     "features/entity/tests/notification-description.test.ts"
   ],
   "Copy link": [
@@ -1288,6 +1352,7 @@
     "features/next-soup/actions/use-entity-action-hotkeys.ts",
     "features/next-soup/actions/use-block-entity-commands.ts",
     "features/auth/mobile-onboarding/OnboardingInbox.tsx",
+    "features/block-agent/component/AgentSplitHeader.tsx",
     "features/channel/Mobile/ActionDrawer.tsx",
     "lib/core/comments/MessageTopRow.tsx",
     "lib/core/component/LexicalMarkdown/component/menu/FloatingLinkMenu.tsx"
@@ -1345,6 +1410,12 @@
   "Show hidden companies": [
     "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx"
   ],
+  "Revenue": [
+    "features/next-soup/soup-view/views/companies/company-grid-template.ts",
+    "features/entity/extractors-property/property-helpers.ts",
+    "features/companies/crm/display-options.ts",
+    "lib/core/component/AI/component/tool/Crm.tsx"
+  ],
   "Customer": [
     "features/next-soup/soup-view/views/companies/CompanyListHeader.tsx",
     "features/entity/utils/task-properties.ts",
@@ -1368,7 +1439,7 @@
     "features/calendar/components/composer/EventDateTimeInputs.tsx",
     "features/property/utils/display.ts",
     "features/property/api/converters.ts",
-    "features/activity/property-change-label.ts",
+    "features/activity/queries/property-value.ts",
     "features/entity/extractors-property/property-helpers.ts",
     "features/reminders/ReminderForm.tsx",
     "lib/queries/properties/entity.ts",
@@ -1399,7 +1470,8 @@
     "features/next-soup/soup-view/soup-view-tabs.tsx"
   ],
   "List": [
-    "features/next-soup/soup-view/soup-view-tabs.tsx"
+    "features/next-soup/soup-view/soup-view-tabs.tsx",
+    "features/block-agent/ui/ToolErrorCard.tsx"
   ],
   "View documentation": [
     "features/next-soup/soup-view/soup-view.tsx"
@@ -1548,8 +1620,8 @@
   ],
   "from": [
     "features/next-soup/actions/make-favorite-action.ts",
-    "features/activity/property-change.tsx",
-    "features/activity/describe-action.ts",
+    "features/activity/core/describe-action.ts",
+    "features/activity/components/property-change.tsx",
     "features/entity/extractors-notification/notification-description-helpers.ts",
     "features/setup/flow/SummaryStep.tsx",
     "features/block-canvas/operation/connect.ts",
@@ -1561,8 +1633,8 @@
     "features/next-soup/actions/make-favorite-action.ts",
     "features/calendar/components/composer/EventDateTimeRangeFields.tsx",
     "features/property/editor/PropertyEditorModal.tsx",
-    "features/activity/property-change.tsx",
-    "features/activity/describe-action.ts",
+    "features/activity/core/describe-action.ts",
+    "features/activity/components/property-change.tsx",
     "features/block-pdf/model/Section.ts",
     "features/block-canvas/operation/connect.ts",
     "features/block-canvas/component/edges/Arrows.tsx",
@@ -1580,12 +1652,13 @@
     "lib/core/component/AI/component/tool/RenameDocument.tsx",
     "lib/core/component/AI/component/tool/ReadActivity.tsx",
     "lib/service-clients/service-storage/graphql/generated/graphql.ts",
-    "features/activity/describe-action.test.ts"
+    "features/activity/core/describe-action.test.ts"
   ],
   "Copied": [
     "features/next-soup/actions/make-copy-action.ts",
     "features/settings/Team.tsx",
     "features/block-pdf/component/PDFPopup.tsx",
+    "features/block-agent/ui/ToolErrorCard.tsx",
     "features/channel/Bots/CredentialField.tsx",
     "features/channel/Participants/ChannelJoinLinkButton.tsx",
     "lib/core/component/AI/component/McpSetupCards.tsx",
@@ -1694,6 +1767,7 @@
     "features/settings/Email.tsx",
     "features/settings/Harness.tsx",
     "features/settings/GitHub.tsx",
+    "features/settings/PipedreamAppPicker.tsx",
     "features/home/chat-tips.tsx",
     "features/home/home-hub.tsx",
     "features/auth/EmailAuth.tsx",
@@ -1704,6 +1778,7 @@
     "components/app/app-sidebar/sidebar.tsx",
     "lib/core/component/AI/component/tool/ListInboxes.tsx",
     "lib/core/component/AI/component/debug/HttpStream.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/ConnectApp.tsx",
     "lib/core/constant/settingsTabsConfig.tsx",
     "lib/core/constant/SettingsState.tsx",
     "features/settings/Harness.test.tsx"
@@ -1712,6 +1787,7 @@
     "features/settings/Settings.tsx",
     "features/settings/Harness.tsx",
     "features/settings/Agents.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
     "lib/core/constant/settingsTabsConfig.tsx",
     "lib/core/constant/SettingsState.tsx",
     "features/settings/Harness.test.tsx",
@@ -2033,7 +2109,9 @@
   "Connections": [
     "features/settings/Team.tsx",
     "features/settings/ConnectedAccounts.tsx",
-    "lib/core/constant/settingsTabsConfig.tsx"
+    "features/settings/Agents.tsx",
+    "lib/core/constant/settingsTabsConfig.tsx",
+    "features/settings/Agents.test.tsx"
   ],
   "GitHub App": [
     "features/settings/Team.tsx",
@@ -2049,8 +2127,9 @@
     "features/settings/Team.tsx",
     "features/settings/Harness.tsx",
     "features/settings/GitHub.tsx",
+    "features/settings/PipedreamAppPicker.tsx",
     "features/block-automation/component/Automation.tsx",
-    "features/activity/my-activity-view.tsx",
+    "features/activity/views/my-activity-view.tsx",
     "features/contacts/Contact/ContactSharingSection.tsx",
     "features/contacts/Contact/ContactEmailsSection.tsx",
     "features/contacts/Contact/ContactMetadataSection.tsx",
@@ -2061,7 +2140,8 @@
     "features/companies/Company/CompanyEmailsSection.tsx",
     "features/companies/Company/CompanyContactsSection.tsx",
     "lib/core/linked-conversation/debug/Demo.tsx",
-    "features/settings/Harness.test.tsx"
+    "features/settings/Harness.test.tsx",
+    "features/activity/views/my-activity-view.test.tsx"
   ],
   "Connect your GitHub account first": [
     "features/settings/Team.tsx",
@@ -2147,11 +2227,14 @@
     "features/settings/Email.tsx",
     "features/settings/PipedreamIntegrations.tsx",
     "features/settings/GitHub.tsx",
+    "features/settings/PipedreamAppPicker.tsx",
     "features/settings/Integrations.tsx",
     "features/home/home-hub.tsx",
     "features/setup/ConnectorRow.tsx",
     "features/setup/flow/EmailStep.tsx",
-    "components/app/app-sidebar/sidebar.tsx"
+    "components/app/app-sidebar/sidebar.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/ConnectApp.tsx",
+    "features/settings/Agents.test.tsx"
   ],
   "Add another inbox": [
     "features/settings/Email.tsx"
@@ -2367,6 +2450,7 @@
   ],
   "Disconnected": [
     "features/settings/Harness.tsx",
+    "features/block-agent/ui/SessionStatusPill.tsx",
     "lib/core/component/AI/component/debug/HttpStream.tsx",
     "features/settings/Harness.test.tsx"
   ],
@@ -2500,6 +2584,7 @@
   "Retry": [
     "features/settings/Account.tsx",
     "features/settings/PipedreamIntegrations.tsx",
+    "features/settings/PipedreamAppPicker.tsx",
     "features/settings/Integrations.tsx",
     "features/block-calendar/components/Page.tsx",
     "features/setup/primitives.tsx",
@@ -2558,16 +2643,19 @@
     "features/settings/PipedreamIntegrations.tsx"
   ],
   "Couldn't load the connector catalog.": [
-    "features/settings/PipedreamIntegrations.tsx"
+    "features/settings/PipedreamIntegrations.tsx",
+    "features/settings/PipedreamAppPicker.tsx"
   ],
   "Loading connectors...": [
     "features/settings/PipedreamIntegrations.tsx"
   ],
   "No connectors found for \"": [
-    "features/settings/PipedreamIntegrations.tsx"
+    "features/settings/PipedreamIntegrations.tsx",
+    "features/settings/PipedreamAppPicker.tsx"
   ],
   "Load more": [
-    "features/settings/PipedreamIntegrations.tsx"
+    "features/settings/PipedreamIntegrations.tsx",
+    "features/settings/PipedreamAppPicker.tsx"
   ],
   "Authenticate as yourself from scripts and integrations. Send the key in the {header} header. The secret is shown only once when you create a key.": [
     "features/settings/ApiKeys.tsx"
@@ -2799,6 +2887,24 @@
     "features/settings/Agents.tsx"
   ],
   "default": [
+    "features/settings/Agents.tsx"
+  ],
+  "Which connected apps (MCP tools) this agent can use.": [
+    "features/settings/Agents.tsx"
+  ],
+  "Use my connected apps": [
+    "features/settings/Agents.tsx"
+  ],
+  "The agent uses whatever apps the person running it has connected.": [
+    "features/settings/Agents.tsx"
+  ],
+  "Specific apps": [
+    "features/settings/Agents.tsx"
+  ],
+  "Pick apps from the catalog. Each person connects their own account.": [
+    "features/settings/Agents.tsx"
+  ],
+  "Connections are personal. Teammates who use this agent connect these apps under Settings → Connections; the indicators here show only your own.": [
     "features/settings/Agents.tsx"
   ],
   "Choose whether this agent is global or channel-specific.": [
@@ -3040,6 +3146,21 @@
   "team slug cannot be empty": [
     "features/settings/teamSlug.ts",
     "features/settings/teamSlug.test.ts"
+  ],
+  "Search connectors": [
+    "features/settings/PipedreamAppPicker.tsx"
+  ],
+  "Search all connectors…": [
+    "features/settings/PipedreamAppPicker.tsx"
+  ],
+  "Connector results": [
+    "features/settings/PipedreamAppPicker.tsx"
+  ],
+  "Loading connectors…": [
+    "features/settings/PipedreamAppPicker.tsx"
+  ],
+  "No apps selected yet. Search above to add one.": [
+    "features/settings/PipedreamAppPicker.tsx"
   ],
   "This pairing code is invalid, expired, or already claimed.": [
     "features/settings/HarnessPairingDialog.tsx",
@@ -3590,6 +3711,7 @@
     "features/block-pr/component/sidepanel/PrSidePanelSections.tsx",
     "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
     "features/contacts/Contact/Contact.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
     "features/block-image/component/TopBar.tsx",
     "features/block-chat/component/TopBar.tsx",
     "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
@@ -3624,17 +3746,22 @@
   ],
   "Show less": [
     "features/block-pr/component/GithubMessageView.tsx",
-    "features/activity/EntityActivitySection.tsx",
+    "features/activity/views/entity-activity-section.tsx",
     "features/entity/components/CollapsibleList.tsx",
     "features/companies/Company/CompanyHeader.tsx",
     "features/block-email/component/EmailParticipants.tsx",
-    "lib/core/component/AI/component/message/CollapsibleMessage.tsx"
+    "lib/core/component/AI/component/message/CollapsibleMessage.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/MagicChipView.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/MagicChipView.test.tsx"
   ],
   "Show more": [
     "features/block-pr/component/GithubMessageView.tsx",
-    "features/activity/my-activity-view.tsx",
+    "features/activity/views/my-activity-view.tsx",
     "features/companies/Company/CompanyHeader.tsx",
-    "lib/core/component/AI/component/message/CollapsibleMessage.tsx"
+    "lib/core/component/AI/component/message/CollapsibleMessage.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/MagicChipView.tsx",
+    "features/activity/views/my-activity-view.test.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/MagicChipView.test.tsx"
   ],
   "Couldn't load this pull request from cached GitHub data.": [
     "features/block-pr/component/Block.tsx"
@@ -3643,7 +3770,8 @@
     "features/block-pr/side-panel/github-pull-request.tsx"
   ],
   "Repository": [
-    "features/block-pr/side-panel/github-pull-request.tsx"
+    "features/block-pr/side-panel/github-pull-request.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx"
   ],
   "Changes": [
     "features/block-pr/side-panel/github-pull-request.tsx"
@@ -3684,6 +3812,8 @@
     "features/block-automation/component/Automation.tsx",
     "features/entity/bulk-edit/BulkRenameEntitiesView.tsx",
     "features/entity/entity-modal/RenameView.tsx",
+    "features/block-agent/component/AgentRenameModal.tsx",
+    "features/block-agent/component/AgentSplitHeader.tsx",
     "features/soup/createSoupEntityActions.ts",
     "features/block-channel/component/NewChannelBlockAdapter.tsx",
     "components/app/split-layout/components/SplitLabel.tsx",
@@ -3693,7 +3823,8 @@
   ],
   "Enter title...": [
     "features/block-automation/component/AutomationRenameModal.tsx",
-    "features/entity/entity-modal/RenameView.tsx"
+    "features/entity/entity-modal/RenameView.tsx",
+    "features/block-agent/component/AgentRenameModal.tsx"
   ],
   "Prompt is required.": [
     "features/block-automation/component/AutomationComposer.tsx",
@@ -3792,6 +3923,7 @@
     "features/calendar/components/CalendarGrid.tsx",
     "features/block-calendar/components/Header.tsx",
     "features/block-calendar/components/EventComposerSplit.tsx",
+    "components/app/app-sidebar/calendar-sidebar-preview.tsx",
     "lib/core/component/AI/component/tool/calendar/event-preview-model.ts"
   ],
   "Month": [
@@ -3842,12 +3974,12 @@
     "features/calendar/utils/recurrence.ts",
     "features/calendar/components/composer/event-form-model.ts",
     "features/calendar/components/composer/RecurrenceBuilder.tsx",
-    "features/activity/describe-action.ts",
+    "features/activity/core/describe-action.ts",
     "features/block-pdf/model/Section.ts",
     "lib/core/component/AI/component/tool/calendar/event-preview-model.ts",
     "lib/core/email/parse-email-html.ts",
     "features/calendar/utils/recurrence.test.ts",
-    "features/activity/describe-action.test.ts"
+    "features/activity/core/describe-action.test.ts"
   ],
   "Choose month": [
     "features/calendar/components/MonthDrawer.tsx",
@@ -3866,6 +3998,9 @@
     "features/calendar/components/EventDetails.tsx"
   ],
   "Created by:": [
+    "features/calendar/components/EventDetails.tsx"
+  ],
+  "Out of office": [
     "features/calendar/components/EventDetails.tsx"
   ],
   "Choose calendar view": [
@@ -3896,6 +4031,12 @@
     "lib/core/component/AI/component/tool/Bots.tsx",
     "features/settings/Agents.test.tsx"
   ],
+  "Out-of-office event": [
+    "features/calendar/components/composer/EventForm.tsx"
+  ],
+  "Auto-decline reply: “": [
+    "features/calendar/components/composer/EventForm.tsx"
+  ],
   "Changes apply to all occurrences": [
     "features/calendar/components/composer/EventForm.tsx"
   ],
@@ -3915,19 +4056,10 @@
     "features/calendar/components/composer/EventPropertyPills.tsx",
     "features/calendar/components/composer/EventPropertyPills.test.tsx"
   ],
-  "View event guests": [
-    "features/calendar/components/composer/EventPropertyPills.tsx"
-  ],
   "Event guests": [
     "features/calendar/components/composer/EventPropertyPills.tsx"
   ],
   "No guests": [
-    "features/calendar/components/composer/EventPropertyPills.tsx"
-  ],
-  "Add guests to this event": [
-    "features/calendar/components/composer/EventPropertyPills.tsx"
-  ],
-  "Set the event location": [
     "features/calendar/components/composer/EventPropertyPills.tsx"
   ],
   "Location": [
@@ -3942,22 +4074,13 @@
   "Google Meet": [
     "features/calendar/components/composer/EventPropertyPills.tsx"
   ],
-  "Set event video conferencing": [
-    "features/calendar/components/composer/EventPropertyPills.tsx"
-  ],
   "Video conferencing": [
     "features/calendar/components/composer/EventPropertyPills.tsx"
   ],
   "Choose reminders": [
     "features/calendar/components/composer/EventPropertyPills.tsx"
   ],
-  "Set event notifications": [
-    "features/calendar/components/composer/EventPropertyPills.tsx"
-  ],
   "{usedSlots} / {REMINDER_OVERRIDES_MAX}": [
-    "features/calendar/components/composer/EventPropertyPills.tsx"
-  ],
-  "Set how this event repeats": [
     "features/calendar/components/composer/EventPropertyPills.tsx"
   ],
   "Repeats": [
@@ -3965,7 +4088,19 @@
     "features/entity/composed/list-entity/calendar.tsx",
     "features/block-calendar/components/CalendarSearch.tsx"
   ],
-  "Choose the calendar for this event": [
+  "Event kind": [
+    "features/calendar/components/composer/EventPropertyPills.tsx"
+  ],
+  "Decline settings": [
+    "features/calendar/components/composer/EventPropertyPills.tsx"
+  ],
+  "Decline meetings": [
+    "features/calendar/components/composer/EventPropertyPills.tsx"
+  ],
+  "Decline message": [
+    "features/calendar/components/composer/EventPropertyPills.tsx"
+  ],
+  "Add decline message...": [
     "features/calendar/components/composer/EventPropertyPills.tsx"
   ],
   "Choose": [
@@ -4038,11 +4173,13 @@
     "features/calendar/components/CalendarGridSkeleton.tsx"
   ],
   "Calendar settings": [
-    "features/calendar/components/CalendarSettingsDropdown.tsx"
+    "features/calendar/components/CalendarSettingsDropdown.tsx",
+    "components/app/app-sidebar/calendar-sidebar-preview.tsx"
   ],
   "Calendars": [
     "features/calendar/components/CalendarSettingsDropdown.tsx",
-    "features/block-calendar/components/SidePanelSections.tsx"
+    "features/block-calendar/components/SidePanelSections.tsx",
+    "components/app/app-sidebar/calendar-sidebar-preview.tsx"
   ],
   "Display": [
     "features/calendar/components/CalendarSettingsDropdown.tsx"
@@ -4054,7 +4191,8 @@
     "features/calendar/components/CalendarSettingsDropdown.tsx"
   ],
   "Time format": [
-    "features/calendar/components/CalendarSettingsDropdown.tsx"
+    "features/calendar/components/CalendarSettingsDropdown.tsx",
+    "components/app/app-sidebar/calendar-sidebar-preview.tsx"
   ],
   "Today": [
     "features/calendar/availability/availability.ts",
@@ -4090,6 +4228,7 @@
   ],
   "Send": [
     "features/sharing/ios-share-sheet/IosShareSheet.tsx",
+    "features/block-agent/ui/AgentInput.tsx",
     "components/ui/components/SendButton.tsx",
     "lib/core/component/AI/component/debug/Component.tsx",
     "lib/core/component/AI/component/debug/Attachment.tsx"
@@ -4297,8 +4436,9 @@
   ],
   "Activity": [
     "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
-    "features/activity/my-activity-view.tsx",
-    "features/activity/EntityActivitySection.tsx",
+    "features/activity/views/my-activity-view.tsx",
+    "features/activity/views/entity-activity-section.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
     "components/app/app-sidebar/sidebar.tsx",
     "components/app/sidebar-next/nav-items.ts"
   ],
@@ -4313,6 +4453,7 @@
   ],
   "Created": [
     "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
     "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
     "components/app/side-panel/FileSidePanelSections.tsx",
     "lib/core/util/linearImport.ts",
@@ -4322,11 +4463,6 @@
     "lib/core/component/AI/component/tool/ReadActivity.test.tsx",
     "lib/queries/preview/tests/preview.test.ts",
     "lib/queries/preview/tests/graphql.test.ts"
-  ],
-  "Last updated": [
-    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
-    "components/app/side-panel/FileSidePanelSections.tsx",
-    "lib/core/component/DetailsDrawer.tsx"
   ],
   "No stats available": [
     "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx"
@@ -4432,7 +4568,7 @@
   ],
   "More": [
     "features/block-md/component/FormatTools.tsx",
-    "features/activity/action-graph.tsx"
+    "features/activity/components/action-graph.tsx"
   ],
   "Block Quote": [
     "features/block-md/component/FormatTools.tsx"
@@ -4516,12 +4652,18 @@
   ],
   "edited": [
     "features/block-md/history/HistorySessionList.tsx",
-    "features/activity/describe-action.ts",
+    "features/activity/core/describe-action.ts",
+    "features/activity/core/event.ts",
+    "features/activity/queries/decode.ts",
+    "features/block-agent/component/parts/UserToolCall.tsx",
     "lib/core/component/AI/component/tool/ReadActivity.tsx",
     "lib/service-clients/service-storage/generated/schemas/interactionReason.ts",
     "lib/service-clients/service-cognition/generated/tools/schemas.ts",
     "lib/service-clients/service-cognition/generated/tools/types.ts",
-    "lib/service-clients/service-agent-fold/generated/types.ts"
+    "lib/service-clients/service-agent-fold/generated/types.ts",
+    "features/activity/core/describe-action.test.ts",
+    "features/activity/queries/decode.test.ts",
+    "features/block-agent/component/parts/ToolCallPart.test.tsx"
   ],
   "Chat with Agent": [
     "features/chat/ChatWithAgentButton.tsx",
@@ -4593,7 +4735,7 @@
   "Continue with email": [
     "features/auth/Login.tsx"
   ],
-  "We’ll send a one-time code to verify.": [
+  "We'll send a one-time code to verify.": [
     "features/auth/Login.tsx"
   ],
   "you@company.com": [
@@ -4611,9 +4753,6 @@
   "Resend": [
     "features/auth/Login.tsx"
   ],
-  "Resend (": [
-    "features/auth/Login.tsx"
-  ],
   "Verify": [
     "features/auth/Login.tsx"
   ],
@@ -4628,10 +4767,6 @@
   ],
   "terms": [
     "features/auth/Login.tsx"
-  ],
-  "and": [
-    "features/auth/Login.tsx",
-    "features/onboarding/MobileWebWelcome.tsx"
   ],
   "privacy policy": [
     "features/auth/Login.tsx"
@@ -4657,7 +4792,8 @@
     "features/property/editors/inline/InlineTextEditor.tsx",
     "features/property/editors/inline/InlineLinkEditor.tsx",
     "features/property/side-panel/properties/EntityPropertiesSection.tsx",
-    "features/property/composed/PropertyDisplay.tsx"
+    "features/property/composed/PropertyDisplay.tsx",
+    "lib/core/component/AI/component/tool/ReadProject.tsx"
   ],
   "Enter number...": [
     "features/property/editors/inline/InlineNumberEditor.tsx"
@@ -4806,11 +4942,13 @@
   ],
   "Edit": [
     "features/property/tags/EntityRowTags.tsx",
+    "features/block-agent/debug/Gallery.tsx",
     "features/channel/Message/ActionMenu.tsx",
     "features/channel/Mobile/ActionDrawer.tsx",
     "lib/core/component/AI/component/tool/EditDocument.tsx",
     "lib/core/component/TopBar/ShareButton.tsx",
-    "lib/core/component/LexicalMarkdown/component/decorator/DateMention.tsx"
+    "lib/core/component/LexicalMarkdown/component/decorator/DateMention.tsx",
+    "features/block-agent/state/session-summary.test.ts"
   ],
   "Tags unavailable": [
     "features/property/side-panel/properties/EntityPropertiesSection.tsx"
@@ -4908,116 +5046,10 @@
   "CondensedProperty / InlineProperty / ListProperty / PanelRow will land here as their corresponding migration PRs go in.": [
     "features/property/debug/PropertyDebug.tsx"
   ],
-  "Most active": [
-    "features/activity/top-entities.tsx"
-  ],
-  "No entities yet.": [
-    "features/activity/top-entities.tsx"
-  ],
-  "an item": [
-    "features/activity/property-change-label.ts"
-  ],
-  "{0} items": [
-    "features/activity/property-change-label.ts"
-  ],
-  "Activity overview is unavailable right now.": [
-    "features/activity/my-activity-view.tsx"
-  ],
-  "Loading activity overview…": [
-    "features/activity/my-activity-view.tsx"
-  ],
-  "Loading…@@activity": [
-    "features/activity/my-activity-view.tsx"
-  ],
-  "Activity is unavailable right now. Try again in a moment.": [
-    "features/activity/my-activity-view.tsx"
-  ],
-  "No activity yet.": [
-    "features/activity/my-activity-view.tsx"
-  ],
-  "Actions@@activity": [
-    "features/activity/action-graph.tsx"
-  ],
-  "Fewer": [
-    "features/activity/action-graph.tsx"
-  ],
-  "Most active month": [
-    "features/activity/action-graph.tsx"
-  ],
-  "Most active day": [
-    "features/activity/action-graph.tsx"
-  ],
-  "Longest streak": [
-    "features/activity/action-graph.tsx"
-  ],
-  "Current streak": [
-    "features/activity/action-graph.tsx"
-  ],
-  "Activity is unavailable": [
-    "features/activity/EntityActivitySection.tsx"
-  ],
-  "No activity yet": [
-    "features/activity/EntityActivitySection.tsx"
-  ],
-  "Show all ({count})": [
-    "features/activity/EntityActivitySection.tsx"
-  ],
-  "Cleared": [
-    "features/activity/property-change.tsx"
-  ],
-  "cleared": [
-    "features/activity/property-change.tsx"
-  ],
-  "Changed": [
-    "features/activity/property-change.tsx",
-    "lib/core/component/AI/component/tool/ReadActivity.test.tsx"
-  ],
-  "changed": [
-    "features/activity/property-change.tsx",
-    "lib/graphql-cache/exchange/entity-resolvers.test.ts"
-  ],
-  "created this": [
-    "features/activity/describe-action.ts",
-    "features/activity/describe-action.test.ts"
-  ],
-  "made an edit": [
-    "features/activity/describe-action.ts",
-    "features/activity/describe-action.test.ts"
-  ],
-  "opened this": [
-    "features/activity/describe-action.ts",
-    "features/activity/describe-action.test.ts"
-  ],
-  "deleted this": [
-    "features/activity/describe-action.ts",
-    "features/activity/describe-action.test.ts"
-  ],
-  "sent an email": [
-    "features/activity/describe-action.ts",
-    "features/entity/extractors-notification/notification-description-helpers.ts",
-    "features/activity/describe-action.test.ts",
-    "features/entity/tests/notification-description.test.ts"
-  ],
-  "changed a property": [
-    "features/activity/describe-action.ts",
-    "features/activity/describe-action.test.ts"
-  ],
-  "added a participant": [
-    "features/activity/describe-action.ts",
-    "features/activity/describe-action.test.ts"
-  ],
-  "removed a participant": [
-    "features/activity/describe-action.ts",
-    "features/activity/describe-action.test.ts"
-  ],
-  "started a call": [
-    "features/activity/describe-action.ts",
-    "features/entity/extractors-notification/notification-description-helpers.ts",
-    "features/notifications/notification-metadata.ts",
-    "features/activity/describe-action.test.ts"
-  ],
   "created": [
-    "features/activity/describe-action.ts",
+    "features/activity/core/describe-action.ts",
+    "features/activity/core/event.ts",
+    "features/activity/queries/decode.ts",
     "features/entity/extractors/entity-icon.tsx",
     "features/setup/flow/TeamStep.tsx",
     "lib/core/component/AI/component/tool/ReadActivity.tsx",
@@ -5029,21 +5061,149 @@
     "lib/service-clients/service-cognition/generated/tools/schemas.ts",
     "lib/service-clients/service-cognition/generated/tools/types.ts",
     "lib/analytics/app-events.ts",
-    "features/activity/describe-action.test.ts",
+    "features/activity/core/describe-action.test.ts",
+    "features/activity/core/group-events.test.ts",
+    "features/activity/queries/decode.test.ts",
+    "features/activity/queries/entity-query.test.ts",
+    "features/activity/views/my-activity-view.test.tsx",
     "lib/core/component/AI/component/tool/ReadActivity.test.tsx"
   ],
+  "created this": [
+    "features/activity/core/describe-action.ts",
+    "features/activity/core/describe-action.test.ts"
+  ],
+  "made an edit": [
+    "features/activity/core/describe-action.ts",
+    "features/activity/core/describe-action.test.ts"
+  ],
+  "opened this": [
+    "features/activity/core/describe-action.ts",
+    "features/activity/core/describe-action.test.ts"
+  ],
   "deleted": [
-    "features/activity/describe-action.ts",
+    "features/activity/core/describe-action.ts",
+    "features/activity/core/event.ts",
+    "features/activity/queries/decode.ts",
     "lib/core/component/AI/component/tool/ReadActivity.tsx",
     "lib/queries/storage/keys.ts",
     "lib/service-clients/service-cognition/generated/tools/schemas.ts",
-    "lib/service-clients/service-cognition/generated/tools/types.ts"
+    "lib/service-clients/service-cognition/generated/tools/types.ts",
+    "features/activity/core/describe-action.test.ts",
+    "features/activity/queries/decode.test.ts"
+  ],
+  "deleted this": [
+    "features/activity/core/describe-action.ts",
+    "features/activity/core/describe-action.test.ts"
+  ],
+  "sent an email": [
+    "features/activity/core/describe-action.ts",
+    "features/entity/extractors-notification/notification-description-helpers.ts",
+    "features/activity/core/describe-action.test.ts",
+    "features/entity/tests/notification-description.test.ts"
+  ],
+  "changed a property": [
+    "features/activity/core/describe-action.ts",
+    "features/activity/core/describe-action.test.ts"
+  ],
+  "added a participant": [
+    "features/activity/core/describe-action.ts",
+    "features/activity/core/describe-action.test.ts"
+  ],
+  "removed a participant": [
+    "features/activity/core/describe-action.ts",
+    "features/activity/core/describe-action.test.ts"
+  ],
+  "started a call": [
+    "features/activity/core/describe-action.ts",
+    "features/entity/extractors-notification/notification-description-helpers.ts",
+    "features/notifications/notification-metadata.ts",
+    "features/activity/core/describe-action.test.ts"
   ],
   "in": [
-    "features/activity/describe-action.ts",
+    "features/activity/core/describe-action.ts",
     "features/block-pdf/model/Section.ts",
     "lib/core/component/References.tsx",
-    "features/activity/describe-action.test.ts"
+    "features/activity/core/describe-action.test.ts"
+  ],
+  "an item": [
+    "features/activity/queries/property-value.ts"
+  ],
+  "{0} items": [
+    "features/activity/queries/property-value.ts"
+  ],
+  "Most active": [
+    "features/activity/components/top-entities.tsx",
+    "features/activity/views/my-activity-view.test.tsx"
+  ],
+  "Item": [
+    "features/activity/components/top-entities.tsx",
+    "features/entity/bulk-edit/BulkDeleteView.tsx",
+    "lib/core/component/AI/component/tool/ListEntities.tsx",
+    "lib/graphql-cache/host/tauri-host.test.ts",
+    "lib/graphql-cache/host/worker-host.test.ts",
+    "lib/graphql-cache/worker/worker-core.test.ts",
+    "lib/graphql-cache/worker/coordinator-protocol.test.ts"
+  ],
+  "Actions@@activity": [
+    "features/activity/components/action-graph.tsx"
+  ],
+  "Fewer": [
+    "features/activity/components/action-graph.tsx"
+  ],
+  "Most active month": [
+    "features/activity/components/action-graph.tsx"
+  ],
+  "Most active day": [
+    "features/activity/components/action-graph.tsx"
+  ],
+  "Longest streak": [
+    "features/activity/components/action-graph.tsx"
+  ],
+  "Current streak": [
+    "features/activity/components/action-graph.tsx"
+  ],
+  "Cleared": [
+    "features/activity/components/property-change.tsx"
+  ],
+  "cleared": [
+    "features/activity/components/property-change.tsx"
+  ],
+  "Changed": [
+    "features/activity/components/property-change.tsx",
+    "lib/core/component/AI/component/tool/ReadActivity.test.tsx"
+  ],
+  "changed": [
+    "features/activity/components/property-change.tsx",
+    "lib/graphql-cache/exchange/entity-resolvers.test.ts"
+  ],
+  "Activity overview is unavailable right now.": [
+    "features/activity/views/my-activity-view.tsx",
+    "features/activity/views/my-activity-view.test.tsx"
+  ],
+  "Loading…@@activity": [
+    "features/activity/views/my-activity-view.tsx"
+  ],
+  "Activity is unavailable right now. Try again in a moment.": [
+    "features/activity/views/my-activity-view.tsx"
+  ],
+  "No activity yet.": [
+    "features/activity/views/my-activity-view.tsx",
+    "features/activity/views/my-activity-view.test.tsx"
+  ],
+  "Activity@@activity": [
+    "features/activity/views/entity-activity-section.tsx"
+  ],
+  "Activity is unavailable@@activity": [
+    "features/activity/views/entity-activity-section.tsx"
+  ],
+  "Activity is unavailable": [
+    "features/activity/views/entity-activity-section.tsx"
+  ],
+  "No activity yet@@activity": [
+    "features/activity/views/entity-activity-section.tsx"
+  ],
+  "No activity yet": [
+    "features/activity/views/entity-activity-section.tsx"
   ],
   "To Do": [
     "features/entity/mocks/mockEntityData.ts"
@@ -5137,15 +5297,22 @@
   ],
   "Cancelled": [
     "features/entity/composed/list-entity/foreign.tsx",
+    "features/block-agent/component/parts/PermissionPart.tsx",
     "lib/service-clients/service-email/generated/schemas/backfillJobStatus.ts",
     "lib/document-processing-types/jobTypes/jobStatus.ts"
   ],
   "Failed": [
     "features/entity/composed/list-entity/foreign.tsx",
+    "features/block-agent/ui/ToolErrorCard.tsx",
+    "features/block-agent/component/parts/SubagentToolCall.tsx",
+    "features/block-agent/component/parts/PermissionPart.tsx",
+    "features/block-agent/component/parts/UserToolCall.tsx",
+    "features/block-agent/component/parts/ToolCallPart.tsx",
     "lib/core/component/AI/component/tool/TextEditorCodeExecution.tsx",
     "lib/core/component/AI/component/tool/BaseTool.tsx",
     "lib/service-clients/service-email/generated/schemas/backfillJobStatus.ts",
-    "lib/document-processing-types/jobTypes/jobStatus.ts"
+    "lib/document-processing-types/jobTypes/jobStatus.ts",
+    "features/block-agent/component/parts/ToolCallPart.test.tsx"
   ],
   "Pending": [
     "features/entity/composed/list-entity/foreign.tsx"
@@ -5238,7 +5405,8 @@
     "features/block-calendar/components/SelectedEventDetails.tsx"
   ],
   "Close event details": [
-    "features/block-calendar/components/SelectedEventDetails.tsx"
+    "features/block-calendar/components/SelectedEventDetails.tsx",
+    "components/app/app-sidebar/calendar-sidebar-preview.tsx"
   ],
   "Copy event": [
     "features/block-calendar/components/SelectedEventDetails.tsx"
@@ -5367,6 +5535,10 @@
     "features/contacts/Contact/ContactHeader.tsx",
     "lib/core/component/EntityIcon.tsx",
     "lib/analytics/analytics.ts"
+  ],
+  "Contact name": [
+    "features/contacts/Contact/ContactHeader.tsx",
+    "features/companies/CreateContactModal.tsx"
   ],
   "Already in your workspace — click to open": [
     "features/setup/primitives.tsx"
@@ -5584,6 +5756,205 @@
   "reference": [
     "features/block-pdf/component/DefinitionLookup/ReferencesAccordion.tsx"
   ],
+  "Stop": [
+    "features/block-agent/ui/AgentInput.tsx",
+    "lib/core/component/AI/component/debug/Component.tsx",
+    "lib/core/component/AI/component/debug/StaticMarkdownStream.tsx"
+  ],
+  "Send next queued message": [
+    "features/block-agent/ui/AgentInput.tsx"
+  ],
+  "Agent model": [
+    "features/block-agent/ui/AgentModelSelector.tsx"
+  ],
+  "Choose a model": [
+    "features/block-agent/ui/AgentModelSelector.tsx"
+  ],
+  "Queued": [
+    "features/block-agent/ui/QueuedPrompts.tsx"
+  ],
+  "by": [
+    "features/block-agent/ui/QueuedPrompts.tsx"
+  ],
+  "Remove queued message": [
+    "features/block-agent/ui/QueuedPrompts.tsx"
+  ],
+  "Compact the conversation": [
+    "features/block-agent/ui/QueuedPrompts.tsx"
+  ],
+  "diff could not be rendered": [
+    "features/block-agent/ui/PierreDiff.tsx"
+  ],
+  "large diff (": [
+    "features/block-agent/ui/PierreDiff.tsx"
+  ],
+  "lines)": [
+    "features/block-agent/ui/PierreDiff.tsx"
+  ],
+  "No answer": [
+    "features/block-agent/ui/QuestionAnswers.tsx"
+  ],
+  "Exit code {exitCode}": [
+    "features/block-agent/ui/FoldedTerminal.tsx"
+  ],
+  "Exit code": [
+    "features/block-agent/ui/FoldedTerminal.tsx",
+    "lib/core/component/AI/component/tool/BashCodeExecution.tsx"
+  ],
+  "{key}={value}": [
+    "features/block-agent/ui/ToolCard.tsx"
+  ],
+  "Model": [
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx"
+  ],
+  "Plan": [
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx"
+  ],
+  "Changed files": [
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx"
+  ],
+  "Unable to load this document": [
+    "features/block-agent/component/Block.tsx",
+    "lib/core/component/DocumentBlockContainer.tsx"
+  ],
+  "Permission requested": [
+    "features/block-agent/component/parts/PermissionPart.tsx"
+  ],
+  "To": [
+    "features/block-agent/component/parts/UserToolCall.tsx",
+    "features/theme/components/ThemeTokenEditor.tsx",
+    "features/block-email/component/compose/ComposeRecipients.tsx",
+    "features/block-email/component/EmailMessageTopBar.tsx",
+    "lib/queries/email/graphql/mapper.test.ts"
+  ],
+  "Cc": [
+    "features/block-agent/component/parts/UserToolCall.tsx",
+    "features/block-email/component/compose/ComposeRecipients.tsx",
+    "features/block-email/component/EmailMessageTopBar.tsx"
+  ],
+  "Bcc": [
+    "features/block-agent/component/parts/UserToolCall.tsx",
+    "features/block-email/component/compose/ComposeRecipients.tsx",
+    "features/block-email/component/EmailMessageTopBar.tsx"
+  ],
+  "Subject": [
+    "features/block-agent/component/parts/UserToolCall.tsx",
+    "features/block-email/component/compose/ComposeSubject.tsx",
+    "features/block-email/component/BaseInput.tsx",
+    "lib/queries/email/graphql/mapper.test.ts"
+  ],
+  "Message the agent, @mention anything": [
+    "features/block-agent/component/AgentComposer.tsx"
+  ],
+  "Reply to this": [
+    "features/block-agent/component/ReplyToSelection.tsx"
+  ],
+  "Auto": [
+    "features/block-agent/debug/Gallery.tsx",
+    "lib/core/component/AI/component/input/modelCatalog.ts"
+  ],
+  "Select any of the message text, then click Reply to this.": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "Referenced text lands here": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "ComposerNotice": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "ActionLine": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "Setting model to claude-opus-5…": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "Model set to claude-opus-5": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "Context compacted": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "Couldn't switch to openai/gpt-5": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "The agent couldn't answer — Internal error: Bad Request: bad request: Authorization header is badly formatted": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "ToolCard": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "Bash": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "Thought (active / settled)": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "ToolStatusTitle / TextShimmer": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "AnimatedNumber / CountSummary": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "TodoList": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "QuestionAnswers": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "ToolErrorCard": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "Bash: command timed out after 120s: cargo test -p agent_fold": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "DiffChanges": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "Reply to selection": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "AgentInput (idle / busy)": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "AgentInput with model selector": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "AgentMessage (end-to-end)": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "working…": [
+    "features/block-agent/debug/replay/Replay.tsx"
+  ],
+  "{name} · {length} frames": [
+    "features/block-agent/debug/replay/Replay.tsx"
+  ],
+  "frames": [
+    "features/block-agent/debug/replay/Replay.tsx"
+  ],
+  "frame ms": [
+    "features/block-agent/debug/replay/Replay.tsx"
+  ],
+  "fetch delay": [
+    "features/block-agent/debug/replay/Replay.tsx"
+  ],
+  "none": [
+    "features/block-agent/debug/replay/Replay.tsx"
+  ],
+  "1.5s": [
+    "features/block-agent/debug/replay/Replay.tsx"
+  ],
+  "overlap": [
+    "features/block-agent/debug/replay/Replay.tsx"
+  ],
+  "control fails": [
+    "features/block-agent/debug/replay/Replay.tsx"
+  ],
+  "step": [
+    "features/block-agent/debug/replay/Replay.tsx"
+  ],
+  "Drop a recording (~/.agent_runtime_sessions/*.jsonl), then mount.": [
+    "features/block-agent/debug/replay/Replay.tsx"
+  ],
   "Invalid Invite Link": [
     "features/team-invitations/TeamInviteAcceptance.tsx"
   ],
@@ -5636,12 +6007,6 @@
     "features/extensions/Extensions.tsx"
   ],
   "Email Enhancements": [
-    "features/extensions/Extensions.tsx"
-  ],
-  "Include outbound in Important": [
-    "features/extensions/Extensions.tsx"
-  ],
-  "Keep sent emails in Important (Gmail style).": [
     "features/extensions/Extensions.tsx"
   ],
   "Awaiting reply badge": [
@@ -6325,12 +6690,6 @@
   "Overwrite custom stops": [
     "features/theme/components/ThemeTokenEditor.tsx"
   ],
-  "To": [
-    "features/theme/components/ThemeTokenEditor.tsx",
-    "features/block-email/component/compose/ComposeRecipients.tsx",
-    "features/block-email/component/EmailMessageTopBar.tsx",
-    "lib/queries/email/graphql/mapper.test.ts"
-  ],
   "Theme editor V3": [
     "features/theme/components/ThemeEdit3.tsx"
   ],
@@ -6855,20 +7214,52 @@
   "No timezones match \"": [
     "features/reminders/TimezoneSelect.tsx"
   ],
-  "Add a contact": [
+  "A contact with this email already exists.": [
     "features/companies/CreateContactModal.tsx"
   ],
-  "Contact name": [
+  "CRM isn't enabled for your team.": [
+    "features/companies/CreateContactModal.tsx",
+    "features/companies/CreateCompanyModal.tsx"
+  ],
+  "Failed to create contact. Try again.": [
+    "features/companies/CreateContactModal.tsx"
+  ],
+  "Enter a name": [
+    "features/companies/CreateContactModal.tsx"
+  ],
+  "Enter the part of the email before the @": [
+    "features/companies/CreateContactModal.tsx"
+  ],
+  "Add a contact": [
     "features/companies/CreateContactModal.tsx"
   ],
   "jane": [
     "features/companies/CreateContactModal.tsx"
   ],
+  "Adding…": [
+    "features/companies/CreateContactModal.tsx"
+  ],
+  "Add Contact": [
+    "features/companies/CreateContactModal.tsx"
+  ],
+  "A company with this domain already exists.": [
+    "features/companies/CreateCompanyModal.tsx"
+  ],
+  "Failed to create company. Try again.": [
+    "features/companies/CreateCompanyModal.tsx"
+  ],
+  "Enter a company name": [
+    "features/companies/CreateCompanyModal.tsx"
+  ],
+  "Enter a valid domain like acme.com": [
+    "features/companies/CreateCompanyModal.tsx"
+  ],
   "Create a company": [
     "features/companies/CreateCompanyModal.tsx"
   ],
   "Company name": [
-    "features/companies/CreateCompanyModal.tsx"
+    "features/companies/CreateCompanyModal.tsx",
+    "features/companies/Company/CompanyHeader.tsx"
   ],
   "Domain": [
     "features/companies/CreateCompanyModal.tsx"
@@ -6877,6 +7268,9 @@
     "features/companies/CreateCompanyModal.tsx"
   ],
   "Emails with this domain will be linked to the company.": [
+    "features/companies/CreateCompanyModal.tsx"
+  ],
+  "Create Company": [
     "features/companies/CreateCompanyModal.tsx"
   ],
   "Owner@@crm": [
@@ -7167,22 +7561,9 @@
     "features/block-email/component/compose/ComposeSubject.tsx",
     "features/block-email/component/BaseInput.tsx"
   ],
-  "Subject": [
-    "features/block-email/component/compose/ComposeSubject.tsx",
-    "features/block-email/component/BaseInput.tsx",
-    "lib/queries/email/graphql/mapper.test.ts"
-  ],
   "Subject@@email": [
     "features/block-email/component/compose/ComposeSubject.tsx",
     "features/block-email/component/BaseInput.tsx"
-  ],
-  "Cc": [
-    "features/block-email/component/compose/ComposeRecipients.tsx",
-    "features/block-email/component/EmailMessageTopBar.tsx"
-  ],
-  "Bcc": [
-    "features/block-email/component/compose/ComposeRecipients.tsx",
-    "features/block-email/component/EmailMessageTopBar.tsx"
   ],
   "Cc/Bcc, From:@@email": [
     "features/block-email/component/compose/ComposeRecipients.tsx"
@@ -7316,6 +7697,9 @@
   "Got it": [
     "components/app/app-sidebar/sidebar-promo.tsx",
     "lib/core/mobile/IpadUnsupportedDialog.tsx"
+  ],
+  "Calendar events couldn’t be loaded.": [
+    "components/app/app-sidebar/calendar-sidebar-preview.tsx"
   ],
   "Customize {label}": [
     "components/app/app-sidebar/sidebar.tsx"
@@ -8024,9 +8408,6 @@
   "can": [
     "lib/core/component/ForwardToChannel.tsx"
   ],
-  "Unable to load this document": [
-    "lib/core/component/DocumentBlockContainer.tsx"
-  ],
   "No notifications found": [
     "lib/core/component/Notifications.tsx"
   ],
@@ -8039,9 +8420,6 @@
   ],
   "AI Chat sends your messages to Anthropic for processing and may access your files in Macro to provide relevant responses. Your data is not retained or used for training.": [
     "lib/core/component/AI/component/input/useAiDataConsent.tsx"
-  ],
-  "Auto": [
-    "lib/core/component/AI/component/input/modelCatalog.ts"
   ],
   "More models": [
     "lib/core/component/AI/component/input/ModelCatalogPicker.tsx"
@@ -8116,12 +8494,6 @@
     "lib/core/component/AI/component/tool/calendar/ChatCompose.tsx"
   ],
   "Waiting for the response to finish before this event can be edited.": [
-    "lib/core/component/AI/component/tool/calendar/ChatCompose.tsx"
-  ],
-  "Out-of-office event": [
-    "lib/core/component/AI/component/tool/calendar/ChatCompose.tsx"
-  ],
-  "Auto-decline reply: “": [
     "lib/core/component/AI/component/tool/calendar/ChatCompose.tsx"
   ],
   "Calendar preview unavailable.": [
@@ -8315,9 +8687,6 @@
   "Exit code {return_code}": [
     "lib/core/component/AI/component/tool/BashCodeExecution.tsx"
   ],
-  "Exit code": [
-    "lib/core/component/AI/component/tool/BashCodeExecution.tsx"
-  ],
   "No output": [
     "lib/core/component/AI/component/tool/BashCodeExecution.tsx"
   ],
@@ -8364,10 +8733,6 @@
   "Generate": [
     "lib/core/component/AI/component/debug/Component.tsx",
     "lib/core/collab-surface/debug/CollabSurfaceDemoPage.tsx"
-  ],
-  "Stop": [
-    "lib/core/component/AI/component/debug/Component.tsx",
-    "lib/core/component/AI/component/debug/StaticMarkdownStream.tsx"
   ],
   "Chat input - connected (console)": [
     "lib/core/component/AI/component/debug/Component.tsx"
@@ -8578,6 +8943,12 @@
   "Open in new tab": [
     "lib/core/component/LexicalMarkdown/component/decorator/MediaButtons.tsx",
     "lib/core/component/LexicalMarkdown/component/menu/FloatingLinkMenu.tsx"
+  ],
+  "{name} connected": [
+    "lib/core/component/LexicalMarkdown/component/decorator/ConnectApp.tsx"
+  ],
+  "connected": [
+    "lib/core/component/LexicalMarkdown/component/decorator/ConnectApp.tsx"
   ],
   "Convert to text": [
     "lib/core/component/LexicalMarkdown/component/decorator/PasteNode.tsx"
@@ -8854,6 +9225,9 @@
   ],
   "Unable to connect. Please check your network.": [
     "routes/BasePath.tsx"
+  ],
+  "No entities yet.": [
+    "features/activity/views/my-activity-view.test.tsx"
   ],
   "Delete {0}": [
     "../../../packages/i18n/context.test.ts",

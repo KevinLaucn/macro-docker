@@ -1,6 +1,7 @@
 import { useSplitLayout } from '@components/app/split-layout/layout';
 import { useFocusLock } from '@core/util/createControlledOpenSignal';
 import { ThrownResultError } from '@core/util/result';
+import { t } from '@macro/i18n';
 import UserPlusIcon from '@phosphor/user-plus.svg';
 import XIcon from '@phosphor/x.svg';
 import { useCreateContactMutation } from '@queries/crm/companies';
@@ -30,13 +31,13 @@ const LOCAL_PART_PATTERN = /^[^\s@]+$/;
 function createErrorMessage(cause: unknown): string {
   if (cause instanceof ThrownResultError) {
     if (cause.errors.some((e) => e.code === 'CONFLICT')) {
-      return 'A contact with this email already exists.';
+      return t('A contact with this email already exists.');
     }
     if (cause.errors.some((e) => e.code === 'FORBIDDEN')) {
-      return "CRM isn't enabled for your team.";
+      return t("CRM isn't enabled for your team.");
     }
   }
-  return 'Failed to create contact. Try again.';
+  return t('Failed to create contact. Try again.');
 }
 
 export function CreateContactModal() {
@@ -89,11 +90,11 @@ export function CreateContactModal() {
     const target = createContactTarget();
     if (!target) return;
     if (!contactName()) {
-      setError('Enter a name');
+      setError(t('Enter a name'));
       return;
     }
     if (!LOCAL_PART_PATTERN.test(emailLocalPart())) {
-      setError('Enter the part of the email before the @');
+      setError(t('Enter the part of the email before the @'));
       return;
     }
 
@@ -126,7 +127,7 @@ export function CreateContactModal() {
               <Dialog.CloseButton
                 as={Button}
                 size="icon-sm"
-                label="Close"
+                label={t('Close')}
                 tabIndex={-1}
                 disabled={createContactMutation.isPending}
               >
@@ -136,9 +137,11 @@ export function CreateContactModal() {
 
             <div class="flex flex-col gap-4">
               <div class="flex items-center gap-2 px-2">
-                <Dialog.Title class="sr-only">Add a contact</Dialog.Title>
+                <Dialog.Title class="sr-only">
+                  {t('Add a contact')}
+                </Dialog.Title>
                 <label for="new-contact-name" class="sr-only">
-                  Name
+                  {t('Name')}
                 </label>
                 <UserPlusIcon
                   aria-hidden="true"
@@ -152,10 +155,10 @@ export function CreateContactModal() {
                     setName(event.currentTarget.value);
                     setError(undefined);
                   }}
-                  placeholder="Contact name"
+                  placeholder={t('Contact name')}
                   autocomplete="off"
                   data-1p-ignore
-                  aria-invalid={error() === 'Enter a name'}
+                  aria-invalid={error() === t('Enter a name')}
                   class="h-10 w-full border-none bg-transparent px-0 text-xl font-medium text-ink outline-none placeholder:text-ink-placeholder focus:ring-0"
                 />
               </div>
@@ -165,7 +168,7 @@ export function CreateContactModal() {
                   for="new-contact-email"
                   class="text-xs font-medium text-ink-muted"
                 >
-                  Email
+                  {t('Email')}
                 </label>
                 <div class="flex h-9 w-full items-center rounded-lg border border-edge-muted focus-within:border-edge">
                   <input
@@ -180,7 +183,7 @@ export function CreateContactModal() {
                     spellcheck={false}
                     data-1p-ignore
                     aria-invalid={
-                      error() === 'Enter the part of the email before the @'
+                      error() === t('Enter the part of the email before the @')
                     }
                     class="h-full min-w-0 flex-1 border-none bg-transparent pl-3 text-sm text-ink outline-none placeholder:text-ink-placeholder focus:ring-0"
                   />
@@ -209,7 +212,9 @@ export function CreateContactModal() {
                 class="rounded-lg border-0"
                 disabled={!canSubmit()}
               >
-                {createContactMutation.isPending ? 'Adding…' : 'Add Contact'}
+                {createContactMutation.isPending
+                  ? t('Adding…')
+                  : t('Add Contact')}
               </Button>
             </div>
           </form>

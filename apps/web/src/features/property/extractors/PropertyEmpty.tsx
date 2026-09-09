@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import CircleDashedEmpty from '@phosphor/circle-dashed.svg';
 import { cn } from '@ui';
 import type { JSX } from 'solid-js';
@@ -15,6 +16,9 @@ type Props = {
  * Standard empty-value affordance — dashed circle + optional label.
  */
 export function PropertyEmpty(props: Props) {
+  const displayLabel = () =>
+    typeof props.label === 'string' ? t(props.label) : props.label;
+
   return (
     <span
       class={cn('inline-flex items-center gap-1.5 opacity-50', props.class)}
@@ -23,7 +27,7 @@ export function PropertyEmpty(props: Props) {
         <CircleDashedEmpty class="size-3 shrink-0" />
       </Show>
       <Show when={props.label}>
-        <span class="truncate">{props.label}</span>
+        <span class="truncate">{displayLabel()}</span>
       </Show>
     </span>
   );

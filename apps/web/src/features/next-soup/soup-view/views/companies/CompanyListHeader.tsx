@@ -2,6 +2,7 @@ import type { SystemSortOption } from '@app/features/next-soup/soup-view/sort-op
 import { useSoupView } from '@app/features/next-soup/soup-view/soup-view-context';
 import { useCrmDisplayOptions } from '@companies/crm/display-options';
 import { useListLayout } from '@entity/composed/list-entity/shared';
+import { t } from '@macro/i18n';
 import ArrowDownIcon from '@phosphor/arrow-down.svg';
 import { cn } from '@ui/utils/classname';
 import { createMemo, For, Show } from 'solid-js';
@@ -77,7 +78,7 @@ function CompanyListHeader(props: { class?: string }) {
     >
       <div style={{ 'grid-area': 'indicator' }} />
       <div style={{ 'grid-area': 'content' }} class="truncate">
-        Customer
+        {t('Customer')}
       </div>
       <For each={visibleColumns()}>
         {(col) => (
@@ -85,7 +86,9 @@ function CompanyListHeader(props: { class?: string }) {
             style={{ 'grid-area': col.id }}
             class="flex items-center min-w-0 @min-[841px]/u-list:pl-2"
           >
-            <span class="truncate @max-[840px]/u-list:hidden">{col.label}</span>
+            <span class="truncate @max-[840px]/u-list:hidden">
+              {t(col.label)}
+            </span>
           </div>
         )}
       </For>
@@ -102,7 +105,7 @@ function CompanyListHeader(props: { class?: string }) {
             activeSort()?.id === 'updated_at' && 'text-ink'
           )}
         >
-          <span class="truncate">Last Interaction</span>
+          <span class="truncate">{t('Last Interaction')}</span>
           <ArrowDownIcon
             class={cn(
               'size-3 shrink-0 transition-transform',

@@ -3,6 +3,7 @@ import type {
   SystemSortOption,
 } from '@app/features/next-soup/soup-view/sort-options';
 import { TOKENS } from '@core/hotkey/tokens';
+import { t } from '@macro/i18n';
 import SortIcon from '@phosphor/sort-ascending.svg';
 import { Dropdown, SingleSelectCheck, Tooltip } from '@ui';
 import { type Component, For, Show } from 'solid-js';
@@ -29,10 +30,10 @@ export const SortDropdown: Component<SortDropdownProps> = (props) => {
       onOpenChange={props.onOpenChange}
       placement="bottom-start"
     >
-      <Tooltip label="Sort" hotkey={TOKENS.soup.sort}>
+      <Tooltip label={t('Sort')} hotkey={TOKENS.soup.sort}>
         <Dropdown.Trigger depth={2} class="bg-surface">
           <SortIcon />
-          <span>Sort</span>
+          <span>{t('Sort')}</span>
         </Dropdown.Trigger>
       </Tooltip>
       <Dropdown.Content class="shadow-menu">
@@ -47,7 +48,7 @@ export const SortDropdown: Component<SortDropdownProps> = (props) => {
                     </span>
                   )}
                 </Show>
-                <span class="flex-1 truncate">{option.label}</span>
+                <span class="flex-1 truncate">{t(option.label)}</span>
                 <SingleSelectCheck active={props.value() === option.value} />
               </Dropdown.Item>
             )}

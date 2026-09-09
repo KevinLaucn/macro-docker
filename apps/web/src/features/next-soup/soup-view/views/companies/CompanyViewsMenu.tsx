@@ -15,6 +15,7 @@ import {
 import { useCrmPermissions } from '@companies/crm/team-crm-config';
 import { toast } from '@core/component/Toast/Toast';
 import { useUserId } from '@core/context/user';
+import { t } from '@macro/i18n';
 import FloppyDiskIcon from '@phosphor/floppy-disk.svg';
 import LinkIcon from '@phosphor/link.svg';
 import PushPinIcon from '@phosphor/push-pin.svg';
@@ -77,11 +78,11 @@ const SavedViewRow = (props: {
         </Tooltip>
       )}
     </Show>
-    <Tooltip label="Copy link">
+    <Tooltip label={t('Copy link')}>
       <Button
         variant="ghost"
         size="icon-sm"
-        label="Copy link"
+        label={t('Copy link')}
         class="size-6 shrink-0 rounded-md p-1 text-ink-muted opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
         onClick={props.onCopyLink}
       >
@@ -90,11 +91,11 @@ const SavedViewRow = (props: {
     </Tooltip>
     <Show when={props.onDelete}>
       {(onDelete) => (
-        <Tooltip label="Delete view">
+        <Tooltip label={t('Delete view')}>
           <Button
             variant="ghost"
             size="icon-sm"
-            label="Delete view"
+            label={t('Delete view')}
             class="size-6 shrink-0 rounded-md p-1 text-ink-muted opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
             onClick={() => onDelete()()}
           >
@@ -193,21 +194,21 @@ export function CompanyViewsMenu(props: { hideLabel?: boolean } = {}) {
       <Dropdown.Trigger
         depth={2}
         class="bg-surface"
-        label={props.hideLabel ? 'Views' : undefined}
-        aria-label={props.hideLabel ? 'Views' : undefined}
+        label={props.hideLabel ? t('Views') : undefined}
+        aria-label={props.hideLabel ? t('Views') : undefined}
       >
         <StackIcon />
         <Show when={!props.hideLabel}>
-          <span>Views</span>
+          <span>{t('Views')}</span>
         </Show>
       </Dropdown.Trigger>
 
       <Dropdown.Content class="w-64 shadow-menu">
         <Dropdown.Group>
-          <Dropdown.GroupLabel>My views</Dropdown.GroupLabel>
+          <Dropdown.GroupLabel>{t('My views')}</Dropdown.GroupLabel>
           <For
             each={personal.views()}
-            fallback={<EmptyViewsHint>No saved views</EmptyViewsHint>}
+            fallback={<EmptyViewsHint>{t('No saved views')}</EmptyViewsHint>}
           >
             {(view) => (
               <SavedViewRow
@@ -227,10 +228,10 @@ export function CompanyViewsMenu(props: { hideLabel?: boolean } = {}) {
         </Dropdown.Group>
 
         <Dropdown.Group>
-          <Dropdown.GroupLabel>Team views</Dropdown.GroupLabel>
+          <Dropdown.GroupLabel>{t('Team views')}</Dropdown.GroupLabel>
           <For
             each={team.views()}
-            fallback={<EmptyViewsHint>No team views</EmptyViewsHint>}
+            fallback={<EmptyViewsHint>{t('No team views')}</EmptyViewsHint>}
           >
             {(view) => (
               <SavedViewRow
@@ -265,7 +266,7 @@ export function CompanyViewsMenu(props: { hideLabel?: boolean } = {}) {
                 onSelect={() => setSaveFormOpen(true)}
               >
                 <FloppyDiskIcon class="size-3.5 shrink-0 text-ink-muted" />
-                <span class="flex-1 truncate">Save current view…</span>
+                <span class="flex-1 truncate">{t('Save current view…')}</span>
               </Dropdown.Item>
             }
           >
@@ -281,7 +282,7 @@ export function CompanyViewsMenu(props: { hideLabel?: boolean } = {}) {
                   e.stopPropagation();
                   if (e.key === 'Enter') saveCurrentView();
                 }}
-                placeholder="View name"
+                placeholder={t('View name')}
                 class={cn(
                   'w-full rounded-md border border-edge-muted bg-transparent px-2 py-1 text-sm',
                   'outline-none focus:border-accent placeholder:text-ink-placeholder'
@@ -290,12 +291,12 @@ export function CompanyViewsMenu(props: { hideLabel?: boolean } = {}) {
               <div class="flex items-center justify-between gap-1.5">
                 <SegmentedControl
                   size="sm"
-                  aria-label="View visibility"
+                  aria-label={t('View visibility')}
                   value={saveScope()}
                   onChange={(value) => setSaveScope(value)}
                   options={[
-                    { value: 'personal', label: 'Personal' },
-                    { value: 'team', label: 'Team' },
+                    { value: 'personal', label: t('Personal') },
+                    { value: 'team', label: t('Team') },
                   ]}
                 />
                 <Button
@@ -304,7 +305,7 @@ export function CompanyViewsMenu(props: { hideLabel?: boolean } = {}) {
                   disabled={!saveName().trim()}
                   onClick={saveCurrentView}
                 >
-                  Save
+                  {t('Save')}
                 </Button>
               </div>
             </div>
@@ -314,7 +315,9 @@ export function CompanyViewsMenu(props: { hideLabel?: boolean } = {}) {
             onSelect={() => copyShareLink(captureCurrentView())}
           >
             <LinkIcon class="size-3.5 shrink-0 text-ink-muted" />
-            <span class="flex-1 truncate">Copy link to current view</span>
+            <span class="flex-1 truncate">
+              {t('Copy link to current view')}
+            </span>
           </Dropdown.Item>
         </Dropdown.Group>
       </Dropdown.Content>
@@ -343,11 +346,11 @@ export function CompanyDisplayMenu() {
   return (
     <Show when={hasContent()}>
       <Dropdown>
-        <Tooltip label="Display options">
+        <Tooltip label={t('Display options')}>
           <Dropdown.Trigger
             depth={2}
             class="bg-surface"
-            label="Display options"
+            label={t('Display options')}
           >
             <SlidersIcon />
           </Dropdown.Trigger>
@@ -357,7 +360,7 @@ export function CompanyDisplayMenu() {
           {/* Column visibility only applies to the list. */}
           <Show when={viewMode() === 'list'}>
             <Dropdown.Group>
-              <Dropdown.GroupLabel>List columns</Dropdown.GroupLabel>
+              <Dropdown.GroupLabel>{t('List columns')}</Dropdown.GroupLabel>
               <For
                 each={Object.keys(CRM_LIST_COLUMN_LABELS) as CrmListColumnId[]}
               >
@@ -368,7 +371,7 @@ export function CompanyDisplayMenu() {
                     closeOnSelect={false}
                   >
                     <span class="flex-1 truncate">
-                      {CRM_LIST_COLUMN_LABELS[column]}
+                      {t(CRM_LIST_COLUMN_LABELS[column])}
                     </span>
                   </Dropdown.CheckboxItem>
                 )}
@@ -389,7 +392,9 @@ export function CompanyDisplayMenu() {
                 }
                 closeOnSelect={false}
               >
-                <span class="flex-1 truncate">Show hidden companies</span>
+                <span class="flex-1 truncate">
+                  {t('Show hidden companies')}
+                </span>
               </Dropdown.CheckboxItem>
             </Dropdown.Group>
           </Show>
