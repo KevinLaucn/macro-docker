@@ -182,3 +182,8 @@ but unconnected app gets a tool result saying so, and the agent's reply renders 
 
 Toast regions are labeled `Notifications (alt+T)`; five empty live regions always exist in
 the a11y tree (ignore them when parsing snapshots).
+
+Staff Noise emails still create in-app notification rows, but do not send a new-notification
+event over GraphQL or the legacy WebSocket gateway, so they do not trigger browser popups.
+Those rows are available on the next fetch/refetch. Signal delivery and the existing
+staff/customer eligibility rules are unchanged; no browser eligibility request is needed.
