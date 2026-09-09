@@ -1,6 +1,7 @@
 import { InlineTitleEditor } from '@core/component/InlineTitleEditor';
 import { getInitialsFromName } from '@core/user';
 import { AnimatedContactIcon } from '@icon/wide-contact';
+import { t } from '@macro/i18n';
 import { useSetContactNameMutation } from '@queries/crm/contacts';
 import type { CrmContactResponse } from '@service-storage/generated/schemas/crmContactResponse';
 import { Avatar } from '@ui';
@@ -15,8 +16,8 @@ function TitleEditor(props: { contact: CrmContactResponse }) {
       // Nameless contacts display their email; committing it unchanged
       // is a no-op rather than a save.
       value={props.contact.name ?? props.contact.email}
-      placeholder="Contact"
-      ariaLabel="Contact name"
+      placeholder={t('Contact')}
+      ariaLabel={t('Contact name')}
       onRename={(name) =>
         renameMutation.mutate({
           contactId: props.contact.id,
@@ -59,7 +60,7 @@ export function ContactHeader(props: { contact?: CrmContactResponse }) {
       </Avatar>
       <div class="flex min-w-0 flex-col gap-1">
         <h1 class="min-w-0 text-xl font-semibold">
-          <Show when={props.contact} fallback={'Loading contact…'}>
+          <Show when={props.contact} fallback={t('Loading contact…')}>
             {(contact) => <TitleEditor contact={contact()} />}
           </Show>
         </h1>

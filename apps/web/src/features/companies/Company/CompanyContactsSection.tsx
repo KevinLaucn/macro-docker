@@ -1,5 +1,6 @@
 import { useSplitLayout } from '@components/app/split-layout/layout';
 import type { CrmCompanyEntity } from '@entity';
+import { t } from '@macro/i18n';
 import type { CompanyContact } from '@queries/crm/companies';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 
@@ -24,24 +25,28 @@ export function CompanyContactsSection(props: {
   return (
     <Show
       when={props.company}
-      fallback={<div class="text-sm text-ink-muted">Loading…</div>}
+      fallback={<div class="text-sm text-ink-muted">{t('Loading…')}</div>}
     >
       <Show
         when={contacts().length > 0}
-        fallback={<div class="text-sm text-ink-muted">No contacts yet.</div>}
+        fallback={
+          <div class="text-sm text-ink-muted">{t('No contacts yet.')}</div>
+        }
       >
         <div class="flex flex-col gap-2">
           <input
             type="text"
             value={search()}
             onInput={(event) => setSearch(event.currentTarget.value)}
-            placeholder="Search contacts…"
+            placeholder={t('Search contacts…')}
             class="w-full rounded-md border border-edge bg-surface px-2 py-1 text-sm text-ink placeholder:text-ink-placeholder focus:outline-none"
           />
           <Show
             when={filtered().length > 0}
             fallback={
-              <div class="text-sm text-ink-muted">No matching contacts.</div>
+              <div class="text-sm text-ink-muted">
+                {t('No matching contacts.')}
+              </div>
             }
           >
             <div

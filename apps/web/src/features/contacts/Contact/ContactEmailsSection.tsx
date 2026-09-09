@@ -6,6 +6,7 @@ import {
   ListEntityMetadataQueryProvider,
   ListLayoutProvider,
 } from '@entity';
+import { t } from '@macro/i18n';
 import type { CrmContactResponse } from '@service-storage/generated/schemas/crmContactResponse';
 import { createSignal, For, Show } from 'solid-js';
 import {
@@ -31,23 +32,38 @@ export function ContactEmailsSection(props: { contact?: CrmContactResponse }) {
     fetchNextPage: () => emailsQuery.fetchNextPage(),
   });
 
+  const emptyMessage = () => {
+    const isSignal = signalView() === 'signal';
+    const isMe = view() === 'me';
+    if (isSignal && isMe) {
+      return t('No signal emails with this contact in your inbox.');
+    }
+    if (isSignal && !isMe) {
+      return t('No signal emails with this contact yet.');
+    }
+    if (!isSignal && isMe) {
+      return t('No emails with this contact in your inbox.');
+    }
+    return t('No emails with this contact yet.');
+  };
+
   return (
     <div class="flex flex-col gap-2">
       <div class="flex items-center justify-between gap-2">
-        <h2 class="text-sm font-medium text-ink-muted">Emails</h2>
+        <h2 class="text-sm font-medium text-ink-muted">{t('Emails')}</h2>
         <div class="flex items-center gap-2.5">
           <TabsInset
             list={[
-              { value: 'signal', label: 'Signal' },
-              { value: 'all', label: 'All' },
+              { value: 'signal', label: t('Signal') },
+              { value: 'all', label: t('All') },
             ]}
             value={signalView()}
             onChange={(v) => setSignalView(v as EmailSignalView)}
           />
           <TabsInset
             list={[
-              { value: 'team', label: 'Team' },
-              { value: 'me', label: 'Me' },
+              { value: 'team', label: t('Team') },
+              { value: 'me', label: t('Me') },
             ]}
             value={view()}
             onChange={(v) => setView(v as EmailView)}
@@ -57,14 +73,16 @@ export function ContactEmailsSection(props: { contact?: CrmContactResponse }) {
       <Show
         when={props.contact && !emailsQuery.isLoading}
         fallback={
-          <div class="p-6 text-center text-sm text-ink-muted">Loading…</div>
+          <div class="p-6 text-center text-sm text-ink-muted">
+            {t('Loading…')}
+          </div>
         }
       >
         <Show
           when={emails().length > 0}
           fallback={
             <div class="rounded-lg border border-dashed border-edge-muted p-6 text-center text-sm text-ink-muted">
-              {`No ${signalView() === 'signal' ? 'signal emails' : 'emails'} with this contact ${view() === 'me' ? 'in your inbox' : 'yet'}.`}
+              {emptyMessage()}
             </div>
           }
         >
@@ -91,7 +109,7 @@ export function ContactEmailsSection(props: { contact?: CrmContactResponse }) {
             </Show>
             <Show when={emailsQuery.isFetchingNextPage}>
               <div class="p-3 text-center text-xs text-ink-muted">
-                Loading more…
+                {t('Loading more…')}
               </div>
             </Show>
           </div>

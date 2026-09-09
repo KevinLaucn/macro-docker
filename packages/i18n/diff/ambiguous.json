@@ -64,6 +64,17 @@
     "features/settings/HarnessPairingDialog.tsx",
     "features/block-agent/component/parts/UserToolCall.tsx"
   ],
+  "Loading…": [
+    "features/contacts/Contact/ContactSharingSection.tsx",
+    "features/contacts/Contact/ContactEmailsSection.tsx",
+    "features/contacts/Contact/ContactMetadataSection.tsx",
+    "features/companies/Company/CompanyContactsSection.tsx"
+  ],
+  "Details": [
+    "features/contacts/Contact/Contact.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
+    "features/companies/Company/Company.tsx"
+  ],
   "Failed": [
     "features/block-agent/ui/ToolErrorCard.tsx",
     "features/block-agent/component/parts/SubagentToolCall.tsx",

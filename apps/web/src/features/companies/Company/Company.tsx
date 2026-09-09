@@ -1,5 +1,6 @@
 import { openCreateContactModal } from '@app/features/companies/CreateContactModal';
 import { SidePanel } from '@components/app/side-panel';
+import { t } from '@macro/i18n';
 import PlusIcon from '@phosphor/plus.svg';
 import { useCompanyQuery } from '@queries/crm/companies';
 import { Button } from '@ui';
@@ -32,7 +33,7 @@ export function Company(props: { companyId: string }) {
 
       <SidePanel.Section
         id="company-details"
-        title="Details"
+        title={t('Details')}
         order={10}
         defaultOpen
       >
@@ -40,7 +41,7 @@ export function Company(props: { companyId: string }) {
       </SidePanel.Section>
       <SidePanel.Section
         id="company-properties"
-        title="Properties"
+        title={t('Properties')}
         order={15}
         defaultOpen
       >
@@ -48,15 +49,15 @@ export function Company(props: { companyId: string }) {
       </SidePanel.Section>
       <SidePanel.Section
         id="company-contacts"
-        title="Contacts"
+        title={t('Contacts')}
         order={20}
         defaultOpen
         actions={
           <Button
             variant="ghost"
             size="icon-sm"
-            label="Add contact"
-            tooltip="Add contact"
+            label={t('Add contact')}
+            tooltip={t('Add contact')}
             // Contact emails are pinned to the company's primary domain;
             // disabled until the company (and its domains) has loaded.
             disabled={!company()?.domains[0]}
@@ -71,7 +72,7 @@ export function Company(props: { companyId: string }) {
       >
         <CompanyContactsSection company={company()} contacts={contacts()} />
       </SidePanel.Section>
-      <SidePanel.Section id="company-sharing" title="Sharing" order={25}>
+      <SidePanel.Section id="company-sharing" title={t('Sharing')} order={25}>
         <CompanySharingSection company={company()} />
       </SidePanel.Section>
       {/* TODO: add a References section (inbound channel messages + documents)

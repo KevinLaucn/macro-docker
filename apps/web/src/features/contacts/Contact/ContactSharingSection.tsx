@@ -1,11 +1,9 @@
 import { toast } from '@core/component/Toast/Toast';
+import { t } from '@macro/i18n';
 import { useSetContactHiddenMutation } from '@queries/crm/contacts';
 import type { CrmContactResponse } from '@service-storage/generated/schemas/crmContactResponse';
-import { cn, InlineCheckbox } from '@ui';
+import { InlineCheckbox } from '@ui';
 import { Show } from 'solid-js';
-
-const TOGGLE_BUTTON_CLASS =
-  'inline-flex items-center gap-2 rounded-md h-7 px-2.5 text-xs select-none w-fit border border-ink-muted/[0.08] bg-ink-muted/[0.025] text-ink hover:bg-ink-muted/[0.06]';
 
 /**
  * Admin-only (the parent gates the whole section on `useIsTeamAdmin`):
@@ -25,18 +23,18 @@ export function ContactSharingSection(props: { contact?: CrmContactResponse }) {
         hidden: willHide,
       });
       if (willHide) {
-        toast.success('Contact hidden.');
+        toast.success(t('Contact hidden.'));
       }
     } catch (error) {
       console.error('failed to update contact sharing', error);
-      toast.failure('Could not update contact visibility');
+      toast.failure(t('Could not update contact visibility'));
     }
   };
 
   return (
     <Show
       when={props.contact}
-      fallback={<div class="text-xs text-ink-muted">Loading…</div>}
+      fallback={<div class="text-xs text-ink-muted">{t('Loading…')}</div>}
     >
       {(contact) => {
         const isShared = () => !contact().hidden;
@@ -49,14 +47,15 @@ export function ContactSharingSection(props: { contact?: CrmContactResponse }) {
                 aria-checked={isShared()}
                 disabled={hiddenMutation.isPending}
                 onClick={() => void handleToggle(contact(), !isShared())}
-                class={cn(TOGGLE_BUTTON_CLASS)}
+                class="inline-flex h-7 w-fit select-none items-center gap-2 rounded-md border border-ink-muted/[0.08] bg-ink-muted/[0.025] px-2.5 text-xs text-ink hover:bg-ink-muted/[0.06]"
               >
                 <InlineCheckbox checked={isShared()} />
-                <span class="whitespace-nowrap">Visible in CRM</span>
+                <span class="whitespace-nowrap">{t('Visible in CRM')}</span>
               </button>
               <p class="text-ink-muted leading-5">
-                Shows this contact in their company's contact list. Hide
-                contacts that aren't relevant to your team's CRM.
+                {t(
+                  "Shows this contact in their company's contact list. Hide contacts that aren't relevant to your team's CRM."
+                )}
               </p>
             </div>
           </div>

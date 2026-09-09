@@ -1,5 +1,6 @@
 import { NIL_UUID } from '@app/features/next-soup/filters/filter-store';
 import { useSplitLayout } from '@components/app/split-layout/layout';
+import { t } from '@macro/i18n';
 import { useCompanyQuery } from '@queries/crm/companies';
 import type { CrmContactResponse } from '@service-storage/generated/schemas/crmContactResponse';
 import { type JSX, Show } from 'solid-js';
@@ -30,20 +31,20 @@ export function ContactMetadataSection(props: {
   return (
     <Show
       when={props.contact}
-      fallback={<div class="text-sm text-ink-muted">Loading…</div>}
+      fallback={<div class="text-sm text-ink-muted">{t('Loading…')}</div>}
     >
       {(contact) => (
         <div class="flex flex-col gap-3">
-          <Field label="Email">
+          <Field label={t('Email')}>
             <span class="truncate">{contact().email}</span>
           </Field>
-          <Field label="Company">
+          <Field label={t('Company')}>
             <button
               type="button"
               onClick={() => openCompany(contact().companyId)}
               class="text-left text-sm text-link hover:text-link-hover hover:underline"
             >
-              {company()?.name ?? 'Open company'}
+              {company()?.name ?? t('Open company')}
             </button>
           </Field>
         </div>

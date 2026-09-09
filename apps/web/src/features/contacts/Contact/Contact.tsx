@@ -1,4 +1,5 @@
 import { SidePanel } from '@components/app/side-panel';
+import { t } from '@macro/i18n';
 import { useContactQuery } from '@queries/crm/contacts';
 import { useIsTeamAdmin } from '@queries/team/teams';
 import { Show } from 'solid-js';
@@ -31,7 +32,7 @@ export function Contact(props: { contactId: string }) {
 
       <SidePanel.Section
         id="contact-details"
-        title="Details"
+        title={t('Details')}
         order={10}
         defaultOpen
       >
@@ -40,7 +41,7 @@ export function Contact(props: { contactId: string }) {
       {/* Sharing is admin-only; hide the whole section for non-admins
           rather than rendering it empty. */}
       <Show when={isTeamAdmin()}>
-        <SidePanel.Section id="contact-sharing" title="Sharing" order={25}>
+        <SidePanel.Section id="contact-sharing" title={t('Sharing')} order={25}>
           <ContactSharingSection contact={contact()} />
         </SidePanel.Section>
       </Show>
