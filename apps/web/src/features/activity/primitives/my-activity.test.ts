@@ -1,5 +1,6 @@
 import { createRoot } from 'solid-js';
 import { afterEach, describe, expect, it } from 'vitest';
+import { entryHead } from '../core/collapse-runs';
 import { createdEvent, editedEvent } from '../queries/fixtures';
 import { createMockActivityContext } from '../tests/mock-context';
 import { feedPage, overviewPage } from '../tests/wire';
@@ -51,9 +52,9 @@ describe('createMyActivityState', () => {
     if (feed.t !== 'ready') return;
     expect(feed.hasMore).toBe(true);
     expect(feed.loadingMore).toBe(false);
-    expect(feed.groups.flatMap((g) => g.events.map((e) => e.id))).toEqual([
-      'evt-1',
-    ]);
+    expect(
+      feed.groups.flatMap((g) => g.entries.map((e) => entryHead(e).id))
+    ).toEqual(['evt-1']);
   });
 
   it('appends the next page on loadMore', () => {
@@ -67,10 +68,9 @@ describe('createMyActivityState', () => {
 
     const feed = state.feed();
     if (feed.t !== 'ready') throw new Error(feed.t);
-    expect(feed.groups.flatMap((g) => g.events.map((e) => e.id))).toEqual([
-      'evt-1',
-      'evt-2',
-    ]);
+    expect(
+      feed.groups.flatMap((g) => g.entries.map((e) => entryHead(e).id))
+    ).toEqual(['evt-1', 'evt-2']);
     expect(feed.hasMore).toBe(false);
   });
 
@@ -83,7 +83,7 @@ describe('createMyActivityState', () => {
     expect(ready.map((row) => row.kind)).toEqual([
       'overview',
       'day',
-      'event',
+      'entry',
       'tail',
     ]);
 
@@ -96,10 +96,16 @@ describe('createMyActivityState', () => {
     expect(state.rows().map((row) => row.kind)).toEqual([
       'overview',
       'day',
-      'event',
-      'event',
+      'entry',
+      'entry',
     ]);
-    expect(state.rows()[2]).toBe(ready[2]);
+    // The same day grew, so the first entry now draws a rail below it and
+    // is a new row; the header keeps its identity.
+    expect(state.rows()[1]).toBe(ready[1]);
+    expect(state.rows()[2]).not.toBe(ready[2]);
+    expect(state.rows()[2]).toEqual(
+      expect.objectContaining({ rail: { above: false, below: true } })
+    );
   });
 
   it('ignores loadMore while a page is in flight or none remain', () => {
@@ -154,7 +160,7 @@ describe('createMyActivityState', () => {
     if (after.t !== 'ready') throw new Error('feed should stay ready');
     expect(after.moreFailed).toBe(false);
     expect(after.hasMore).toBe(false);
-    expect(after.groups.flatMap((g) => g.events)).toHaveLength(2);
+    expect(after.groups.flatMap((g) => g.entries)).toHaveLength(2);
   });
 
   it('is empty when the first page has no rows', () => {
