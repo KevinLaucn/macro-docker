@@ -694,17 +694,15 @@ export const authServiceClient = {
   },
 
   async checkGithubLinkStatus() {
-    const res = await fetchWithAuth<
-      GithubLinkStatusResponse,
-      GithubReauthenticationErrorCode
-    >(`${authHost}/link/github/status`, {
-      method: 'GET',
-      errorResponseHandler: githubErrorResponseHandler,
-    });
-    if (res.isErr() && res.error.some((e) => e.code === 'NOT_FOUND')) {
-      return ok({ reauthentication_required: false });
-    }
-    return res.map((result) => result);
+    return (
+      await fetchWithAuth<
+        GithubLinkStatusResponse,
+        GithubReauthenticationErrorCode
+      >(`${authHost}/link/github/status`, {
+        method: 'GET',
+        errorResponseHandler: githubErrorResponseHandler,
+      })
+    ).map((result) => result);
   },
 
   async checkGmailLinkStatus() {
@@ -837,7 +835,9 @@ export const authServiceClient = {
   },
 
   async getUserTeams() {
-    const res = await fetchWithAuth<Team[]>(`${authHost}/team/user`, { method: 'GET' });
+    const res = await fetchWithAuth<Team[]>(`${authHost}/team/user`, {
+      method: 'GET',
+    });
     if (res.isErr() && res.error.some((e) => e.code === 'NOT_FOUND')) {
       return ok([] as Team[]);
     }
