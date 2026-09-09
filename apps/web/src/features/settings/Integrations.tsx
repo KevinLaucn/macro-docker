@@ -6,6 +6,7 @@ import {
 } from '@core/component/AI/constant/mcpServers';
 import { toast } from '@core/component/Toast/Toast';
 import { openExternalUrl } from '@core/util/url';
+import { t } from '@macro/i18n';
 import CheckIcon from '@phosphor-icons/core/regular/check.svg?component-solid';
 import PlugIcon from '@phosphor-icons/core/regular/plug.svg?component-solid';
 import PlusIcon from '@phosphor-icons/core/regular/plus.svg?component-solid';
@@ -409,8 +410,10 @@ export function IntegrationsSection() {
 
   return (
     <SettingsSection
-      title="MCP integrations"
-      description="Connect MCP servers to give Macro's agent access to the tools your team already uses."
+      title={t('MCP integrations')}
+      description={t(
+        "Connect MCP servers to give Macro's agent access to the tools your team already uses."
+      )}
       actions={
         <Button
           variant="outline"
@@ -419,14 +422,14 @@ export function IntegrationsSection() {
           onClick={() => setShowAddDialog(true)}
         >
           <PlusIcon class="size-4" />
-          Add server
+          {t('Add server')}
         </Button>
       }
     >
       <Show when={serversQuery.isError}>
         <SettingsCard>
           <div class="px-6 py-8 text-center text-sm text-ink-muted">
-            Failed to load integrations.
+            {t('Failed to load integrations.')}
             <Button
               variant="outline"
               size="sm"
@@ -434,7 +437,7 @@ export function IntegrationsSection() {
               onClick={() => serversQuery.refetch()}
               class="ml-2"
             >
-              Retry
+              {t('Retry')}
             </Button>
           </div>
         </SettingsCard>

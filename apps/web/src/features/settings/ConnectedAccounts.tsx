@@ -3,11 +3,12 @@ import { t } from '@macro/i18n';
 import { Show, Suspense } from 'solid-js';
 import { EmailCard } from './Email';
 import { GitHubCard } from './GitHub';
+import { IntegrationsSection } from './Integrations';
 import { SettingsPage, SettingsSection } from './primitives';
 
 /**
  * Consolidated "Connections" page: one card per external account the user can
- * link (Gmail, GitHub).
+ * link (Gmail, GitHub), followed by the agent's MCP integrations.
  */
 export function ConnectedAccounts() {
   return (
@@ -29,6 +30,9 @@ export function ConnectedAccounts() {
           </Suspense>
         </div>
       </SettingsSection>
+      <Suspense>
+        <IntegrationsSection />
+      </Suspense>
     </SettingsPage>
   );
 }

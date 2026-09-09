@@ -3,6 +3,7 @@ export const TRANSLATABLE_ATTRIBUTES = new Set([
   "title",
   "aria-label",
   "label",
+  "text",
   "tooltip",
   "emptyText",
   "heading",

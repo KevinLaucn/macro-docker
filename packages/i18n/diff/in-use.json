@@ -2936,6 +2936,22 @@
     "features/settings/Shortcuts.tsx",
     "features/block-email/component/TopBar.tsx"
   ],
+  "Edit reminder": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/soup/createSoupEntityActions.ts"
+  ],
+  "Unfavorite": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "Favorite": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
   "Unmute notifications": [
     "features/next-soup/actions/use-entity-action-hotkeys.ts",
     "features/next-soup/actions/use-block-entity-commands.ts",
@@ -2966,6 +2982,18 @@
     "features/block-md/component/TopBar.tsx",
     "features/block-md/component/DispatchAgentMenu.tsx",
     "features/block-md/component/InlineTaskGithubPullRequests.tsx"
+  ],
+  "Copy ID": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "Remind me": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
   ],
   "Share": [
     "features/next-soup/actions/use-entity-action-hotkeys.ts",
@@ -6531,6 +6559,10 @@
   "Log into existing account": [
     "features/auth/mobile-onboarding/MobileAuthWelcome.tsx"
   ],
+  "Block sender": [
+    "features/auth/mobile-onboarding/OnboardingInbox.tsx",
+    "features/block-email/util/emailHotkeys.ts"
+  ],
   "The Inbox": [
     "features/auth/mobile-onboarding/OnboardingInbox.tsx"
   ],
@@ -6768,6 +6800,12 @@
     "lib/service-clients/service-email/generated/schemas/labelType.ts",
     "lib/service-clients/service-email/generated/schemas/apiLabelType.ts",
     "lib/service-clients/service-auth/client.ts"
+  ],
+  "View all items with tag": [
+    "features/property/tags/TagsRow.tsx"
+  ],
+  "Remove tag": [
+    "features/property/tags/TagsRow.tsx"
   ],
   "No tags": [
     "features/property/tags/TagsRow.tsx",
@@ -7189,6 +7227,11 @@
   ],
   "started a call you can join": [
     "features/entity/extractors-notification/notification-row.tsx"
+  ],
+  "Mark Read": [
+    "features/entity/extractors-notification/notification-row.tsx",
+    "features/entity/extractors-notification/notification-stacks.tsx",
+    "features/soup/createSoupEntityActions.ts"
   ],
   "Copy Link": [
     "features/entity/extractors-notification/notification-row.tsx",
@@ -8072,6 +8115,9 @@
   "Referenced text lands here": [
     "features/block-agent/debug/Gallery.tsx"
   ],
+  "The batch fold re-derives every message per frame; the incremental machine already handles this.": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
   "Bash": [
     "features/block-agent/debug/Gallery.tsx",
     "features/block-agent/component/parts/ToolCallPart.test.tsx",
@@ -8102,7 +8148,13 @@
   "Thought (active / settled)": [
     "features/block-agent/debug/Gallery.tsx"
   ],
+  "The incremental machine is the right default.": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
   "ToolStatusTitle / TextShimmer": [
+    "features/block-agent/debug/Gallery.tsx"
+  ],
+  "Thinking about the fold": [
     "features/block-agent/debug/Gallery.tsx"
   ],
   "AnimatedNumber / CountSummary": [
@@ -9175,6 +9227,18 @@
   "Close search": [
     "features/command/mobile/MobileSearchInput.tsx"
   ],
+  "Bring to front": [
+    "features/block-canvas/component/CanvasController.tsx"
+  ],
+  "Bring forward": [
+    "features/block-canvas/component/CanvasController.tsx"
+  ],
+  "Send to back": [
+    "features/block-canvas/component/CanvasController.tsx"
+  ],
+  "Send backward": [
+    "features/block-canvas/component/CanvasController.tsx"
+  ],
   "Select all": [
     "features/block-canvas/component/CanvasController.tsx"
   ],
@@ -9185,6 +9249,12 @@
   "Hand tool": [
     "features/block-canvas/component/CanvasController.tsx",
     "features/block-canvas/component/ToolBar.tsx"
+  ],
+  "Change order": [
+    "features/block-canvas/component/CanvasController.tsx"
+  ],
+  "Ungroup": [
+    "features/block-canvas/component/CanvasController.tsx"
   ],
   "Drop any file here to add it to your canvas": [
     "features/block-canvas/component/CanvasController.tsx",
@@ -9364,6 +9434,13 @@
   ],
   "Last month": [
     "features/soup/collection/date-buckets.ts"
+  ],
+  "Add tag": [
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "Remove from folder": [
+    "features/soup/createSoupEntityActions.ts"
   ],
   "Sender → Noise": [
     "features/soup/createSoupEntityActions.ts",
@@ -9810,6 +9887,10 @@
   "Restored from Trash@@email": [
     "features/block-email/component/TopBar.tsx"
   ],
+  "draft@@email": [
+    "features/block-email/component/TopBar.tsx",
+    "features/block-email/component/compose/Compose.tsx"
+  ],
   "This is a Draft Email@@email": [
     "features/block-email/component/TopBar.tsx",
     "features/block-email/component/compose/Compose.tsx"
@@ -10018,6 +10099,9 @@
   ],
   "Upload to this folder": [
     "features/block-project/component/Block.tsx"
+  ],
+  "draft@@chat": [
+    "features/block-channel/component/Compose.tsx"
   ],
   "This is a Draft Message@@chat": [
     "features/block-channel/component/Compose.tsx"
@@ -10228,6 +10312,30 @@
     "components/app/split-layout/components/SplitHeader.tsx"
   ],
   "Debug info copied to clipboard": [
+    "components/app/split-layout/components/SplitHeader.tsx"
+  ],
+  "New split left": [
+    "components/app/split-layout/components/SplitHeader.tsx"
+  ],
+  "New split right": [
+    "components/app/split-layout/components/SplitHeader.tsx"
+  ],
+  "Duplicate split": [
+    "components/app/split-layout/components/SplitHeader.tsx"
+  ],
+  "Swap split left": [
+    "components/app/split-layout/components/SplitHeader.tsx"
+  ],
+  "Swap split right": [
+    "components/app/split-layout/components/SplitHeader.tsx"
+  ],
+  "Close other splits": [
+    "components/app/split-layout/components/SplitHeader.tsx"
+  ],
+  "Reset sizes": [
+    "components/app/split-layout/components/SplitHeader.tsx"
+  ],
+  "Copy debug info": [
     "components/app/split-layout/components/SplitHeader.tsx"
   ],
   "Open in this split": [

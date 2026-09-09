@@ -8,5 +8,8 @@
   "Instagram": "Instagram",
   "Messenger": "Messenger",
   "Loading activity overview…": "正在加载活动概览…",
-  "Show all ({count})": "显示全部 ({count})"
+  "Show all ({count})": "显示全部 ({count})",
+  "From {from} to {to}": "发件人 {from} → {to}",
+  "From sender to other": "发件人 → 其他",
+  "Focus fullscreen current split": "聚焦全屏当前分屏"
 }
