@@ -73,7 +73,7 @@ services:
         cat <<EOF > /out/env-config.js
         window.__MACRO_ENV__ = {
           ADMIN_EMAIL: "$${ADMIN_EMAIL:-}",
-          ENABLE_NEW_APP_VIEWS: "true", // 启用官方双栏 Composable 视图，消除外层面板重复导航箭头
+          ENABLE_NEW_APP_VIEWS: "false", // 恢复经典单栏全局收件箱 SoupView 布局
           ENABLE_CHAT_V3_AGENTS: "true", // 启用 AI 助手与运行环境设置及频道 Mention
           ENABLE_AGENTS: "true",
           FEATURES: {
@@ -81,7 +81,7 @@ services:
             scheduledActions: false,
             agents: true,
             docsCollab: false,
-            enableNewAppViews: true
+            enableNewAppViews: false
           }
         };
         EOF
