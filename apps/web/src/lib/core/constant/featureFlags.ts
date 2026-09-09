@@ -508,10 +508,13 @@ export const enableSupportedSoupForeignEntities = defineFlag({
   default: onInDev,
 });
 
+// [二开规则 - 禁用空通知流排序]
+// 官方 default 为 onInDev，自建环境必须恒定为 false，以防触发空通知流排序清空收件箱。
+// 同步上游时以此为准，禁止还原为 onInDev。
 export const enableInboxNotifiedSort = defineFlag({
   key: 'enable-inbox-notified-sort',
   env: 'ENABLE_INBOX_NOTIFIED_SORT',
-  default: onInDev,
+  default: false,
 });
 
 export const enableGraphqlSoup = defineFlag({

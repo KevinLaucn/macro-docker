@@ -192,17 +192,21 @@ export const VIEW_TAB_PRESETS: Record<ListView, ViewTabConfig> = {
       // notification are absent), which is what these tabs mean anyway.
       // The inbox's client sort (`notified_at`, see `SoupView`) keeps the
       // server order and buckets the date headers on the same timestamp.
+      // [二开规则 - 统一收件箱排序适配]
+      // 官方原版使用 notified_at 依赖云端通知数据；自建私有化无通知管道，
+      // 必须保持为 updated_at（按活动时间排序），否则统一收件箱会清空。
+      // 后续同步上游代码时以此二开逻辑为准，禁止覆盖为 notified_at。
       signal: () => ({
         filters: getInboxSignalFilters(),
         clientFilters: { and: ['inbox'] },
         groupBy: 'date',
-        sortMethod: 'notified_at',
+        sortMethod: 'updated_at',
       }),
       noise: () => ({
         filters: getInboxNoiseFilters(),
         clientFilters: { and: ['noise'] },
         groupBy: 'date',
-        sortMethod: 'notified_at',
+        sortMethod: 'updated_at',
       }),
       // All and Reminders keep their recency ordering. Named explicitly
       // because the inbox's client sort id is not an API sort method, so

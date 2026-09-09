@@ -55,6 +55,7 @@ infra/local/generated/
 /生产环境配置与避坑指南*.local.md
 /生产环境配置与避坑指南*.md
 /二开功能检查清单.md
+/待完成问题.md
 
 # Production/self-host runtime secrets generated from templates.
 /production.env

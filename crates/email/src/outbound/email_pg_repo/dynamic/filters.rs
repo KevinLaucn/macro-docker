@@ -1004,8 +1004,12 @@ pub(super) fn escape_like_pattern(s: &str) -> String {
 /// Builds thread-level WHERE conditions based on the view type
 pub(super) fn build_view_thread_filter(view: &PreviewView) -> SqlFragment {
     match view {
+        // [二开规则 - 统一收件箱自定义待跟进第一优先放行]
+        // 官方原版为: AND t.inbox_visible = TRUE AND t.latest_inbound_message_ts IS NOT NULL
+        // 二开策略: 只要标记了待跟进 (follow_up_required = true)，优先第一位无条件放行入统一收件箱；
+        // 否则按默认逻辑 (inbox_visible 且有来信时间戳) 准入。后续同步上游时以此二开规则为准，禁止覆盖。
         PreviewView::StandardLabel(PreviewViewStandardLabel::Inbox) => SqlFragment::raw(
-            " AND t.inbox_visible = TRUE AND t.latest_inbound_message_ts IS NOT NULL",
+            " AND (t.follow_up_required = TRUE OR (t.inbox_visible = TRUE AND t.latest_inbound_message_ts IS NOT NULL))",
         ),
         PreviewView::StandardLabel(PreviewViewStandardLabel::Sent) => {
             SqlFragment::raw(" AND t.latest_outbound_message_ts IS NOT NULL")
