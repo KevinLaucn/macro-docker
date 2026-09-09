@@ -107,6 +107,7 @@ description: Master orchestration skill for maintaining, auditing, developing, a
 14. **二开独立文件与最小接入原则**：新增私有化、自托管、遥测隔离、FusionAuth、Gmail、生产部署、i18n glue 或 fork 专属逻辑时，优先放在独立 adapter/helper/service/module 文件中；上游原始源码只做最小 import、trait impl、依赖注入、路由挂载、feature flag 或配置接入。禁止把大量 fork 专属 `if`、fallback、stub 或特殊状态机散落进上游核心文件。确需修改上游核心模型、GraphQL 契约、migration、trait 签名或组件 props 时，必须说明原因、影响面和后续同步冲突成本。
 15. **功能域执行前确认原则**：按功能域推进上游同步、冲突处理或二开调整时，每一批开始前必须先向主人汇报并等待明确决定，不得默认继续。汇报格式固定为：`下一步是功能域 N（名称）`、`涉及范围`、`一句话人话说明`、`提交信息`、`需要主人决定的问题`。说明必须讲清该功能域是什么、上游调整了什么、我们二开需要保护什么、可能造成什么影响；只有主人确认后才能修改、暂存、提交或推送该功能域。
 16. **i18n 与二开差异识别原则**：i18n 是用户可见文案的本地化适配，重点保护 `t()`、`__t`、locale 资源、中文词条、日期/数量/插值格式、空状态/错误提示/按钮标签等中文体验；二开是 fork 专属业务、部署、认证、Gmail、自托管、遥测隔离、UI 行为或后端逻辑。两者可能同文件出现，但不能混同处理。上游同步时若文件涉及文案、组件移动、Activity/Inbox/Email/Settings/Onboarding、GraphQL 字段展示、生成词条或 locale 文件，必须判断是否影响 i18n；若可能丢中文、破坏插值、把 `t()` 退回硬编码英文、改变用户可见语义或删除中文资源，必须先说明影响并问主人。i18n 修复不得改变业务状态机、权限、查询语义或自托管边界；二开修复不得顺手重写文案体系。
+17. **本地开发与特性覆盖防源码污染铁律（`.env.local` 优先）**：对于本地调试开关、前端微服务能力激活（如 AI 认知服务能力 `VITE_ENABLE_COGNITION=true`、定时任务 `VITE_ENABLE_SCHEDULED_ACTIONS=true`、Agents 代理 `VITE_ENABLE_AGENTS=true` 等）、开发期端口覆盖或仅限开发者本机生效的参数配置，**严禁通过直接修改前端业务源码（如 `featureFlags.ts`）或打包构建脚本（如 `vite.base.ts`）来实现**。必须优先在被 `.gitignore` 全局忽略的私有环境覆盖文件 `/Volumes/开发/macro/apps/web/.env.local` 中进行外部注入。这样既能保证 Git 工作区与上游源码 100% 纯净（零 Diff、零提交、零合并冲突），又可自由精准激活本机所需的全套微服务与特性。
 
 
 ---
