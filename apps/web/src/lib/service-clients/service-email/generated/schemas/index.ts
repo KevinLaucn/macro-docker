@@ -361,3 +361,4 @@ export * from './userProvider';
 export * from './value';
 export * from './visibleCalendar';
 export * from './visibleCalendarColor';
+export * from './visibleCalendarSyncError';

@@ -1,5 +1,4 @@
 import { openExternalUrl } from '@core/util/url';
-import { t } from '@macro/i18n';
 import { type Component, type JSXElement, Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { cn } from '../utils/classname';
@@ -17,13 +16,16 @@ export interface EmptyStatePanelProps {
   graphicClass?: string;
   title?: string;
   description?: JSXElement;
+  descriptionClass?: string;
   primaryAction?: EmptyStateAction;
+  actionsClass?: string;
   /**
    * When set, renders a secondary "Documentation" button that opens the given
    * URL in a new tab. Omit when no relevant documentation page exists.
    */
   documentationUrl?: string;
   documentationLabel?: string;
+  documentationIcon?: Component<{ class?: string }>;
   /**
    * Centered, vertically-balanced variant for very simple states (e.g. "no
    * results") that are just a graphic and a line of text. Defaults to the
@@ -84,20 +86,21 @@ export function EmptyStatePanel(props: EmptyStatePanelProps) {
           )}
         </Show>
         <Show when={props.title}>
-          <h2 class="text-base font-semibold text-ink">{t(props.title!)}</h2>
+          <h2 class="text-base font-semibold text-ink">{props.title}</h2>
         </Show>
         <Show when={props.description}>
-          <div class="mt-3 text-sm/6 text-ink-muted">
-            {typeof props.description === 'string'
-              ? t(props.description)
-              : props.description}
-          </div>
+          <p
+            class={cn('mt-3 text-sm/6 text-ink-muted', props.descriptionClass)}
+          >
+            {props.description}
+          </p>
         </Show>
         <Show when={props.primaryAction || props.documentationUrl}>
           <div
             class={cn(
               'mt-3 flex flex-wrap gap-2 @max-sm:w-full @max-sm:flex-col',
-              props.centered ? 'justify-center' : 'justify-start'
+              props.centered ? 'justify-center' : 'justify-start',
+              props.actionsClass
             )}
           >
             <Show when={props.primaryAction}>
@@ -107,7 +110,7 @@ export function EmptyStatePanel(props: EmptyStatePanelProps) {
                   icon={action().icon}
                   onClick={action().onClick}
                 >
-                  {t(action().label)}
+                  {action().label}
                 </PillButton>
               )}
             </Show>
@@ -115,11 +118,10 @@ export function EmptyStatePanel(props: EmptyStatePanelProps) {
               {(url) => (
                 <PillButton
                   tone="subtle"
+                  icon={props.documentationIcon}
                   onClick={() => openExternalUrl(url())}
                 >
-                  {props.documentationLabel
-                    ? t(props.documentationLabel)
-                    : t('Documentation')}
+                  {props.documentationLabel ?? 'Documentation'}
                 </PillButton>
               )}
             </Show>

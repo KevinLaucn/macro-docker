@@ -788,6 +788,21 @@ enum NewEmailTier {
     Inbox,
 }
 
+impl NewEmailTier {
+    fn notification_request<'a>(
+        self,
+        builder: SendNotificationRequestBuilder<'a, NewEmailMetadata>,
+    ) -> SendNotificationRequest<'a, NewEmailMetadata, ()> {
+        let request = builder.into_request();
+        match self {
+            Self::Signal => request.with_conn_gateway(),
+            // Persist the same row, but do not deliver a new-notification event
+            // over either GraphQL or the legacy gateway (both produce popups).
+            Self::StaffInbox => request,
+        }
+    }
+}
+
 fn signal_filter(thread_id: Uuid) -> Expr<EmailLiteral> {
     Expr::and(
         Expr::Literal(EmailLiteral::ThreadId(thread_id)),

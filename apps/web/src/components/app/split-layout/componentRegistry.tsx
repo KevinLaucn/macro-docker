@@ -1,7 +1,11 @@
 import { openEntityInSplit } from '@app/features/activity/open-entity-in-split';
 import { useActivityFeedFlag } from '@app/features/activity/use-activity-feed-flag';
+import { ComposeAgentSession } from '@app/features/block-agent/component/ComposeAgentSession';
 import type { EventEditorInitialValues } from '@app/features/calendar/components/composer/event-form-model';
 import type { CalendarEvent } from '@app/features/calendar/types';
+import { ChannelsView } from '@app/features/channels-view/channels-view';
+import { EmailCompose } from '@app/features/email-compose/email-compose';
+import { EmailView } from '@app/features/email-view/email-view';
 import { GettingStarted } from '@app/features/getting-started';
 import { Home } from '@app/features/home';
 import { InboxView } from '@app/features/inbox-view/inbox-view';
@@ -15,12 +19,12 @@ import { SoupView } from '@app/features/next-soup/soup-view/soup-view';
 import { useRecentViewFlag } from '@app/features/next-soup/use-recent-view-flag';
 import { ReminderEditorSplit } from '@app/features/reminders/ReminderEditorSplit';
 import { SettingsPanelComponentWrapper } from '@app/features/settings/Settings';
+import { TasksView } from '@app/features/tasks-view/tasks-view';
 import { useAnalytics } from '@app/lib/analytics/analytics-context';
 import { useFeatureFlag, usePosthog } from '@app/lib/analytics/posthog';
 import { globalSplitManager } from '@app/signal/splitLayout';
 import { EventComposerSplit } from '@block-calendar/components/EventComposerSplit';
 import { ChannelCompose } from '@block-channel/component/Compose';
-import { EmailCompose } from '@block-email/component/compose/Compose';
 import { ComposeSkill } from '@block-md/component/ComposeSkill';
 import { ComposeTask } from '@block-md/component/ComposeTask';
 import {
@@ -39,6 +43,7 @@ import {
   LOCAL_ONLY,
 } from '@core/constant/featureFlags';
 import { useUserContext } from '@core/context/user';
+import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import type { ViewId } from '@core/types/view';
 import EmptyStatePreviewIcon from '@design/empty-state-doc.svg';
 import { useAutomationEntities } from '@queries/agent-schedule/entities';
@@ -46,8 +51,10 @@ import { EmptyStatePanel } from '@ui';
 import {
   type Component,
   createRenderEffect,
+  createSignal,
   type JSXElement,
   lazy,
+  onCleanup,
   onMount,
   Show,
 } from 'solid-js';
@@ -63,18 +70,29 @@ function usePageViewTracking(pageTitle: string) {
   });
 }
 
-function useNewAppViews() {
+const NEW_APP_VIEWS_FLAG_WAIT_MS = 5_000;
+
+function useNewAppViews(options?: {
+  enabledLayout?: () => 'legacy' | 'composable';
+}) {
   const panel = useSplitPanelOrThrow();
-  const posthog = usePosthog();
   const flag = useFeatureFlag(enableNewAppViews);
-  const ready = () =>
-    enableNewAppViews.override !== undefined || posthog.flagsLoaded();
+  const [timedOut, setTimedOut] = createSignal(false);
+  const timer = setTimeout(() => setTimedOut(true), NEW_APP_VIEWS_FLAG_WAIT_MS);
+  onCleanup(() => clearTimeout(timer));
+
+  // PostHog can be blocked or fail before invoking its flag callback. Bound
+  // the loading state so these views fall back to their legacy equivalents
+  // instead of displaying a loading block forever.
+  const ready = () => !flag().loading || timedOut();
   const enabled = () => ready() && flag().enabled;
 
   createRenderEffect(() => {
     if (!ready()) return;
     panel.handle.updateMeta?.({
-      splitPanelLayout: enabled() ? 'composable' : 'legacy',
+      splitPanelLayout: enabled()
+        ? (options?.enabledLayout?.() ?? 'composable')
+        : 'legacy',
     });
   });
 
@@ -178,25 +196,17 @@ export function resolveComponent(
   name: string,
   params?: ComponentParams
 ): ResolvedComponent {
-  const safeName = name || 'inbox';
-  const registration = REGISTRY.get(safeName);
+  const registration = REGISTRY.get(name);
   if (!registration) {
-    if (safeName?.startsWith(REMINDER_VIEW_PREFIX)) {
+    if (name.startsWith(REMINDER_VIEW_PREFIX)) {
       const base = REGISTRY.get('reminder-view');
       if (base) {
-        const reminderId = safeName.slice(REMINDER_VIEW_PREFIX.length);
+        const reminderId = name.slice(REMINDER_VIEW_PREFIX.length);
         return {
           element: () => base.factory({ ...(params ?? {}), reminderId }),
           initialMeta: base.initialMeta,
         };
       }
-    }
-    const fallback = REGISTRY.get('inbox');
-    if (fallback) {
-      return {
-        element: () => fallback.factory(params ?? {}),
-        initialMeta: fallback.initialMeta,
-      };
     }
     throw new Error(`Component '${name}' not registered`);
   }
@@ -231,7 +241,7 @@ function LegacyInboxView() {
   const preset = getViewPreset('inbox');
   return (
     <SoupView
-      viewName="Inbox"
+      viewName="Notifications"
       initialFilters={preset?.filters}
       initialClientFilters={preset?.clientFilters}
       initialGroupBy={preset?.groupBy}
@@ -384,21 +394,34 @@ registerComponent(
   })
 );
 
-registerComponent(
-  'mail',
-  withAuth(() => {
-    usePageViewTracking('mail');
-    const preset = getViewPreset('mail');
-    return (
-      <SoupView
-        viewName="Email"
-        initialFilters={preset?.filters}
-        initialClientFilters={preset?.clientFilters}
-        initialGroupBy={preset?.groupBy}
-      />
-    );
-  })
-);
+function LegacyMailView() {
+  const preset = getViewPreset('mail');
+  return (
+    <SoupView
+      viewName="Email"
+      initialFilters={preset?.filters}
+      initialClientFilters={preset?.clientFilters}
+      initialGroupBy={preset?.groupBy}
+    />
+  );
+}
+
+function RegisteredMailView() {
+  usePageViewTracking('mail');
+  const newAppViews = useNewAppViews({
+    enabledLayout: () => (isTouchDevice() ? 'legacy' : 'composable'),
+  });
+
+  return (
+    <Show when={newAppViews.ready()} fallback={<LoadingBlock />}>
+      <Show when={newAppViews.enabled()} fallback={<LegacyMailView />}>
+        <EmailView />
+      </Show>
+    </Show>
+  );
+}
+
+registerComponent('mail', withAuth(RegisteredMailView));
 
 registerComponent(
   'documents',
@@ -428,34 +451,81 @@ registerComponent(
   })
 );
 
-registerComponent(
-  'tasks',
-  withAuth(() => {
-    usePageViewTracking('tasks');
-    const user = useUserContext();
-    const preset = getViewPreset('tasks', undefined, {
-      userId: user.userId(),
-      isTeamAdmin: false,
-    });
-    return (
-      <SoupView
-        viewName="Tasks"
-        initialFilters={preset?.filters}
-        initialClientFilters={preset?.clientFilters}
-        initialGroupBy={preset?.groupBy}
-      />
-    );
-  })
-);
+function LegacyTasksView() {
+  const user = useUserContext();
+  const preset = getViewPreset('tasks', undefined, {
+    userId: user.userId(),
+    isTeamAdmin: false,
+  });
+
+  return (
+    <SoupView
+      viewName="Tasks"
+      initialFilters={preset?.filters}
+      initialClientFilters={preset?.clientFilters}
+      initialGroupBy={preset?.groupBy}
+    />
+  );
+}
+
+function RegisteredTasksView() {
+  usePageViewTracking('tasks');
+  const newAppViews = useNewAppViews();
+
+  return (
+    <Show when={newAppViews.ready()} fallback={<LoadingBlock />}>
+      <Show when={newAppViews.enabled()} fallback={<LegacyTasksView />}>
+        <TasksView />
+      </Show>
+    </Show>
+  );
+}
+
+registerComponent('tasks', withAuth(RegisteredTasksView));
+
+function LegacyChannelsView() {
+  const preset = getViewPreset('channels');
+
+  return (
+    <SoupView
+      viewName="Channels"
+      initialFilters={preset?.filters}
+      initialClientFilters={preset?.clientFilters}
+      initialGroupBy={preset?.groupBy}
+    />
+  );
+}
+
+function FeatureGatedChannelsView() {
+  const newAppViews = useNewAppViews({
+    enabledLayout: () => (isTouchDevice() ? 'legacy' : 'composable'),
+  });
+
+  return (
+    <Show when={newAppViews.ready()} fallback={<LoadingBlock />}>
+      <Show when={newAppViews.enabled()} fallback={<LegacyChannelsView />}>
+        <ChannelsView />
+      </Show>
+    </Show>
+  );
+}
+
+function RegisteredChannelsView() {
+  usePageViewTracking('channels');
+
+  return <FeatureGatedChannelsView />;
+}
+
+registerComponent('channels', withAuth(RegisteredChannelsView));
 
 registerComponent(
-  'channels',
+  'calls',
   withAuth(() => {
-    usePageViewTracking('channels');
-    const preset = getViewPreset('channels');
+    usePageViewTracking('calls');
+    const preset = getViewPreset('calls');
     return (
       <SoupView
-        viewName="Channels"
+        viewName="Calls"
         initialFilters={preset?.filters}
         initialClientFilters={preset?.clientFilters}
         initialGroupBy={preset?.groupBy}
@@ -621,14 +691,18 @@ registerComponent('email-compose', (params) => {
       .filter(Boolean);
   const draftID =
     typeof params.draftID === 'string' ? params.draftID : undefined;
-  return <EmailCompose draftID={draftID} initialTo={initialTo} />;
+  return <EmailCompose draftId={draftID} initialTo={initialTo} />;
 });
-
 registerComponent('task-compose', (params) => {
   usePageViewTracking('task-compose');
   return <ComposeTask {...params} />;
 });
-
+registerComponent('agent-session-compose', (params) => {
+  usePageViewTracking('agent-session-compose');
+  return (
+    <ComposeAgentSession preferNewSplit={params?.preferNewSplit === true} />
+  );
+});
 registerComponent('calendar-event-compose', (params) => {
   usePageViewTracking('calendar-event-compose');
   return (
@@ -752,6 +826,16 @@ if (LOCAL_ONLY) {
   registerComponent(
     'dynamic-ui',
     lazy(() => import('@app/features/dynamic-ui/Gallery'))
+  );
+
+  registerComponent(
+    'agent-ui',
+    lazy(() => import('@app/features/block-agent/debug/Gallery'))
+  );
+
+  registerComponent(
+    'agent-replay',
+    lazy(() => import('@app/features/block-agent/debug/replay/Replay'))
   );
 
   registerComponent(

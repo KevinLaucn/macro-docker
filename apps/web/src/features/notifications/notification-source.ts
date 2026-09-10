@@ -158,7 +158,10 @@ export function createNotificationSource(
 ): NotificationSource {
   const subscriptions: Set<SubscribeFn> = new Set();
 
-  const [mutedEntities, setMutedEntities] = createSignal<UserUnsubscribe[]>([]);
+  const [mutedEntitiesStore, setMutedEntities] = createStore<UserUnsubscribe[]>(
+    []
+  );
+  const mutedEntities = createMemo(() => [...mutedEntitiesStore]);
 
   const notificationsQuery = useUserNotificationsQuery(() => ({
     limit: QUERY_LIMIT,
@@ -269,8 +272,8 @@ export function createNotificationSource(
   };
 
   createEffect(() => {
-    if (!mutedEntitiesQuery.isSuccess) return;
-    const mutedEntities = mutedEntitiesQuery?.data ?? [];
+    const mutedEntities = mutedEntitiesQuery.data;
+    if (!mutedEntities) return;
     setMutedEntities(reconcile(mutedEntities));
   });
 

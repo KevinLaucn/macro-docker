@@ -11,7 +11,6 @@ import {
 import { getSplitPanelRef } from '@components/app/split-layout/layoutUtils';
 import clickOutside from '@core/directive/clickOutside';
 import { Dialog } from '@kobalte/core/dialog';
-import { t } from '@macro/i18n';
 import {
   type Accessor,
   createSignal,
@@ -83,7 +82,7 @@ function AgentRenameModalContent(props: {
           <Dialog.Content class="pointer-events-none!">
             <div class="pointer-events-auto w-full max-w-[min(36rem,calc(100%-1rem))] mx-auto mt-16 bg-surface border border-edge h-fit p-2">
               <div class="w-full my-1">
-                <EntityModalTitle title={t('Rename')} />
+                <EntityModalTitle title="Rename" />
                 <div class="w-full">
                   <input
                     ref={(el) => {
@@ -99,13 +98,13 @@ function AgentRenameModalContent(props: {
                     onInput={(e) => setEditValue(e.currentTarget.value)}
                     onKeyDown={handleKeyDown}
                     class="w-full p-2 text-sm border border-edge bg-surface text-ink placeholder:text-ink-placeholder focus:outline-none focus:bg-active selection:bg-ink selection:text-surface"
-                    placeholder={t('Enter title...')}
+                    placeholder="Enter title..."
                   />
                 </div>
                 <EntityModalActionFooter
                   onCancel={close}
                   onConfirm={finishEditing}
-                  confirmText={t('Rename')}
+                  confirmText="Rename"
                 />
               </div>
             </div>

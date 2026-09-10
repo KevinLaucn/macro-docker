@@ -50,7 +50,13 @@ use teams::domain::team_repo::TeamService;
 
 /// Macro support team members added to every new user's support channel.
 #[cfg(feature = "full-saas")]
-const MACRO_SUPPORT_EMAILS: [&str; 3] = ["jacob@macro.com", "julia@macro.com", "teo@macro.com"];
+const MACRO_SUPPORT_EMAILS: [&str; 5] = [
+    "jacob@macro.com",
+    "julia@macro.com",
+    "teo@macro.com",
+    "valentina@macro.com",
+    "chaitanya@macro.com",
+];
 
 #[cfg(feature = "full-saas")]
 fn support_channel_name<T: AsRef<str>>(email: &Email<T>) -> String {

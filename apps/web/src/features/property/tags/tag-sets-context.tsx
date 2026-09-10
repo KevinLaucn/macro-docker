@@ -21,32 +21,18 @@ const TagSetsContext = createContext<TagSetsContextValue>();
 
 /** Shares loaded tag definitions with a feature subtree. */
 export const TagSetsProvider: FlowComponent<{ tagSets: TagSets }> = (props) => {
-  const safeTagSets = (): TagSetResponse[] => {
-    try {
-      const res = props.tagSets();
-      return Array.isArray(res) ? res : [];
-    } catch {
-      return [];
-    }
-  };
-
   const optionById = createMemo(() => {
     const options = new Map<string, TagOption>();
-    const sets = safeTagSets();
-    for (const set of sets) {
-      if (Array.isArray(set?.options)) {
-        for (const option of set.options) {
-          if (option?.id) {
-            options.set(option.id, { option, scope: set.scope });
-          }
-        }
+    for (const set of props.tagSets()) {
+      for (const option of set.options) {
+        options.set(option.id, { option, scope: set.scope });
       }
     }
     return options;
   });
 
   return (
-    <TagSetsContext.Provider value={{ tagSets: safeTagSets, optionById }}>
+    <TagSetsContext.Provider value={{ tagSets: props.tagSets, optionById }}>
       {props.children}
     </TagSetsContext.Provider>
   );
@@ -55,8 +41,9 @@ export const TagSetsProvider: FlowComponent<{ tagSets: TagSets }> = (props) => {
 /** Explicit query-owning adapter for standalone tag-aware lists. */
 export const TagSetsQueryProvider: FlowComponent = (props) => {
   const tagsQuery = useTagsQuery();
+  // Avoid suspending on a cold query, but retain cached tags after refetch errors.
   const tagSets = (): TagSetResponse[] =>
-    Array.isArray(tagsQuery.data) ? tagsQuery.data : [];
+    tagsQuery.isPending ? [] : (tagsQuery.data ?? []);
 
   return <TagSetsProvider tagSets={tagSets}>{props.children}</TagSetsProvider>;
 };

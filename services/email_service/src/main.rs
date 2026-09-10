@@ -18,7 +18,6 @@ use email::{
 use email_api_client::GmailApiClientRepository;
 #[cfg(feature = "calendar")]
 use email_service::calendar_refresh::ConnectionGatewayCalendarRefresh;
-#[cfg(feature = "calendar")]
 use email_service::calendar_tokens::CalendarTokenProviderAdapter;
 use email_service::outbound::email_api::{
     EmailServiceTokenSource, GmailApi, RateBudget, RedisProviderRateLimiter,

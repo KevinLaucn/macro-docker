@@ -179,7 +179,7 @@ const markdownDocumentsQuery = buildDocumentTypeQuery(['doc-markdown']);
 const SIDEBAR_LINKS: SidebarItem[] = [
   {
     id: 'inbox',
-    label: 'Inbox',
+    label: 'Notifications',
     href: LIST_VIEW_PATHS.inbox,
     icon: AnimatedInboxIcon,
     hotkey: 'i',

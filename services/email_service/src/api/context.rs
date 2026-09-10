@@ -15,7 +15,6 @@ use email::{
 };
 #[cfg(feature = "calendar")]
 use email_service::calendar_refresh::ConnectionGatewayCalendarRefresh;
-#[cfg(feature = "calendar")]
 use email_service::calendar_tokens::CalendarTokenProviderAdapter;
 #[cfg(feature = "calendar")]
 use email_service::pubsub::calendar_backfill_adapters::RedisCalendarRequestGate;
