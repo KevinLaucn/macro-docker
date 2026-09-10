@@ -36,6 +36,7 @@ use models_email::service::attachment::{
 use models_email::service::message::{Message, is_inbound, is_outbound, is_spam_or_trash};
 use models_email::service::pubsub::{DetailedError, FailureReason, ProcessingError};
 use models_email::service::thread::Thread;
+use notification::domain::models::{SendNotificationRequest, SendNotificationRequestBuilder};
 use std::collections::HashSet;
 use std::result;
 use std::sync::Arc;
@@ -786,6 +787,21 @@ enum NewEmailTier {
     Signal,
     /// Standard inbox item.
     Inbox,
+}
+
+impl NewEmailTier {
+    fn notification_request<'a>(
+        self,
+        builder: SendNotificationRequestBuilder<'a, NewEmailMetadata>,
+    ) -> SendNotificationRequest<'a, NewEmailMetadata, ()> {
+        let request = builder.into_request();
+        match self {
+            Self::Signal => request.with_conn_gateway(),
+            // Persist the same row, but do not deliver a new-notification event
+            // over either GraphQL or the legacy gateway (both produce popups).
+            Self::Inbox => request,
+        }
+    }
 }
 
 fn signal_filter(thread_id: Uuid) -> Expr<EmailLiteral> {

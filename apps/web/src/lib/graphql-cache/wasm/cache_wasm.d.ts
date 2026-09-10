@@ -214,10 +214,10 @@ export interface InitOutput {
     readonly register_uuid_blob: (a: number) => number;
     readonly register_uuid_str: (a: number) => number;
     readonly register_regexp: (a: number) => number;
-    readonly wasm_bindgen__convert__closures_____invoke__h0c89660d9d366ea6: (a: number, b: number, c: any) => [number, number];
-    readonly wasm_bindgen__convert__closures_____invoke__h155dc44fcae40c6b: (a: number, b: number, c: any, d: any) => void;
-    readonly wasm_bindgen__convert__closures_____invoke__hc1f1d3afc5e8cd31: (a: number, b: number, c: any) => any;
-    readonly wasm_bindgen__convert__closures_____invoke__hc1f1d3afc5e8cd31_1: (a: number, b: number, c: any) => any;
+    readonly wasm_bindgen__convert__closures_____invoke__h94f0c5a74a52e63d: (a: number, b: number, c: any) => [number, number];
+    readonly wasm_bindgen__convert__closures_____invoke__hdd954863ec1480f6: (a: number, b: number, c: any, d: any) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__h0d09de81a835280a: (a: number, b: number, c: any) => any;
+    readonly wasm_bindgen__convert__closures_____invoke__h0d09de81a835280a_1: (a: number, b: number, c: any) => any;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;

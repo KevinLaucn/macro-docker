@@ -1,10 +1,17 @@
-import type { ApiMessage } from '@service-email/generated/schemas';
 import { translateHtml } from './translateHtml';
 import { translateText } from './translateText';
 import type { MessageTranslationData } from './types';
 
+export type TranslatableMessage = {
+  db_id?: string | null;
+  body_html_sanitized?: string | null;
+  body_replyless?: string | null;
+  body_macro?: string | null;
+  body_text?: string | null;
+};
+
 export async function translateSingleMessage(
-  message: ApiMessage
+  message: TranslatableMessage
 ): Promise<MessageTranslationData> {
   const result: MessageTranslationData = {
     status: 'translated',

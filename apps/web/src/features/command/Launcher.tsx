@@ -1,7 +1,9 @@
+import { startPendingSession } from '@app/features/block-agent/context/pending-session';
+import { AGENT_INPUT_TEXT_AREA_ID } from '@app/features/block-agent/ui/AgentInput';
+import { EMAIL_COMPOSE_TO_INPUT_ID } from '@app/features/email-compose/core/constants';
 import { openStandaloneReminderComposer } from '@app/features/reminders/reminder-composer';
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
 import { setAutomationComposerOpen } from '@block-automation/component';
-import { EMAIL_COMPOSE_TO_INPUT_ID } from '@block-email/constants';
 import {
   endTrackedDocumentSpan,
   registerDocumentSpan,
@@ -14,6 +16,7 @@ import { CHAT_INPUT_TEXT_AREA_ID } from '@core/component/AI/component/input/Chat
 import { getIconConfig } from '@core/component/EntityIcon';
 import {
   ENABLE_ANIMATED_ICONS,
+  enableAgentSessionComposer,
   enableChatV3Agents,
   enableReminders,
   enableSnippets,
@@ -60,12 +63,12 @@ import WideStar from '@icon/wide-star.svg';
 import { AnimatedTaskIcon } from '@icon/wide-task';
 import WideTask from '@icon/wide-task.svg';
 import { Dialog } from '@kobalte/core/dialog';
-import { t } from '@macro/i18n';
 import { getMarkdownGoldenBytes } from '@macro-inc/lexical-core/markdown-golden';
 import type { Span } from '@macro-inc/observability';
 import BellSimpleIcon from '@phosphor/bell-simple.svg';
 import MagnifyingGlassIcon from '@phosphor/magnifying-glass.svg';
 import PlusIcon from '@phosphor/plus.svg';
+import Robot from '@phosphor/robot.svg';
 import { createProject } from '@queries/storage/projects';
 import { makePersisted } from '@solid-primitives/storage';
 import {
@@ -235,13 +238,18 @@ const createComponent = async (spec: {
   componentId: string;
   shouldInsert?: boolean;
   asPopover?: boolean;
+  params?: Record<string, unknown>;
 }) => {
   const { openWithSplit, popoverSplit } = useSplitLayout();
 
   // For popovers, create the popover BEFORE closing launcher
   // so the popover can acquire the focus lock while launcher still owns rootFocusElement
   if (spec.asPopover) {
-    popoverSplit({ type: 'component', id: spec.componentId });
+    popoverSplit({
+      type: 'component',
+      id: spec.componentId,
+      params: spec.params,
+    });
     setCreateMenuOpen(false, false);
     return;
   }
@@ -267,8 +275,6 @@ export function runCreateAction(
   const source = options.source ?? 'create_menu';
 
   switch (blockName) {
-    case 'agent':
-      return runCreateAction('chat', options);
     case 'md': {
       const span = startDocumentSpan('doc.create');
       span.setAttr('doc.type', 'md');
@@ -412,6 +418,44 @@ export function runCreateAction(
       setCreateMenuOpen(false, false);
       openStandaloneReminderComposer();
       return;
+    case 'agent': {
+      if (isFeatureEnabled(enableAgentSessionComposer)) {
+        createComponent({
+          componentId: 'agent-session-compose',
+          asPopover: true,
+          // The popover itself is not split-placed; the session it creates
+          // is, so the new-split intent rides along for the composer to honor.
+          params: { preferNewSplit: shouldInsert },
+        });
+        return;
+      }
+      // Without the composer there is nothing to ask for: a managed session's
+      // bot, repository and workspace are all deployment configuration, so
+      // this opens one straight away.
+      //
+      // Opened against a placeholder rather than awaited: the create does not
+      // answer until its sandbox has booted and cloned the repo, and no one
+      // should watch a spinner for that. The block mounts now — composer live,
+      // prompts queueing — and adopts the real id when it lands
+      // (`block-agent/context/pending-session.ts`).
+      const { openWithSplit } = useSplitLayout();
+      setCreateMenuOpen(false, false);
+      // On mobile the agent input doesn't autofocus on mount, so arm focus
+      // within this gesture (iOS only raises the keyboard for a synchronous
+      // focus). The block mounts asynchronously, so this waits for the input.
+      if (isMobile()) {
+        triggerFocusInput(() =>
+          document
+            .getElementById(AGENT_INPUT_TEXT_AREA_ID)
+            ?.querySelector<HTMLElement>('[contenteditable="true"]')
+        );
+      }
+      openWithSplit(
+        { type: 'agent', id: startPendingSession() },
+        { referredFrom: 'launcher', preferNewSplit: shouldInsert }
+      );
+      return;
+    }
   }
 }
 
@@ -435,7 +479,7 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
   },
   {
     // The pre-agent-session chat, kept on `a` for anyone the new agent flag
-    // has not reached. Mutually exclusive with the Coding Agent entry below:
+    // has not reached. Mutually exclusive with the Agent entry below:
     // both bind `a`, and exactly one is ever enabled.
     label: 'Agent',
     icon: WideStar,
@@ -471,7 +515,23 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
       return true;
     },
   },
-
+  {
+    label: 'Agent',
+    icon: Robot,
+    description: 'Create agent session',
+    launcherHint: 'Dedicated Agent Session',
+    keywords: ['new', 'make', 'add', 'agent', 'code', 'coder', 'session'],
+    blockName: 'agent',
+    hotkeyToken: TOKENS.create.agent,
+    altHotkeyToken: TOKENS.create.agentNewSplit,
+    hotkey: 'a',
+    registrationType: 'add',
+    enabled: () => isFeatureEnabled(enableChatV3Agents),
+    keyDownHandler: () => {
+      runCreateAction('agent', { shouldInsert: pressedKeys().has('shift') });
+      return true;
+    },
+  },
   {
     label: 'Skill',
     icon: SkillIcon,
@@ -672,10 +732,7 @@ export function useCreateMenuBlocks(
  */
 export function useCreatableEnabled(): (name: CreatableName) => boolean {
   const blocks = useCreateMenuBlocks();
-  return (name) =>
-    blocks().some((block) =>
-      name === 'agent' ? block.blockName === 'chat' : block.blockName === name
-    );
+  return (name) => blocks().some((block) => block.blockName === name);
 }
 
 export const [createMenuOpen, setCreateMenuOpen] = createControlledOpenSignal(
@@ -716,12 +773,12 @@ const LauncherMenuItem = (props: LauncherMenuItemProps) => {
 
       <div class="min-w-0 flex-1 flex items-baseline gap-2">
         <span class="truncate text-sm font-medium text-ink">
-          {t(props.creatableBlock.label)}
+          {props.creatableBlock.label}
         </span>
         <Show when={launcherHint()}>
           {(hint) => (
             <span class="min-w-0 truncate font-medium text-ink-extra-muted/70">
-              {t(hint())}
+              {hint()}
             </span>
           )}
         </Show>
@@ -890,7 +947,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   registerHotkey({
     hotkey: 'escape',
     scopeId: launcherScope,
-    description: t('Exit'),
+    description: 'Exit',
     keyDownHandler: () => {
       props.onClose();
       return true;
@@ -900,7 +957,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   registerHotkey({
     hotkey: 'shift+enter',
     scopeId: launcherScope,
-    description: t('Open in new split', { context: 'launcher' }),
+    description: 'Open in new split',
     keyDownHandler: () => {
       return runLauncherItem(blocks()[focusedIndex()]);
     },
@@ -911,7 +968,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   const confirmHotkey = registerHotkey({
     hotkey: 'enter' as ValidHotkey,
     scopeId: launcherScope,
-    description: t('Open in current split', { context: 'launcher' }),
+    description: 'Open in current split',
     keyDownHandler: () => {
       return runLauncherItem(blocks()[focusedIndex()]);
     },
@@ -965,9 +1022,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
             fallback={
               <div class="min-w-0 flex flex-1 items-center gap-2 text-ink-muted">
                 <PlusIcon class="size-4 shrink-0 text-ink-extra-muted" />
-                <h1 class="truncate text-base font-normal">
-                  {t('Create New')}
-                </h1>
+                <h1 class="truncate text-base font-normal">Create New</h1>
               </div>
             }
           >
@@ -976,7 +1031,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
               <CommandMenuSearchInput
                 ref={searchInputRef}
                 type="text"
-                placeholder={t('Search create options')}
+                placeholder="Search create options"
                 value={searchQuery()}
                 onInput={(event) => setSearchQuery(event.currentTarget.value)}
               />
@@ -988,7 +1043,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
             size="xs"
             label={
               <span class="flex items-center gap-1 text-[11px] font-medium leading-none text-ink-extra-muted/70">
-                {t('Search mode')}{' '}
+                Search mode{' '}
                 <Hotkey
                   shortcut={searchModeHotkey.hotkey()}
                   theme="subtle"
@@ -1041,14 +1096,14 @@ export const LauncherInner = (props: LauncherInnerProps) => {
                 <Hotkey shortcut={navDownHotkey.hotkey()} class="space-x-1" />
               </div>
             </div>
-            {t('Navigate')}
+            Navigate
           </span>
           <CommandMenuHotkeyHint
             hotkey={<Hotkey shortcut={confirmHotkey.hotkey()} />}
-            label={t('Create', { context: 'launcher' })}
+            label="Create"
           />
           <span class="hidden touch:hidden md:flex items-center gap-1">
-            {t('Hold')}
+            Hold
             <span class="relative inline-flex place-items-center">
               <span
                 ref={shiftRippleRef}
@@ -1065,7 +1120,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
                 {getNormalizedKeyString({ shortcut: 'shift' })}
               </span>
             </span>
-            {t('New split')}
+            New split
           </span>
         </CommandMenuShell.Footer>
       </CommandMenuShell>

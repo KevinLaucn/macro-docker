@@ -1,12 +1,13 @@
 import { FloatRegionOrInline } from '@components/app/mobile/float-regions/FloatRegion';
 import { SidePanel } from '@components/app/side-panel';
 import { SplitPanelContext } from '@components/app/split-layout/context';
+import { useCanAutofocusSplitContent } from '@components/app/split-layout/layoutUtils';
+import { useNavigatedFromJK } from '@components/app/useNavigatedFromJK';
 import { useBlockId } from '@core/block';
 import { LoadErrorPanel } from '@core/component/EntityLoadGate';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { LinkedConversationDrawer } from '@core/linked-conversation';
 import { nativeNetworkStatus } from '@core/mobile/native-network-status';
-import { t } from '@macro/i18n';
 import { Show, useContext } from 'solid-js';
 
 import {
@@ -26,6 +27,8 @@ import { Transcript } from './Transcript';
 function AgentBlockContent() {
   const { session, metadata, loadFailed, loadRetryable, pending, retryLoad } =
     useAgentSession();
+  const canAutofocusSplitContent = useCanAutofocusSplitContent();
+  const { navigatedFromJK } = useNavigatedFromJK();
 
   // Nothing loaded and no way forward: the load failed outright, or the
   // device is offline and the pending load cannot complete until
@@ -41,7 +44,7 @@ function AgentBlockContent() {
       when={!loadUnavailable()}
       fallback={
         <LoadErrorPanel
-          title={t('Unable to load this document')}
+          title="Unable to load this document"
           onRetry={loadRetryable() ? retryLoad : undefined}
         />
       }
@@ -68,7 +71,9 @@ function AgentBlockContent() {
                     contribution — the float host is pointer-transparent. */}
                 <div class="flex w-full justify-center shrink-0 px-4 pb-4 pointer-events-auto touch:px-(--mobile-chrome-gutter) touch:pb-0">
                   <div class="macro-message-width mx-auto">
-                    <AgentComposer />
+                    <AgentComposer
+                      autofocus={canAutofocusSplitContent && !navigatedFromJK()}
+                    />
                   </div>
                 </div>
               </FloatRegionOrInline>

@@ -1,5 +1,4 @@
 import { SoupSectionHeader } from '@app/features/next-soup/soup-view/section-header';
-import { t } from '@macro/i18n';
 import { type JSX, Show } from 'solid-js';
 import type { EntityDisplay } from '../context/activity-context';
 import type { ActivityTopEntity } from '../core/event';
@@ -16,7 +15,7 @@ export function TopEntitiesSection(props: { children: JSX.Element }) {
       aria-labelledby="activity-most-active-heading"
     >
       <SoupSectionHeader class="mx-0 my-0 w-full">
-        <h2 id="activity-most-active-heading">{t('Most active')}</h2>
+        <h2 id="activity-most-active-heading">Most active</h2>
       </SoupSectionHeader>
       <div class="flex min-w-0 flex-wrap items-center gap-1.5 px-1">
         {props.children}
@@ -43,14 +42,14 @@ export function TopEntityChip(props: {
     >
       <Show
         when={props.display}
-        fallback={<span class="text-ink-extra-muted">{t('Item')}</span>}
+        fallback={<span class="text-ink-extra-muted">Item</span>}
       >
         {(display) => (
           <>
             <span class="flex shrink-0 items-center [&_svg]:size-3.5">
               {display().icon()}
             </span>
-            <span class="max-w-[24ch] truncate text-ink">
+            <span class="max-w-[24ch] truncate text-ink @max-md/u-list:max-w-[16ch]">
               {display().name()}
             </span>
           </>

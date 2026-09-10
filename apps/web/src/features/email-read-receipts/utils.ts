@@ -98,3 +98,46 @@ export function stripBlockedTrackingPixelsFromHtml(html: string): string {
 
   return template.innerHTML;
 }
+
+const OPEN_TRACKING_PATH = '/t/o/';
+
+function isMacroTrackingPixelUrl(src: string): boolean {
+  if (!src.includes(OPEN_TRACKING_PATH)) return false;
+  try {
+    const url = new URL(src, typeof window !== 'undefined' ? window.location.origin : undefined);
+    if (!url.pathname.includes(OPEN_TRACKING_PATH)) return false;
+
+    if (/^email-service[a-z0-9.-]*\.macro\.com$/.test(url.hostname)) {
+      return true;
+    }
+
+    if (typeof window !== 'undefined' && url.origin === window.location.origin) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Removes Macro open-tracking pixels from a rendered sent-mail body.
+ */
+export function removeOwnTrackingPixels(root: ParentNode): void {
+  for (const img of Array.from(root.querySelectorAll('img'))) {
+    const src = img.getAttribute('src') ?? '';
+    if (isMacroTrackingPixelUrl(src)) img.remove();
+  }
+}
+
+/**
+ * Strips Macro tracking pixels while the HTML is still inert.
+ */
+export function stripOwnTrackingPixelsFromHtml(html: string): string {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  removeOwnTrackingPixels(template.content);
+  return template.innerHTML;
+}
+

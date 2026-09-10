@@ -14,10 +14,15 @@ import { isMobile } from '@core/mobile/isMobile';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { useTouchOutsideToDismissKeyboard } from '@core/mobile/useTouchOutsideToDismissKeyboard';
 import { $insertReferencedPaste } from '@macro-inc/lexical-core';
-import { t } from '@macro/i18n';
 import EnterIcon from '@phosphor-icons/core/regular/arrow-bend-down-left.svg?component-solid';
 import { Button, SendButton, Surface } from '@ui';
 import { createSignal, type JSX, onCleanup, onMount, Show } from 'solid-js';
+
+/**
+ * Id of the agent input's text-area wrapper. Exposed so callers (e.g. the
+ * mobile Create menu) can arm focus on the contenteditable before it mounts.
+ */
+export const AGENT_INPUT_TEXT_AREA_ID = 'agent-input-text-area';
 
 /** Quote text into the composer as a referenced paste chip. */
 export type QuoteInsert = (text: string) => void;
@@ -175,6 +180,7 @@ export function AgentInput(props: AgentInputProps) {
             paragraphs carry my-1.5, so the row's py-1.5 is the whole frame —
             the same 44px single-line height as ChatInput. */}
           <div
+            id={AGENT_INPUT_TEXT_AREA_ID}
             ref={bodyRef}
             class="min-w-0 flex-1 pl-1 text-sm text-ink touch:pl-0 touch:text-base"
             classList={{
@@ -190,9 +196,9 @@ export function AgentInput(props: AgentInputProps) {
             <MarkdownShell
               config={editor}
               placeholder={
-                props.placeholder ?? t('Message the agent, @mention anything')
+                props.placeholder ?? 'Message the agent, @mention anything'
               }
-              autofocus={props.autofocus}
+              autofocus={!isMobile() && !isTouchDevice() && props.autofocus}
             />
           </div>
 
@@ -206,7 +212,7 @@ export function AgentInput(props: AgentInputProps) {
                 when={props.busy && props.onStop}
                 fallback={
                   <SendButton
-                    tooltip={t('Send')}
+                    tooltip="Send"
                     disabled={!canSend()}
                     onClick={send}
                   />
@@ -218,7 +224,7 @@ export function AgentInput(props: AgentInputProps) {
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      label={t('Stop')}
+                      label="Stop"
                       onClick={() => props.onStop?.()}
                       class="rounded-[11px] size-7.5 text-ink-extra-muted not-disabled:bg-ink/5 not-disabled:hover:bg-ink/10"
                     >
@@ -227,8 +233,8 @@ export function AgentInput(props: AgentInputProps) {
                   }
                 >
                   <SendButton
-                    aria-label={t('Send next queued message')}
-                    tooltip={t('Send next queued message')}
+                    aria-label="Send next queued message"
+                    tooltip="Send next queued message"
                     shortcut="Enter"
                     onClick={sendNext}
                   >

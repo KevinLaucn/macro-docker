@@ -5,6 +5,7 @@ import type {
   MessageTranslationData,
   MessageTranslationOverride,
   RowTranslationData,
+  ThreadTitleTranslationData,
   TranslationStatus,
 } from './types';
 
@@ -146,6 +147,9 @@ export async function toggleGlobalListTranslation(
 const [threadStatuses, setThreadStatuses] = createStore<
   Record<string, TranslationStatus>
 >({});
+const [threadTitleTranslations, setThreadTitleTranslations] = createStore<
+  Record<string, ThreadTitleTranslationData>
+>({});
 
 export function getThreadTranslationStatus(
   threadId: string
@@ -158,6 +162,19 @@ export function setThreadTranslationStatus(
   status: TranslationStatus
 ): void {
   setThreadStatuses(threadId, status);
+}
+
+export function getThreadTitleTranslation(
+  threadId: string
+): ThreadTitleTranslationData | undefined {
+  return threadTitleTranslations[threadId];
+}
+
+export function setThreadTitleTranslation(
+  threadId: string,
+  data: ThreadTitleTranslationData
+): void {
+  setThreadTitleTranslations(threadId, data);
 }
 
 // 4. Message-level override: 'inherit' | 'translated' | 'original'
@@ -213,6 +230,7 @@ export function clearThreadTranslation(
   messageIds: string[] = []
 ): void {
   setThreadStatuses(threadId, 'idle');
+  setThreadTitleTranslations(threadId, { status: 'idle' });
   for (const mid of messageIds) {
     setMessageOverrides(mid, 'inherit');
   }

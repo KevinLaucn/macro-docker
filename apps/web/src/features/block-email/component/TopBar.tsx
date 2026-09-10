@@ -3,6 +3,7 @@ import {
   ChatWithAgentIcon,
   openChatWithAgent,
 } from '@app/features/chat/ChatWithAgentButton';
+import { useEmailThreadState } from '@app/features/email-thread/context/email-thread-state-context';
 import { makeMoveToProjectAction } from '@app/features/next-soup/actions';
 import { useMaybeSoup } from '@app/features/next-soup/soup-context';
 import {
@@ -33,7 +34,6 @@ import {
 import { ENABLE_EMAIL_SHARING } from '@core/constant/featureFlags';
 import { registerHotkey } from '@core/hotkey/hotkeys';
 import { TOKENS } from '@core/hotkey/tokens';
-import { getActiveCommandByToken, runCommand } from '@core/hotkey/utils';
 import { isMobile } from '@core/mobile/isMobile';
 import { buildEntityData } from '@entity';
 import { AnimatedNoiseIcon } from '@icon/wide-noise';
@@ -51,7 +51,6 @@ import ArrowCounterClockwise from '@phosphor-icons/core/regular/arrow-counter-cl
 import { useEmailLinksQuery } from '@queries/email/link';
 import { Button } from '@ui';
 import { onCleanup, Show } from 'solid-js';
-import { useEmailContext } from './EmailContext';
 
 export function TopBar(props: {
   id: string;
@@ -61,7 +60,7 @@ export function TopBar(props: {
 }) {
   const splitPanel = useSplitPanel();
   const shareCtx = useShareDialogContext();
-  const emailCtx = useEmailContext();
+  const emailCtx = useEmailThreadState();
   const soup = useMaybeSoup();
   const linksQuery = useEmailLinksQuery();
   const sidePanel = useSidePanel();
@@ -110,7 +109,7 @@ export function TopBar(props: {
       projectId: thread?.project_id ?? undefined,
       isRead: thread?.is_read,
       isDraft: props.isDraft,
-      done: thread?.workflow_done,
+      done: isDone(),
     });
   };
 
@@ -119,10 +118,6 @@ export function TopBar(props: {
     if (!entity || !moveToProjectAction.canExecute(entity)) return;
     void moveToProjectAction.execute([entity]);
   };
-
-  // A send-only thread is permanently done, so neither half of the toggle
-  // does anything — hide it rather than offer a no-op.
-  const showMarkDoneToggle = () => !isDone() || emailCtx.canMarkThreadNotDone();
 
   const toggleMarkDone = () => {
     if (isDone() && emailCtx.canMarkThreadNotDone()) {

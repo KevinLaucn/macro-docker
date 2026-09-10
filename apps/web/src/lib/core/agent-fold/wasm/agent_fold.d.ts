@@ -5,12 +5,13 @@
  * One live session's fold, held open between frames.
  *
  * The streaming counterpart to [`fold_session`], wrapping the same
- * [`FoldMachineImpl`] the server folds with. A caller following a session
+ * [`crate::domain::fold::FoldMachineImpl`] the server folds with. A caller following a session
  * keeps one of these per session for as long as the session lasts: frames
- * must arrive in log order, and the machine only ever grows.
+ * must arrive in log order. Successful loads replace its committed history.
  *
- * A client that opens a channel mid-session catches up with [`Self::extend`]
- * and then follows with [`Self::push`] on the *same* machine. Refolding the
+ * A durable-log client catches up with [`Self::snapshot`] and follows with
+ * [`Self::push_rows`]. Raw recording consumers use [`Self::extend`] and
+ * [`Self::push`] without requiring row metadata. Refolding the
  * fetched log into a throwaway and then pushing live frames into a second
  * machine would derive the same messages twice from different halves of the
  * log; there is one machine per session precisely so that cannot happen.
@@ -60,7 +61,8 @@ export class FoldStream {
     constructor(session_id: string);
     /**
      * Fold one more frame, reporting the changes it implied as an array of
-     * `{kind: "new" | "update", message}` and `{kind: "metadata", metadata}`
+     * `{kind: "new" | "update", message}`, `{kind: "replace", messages}`,
+     * and `{kind: "metadata", metadata}`
      * events - empty for a frame that changes nothing, which is most of
      * them.
      *
@@ -69,6 +71,20 @@ export class FoldStream {
      * Returns a JS string when the entry is not a log frame.
      */
     push(entry: any): any;
+    /**
+     * Ingest durable live rows in delivery order, including snapshot overlap.
+     *
+     * # Errors
+     * Returns a JS string if any row cannot be read or events cannot be encoded.
+     */
+    push_rows(entries: any): any;
+    /**
+     * Replace this fold with a durable effective-history snapshot.
+     *
+     * # Errors
+     * Returns a JS string if any durable row cannot be read.
+     */
+    snapshot(entries: any): any;
 }
 
 /**
@@ -99,6 +115,8 @@ export interface InitOutput {
     readonly foldstream_metadata: (a: number) => [number, number, number];
     readonly foldstream_new: (a: number, b: number) => [number, number, number];
     readonly foldstream_push: (a: number, b: any) => [number, number, number];
+    readonly foldstream_push_rows: (a: number, b: any) => [number, number, number];
+    readonly foldstream_snapshot: (a: number, b: any) => [number, number, number];
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;

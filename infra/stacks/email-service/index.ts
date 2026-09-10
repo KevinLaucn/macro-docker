@@ -428,7 +428,6 @@ const emailService = new EmailService('email-service', {
   clusterName: cloudStorageClusterName,
   role: emailServiceRole,
   serviceContainerPort: 8080,
-  isPrivate: false,
   healthCheckPath: '/health',
   platform: { family: 'linux', architecture: 'amd64' },
   containerEnvVars,

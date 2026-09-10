@@ -7,6 +7,7 @@ import {
 } from '@core/constant/featureFlags';
 import { DEFAULT_THREAD_MESSAGES_LIMIT } from '@core/constant/pagination';
 import { catchToResult, throwOnErr } from '@core/util/result';
+import { Telemetry } from '@macro-inc/observability';
 import ArrowCounterClockwise from '@phosphor-icons/core/regular/arrow-counter-clockwise.svg?component-solid';
 import { queryClient } from '@queries/client';
 import { emailClient } from '@service-email/client';
@@ -595,31 +596,43 @@ export function useSendMessageMutation(
     ...withCallbacks<SendMessageResponse, Error, SendMessageParams>(
       {
         onSuccess: (data, vars) => {
-          analytics.track('email_message_sent');
-          const threadID = data.message.thread_db_id;
-          if (threadID) {
-            queryClient.invalidateQueries({
-              queryKey: emailKeys.threadMessages(threadID).queryKey,
-            });
-            // Sending a reply reactivates the workflow immediately in local
-            // cache, using the same restore-first pattern as Undo: flip the
-            // entity to not-done and put it straight back into Important/Inbox
-            // style done-filtered views. Do not wait for Gmail/provider sync or
-            // refetch here; an early server read can still carry the previous
-            // workflow_done=true and overwrite the correct optimistic UI.
-            if (!vars.skipSoupRefetch) {
-              optimisticUpdateSoupEntity({
-                tag: 'emailThread',
-                data: { id: threadID, workflowDone: false },
-                frecency_score: 0,
-              });
-              restoreSoupEntityToDoneFilteredQueries(threadID);
-            }
+          try {
+            analytics.track('email_message_sent');
+          } catch (error) {
+            Telemetry.error(error);
           }
-          queryClient.invalidateQueries({
-            queryKey: emailKeys.previews._def,
-            refetchType: 'none',
-          });
+          try {
+            const threadID = data.message.thread_db_id;
+            if (threadID) {
+              void queryClient
+                .invalidateQueries({
+                  queryKey: emailKeys.threadMessages(threadID).queryKey,
+                })
+                .catch(Telemetry.error);
+              // Sending a reply reactivates the workflow immediately in local
+              // cache, using the same restore-first pattern as Undo: flip the
+              // entity to not-done and put it straight back into Important/Inbox
+              // style done-filtered views. Do not wait for Gmail/provider sync or
+              // refetch here; an early server read can still carry the previous
+              // workflow_done=true and overwrite the correct optimistic UI.
+              if (!vars.skipSoupRefetch) {
+                optimisticUpdateSoupEntity({
+                  tag: 'emailThread',
+                  data: { id: threadID, workflowDone: false },
+                  frecency_score: 0,
+                });
+                restoreSoupEntityToDoneFilteredQueries(threadID);
+              }
+            }
+            void queryClient
+              .invalidateQueries({
+                queryKey: emailKeys.previews._def,
+                refetchType: 'none',
+              })
+              .catch(Telemetry.error);
+          } catch (error) {
+            Telemetry.error(error);
+          }
         },
       },
       callbacks
@@ -697,9 +710,15 @@ export function useUnscheduleMessageMutation(
     ...withCallbacks<void, Error, UnscheduleMessageParams>(
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: emailKeys.previews._def,
-          });
+          try {
+            void queryClient
+              .invalidateQueries({
+                queryKey: emailKeys.previews._def,
+              })
+              .catch(Telemetry.error);
+          } catch (error) {
+            Telemetry.error(error);
+          }
         },
       },
       callbacks

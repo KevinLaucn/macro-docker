@@ -21,20 +21,12 @@ import RenameIcon from '@phosphor/pencil-line.svg';
 import { handleAgentSessionRenamed } from '@queries/agent-session/session-metadata-sync';
 import { agentHarnessServiceClient } from '@service-agent-harness/client';
 import type { AgentSessionResponse } from '@service-agent-harness/generated/schemas';
-import { t } from '@macro/i18n';
 import { createSignal, For, Show } from 'solid-js';
 import { useAgentSession } from '../context/AgentSessionContext';
 import { AgentRenameModal } from './AgentRenameModal';
+import { harnessTitle } from './compose-agent-session-options';
 
-/** 'claude-code' → 'Claude Code'; the fallback when the fold has no title. */
-export function harnessTitle(harness: string | undefined): string {
-  if (!harness) return t('Agent session');
-  return harness
-    .split(/[-_]/)
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
+export { harnessTitle };
 
 /**
  * Agent-session identity in the split header chrome plus the standard split
@@ -69,7 +61,7 @@ export function AgentSplitHeader(props: {
     if (!id) return;
     const result = await agentHarnessServiceClient.rename(id, name);
     if (result.isErr()) {
-      toast.failure(t('Failed to rename agent session'));
+      toast.failure('Failed to rename agent session');
       return;
     }
     handleAgentSessionRenamed({ agentSessionId: id, name });
@@ -81,14 +73,14 @@ export function AgentSplitHeader(props: {
     await navigator.clipboard.writeText(
       buildSimpleEntityUrl({ type: 'agent', id })
     );
-    toast.success(t('Link copied to clipboard'));
+    toast.success('Link copied to clipboard');
   };
 
   const canRename = () => props.session?.ownerId === userId();
 
   const renameTool: BlockTool = {
     group: 'file',
-    label: t('Rename'),
+    label: 'Rename',
     icon: RenameIcon,
     hotkeyToken: TOKENS.entity.action.rename,
     action: () => setRenameOpen(true),
@@ -99,10 +91,8 @@ export function AgentSplitHeader(props: {
     {
       label: () => {
         const provider = props.session?.external?.provider;
-        if (!provider) return t('Open externally');
-        return t('Open in {provider}', {
-          provider: `${provider.charAt(0).toUpperCase()}${provider.slice(1)}`,
-        });
+        if (!provider) return 'Open externally';
+        return `Open in ${provider.charAt(0).toUpperCase()}${provider.slice(1)}`;
       },
       icon: ArrowSquareOut,
       action: () => {
@@ -112,7 +102,7 @@ export function AgentSplitHeader(props: {
       condition: () => Boolean(props.session?.external?.url),
     },
     {
-      label: t('Copy link'),
+      label: 'Copy link',
       icon: LinkIcon,
       action: copyLink,
       // Nothing to link to until the session exists.
@@ -122,7 +112,7 @@ export function AgentSplitHeader(props: {
 
   const ops: FileOperation[] = [
     {
-      label: t('Open repository'),
+      label: 'Open repository',
       icon: GitBranch,
       action: () => {
         const url = props.session?.repoUrl;

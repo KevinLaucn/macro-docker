@@ -30,6 +30,7 @@ export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude],
     projects: [
+      '../../packages/email-renderer/vitest.config.ts',
       '../../packages/collaboration/vitest.collab.config.ts',
       '../../packages/collaboration/vitest.transport.config.ts',
       {
@@ -109,6 +110,13 @@ export default defineConfig({
       {
         extends: './src/lib/core/vitest.config.ts',
         test: {
+          include: ['src/features/block-call/**/*.{test,spec}.{ts,tsx}'],
+          name: 'block-call',
+        },
+      },
+      {
+        extends: './src/lib/core/vitest.config.ts',
+        test: {
           include: ['src/features/block-pr/**/*.{test,spec}.{ts,tsx}'],
           name: 'block-pr',
         },
@@ -135,13 +143,13 @@ export default defineConfig({
         },
       },
       {
-        // tsconfigPaths so tests can resolve `@`-aliased imports (e.g. a util
-        // that imports `@core/util/url`). Per-file `@vitest-environment jsdom`
-        // opts a test into a DOM; the default here stays node.
-        plugins: [tsconfigPaths()],
+        extends: './src/lib/core/vitest.config.ts',
         test: {
-          include: ['src/features/block-email/**/*.{test,spec}.{ts,tsx}'],
-          name: 'block-email',
+          environment: 'jsdom',
+          include: [
+            'src/features/{block-email,email-message,email-thread,email-compose}/**/*.{test,spec}.{ts,tsx}',
+          ],
+          name: 'email',
         },
       },
       {
@@ -165,7 +173,7 @@ export default defineConfig({
           environment: 'jsdom',
           exclude: [
             ...configDefaults.exclude,
-            'src/features/{theme,block-channel,block-pr,block-md,channel,notifications,block-email}/**/*',
+            'src/features/{theme,block-channel,block-call,block-pr,block-md,channel,notifications,block-email,email-message,email-thread,email-compose}/**/*',
           ],
           include: [
             'src/components/**/*.{test,spec}.{ts,tsx}',
