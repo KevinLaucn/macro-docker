@@ -75,7 +75,7 @@ hooks:
     marker: "// PRIVATE-HOOK: read_receipts:strip-own-pixels"
     expected: "return replyingTo.is_sent ? stripOwnTrackingPixelsFromHtml(html) : html;"
     context:
-      - "function getComposerQuotedBodyHtml(replyingTo: ApiMessage): string | undefined {"
+      - "function getComposerQuotedBodyHtml(replyingTo: EmailMessage): string | undefined {"
   - id: email_translation_settings
     file: apps/web/src/features/extensions/Extensions.tsx
     marker: "{/* PRIVATE-HOOK: email_translation:settings */}"

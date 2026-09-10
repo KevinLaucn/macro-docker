@@ -25,7 +25,7 @@ import {
   type LexicalEditor,
   type LexicalNode,
 } from 'lexical';
-import { stripOwnTrackingPixelsFromHtml } from '@app/features/block-email/util/readReceipts';
+import { stripOwnTrackingPixelsFromHtml } from '@app/features/email-read-receipts';
 import type { ReplyType } from '../core/reply-type';
 import { TOGGLE_APPEND_EMAIL_THREAD_COMMAND } from './email-editor-commands';
 import { flattenConsecutiveParagraphs } from './flatten-consecutive-paragraphs';
@@ -149,11 +149,12 @@ const REPLYING_TO_ID_ATTRIBUTE = 'data-replying-to-id';
  * contain Macro's own read-receipt pixel; strip it while the markup is still
  * inert so opening a reply/forward cannot record a false recipient open.
  */
-function getComposerQuotedBodyHtml(replyingTo: ApiMessage): string | undefined {
+function getComposerQuotedBodyHtml(replyingTo: EmailMessage): string | undefined {
   const html = replyingTo.body_html_sanitized?.toString();
   if (!html) return undefined;
   // PRIVATE-HOOK: read_receipts:strip-own-pixels
-  return replyingTo.is_sent ? stripOwnTrackingPixelsFromHtml(html) : html;
+  const isSent = Boolean(replyingTo.sent_at || (replyingTo as { is_sent?: boolean }).is_sent);
+  return isSent ? stripOwnTrackingPixelsFromHtml(html) : html;
 }
 
 const $appendPreviousEmail = (

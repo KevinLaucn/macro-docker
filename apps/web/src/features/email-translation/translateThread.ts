@@ -1,15 +1,17 @@
-import type { ApiMessage } from '@service-email/generated/schemas';
 import {
   getCachedMessageTranslation,
   setCachedMessageTranslation,
   setMessageOverride,
   setThreadTranslationStatus,
 } from './emailTranslationState';
-import { translateSingleMessage } from './translateMessage';
+import {
+  translateSingleMessage,
+  type TranslatableMessage,
+} from './translateMessage';
 
 export async function translateThread(
   threadId: string,
-  messages: ApiMessage[]
+  messages: TranslatableMessage[]
 ): Promise<void> {
   setThreadTranslationStatus(threadId, 'loading');
 

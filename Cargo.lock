@@ -10181,6 +10181,31 @@ name = "maybe_send"
 version = "0.1.0"
 
 [[package]]
+name = "mcp_auth_proxy"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "base64 0.22.1",
+ "fusionauth",
+ "macro_auth",
+ "macro_user_id",
+ "redis",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.18",
+ "tokio",
+ "tower 0.5.3",
+ "tower-http",
+ "tracing",
+ "url",
+ "urlencoding",
+ "uuid",
+ "workspace-hack",
+]
+
+[[package]]
 name = "mcp_client"
 version = "0.1.0"
 dependencies = [
@@ -10224,6 +10249,68 @@ dependencies = [
  "pipedream_mcp",
  "serde_json",
  "tracing",
+ "workspace-hack",
+]
+
+[[package]]
+name = "mcp_service"
+version = "0.1.0"
+dependencies = [
+ "ai_tools",
+ "ai_toolset",
+ "ai_usage",
+ "anyhow",
+ "async-trait",
+ "attachment",
+ "aws-sdk-secretsmanager",
+ "aws-sdk-sqs",
+ "axum",
+ "call",
+ "channels",
+ "chat",
+ "connection_gateway_client",
+ "crm",
+ "database_env_vars",
+ "documents",
+ "doppler-config",
+ "email",
+ "email_service_client",
+ "entity_access",
+ "entity_access_management",
+ "foreign_entity",
+ "frecency",
+ "fusionauth",
+ "http 1.4.0",
+ "lexical_client",
+ "macro_auth",
+ "macro_aws_config",
+ "macro_config",
+ "macro_entrypoint",
+ "macro_env",
+ "macro_env_var",
+ "macro_event_broker",
+ "macro_queues",
+ "macro_service_urls",
+ "macro_user_id",
+ "mcp_auth_proxy",
+ "notification",
+ "prompt",
+ "readonly_pool",
+ "redis",
+ "reminders",
+ "reqwest 0.13.4",
+ "rmcp",
+ "search_service_client",
+ "secretsmanager_client",
+ "serde_json",
+ "soup",
+ "sqlx",
+ "sqs_client",
+ "sync_service_client",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "url",
  "workspace-hack",
 ]
 
@@ -13747,12 +13834,16 @@ checksum = "0810a9f717d9828f475fe1f629f4c305c8464b7f496c3a854b58d29e65f4058e"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
+ "bytes",
  "chrono",
  "futures",
  "http 1.4.0",
+ "http-body 1.0.1",
+ "http-body-util",
  "oauth2",
  "pastey 0.2.3",
  "pin-project-lite",
+ "rand 0.10.1",
  "reqwest 0.13.4",
  "rmcp-macros",
  "schemars 1.2.1",
@@ -13763,8 +13854,10 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tokio-util",
+ "tower-service",
  "tracing",
  "url",
+ "uuid",
 ]
 
 [[package]]

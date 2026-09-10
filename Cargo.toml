@@ -103,6 +103,8 @@ members = [
   "services/email_suppression_handler",
   "services/image_optimizer",
   "services/image_proxy_service",
+  "services/mcp_auth_proxy",
+  "services/mcp_service",
   "services/notification_service",
   "services/organization_retention_handler",
   "services/organization_retention_trigger",

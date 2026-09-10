@@ -1,5 +1,6 @@
 import { EmailThreadTranslateButton } from '@app/features/email-translation';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
+import { t } from '@macro/i18n';
 import { Key } from '@solid-primitives/keyed';
 import { Button, cn, Layer } from '@ui';
 import {

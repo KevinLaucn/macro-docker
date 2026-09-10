@@ -8,25 +8,34 @@ import {
 } from './client';
 
 export function useReadReceiptStatusQuery(
-  messageId: Accessor<string>,
+  messageId: Accessor<string | undefined | null>,
   enabled: Accessor<boolean>
 ) {
   return useQuery(() => ({
     queryKey: ['email', 'read-receipt', messageId()],
+    enabled: enabled() && Boolean(messageId()),
     queryFn: async (): Promise<ReadReceiptStatusData> => {
+      const id = messageId();
+      if (!id) {
+        return {
+          message_id: '',
+          first_opened_at: null,
+          last_opened_at: null,
+          open_count: 0,
+        };
+      }
       const response = await throwOnErr(() =>
-        readReceiptsClient.getStatuses([messageId()])
+        readReceiptsClient.getStatuses([id])
       );
       return (
         response.statuses[0] ?? {
-          message_id: messageId(),
+          message_id: id,
           first_opened_at: null,
           last_opened_at: null,
           open_count: 0,
         }
       );
     },
-    enabled: enabled(),
     staleTime: 10_000,
     refetchInterval: 30_000,
   }));

@@ -6,16 +6,21 @@ import { useReadReceiptStatusQuery } from './queries';
 import { formatReadReceiptStatus } from './utils';
 
 export interface ReadReceiptStatusProps {
-  message: ApiMessage;
+  message: {
+    db_id?: string | null;
+    is_sent?: boolean | null;
+    is_draft?: boolean | null;
+    sent_at?: string | null;
+  };
   class?: string;
   showIconOnly?: boolean;
 }
 
 export function ReadReceiptStatus(props: ReadReceiptStatusProps) {
-  const isEligible = () =>
-    Boolean(
-      props.message.is_sent && !props.message.is_draft && props.message.db_id
-    );
+  const isEligible = () => {
+    const isSent = Boolean(props.message.is_sent || props.message.sent_at);
+    return Boolean(isSent && !props.message.is_draft && props.message.db_id);
+  };
 
   const query = useReadReceiptStatusQuery(
     () => props.message.db_id,

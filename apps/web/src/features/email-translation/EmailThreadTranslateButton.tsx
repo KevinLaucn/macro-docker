@@ -1,7 +1,6 @@
 import { t } from '@macro/i18n';
 import CircleNotch from '@phosphor/circle-notch.svg';
 import TranslateIcon from '@phosphor/translate.svg';
-import type { ApiMessage } from '@service-email/generated/schemas';
 import { Button, cn } from '@ui';
 import { Show } from 'solid-js';
 import {
@@ -9,12 +8,13 @@ import {
   emailTranslationEnabled,
   getThreadTranslationStatus,
 } from './emailTranslationState';
+import type { TranslatableMessage } from './translateMessage';
 import { translateThread } from './translateThread';
 import { isTranslationSupported } from './translatorClient';
 
 export interface EmailThreadTranslateButtonProps {
   threadId?: string;
-  messages?: ApiMessage[];
+  messages?: TranslatableMessage[];
   hideLabel?: boolean;
   class?: string;
 }
@@ -38,7 +38,9 @@ export function EmailThreadTranslateButton(
     if (!props.threadId || isTranslating()) return;
     const currentStatus = status();
     const currentMsgs = msgs();
-    const ids = currentMsgs.map((m) => m.db_id).filter(Boolean);
+    const ids = currentMsgs
+      .map((m) => m.db_id)
+      .filter((id): id is string => Boolean(id));
 
     if (currentStatus === 'translated') {
       clearThreadTranslation(props.threadId, ids);

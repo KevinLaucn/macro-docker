@@ -196,20 +196,6 @@
         "ws": "^8.18.0",
       },
     },
-    "packages/i18n": {
-      "name": "@macro/i18n",
-      "version": "0.1.0",
-      "dependencies": {
-        "solid-js": "^1.9.7",
-      },
-      "devDependencies": {
-        "@babel/parser": "^7.26.0",
-        "@babel/traverse": "^7.26.0",
-        "@types/babel__traverse": "^7.20.6",
-        "magic-string": "^0.30.17",
-        "vite": "^6.0.0",
-      },
-    },
     "packages/email-renderer": {
       "name": "@macro-inc/email-renderer",
       "version": "0.0.1",
@@ -225,6 +211,20 @@
         "typescript": "^5.9.3",
         "vite": "^6.4.1",
         "vitest": "^3.2.4",
+      },
+    },
+    "packages/i18n": {
+      "name": "@macro/i18n",
+      "version": "0.1.0",
+      "dependencies": {
+        "solid-js": "^1.9.7",
+      },
+      "devDependencies": {
+        "@babel/parser": "^7.26.0",
+        "@babel/traverse": "^7.26.0",
+        "@types/babel__traverse": "^7.20.6",
+        "magic-string": "^0.30.17",
+        "vite": "^6.0.0",
       },
     },
     "packages/lexical-core": {

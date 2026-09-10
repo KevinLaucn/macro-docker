@@ -10,6 +10,7 @@ import {
   translateSingleMessage,
 } from '@app/features/email-translation';
 import type { EmailMessage } from '@app/features/email-message/core/email-message';
+import { t } from '@macro/i18n';
 import CaretRight from '@phosphor/caret-right.svg';
 import { Button, cn, Tooltip } from '@ui';
 import {
