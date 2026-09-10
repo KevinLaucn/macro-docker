@@ -7477,6 +7477,15 @@
   "后台每 2 分钟自动静默轮询": [
     "features/self-host-health/SelfHostHealth.tsx"
   ],
+  "连续失败次数": [
+    "features/self-host-health/SelfHostHealth.tsx"
+  ],
+  "首次失败时间: {{time}}": [
+    "features/self-host-health/SelfHostHealth.tsx"
+  ],
+  "当前存在 critical 故障": [
+    "features/self-host-health/SelfHostHealth.tsx"
+  ],
   "业务契约与微服务探针": [
     "features/self-host-health/SelfHostHealth.tsx"
   ],
@@ -10410,6 +10419,14 @@
   "Original": [
     "features/email-translation/SoupListTranslateButton.tsx",
     "features/email-translation/EmailThreadTranslateButton.tsx"
+  ],
+  "Partial translation failed. Original text was kept.": [
+    "features/email-translation/EmailTranslateButton.tsx",
+    "features/email-translation/EmailThreadTranslateButton.tsx"
+  ],
+  "Partial": [
+    "features/email-translation/EmailThreadTranslateButton.tsx",
+    "features/theme/utils/__tests__/themeColorTokens.test.ts"
   ],
   "Auto-organize my inbox": [
     "features/getting-started/agent-examples.ts"
