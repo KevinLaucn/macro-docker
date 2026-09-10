@@ -134,16 +134,9 @@ fn resolve_target_link(
             .into_iter()
             .find(|link| link.id == id)
             .ok_or(EmailLinkErr::NotFound),
-        // FORK-CUSTOM: EMAIL-FALLBACK-001 - In self-hosted / passwordless setups, a user's
-        // connected inboxes may have different domains/addresses than the auth macro_id,
-        // causing is_primary to be false for all links. Fallback gracefully to any owned link
-        // or first link instead of rejecting with NoInboxSelected (HTTP 400).
         None => links
-            .iter()
+            .into_iter()
             .find(|link| link.is_primary && &link.macro_id == caller)
-            .or_else(|| links.iter().find(|link| &link.macro_id == caller))
-            .or_else(|| links.first())
-            .cloned()
             .ok_or(EmailLinkErr::NoInboxSelected),
     }
 }

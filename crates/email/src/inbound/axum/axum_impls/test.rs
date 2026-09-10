@@ -108,31 +108,15 @@ fn delegated_primary_is_not_the_callers_primary() {
 }
 
 #[test]
-fn no_header_and_no_primary_falls_back_to_owned_link() {
-    // FORK-CUSTOM: EMAIL-FALLBACK-001 - In self-hosted setups with non-matching macro_id,
-    // ensure fallback succeeds rather than rejecting with NoInboxSelected.
-    let secondary = Uuid::from_u128(2);
+fn no_header_and_no_primary_is_rejected() {
     let links = vec![test_link(
-        secondary,
+        Uuid::from_u128(2),
         "user@test.com",
         "secondary@test.com",
         false,
     )];
-    let resolved = resolve_target_link(links, None, &caller()).unwrap();
-    assert_eq!(resolved.id, secondary);
-}
-
-#[test]
-fn no_header_falls_back_to_first_link_if_no_caller_owned_primary() {
-    let first = Uuid::from_u128(3);
-    let links = vec![test_link(
-        first,
-        "other@test.com",
-        "hello@test.com",
-        false,
-    )];
-    let resolved = resolve_target_link(links, None, &caller()).unwrap();
-    assert_eq!(resolved.id, first);
+    let result = resolve_target_link(links, None, &caller());
+    assert!(matches!(result, Err(EmailLinkErr::NoInboxSelected)));
 }
 
 #[test]

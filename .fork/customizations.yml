@@ -33,16 +33,6 @@ customizations:
       - conventions
       - email-rust
 
-  - id: EMAIL-FALLBACK-001
-    title: Graceful inbox fallback for passwordless / third-party identity
-    rationale: Prevent 400 NoInboxSelected errors for passwordless users whose email links do not match the login macro_id.
-    risk: high
-    paths:
-      - crates/email/src/inbound/axum/axum_impls.rs
-      - apps/web/src/lib/queries/email/link.ts
-    tests:
-      - conventions
-      - email-rust
 
   - id: AUTH-SELFHOST-001
     title: Self-host authentication and identity consistency

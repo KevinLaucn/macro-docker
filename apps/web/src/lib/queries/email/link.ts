@@ -59,15 +59,8 @@ export function usePrimaryEmailLinkId() {
   return createMemo(() => {
     const uid = userId();
     if (!uid) return undefined;
-    const links = linksQuery.data?.links;
-    if (!links || links.length === 0) return undefined;
-    // FORK-CUSTOM: EMAIL-FALLBACK-001 - In self-hosted setups, passwordless / SSO accounts
-    // may have email addresses differing from the macro_id, causing is_primary to be false.
-    // Fallback to the first matching owned link or first link instead of returning undefined.
-    return (
-      links.find((link) => link.is_primary && link.macro_id === uid) ??
-      links.find((link) => link.macro_id === uid) ??
-      links[0]
+    return linksQuery.data?.links.find(
+      (link) => link.is_primary && link.macro_id === uid
     )?.id;
   });
 }
@@ -100,16 +93,9 @@ export function useEmailSignature(
  * user is acting in.
  */
 export function useNonPrimaryEmailLinkIdHeader() {
-  const linksQuery = useEmailLinksQuery();
-  const userId = useUserId();
-  return (linkId: string | undefined | null): string | undefined => {
-    if (!linkId) return undefined;
-    const uid = userId();
-    const isRealPrimary = linksQuery.data?.links.some(
-      (link) => link.id === linkId && link.is_primary && link.macro_id === uid
-    );
-    return isRealPrimary ? undefined : linkId;
-  };
+  const primaryLinkId = usePrimaryEmailLinkId();
+  return (linkId: string | undefined | null): string | undefined =>
+    !linkId || linkId === primaryLinkId() ? undefined : linkId;
 }
 
 export function invalidateEmailLinks() {
