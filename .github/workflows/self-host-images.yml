@@ -87,10 +87,18 @@ jobs:
       - name: Filter changed paths
         id: filter
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
 
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          # 1. Manual trigger or commit message containing [build all] forces full rebuild
+          commit_msg="$(git log -1 --pretty=%B || true)"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] || \
+             echo "$commit_msg" | grep -qiE '\[(build[- ]all|rebuild[- ]all|full[- ]build)\]'; then
             echo "run_services=true" >> "$GITHUB_OUTPUT"
             echo "run_init=true" >> "$GITHUB_OUTPUT"
             echo "run_web=true" >> "$GITHUB_OUTPUT"
@@ -98,95 +106,112 @@ jobs:
             exit 0
           fi
 
-          base="${{ github.event.before }}"
-          head="${{ github.sha }}"
+          # 2. Evaluate targets against the last truly successful build of each image
+          python3 - << 'PYEOF'
+          import json, os, re, subprocess, sys
 
-          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
-            base="$(git rev-list --max-parents=0 "$head" | tail -n 1)"
-          fi
-
-          changed_files="$(git diff --name-only "$base" "$head")"
-
-          has_match() {
-            local pattern
-            for pattern in "$@"; do
-              if printf '%s\n' "$changed_files" | grep -Eq "$pattern"; then
-                return 0
-              fi
-            done
-            return 1
+          targets = {
+              "macro-services": "run_services",
+              "macro-init": "run_init",
+              "macro-web": "run_web",
+              "macro-workers": "run_workers",
           }
 
-          run_services=false
-          run_init=false
-          run_web=false
-          run_workers=false
+          patterns = {
+              "run_services": [
+                  r"^Cargo\.toml$",
+                  r"^Cargo\.lock$",
+                  r"^crates/",
+                  r"^services/",
+                  r"^\.sqlx/",
+                  r"^nix/cloud-storage\.nix$",
+                  r"^self-host/scripts/",
+                  r"^\.github/actions/setup-nix/",
+              ],
+              "run_init": [
+                  r"^self-host/init/",
+                  r"^infra/stacks/opensearch/helpers/",
+                  r"^\.github/kafka-cluster-topics\.json$",
+                  r"^self-host/kickstart/",
+              ],
+              "run_web": [
+                  r"^apps/web/",
+                  r"^packages/",
+                  r"^self-host/images/Dockerfile\.web$",
+              ],
+              "run_workers": [
+                  r"^docker/websocket-service\.Dockerfile$",
+                  r"^services/websocket_service/",
+                  r"^crates/.*/websocket",
+              ],
+          }
 
-          workflow_changed=false
-          setup_nix_changed=false
+          head = os.environ.get("HEAD_SHA", "HEAD")
+          repo = os.environ.get("REPO", "")
+          ref_name = os.environ.get("REF_NAME", "main")
 
-          if has_match '^\.github/workflows/self-host-images\.yml$'; then
-            workflow_changed=true
-          fi
+          # If the workflow definition or nix setup changed, trigger all
+          diff_head_cmd = ["git", "diff", "--name-only", f"{head}~1", head]
+          dhead = subprocess.run(diff_head_cmd, capture_output=True, text=True)
+          changed_in_commit = dhead.stdout.splitlines() if dhead.returncode == 0 else []
+          if any(re.search(r"^\.github/workflows/self-host-images\.yml$", f) or
+                 re.search(r"^\.github/actions/setup-nix/", f) for f in changed_in_commit):
+              print("Workflow or setup-nix modified; triggering full build")
+              results = {k: True for k in targets.values()}
+          else:
+              # Query last successful run for each job from GitHub API
+              last_success_sha = {}
+              try:
+                  cmd = ["gh", "api", f"repos/{repo}/actions/workflows/self-host-images.yml/runs?branch={ref_name}&per_page=15", "--jq", "[.workflow_runs[] | {id: .id, sha: .head_sha}]"]
+                  res = subprocess.run(cmd, capture_output=True, text=True)
+                  if res.returncode == 0:
+                      runs = json.loads(res.stdout)
+                      for r in runs:
+                          if len(last_success_sha) == len(targets):
+                              break
+                          run_id = r["id"]
+                          jobs_cmd = ["gh", "api", f"repos/{repo}/actions/runs/{run_id}/jobs?per_page=10", "--jq", "[.jobs[] | {name: .name, conclusion: .conclusion}]"]
+                          jres = subprocess.run(jobs_cmd, capture_output=True, text=True)
+                          if jres.returncode != 0:
+                              continue
+                          for job in json.loads(jres.stdout):
+                              name = job.get("name")
+                              if name in targets and name not in last_success_sha and job.get("conclusion") == "success":
+                                  last_success_sha[targets[name]] = r["sha"]
+              except Exception as e:
+                  print(f"Warning: could not fetch last successful runs ({e}); falling back to triggering all")
 
-          if has_match '^\.github/actions/setup-nix/'; then
-            setup_nix_changed=true
-          fi
+              results = {}
+              for output_key, pat_list in patterns.items():
+                  base_sha = last_success_sha.get(output_key)
+                  if not base_sha:
+                      print(f"{output_key}: no previous successful build found; triggering")
+                      results[output_key] = True
+                      continue
+                  diff_cmd = ["git", "diff", "--name-only", base_sha, head]
+                  dres = subprocess.run(diff_cmd, capture_output=True, text=True)
+                  if dres.returncode != 0:
+                      print(f"{output_key}: git diff failed; triggering")
+                      results[output_key] = True
+                      continue
+                  changed = dres.stdout.splitlines()
+                  matched = any(re.search(p, f) for f in changed for p in pat_list)
+                  print(f"{output_key}: base={base_sha[:8]}, changed={matched}")
+                  results[output_key] = matched
 
-          if [ "$workflow_changed" = "true" ]; then
-            run_services=true
-            run_init=true
-            run_web=true
-            run_workers=true
-          fi
+              # init is also triggered if services is triggered
+              if results.get("run_services"):
+                  results["run_init"] = True
 
-          if has_match \
-            '^Cargo\.toml$' \
-            '^Cargo\.lock$' \
-            '^crates/' \
-            '^services/' \
-            '^\.sqlx/' \
-            '^nix/cloud-storage\.nix$' \
-            '^self-host/scripts/' \
-            '^\.github/actions/setup-nix/'; then
-            run_services=true
-          fi
-
-          if [ "$setup_nix_changed" = "true" ]; then
-            run_services=true
-            run_init=true
-            run_web=true
-            run_workers=true
-          fi
-
-          # init 镜像由自身配置 (self-host/init/*, opensearch 迁移 helpers, kafka topics 等)
-          # 或者底层 Rust 服务 (run_services) 更新所触发
-          if [ "$run_services" = "true" ] || has_match \
-            '^self-host/init/' \
-            '^infra/stacks/opensearch/helpers/' \
-            '^\.github/kafka-cluster-topics\.json$' \
-            '^self-host/kickstart/'; then
-            run_init=true
-          fi
-
-          if has_match \
-            '^apps/web/' \
-            '^packages/' \
-            '^self-host/images/Dockerfile\.web$'; then
-            run_web=true
-          fi
-
-          if has_match \
-            '^docker/websocket-service\.Dockerfile$' \
-            '^services/websocket_service/' \
-            '^crates/.*/websocket'; then
-            run_workers=true
-          fi
-
-          echo "run_services=$run_services" >> "$GITHUB_OUTPUT"
-          echo "run_init=$run_init" >> "$GITHUB_OUTPUT"
-          echo "run_web=$run_web" >> "$GITHUB_OUTPUT"
-          echo "run_workers=$run_workers" >> "$GITHUB_OUTPUT"
+          github_output = os.environ.get("GITHUB_OUTPUT")
+          if github_output:
+              with open(github_output, "a") as f:
+                  for k, v in results.items():
+                      f.write(f"{k}={'true' if v else 'false'}\n")
+          else:
+              for k, v in results.items():
+                  print(f"{k}={'true' if v else 'false'}")
+          PYEOF
 
   services:
     name: macro-services
