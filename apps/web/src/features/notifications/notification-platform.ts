@@ -44,10 +44,17 @@ export async function toPlatformNotificationData(
   resolveUserName: UserNameResolver,
   resolveDocumentName: DocumentNameResolver
 ): Promise<PlatformNotificationData | null> {
-  const actorId = notification.sender_id;
-  const actor =
-    (actorId ? await resolveUserName(actorId) : undefined) ??
-    USER_NAME_FALLBACK;
+  const meta = notification.notification_metadata;
+  let actor: string;
+
+  if (meta.tag === 'new_email' && meta.content.sender) {
+    actor = meta.content.sender;
+  } else {
+    const actorId = notification.sender_id;
+    actor =
+      (actorId ? await resolveUserName(actorId) : undefined) ??
+      USER_NAME_FALLBACK;
+  }
 
   const showTarget = shouldShowNotificationTarget(notification);
   const targetName =
@@ -61,13 +68,20 @@ export async function toPlatformNotificationData(
   const content = getNotificationContent(notification);
   const action = getNotificationAction(notification);
 
+  let bodyText: string;
+  if (meta.tag === 'new_email') {
+    bodyText = meta.content.snippet || content || action;
+  } else {
+    bodyText = content ? markdownToPlainText(content) : action;
+  }
+
   const accentColor = getAccentColorForIcon();
   const icon = getFaviconUrl(accentColor);
 
   return {
     title: `${actor}${showTarget ? ` <${targetName}>` : ''}`,
     options: {
-      body: content ? markdownToPlainText(content) : action,
+      body: bodyText,
       icon,
     },
   };

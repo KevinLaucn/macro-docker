@@ -782,10 +782,10 @@ async fn publish_browser_new_email_notification(
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum NewEmailTier {
-    /// Everyone gets the in-app row; staff also get APNS.
+    /// High-signal inbox item.
     Signal,
-    /// Staff dogfood: in-app row only.
-    StaffInbox,
+    /// Standard inbox item.
+    Inbox,
 }
 
 fn signal_filter(thread_id: Uuid) -> Expr<EmailLiteral> {
@@ -835,9 +835,9 @@ async fn new_email_tier(
     if thread_in_inbox(ctx, link, signal_filter(thread_id)).await? {
         return Ok(Some(NewEmailTier::Signal));
     }
-    let staff_inbox = link.macro_id.is_macro_staff()
-        && thread_in_inbox(ctx, link, Expr::Literal(EmailLiteral::ThreadId(thread_id))).await?;
-    Ok(staff_inbox.then_some(NewEmailTier::StaffInbox))
+    let inbox =
+        thread_in_inbox(ctx, link, Expr::Literal(EmailLiteral::ThreadId(thread_id))).await?;
+    Ok(inbox.then_some(NewEmailTier::Inbox))
 }
 
 #[tracing::instrument(skip(ctx, link))]
