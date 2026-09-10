@@ -3,23 +3,16 @@ import type { EmailMessage } from '@app/features/email-message/core/email-messag
 import { getFirstName } from './name';
 
 /**
- * Check if a message is an outbound message from the current user/inbox
+ * Check if a message is from the current user
  */
-export function isMessageFromCurrentUser(
+function isMessageFromCurrentUser(
   message: EmailMessage,
-  _currentUserEmail?: string
+  currentUserEmail?: string
 ): boolean {
-  if (message.is_sent) return true;
-  if (message.is_draft) return true;
-  if (message.scheduled_send_time) return true;
-  if (
-    message.labels?.some(
-      (l) => l.provider_label_id === 'SENT' || l.name === 'SENT'
-    )
-  ) {
-    return true;
-  }
-  return false;
+  if (!currentUserEmail) return false;
+  const fromEmail = message.from?.email?.toLowerCase();
+  const userEmail = currentUserEmail.toLowerCase();
+  return fromEmail !== undefined && fromEmail === userEmail;
 }
 
 /**

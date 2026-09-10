@@ -1,0 +1,202 @@
+use serde::{Deserialize, Serialize};
+use std::{fmt, time::SystemTime};
+
+/// Upstream OAuth access token.
+#[derive(Clone, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct AccessToken(String);
+
+impl AccessToken {
+    /// Returns the token as a string slice.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for AccessToken {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl From<String> for AccessToken {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for AccessToken {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+impl From<AccessToken> for String {
+    fn from(value: AccessToken) -> Self {
+        value.0
+    }
+}
+
+impl fmt::Debug for AccessToken {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("AccessToken([REDACTED])")
+    }
+}
+
+/// Upstream OAuth refresh token.
+#[derive(Clone, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct RefreshToken(String);
+
+impl RefreshToken {
+    /// Returns the token as a string slice.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for RefreshToken {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl From<String> for RefreshToken {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for RefreshToken {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+impl From<RefreshToken> for String {
+    fn from(value: RefreshToken) -> Self {
+        value.0
+    }
+}
+
+impl fmt::Debug for RefreshToken {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("RefreshToken([REDACTED])")
+    }
+}
+
+/// A token grant obtained from the upstream OAuth provider.
+#[derive(Debug)]
+pub struct UpstreamTokens {
+    /// The upstream access token.
+    pub access_token: AccessToken,
+    /// The upstream refresh token.
+    pub refresh_token: RefreshToken,
+    /// Seconds until `access_token` expires, as reported by the provider.
+    pub expires_in: u64,
+}
+
+/// A pending OAuth authorization flow initiated by the client.
+#[derive(Clone)]
+pub struct PendingAuthorization {
+    /// PKCE S256 code challenge from the client.
+    pub code_challenge: String,
+    /// The client's original `state` parameter.
+    pub client_state: String,
+    /// Where to redirect back to the client with the authorization code.
+    pub client_redirect_uri: String,
+}
+
+/// An authorization code issued by this broker and backed by an upstream token.
+#[derive(Clone)]
+pub struct IssuedAuthorizationCode {
+    /// The access token obtained from the upstream provider.
+    pub access_token: AccessToken,
+    /// The refresh token obtained from the upstream provider.
+    pub refresh_token: RefreshToken,
+    /// The original PKCE code challenge, for verification at token exchange.
+    pub code_challenge: String,
+    /// The redirect URI from the authorization request, used for exact-match
+    /// validation during token exchange.
+    pub redirect_uri: String,
+    /// When `access_token` expires. `None` for codes issued before the broker
+    /// started tracking upstream token lifetimes.
+    pub access_token_expires_at: Option<SystemTime>,
+}
+
+/// OAuth authorize request from the MCP client.
+#[derive(Deserialize)]
+pub struct AuthorizeRequest {
+    /// Expected to be `code`.
+    pub response_type: String,
+    /// Dynamically registered client id.
+    #[allow(dead_code)]
+    pub client_id: String,
+    /// Loopback callback URI owned by the MCP client.
+    pub redirect_uri: String,
+    /// Opaque state from the client.
+    pub state: String,
+    /// PKCE code challenge.
+    pub code_challenge: String,
+    /// Expected to be `S256`.
+    pub code_challenge_method: String,
+    /// Optional requested scopes.
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub scope: Option<String>,
+}
+
+/// OAuth callback request from the upstream auth server.
+#[derive(Deserialize)]
+pub struct CallbackRequest {
+    /// Authorization code from the upstream auth server. Absent when the
+    /// upstream returned an error response instead of granting a code.
+    #[serde(default)]
+    pub code: Option<String>,
+    /// Broker session ID threaded through the upstream `state`.
+    pub state: Option<String>,
+    /// OAuth error code when the upstream signals a failure.
+    #[serde(default)]
+    pub error: Option<String>,
+    /// Human-readable error description from the upstream.
+    #[serde(default)]
+    pub error_description: Option<String>,
+}
+
+/// OAuth token request from the MCP client.
+#[derive(Deserialize)]
+pub struct TokenRequest {
+    /// Supported values are `authorization_code` and `refresh_token`.
+    pub grant_type: String,
+    /// Authorization code issued by this broker.
+    #[serde(default)]
+    pub code: Option<String>,
+    /// PKCE verifier.
+    #[serde(default)]
+    pub code_verifier: Option<String>,
+    /// Refresh token returned by a prior token exchange.
+    #[serde(default)]
+    pub refresh_token: Option<RefreshToken>,
+    /// Redirect URI from the original authorization request.
+    #[serde(default)]
+    pub redirect_uri: Option<String>,
+    /// Optional client id.
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub client_id: Option<String>,
+}
+
+/// OAuth token response returned to the MCP client.
+#[derive(Serialize)]
+pub struct TokenResponse {
+    /// Bearer access token.
+    pub access_token: AccessToken,
+    /// Refresh token for subsequent token refresh.
+    pub refresh_token: RefreshToken,
+    /// OAuth token type.
+    pub token_type: &'static str,
+    /// Seconds until `access_token` expires, so clients can refresh before it
+    /// does. Omitted when the upstream lifetime is unknown.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_in: Option<u64>,
+}
