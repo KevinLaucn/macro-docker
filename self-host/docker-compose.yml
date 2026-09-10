@@ -120,11 +120,13 @@ services:
           ENABLE_MARKDOWN_SEARCH_TEXT: "$${ENABLE_MARKDOWN_SEARCH_TEXT:-true}",
           ENABLE_NEW_PRICING: "$${ENABLE_NEW_PRICING:-true}",
           ENABLE_ONBOARDING_V4: "$${ENABLE_ONBOARDING_V4:-true}",
+          ENABLE_COGNITION: "$${ENABLE_COGNITION:-true}",
+          ENABLE_SCHEDULED_ACTIONS: "$${ENABLE_SCHEDULED_ACTIONS:-true}",
           FEATURES: {
-            cognition: true,
-            scheduledActions: true,
-            agents: true,
-            docsCollab: true,
+            cognition: false,
+            scheduledActions: false,
+            agents: false,
+            docsCollab: false,
             enableNewAppViews: false,
             enableCrm: $${ENABLE_CRM:-true}
           },
