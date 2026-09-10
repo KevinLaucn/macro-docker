@@ -8,7 +8,7 @@
  * - IPv4 / IPv6 addresses
  * - UUID / GUID / Message-ID / Hash / Token / API Key
  * - Structured identifiers: Order Number, Tracking Number, SKU, Serial Number, Reference ID, Invitation/Auth Code
- * - Technical constants: DNS types (MX, AAAA, A, CNAME, TXT, PTR, NS, SOA), DNS status (NOERROR, NXDOMAIN, etc.), Protocols (DNS, SMTP, HTTP, HTTPS)
+ * - Technical constants: DNS types (MX, AAAA, CNAME, TXT, PTR, NS, SOA), DNS status (NOERROR, NXDOMAIN, etc.), Protocols (DNS, SMTP, HTTP, HTTPS)
  * - Custom business tech constants & acronyms (CUSTOM_TECH_CONSTANTS)
  * - Error codes & HTTP/SMTP status codes
  * - File paths & file names with extensions
@@ -76,7 +76,6 @@ const MESSAGE_ID_RE = /<[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}>/g;
 const BASE_TECH_CONSTANTS = [
   'MX',
   'AAAA',
-  'A',
   'CNAME',
   'TXT',
   'PTR',

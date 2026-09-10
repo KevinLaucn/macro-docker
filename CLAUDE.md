@@ -7,10 +7,33 @@ This file is the shared entry point: `AGENTS.md` symlinks to `CLAUDE.md`. Edit
 ## Start here
 
 1. Identify the affected app, service, or crate using the map below.
-2. Read any applicable directory-level `AGENTS.md` / `CLAUDE.md` before editing.
-3. Read the task-relevant guides below, not every linked document.
-4. Follow [the style guide](docs/STYLE_GUIDE.md) for the language you change.
+2. If the task involves this private fork, upstream sync, self-hosting,
+   production, local stack, i18n, Gmail/email, FusionAuth/auth, deployment, or
+   release gates, read
+   `.agents/skills/macro-private-maintainer/SKILL.md` before planning or editing.
+3. Read any applicable directory-level `AGENTS.md` / `CLAUDE.md` before editing.
+4. Read the task-relevant guides below, not every linked document.
+5. Follow [the style guide](docs/STYLE_GUIDE.md) for the language you change.
    Prefer its current rules over patterns in older code.
+
+## Private Fork Guardrails
+
+- Preserve zero Macro cloud dependency for private/self-hosted behavior. Do not
+  add hidden fallbacks to `*.macro.com` or external official Macro services.
+- Preserve fork customizations during upstream sync. Use `.fork/customizations.yml`
+  for protected areas and `.fork/private-hooks.yml` for exact thin integration
+  hooks in upstream-owned files.
+- For fork-owned feature hooks, keep upstream file edits thin and marked with
+  `PRIVATE-HOOK:`; put substantial private logic in independent feature modules.
+- This repository is indexed by CodeGraph. When investigating symbols, call
+  paths, impact, or cross-crate relationships, use `codegraph explore`,
+  `codegraph callers`, `codegraph callees`, or `codegraph impact` before broad
+  text searches.
+- Local development must preserve Docker volumes by default. Do not reset
+  Postgres, Redis, OpenSearch, Kafka, LocalStack, or FusionAuth data without
+  explicit approval.
+- Prefer repository-native setup, reconciliation, migrations, Docker Compose,
+  Just recipes, and IaC before adding workaround scripts or runtime patches.
 
 ## Repository map
 

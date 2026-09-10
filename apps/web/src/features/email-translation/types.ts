@@ -15,3 +15,8 @@ export interface MessageTranslationData {
   translatedText?: string;
   translatedSnippet?: string;
 }
+
+export interface ThreadTitleTranslationData {
+  status: TranslationStatus;
+  translatedTitle?: string;
+}

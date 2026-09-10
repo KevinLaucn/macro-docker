@@ -159,6 +159,66 @@ describe('DOM-aware Email Translation Planner', () => {
     expect(result).toContain('[译]');
   });
 
+  it('CASE 6b: Latin-script mixed languages are translated as separate runs', async () => {
+    mockDetectFn.mockImplementation(async (text: string) => {
+      if (text.includes('Mit freundlichen')) {
+        return [{ detectedLanguage: 'de', confidence: 0.95 }];
+      }
+      return [{ detectedLanguage: 'en', confidence: 0.95 }];
+    });
+
+    const inputHtml = `
+      <p>Hello, Just one side is printed with letterpress. Mit freundlichen Grüßen Steffen Repplinger Strategic Print Buyer</p>
+    `;
+
+    await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    expect((globalThis as any).Translator.create).toHaveBeenCalledWith({
+      sourceLanguage: 'en',
+      targetLanguage: 'zh',
+    });
+    expect((globalThis as any).Translator.create).toHaveBeenCalledWith({
+      sourceLanguage: 'de',
+      targetLanguage: 'zh',
+    });
+  });
+
+  it('CASE 6c: German email phrases override bad short-text detector guesses', async () => {
+    mockDetectFn.mockResolvedValue([
+      { detectedLanguage: 'hu', confidence: 0.95 },
+    ]);
+
+    await planAndTranslateText('Mit freundlichen Grüßen', { targetLang: 'zh' });
+
+    expect((globalThis as any).Translator.create).toHaveBeenCalledWith({
+      sourceLanguage: 'de',
+      targetLanguage: 'zh',
+    });
+    expect((globalThis as any).Translator.create).not.toHaveBeenCalledWith({
+      sourceLanguage: 'hu',
+      targetLanguage: 'zh',
+    });
+  });
+
+  it('CASE 6d: Unsupported detector guesses fall back to English', async () => {
+    mockDetectFn.mockResolvedValue([
+      { detectedLanguage: 'km', confidence: 0.95 },
+    ]);
+
+    await planAndTranslateText('Hello, do you have a photo of the back?', {
+      targetLang: 'zh',
+    });
+
+    expect((globalThis as any).Translator.create).toHaveBeenCalledWith({
+      sourceLanguage: 'en',
+      targetLanguage: 'zh',
+    });
+    expect((globalThis as any).Translator.create).not.toHaveBeenCalledWith({
+      sourceLanguage: 'km',
+      targetLanguage: 'zh',
+    });
+  });
+
   // CASE 7: 局部翻译失败隔离 (Failure isolation)
   it('CASE 7: Segment failure preserves original text and does not shift other segments', async () => {
     mockTranslateFn = vi.fn(async (text: string) => {
@@ -270,6 +330,15 @@ describe('DOM-aware Email Translation Planner', () => {
     expect(restored).toContain('480 USD');
     expect(restored).toContain('123e4567-e89b-12d3-a456-426614174000');
     expect(restored).toContain('<msg123@mail.com>');
+  });
+
+  it('CASE 10b: Does not protect ordinary person-name initials as technical constants', () => {
+    const { protectedText, spanMap } = detectProtectedSpans(
+      'Gambino-Kreindl, Alessandro A.'
+    );
+
+    expect(protectedText).toBe('Gambino-Kreindl, Alessandro A.');
+    expect(spanMap.size).toBe(0);
   });
 
   // CASE 11: 占位符校验失败时保留原文 (Validation & Fallback)

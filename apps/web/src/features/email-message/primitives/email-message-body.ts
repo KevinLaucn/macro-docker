@@ -13,6 +13,8 @@ import type { EmailMessage } from '../core/email-message';
 
 export interface EmailMessageBodyProps {
   message: EmailMessage;
+  translatedHtml?: string;
+  translatedReplylessHtml?: string;
   isPersonal: boolean;
   isBodyExpanded: Accessor<boolean>;
   setExpandedMessageBody: (id: string) => void;
@@ -30,8 +32,9 @@ export function createEmailMessageBody(
   const prepared = createMemo(() =>
     prepareEmailBody(
       {
-        html: props.message.body_html_sanitized,
-        replylessHtml: props.message.body_replyless,
+        html: props.translatedHtml ?? props.message.body_html_sanitized,
+        replylessHtml:
+          props.translatedReplylessHtml ?? props.message.body_replyless,
         text: props.message.body_text,
       },
       {
@@ -45,8 +48,8 @@ export function createEmailMessageBody(
     // Preserve the app's existing Markdown paths without starting hidden HTML
     // resources behind them. Their Lexical semantics stay at the app boundary.
     if (
-      (!showFullHTML() && props.message.body_macro) ||
-      !props.message.body_html_sanitized
+      (!showFullHTML() && props.message.body_macro && !props.translatedHtml) ||
+      !(props.translatedHtml ?? props.message.body_html_sanitized)
     )
       return;
     const body = prepared();

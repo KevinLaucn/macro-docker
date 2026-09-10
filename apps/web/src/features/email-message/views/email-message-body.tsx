@@ -16,9 +16,6 @@ import {
   type EmailMessageBodyProps,
 } from '../primitives/email-message-body';
 export function EmailMessageBody(props: EmailMessageBodyProps) {
-  const { showFullHTML, setShowFullHTML, host, hasHiddenReplyStructure } =
-    createEmailMessageBody(props, useEmailRenderingContext());
-
   const messageId = () => props.message.db_id;
   const threadId = () => props.message.thread_db_id;
   const isTranslated = () =>
@@ -26,6 +23,23 @@ export function EmailMessageBody(props: EmailMessageBodyProps) {
     isTranslationSupported() &&
     isMessageTranslated(threadId(), messageId());
   const cachedTranslation = () => getCachedMessageTranslation(messageId());
+  const translatedHtml = () =>
+    isTranslated() ? cachedTranslation()?.translatedHtml : undefined;
+  const translatedReplylessHtml = () =>
+    isTranslated() ? cachedTranslation()?.translatedReplylessHtml : undefined;
+  const { showFullHTML, setShowFullHTML, host, hasHiddenReplyStructure } =
+    createEmailMessageBody(
+      {
+        ...props,
+        get translatedHtml() {
+          return translatedHtml();
+        },
+        get translatedReplylessHtml() {
+          return translatedReplylessHtml();
+        },
+      },
+      useEmailRenderingContext()
+    );
 
   return (
     <div

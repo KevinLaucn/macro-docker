@@ -26,13 +26,12 @@ use calendar_events::inbound::dispatch_worker::CalendarReminderDispatchWorker;
 use calendar_events::outbound::notification_notifier::NotificationCalendarReminderNotifier;
 use calendar_events::outbound::sqs_dispatch_queue::SqsCalendarDispatchQueue;
 use call::{
-    domain::service::CallServiceImpl,
+    domain::{ports::NoOpVoiceRepository, service::CallServiceImpl},
     inbound::axum_router::{CallRouterState, InternalCallRouterState, WebhookRouterState},
     outbound::{
+        DisabledCallRtcClient,
         ai_call_summarizer::AiCallSummarizer,
-        livekit_rtc_client::LivekitRtcClient,
         pg_call_repo::PgCallRepo,
-        pg_voice_repo::PgVoiceRepo,
         s3_recording_storage::{RecordingCloudFrontConfig, S3RecordingStorage},
     },
 };
@@ -607,12 +606,7 @@ async fn run() -> anyhow::Result<()> {
         "LIVEKIT_TRANSCRIPTION_AGENT_NAME is set but INTERNAL_CALL_SECRET is missing — \
          the transcription agent will not be able to submit transcripts"
     );
-    let livekit_rtc_client = LivekitRtcClient::new(
-        config.livekit_server_url.as_ref(),
-        config.livekit_api_key.as_ref(),
-        config.livekit_api_secret.as_ref(),
-        transcription_agent_name,
-    );
+    let livekit_rtc_client = DisabledCallRtcClient::new();
     let call_connection_service =
         ConnectionServiceImpl::new(entity_access_service.clone(), connection_gateway.clone());
     let call_repo = PgCallRepo::new(db.clone());
@@ -714,7 +708,7 @@ async fn run() -> anyhow::Result<()> {
 
     let call_service = Arc::new(
         call_service_builder
-            .with_voice_repo(PgVoiceRepo::new(db.clone()))
+            .with_voice_repo(NoOpVoiceRepository)
             .with_event_broker(macro_event_broker.clone()),
     );
 

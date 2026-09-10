@@ -71,6 +71,47 @@ export function hasCjk(text: string): boolean {
   return false;
 }
 
+const KNOWN_TRANSLATOR_SOURCE_LANGUAGES = new Set([
+  'en',
+  'de',
+  'fr',
+  'es',
+  'it',
+  'pt',
+  'nl',
+  'pl',
+  'ru',
+  'ja',
+  'ko',
+  'zh',
+]);
+
+function detectGermanEmailPhrase(text: string): boolean {
+  return /\b(sehr geehrte|mit freundlichen gr[uü]ßen|anfrage|visitenkarten|goldfolie|angebot|rechnung|damen und herren)\b/i.test(
+    text
+  );
+}
+
+async function detectTranslatableLanguage(text: string): Promise<{
+  detected: string;
+  confidence: number;
+}> {
+  if (detectGermanEmailPhrase(text)) {
+    return { detected: 'de', confidence: 0.98 };
+  }
+
+  const res = await detectLanguageWithConfidence(text);
+  const detected = res?.detectedLanguage
+    ? normalizeLanguageCode(res.detectedLanguage)
+    : 'en';
+
+  if (!KNOWN_TRANSLATOR_SOURCE_LANGUAGES.has(detected)) {
+    return { detected: 'en', confidence: 0.5 };
+  }
+
+  return { detected, confidence: res?.confidence ?? 0.85 };
+}
+
 /**
  * Splits text into logical chunks by boundary (punctuation, linebreaks, script transition).
  */
@@ -99,28 +140,8 @@ export async function splitLanguageRuns(
     ];
   }
 
-  // If text has NO CJK and is entirely Latin / digits / symbols, check with detector
-  if (!hasCjk(text)) {
-    const detectRes = await detectLanguageWithConfidence(text);
-    const detected = detectRes?.detectedLanguage
-      ? normalizeLanguageCode(detectRes.detectedLanguage)
-      : 'en';
-    const confidence = detectRes?.confidence ?? 0.8;
-    const isTarget = detected === normTarget;
-
-    return [
-      {
-        text,
-        start: 0,
-        end: text.length,
-        detectedLang: detected,
-        confidence,
-        decision: isTarget ? 'KEEP' : 'TRANSLATE',
-      },
-    ];
-  }
-
-  // Mixed text: Use sentence/punctuation segmentation to separate runs
+  // Use sentence/punctuation segmentation to separate runs. A single email
+  // paragraph can mix Latin-script languages, e.g. English body plus German signoff.
   // We split by sentence boundaries (e.g. 。！？\n or English sentences ending with . ! ?)
   // But preserve the exact indices.
   const rawSegments: { text: string; start: number; end: number }[] = [];
@@ -145,7 +166,7 @@ export async function splitLanguageRuns(
     }
   }
 
-  // Fallback: Split by newline or sentence punctuation if Segmenter produced 0 or 1 big segment for mixed content
+  // Fallback: Split by newline or sentence punctuation if Segmenter produced 0 or 1 big segment
   if (rawSegments.length <= 1) {
     rawSegments.length = 0;
     // Regex matches CJK sentence endings, newlines, or Latin sentence endings followed by space
@@ -206,10 +227,8 @@ export async function splitLanguageRuns(
       });
     } else if (!containsCjk && containsLatin) {
       // Pure Latin sentence -> run detector
-      const res = await detectLanguageWithConfidence(trimmed);
-      const detected = res?.detectedLanguage
-        ? normalizeLanguageCode(res.detectedLanguage)
-        : 'en';
+      const { detected, confidence } =
+        await detectTranslatableLanguage(trimmed);
       const isTarget = detected === normTarget;
 
       runs.push({
@@ -217,7 +236,7 @@ export async function splitLanguageRuns(
         start: seg.start,
         end: seg.end,
         detectedLang: detected,
-        confidence: res?.confidence ?? 0.85,
+        confidence,
         decision: isTarget ? 'KEEP' : 'TRANSLATE',
       });
     } else {
@@ -245,10 +264,8 @@ export async function splitLanguageRuns(
         });
       } else {
         // Run detector
-        const res = await detectLanguageWithConfidence(trimmed);
-        const detected = res?.detectedLanguage
-          ? normalizeLanguageCode(res.detectedLanguage)
-          : 'en';
+        const { detected, confidence } =
+          await detectTranslatableLanguage(trimmed);
         const isTarget = detected === normTarget;
 
         runs.push({
@@ -256,7 +273,7 @@ export async function splitLanguageRuns(
           start: seg.start,
           end: seg.end,
           detectedLang: detected,
-          confidence: res?.confidence ?? 0.7,
+          confidence,
           decision: isTarget ? 'KEEP' : 'TRANSLATE',
         });
       }

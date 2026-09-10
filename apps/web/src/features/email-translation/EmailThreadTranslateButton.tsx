@@ -14,6 +14,7 @@ import { isTranslationSupported } from './translatorClient';
 
 export interface EmailThreadTranslateButtonProps {
   threadId?: string;
+  title?: string;
   messages?: TranslatableMessage[];
   hideLabel?: boolean;
   class?: string;
@@ -45,7 +46,7 @@ export function EmailThreadTranslateButton(
     if (currentStatus === 'translated') {
       clearThreadTranslation(props.threadId, ids);
     } else {
-      await translateThread(props.threadId, currentMsgs);
+      await translateThread(props.threadId, currentMsgs, props.title);
     }
   };
 
