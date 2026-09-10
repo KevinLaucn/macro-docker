@@ -6,7 +6,10 @@ const OPEN_TRACKING_PATH = '/t/o/';
 function isMacroTrackingPixelUrl(src: string): boolean {
   if (!src.includes(OPEN_TRACKING_PATH)) return false;
   try {
-    const url = new URL(src, typeof window !== 'undefined' ? window.location.origin : undefined);
+    const url = new URL(
+      src,
+      typeof window !== 'undefined' ? window.location.origin : undefined
+    );
     // Matches /t/o/... or reverse proxy path like /email/t/o/...
     if (!url.pathname.includes(OPEN_TRACKING_PATH)) return false;
 
@@ -17,11 +20,21 @@ function isMacroTrackingPixelUrl(src: string): boolean {
     }
 
     const configuredHost = SERVER_HOSTS['email-service'];
-    if (configuredHost && url.origin === new URL(configuredHost, typeof window !== 'undefined' ? window.location.origin : undefined).origin) {
+    if (
+      configuredHost &&
+      url.origin ===
+        new URL(
+          configuredHost,
+          typeof window !== 'undefined' ? window.location.origin : undefined
+        ).origin
+    ) {
       return true;
     }
 
-    if (typeof window !== 'undefined' && url.origin === window.location.origin) {
+    if (
+      typeof window !== 'undefined' &&
+      url.origin === window.location.origin
+    ) {
       return true;
     }
 

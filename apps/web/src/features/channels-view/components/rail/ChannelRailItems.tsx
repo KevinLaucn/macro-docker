@@ -1,4 +1,3 @@
-import { dismissIncomingCallEverywhere } from '@app/features/block-call/sidebar/incoming-calls';
 import {
   type EntityActionViewContext,
   toEntityActionListState,
@@ -8,7 +7,6 @@ import {
   openEntityInNewTab,
 } from '@app/features/next-soup/utils';
 import { SoupEntityActionsMenu } from '@app/features/soup/SoupEntityActionsMenu';
-import { joinChannelCall } from '@channel/Call/join-channel-call';
 import { useGlobalNotificationSource } from '@components/app/GlobalAppState';
 import {
   ContextMenuContent,
@@ -17,7 +15,6 @@ import {
   MenuSeparator,
 } from '@core/component/ContextMenu';
 import { StaticMarkdown } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
-import { toast } from '@core/component/Toast/Toast';
 import { useUserId } from '@core/context/user';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { getDisplayName, tryMacroId } from '@core/user';
@@ -27,11 +24,10 @@ import { ContextMenu } from '@kobalte/core/context-menu';
 import ReplyIcon from '@phosphor/arrow-bend-up-left.svg';
 import AtIcon from '@phosphor/at.svg';
 import BellSlashIcon from '@phosphor/bell-slash.svg';
-import XIcon from '@phosphor/x.svg';
 import PhoneCallIcon from '@phosphor-fill/phone-call-fill.svg';
 import PhoneIncomingIcon from '@phosphor-fill/phone-incoming-fill.svg';
 import { getBotDisplayName } from '@queries/channel/message-sender';
-import { Button, cn, Tooltip } from '@ui';
+import { cn, Tooltip } from '@ui';
 import { Match, type ParentProps, Show, Switch } from 'solid-js';
 import { formatDetailedTimestamp, isDirectMessage } from '../../utils';
 import { rowKeyForChannel, useChannelsRail } from './ChannelsRailContext';
@@ -167,51 +163,11 @@ export function ChannelMutedIndicator(props: {
   );
 }
 
-export function IncomingCallActions(props: {
+export function IncomingCallActions(_props: {
   callId: string | undefined;
   channelId: string;
 }) {
-  return (
-    <Show when={props.callId}>
-      {(callId) => (
-        <span class="flex shrink-0 items-center gap-1">
-          <Button
-            variant="success"
-            size="icon-xs"
-            class="rounded-md"
-            label="Accept incoming call"
-            onPointerDown={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              void joinChannelCall(props.channelId).catch((error) => {
-                console.error('Failed to join call', error);
-                toast.failure('Failed to join call');
-              });
-            }}
-          >
-            <PhoneIncomingIcon class="incoming-call-shake size-3" />
-          </Button>
-          <Button
-            variant="danger"
-            size="icon-xs"
-            class="rounded-md"
-            label="Decline incoming call"
-            onPointerDown={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              dismissIncomingCallEverywhere(callId());
-            }}
-          >
-            <XIcon class="size-3" />
-          </Button>
-        </span>
-      )}
-    </Show>
-  );
+  return null;
 }
 
 export function ChannelAvatar(props: {
