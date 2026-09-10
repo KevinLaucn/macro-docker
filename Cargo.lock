@@ -440,7 +440,8 @@ dependencies = [
  "harness_id",
  "macro_authorization",
  "macro_db_migrator",
- "macro_service_urls",
+ "macro_event_broker",
+ "macro_event_topics",
  "macro_user_id",
  "macro_uuid",
  "mockall",
@@ -18055,6 +18056,8 @@ dependencies = [
 name = "webhook"
 version = "0.1.0"
 dependencies = [
+ "agent_fold",
+ "agent_runtime_protocol",
  "agent_session",
  "agent_trigger",
  "anyhow",
