@@ -103,15 +103,10 @@ BEGIN
     ON CONFLICT ("id") DO NOTHING;
   END IF;
 
-  -- 3. Ensure Super Administrator roles are granted
+  -- 3. Ensure All Roles & Super Administrator Permissions are granted automatically
   INSERT INTO "RolesOnUsers" ("userId", "roleId")
-  VALUES
-    ('macro|' || v_admin_email, 'super_admin'),
-    ('macro|' || v_admin_email, 'ai_subscriber'),
-    ('macro|' || v_admin_email, 'sub_opus'),
-    ('macro|' || v_admin_email, 'editor_user'),
-    ('macro|' || v_admin_email, 'email_tool'),
-    ('macro|' || v_admin_email, 'professional_subscriber')
+  SELECT ('macro|' || v_admin_email), id
+  FROM "Role"
   ON CONFLICT ("userId", "roleId") DO NOTHING;
 END $$;
 ADMIN_EOF

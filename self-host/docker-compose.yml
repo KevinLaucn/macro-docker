@@ -72,17 +72,61 @@ services:
         rm -rf /out/* && cp -a /srv/frontend/. /out/
         cat <<EOF > /out/env-config.js
         window.__MACRO_ENV__ = {
-          ADMIN_EMAIL: "$${ADMIN_EMAIL:-}",
-          ENABLE_NEW_APP_VIEWS: "false", // 恢复经典单栏全局收件箱 SoupView 布局
-          ENABLE_CHAT_V3_AGENTS: "true", // 启用 AI 助手与运行环境设置及频道 Mention
-          ENABLE_AGENTS: "true",
-          ENABLE_DOCS_COLLAB: "true",
+          ADMIN_EMAIL: "$${ADMIN_EMAIL:-hello@chnprints.com}",
+          ENABLE_NEW_APP_VIEWS: "false",
+          ENABLE_CHAT_V3_AGENTS: "$${ENABLE_CHAT_V3_AGENTS:-true}",
+          ENABLE_AGENT_SESSION_COMPOSER: "$${ENABLE_AGENT_SESSION_COMPOSER:-true}",
+          BOT_MANAGEMENT: "$${BOT_MANAGEMENT:-true}",
+          ENABLE_CALENDAR_UI: "$${ENABLE_CALENDAR_UI:-true}",
+          ENABLE_CALENDAR_SEARCH_UI: "$${ENABLE_CALENDAR_SEARCH_UI:-true}",
+          ENABLE_CALENDAR_TEAM_OOO: "$${ENABLE_CALENDAR_TEAM_OOO:-true}",
+          ENABLE_EMAIL_SIGNATURES: "$${ENABLE_EMAIL_SIGNATURES:-true}",
+          ENABLE_REMINDERS: "$${ENABLE_REMINDERS:-true}",
+          ENABLE_HOME_VIEW: "$${ENABLE_HOME_VIEW:-true}",
+          ENABLE_HOME_RECOMMENDATIONS: "$${ENABLE_HOME_RECOMMENDATIONS:-true}",
+          ENABLE_ACTIVITY_FEED: "$${ENABLE_ACTIVITY_FEED:-true}",
+          ENABLE_RECENT_VIEW: "$${ENABLE_RECENT_VIEW:-true}",
+          ENABLE_TAG_TEAM_SHARING: "$${ENABLE_TAG_TEAM_SHARING:-true}",
+          ENABLE_AGENTS: "$${ENABLE_AGENTS:-true}",
+          ENABLE_DOCS_COLLAB: "$${ENABLE_DOCS_COLLAB:-true}",
+          ENABLE_CRM: "$${ENABLE_CRM:-true}",
+          INLINE_AI_EDITING: "$${INLINE_AI_EDITING:-true}",
+          ENABLE_SNIPPETS: "$${ENABLE_SNIPPETS:-true}",
+          ENABLE_MULTI_INBOX: "$${ENABLE_MULTI_INBOX:-true}",
+          ENABLE_NOTIFICATION_SETTINGS: "$${ENABLE_NOTIFICATION_SETTINGS:-true}",
+          ENABLE_SOUP_FILTER_PERSISTENCE: "$${ENABLE_SOUP_FILTER_PERSISTENCE:-true}",
+          ENABLE_MARKDOWN_LIVE_COLLABORATION: "$${ENABLE_MARKDOWN_LIVE_COLLABORATION:-true}",
+          ENABLE_PROJECT_SHARING: "$${ENABLE_PROJECT_SHARING:-true}",
+          ENABLE_MARKDOWN_AI_GENERATE: "$${ENABLE_MARKDOWN_AI_GENERATE:-true}",
+          ENABLE_EMAIL_SCHEDULED_SEND: "$${ENABLE_EMAIL_SCHEDULED_SEND:-true}",
+          ENABLE_DOCUMENT_MENTION_NOTIFICATIONS: "$${ENABLE_DOCUMENT_MENTION_NOTIFICATIONS:-true}",
+          ENABLE_HISTORY_COMPONENT: "$${ENABLE_HISTORY_COMPONENT:-true}",
+          ENABLE_GIT_BLAME: "$${ENABLE_GIT_BLAME:-true}",
+          ENABLE_DIRECT_ATTACHMENT_DOWNLOAD: "$${ENABLE_DIRECT_ATTACHMENT_DOWNLOAD:-true}",
+          ENABLE_ENTITY_ACTIVITY_SECTION: "$${ENABLE_ENTITY_ACTIVITY_SECTION:-true}",
+          ENABLE_SOUP_GROUP_BY: "$${ENABLE_SOUP_GROUP_BY:-true}",
+          ENABLE_TASK_DUPLICATES: "$${ENABLE_TASK_DUPLICATES:-true}",
+          ENABLE_MARKDOWN_COMMENTS: "$${ENABLE_MARKDOWN_COMMENTS:-true}",
+          ENABLE_REFERENCES_MODAL: "$${ENABLE_REFERENCES_MODAL:-true}",
+          ENABLE_MENTION_TRACKING: "$${ENABLE_MENTION_TRACKING:-true}",
           FEATURES: {
-            cognition: false,
-            scheduledActions: false,
-            agents: false,
-            docsCollab: false,
-            enableNewAppViews: false
+            cognition: true,
+            scheduledActions: true,
+            agents: true,
+            docsCollab: true,
+            enableNewAppViews: false,
+            enableCrm: $${ENABLE_CRM:-true}
+          },
+          PERMISSIONS: {
+            allAccess: $${PERM_ALL_ACCESS:-true},
+            superAdmin: $${PERM_SUPER_ADMIN:-true},
+            corporate: $${PERM_CORPORATE:-true},
+            proLicense: $${PERM_PRO_LICENSE:-true},
+            subOpus: $${PERM_SUB_OPUS:-true},
+            aiSubscriber: $${PERM_AI_SUBSCRIBER:-true},
+            editorUser: $${PERM_EDITOR_USER:-true},
+            organizationIt: $${PERM_ORGANIZATION_IT:-true},
+            emailTool: $${PERM_EMAIL_TOOL:-true}
           }
         };
         EOF
