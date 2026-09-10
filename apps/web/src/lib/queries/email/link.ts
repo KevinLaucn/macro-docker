@@ -59,8 +59,15 @@ export function usePrimaryEmailLinkId() {
   return createMemo(() => {
     const uid = userId();
     if (!uid) return undefined;
-    return linksQuery.data?.links.find(
-      (link) => link.is_primary && link.macro_id === uid
+    const links = linksQuery.data?.links;
+    if (!links || links.length === 0) return undefined;
+    // FORK-CUSTOM: EMAIL-FALLBACK-001 - In self-hosted setups, passwordless / SSO accounts
+    // may have email addresses differing from the macro_id, causing is_primary to be false.
+    // Fallback to the first matching owned link or first link instead of returning undefined.
+    return (
+      links.find((link) => link.is_primary && link.macro_id === uid) ??
+      links.find((link) => link.macro_id === uid) ??
+      links[0]
     )?.id;
   });
 }
