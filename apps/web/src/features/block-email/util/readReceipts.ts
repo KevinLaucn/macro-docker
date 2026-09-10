@@ -6,8 +6,9 @@ const OPEN_TRACKING_PATH = '/t/o/';
 function isMacroTrackingPixelUrl(src: string): boolean {
   if (!src.includes(OPEN_TRACKING_PATH)) return false;
   try {
-    const url = new URL(src);
-    if (!url.pathname.startsWith(OPEN_TRACKING_PATH)) return false;
+    const url = new URL(src, typeof window !== 'undefined' ? window.location.origin : undefined);
+    // Matches /t/o/... or reverse proxy path like /email/t/o/...
+    if (!url.pathname.includes(OPEN_TRACKING_PATH)) return false;
 
     // Production/dev Macro email-service hosts are recognizable without any
     // runtime configuration, which also keeps unit tests deterministic.
@@ -16,8 +17,15 @@ function isMacroTrackingPixelUrl(src: string): boolean {
     }
 
     const configuredHost = SERVER_HOSTS['email-service'];
-    if (!configuredHost) return false;
-    return url.origin === new URL(configuredHost).origin;
+    if (configuredHost && url.origin === new URL(configuredHost, typeof window !== 'undefined' ? window.location.origin : undefined).origin) {
+      return true;
+    }
+
+    if (typeof window !== 'undefined' && url.origin === window.location.origin) {
+      return true;
+    }
+
+    return false;
   } catch {
     return false;
   }

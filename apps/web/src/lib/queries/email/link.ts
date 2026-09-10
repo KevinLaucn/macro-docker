@@ -100,9 +100,16 @@ export function useEmailSignature(
  * user is acting in.
  */
 export function useNonPrimaryEmailLinkIdHeader() {
-  const primaryLinkId = usePrimaryEmailLinkId();
-  return (linkId: string | undefined | null): string | undefined =>
-    !linkId || linkId === primaryLinkId() ? undefined : linkId;
+  const linksQuery = useEmailLinksQuery();
+  const userId = useUserId();
+  return (linkId: string | undefined | null): string | undefined => {
+    if (!linkId) return undefined;
+    const uid = userId();
+    const isRealPrimary = linksQuery.data?.links.some(
+      (link) => link.id === linkId && link.is_primary && link.macro_id === uid
+    );
+    return isRealPrimary ? undefined : linkId;
+  };
 }
 
 export function invalidateEmailLinks() {
