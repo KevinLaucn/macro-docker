@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { PipedreamConnectorIcon } from '@core/pipedream/ConnectorIcon';
 import {
   createPipedreamCatalogConnect,
@@ -55,9 +56,9 @@ export function PipedreamAppPicker(props: {
     <div class="flex flex-col gap-3">
       <input
         type="search"
-        aria-label="Search connectors"
+        aria-label={t("Search connectors")}
         class="settings-input w-full"
-        placeholder="Search all connectors…"
+        placeholder={t("Search all connectors…")}
         value={catalog.searchInput()}
         onInput={(event) => catalog.onSearchInput(event.currentTarget.value)}
       />

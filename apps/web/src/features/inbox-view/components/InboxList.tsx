@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import '@entity/composed/ListEntity.css';
 import {
   createListController,
@@ -458,7 +459,7 @@ export function InboxList(props: InboxListProps) {
             >
               <div class="grid min-h-0 flex-1 place-items-center text-ink-muted">
                 <SpinnerIcon
-                  aria-label="Loading notifications"
+                  aria-label={t("Loading notifications")}
                   class="size-5 animate-spin"
                 />
               </div>
@@ -469,7 +470,7 @@ export function InboxList(props: InboxListProps) {
                 ref={setEmptyViewport}
                 class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto pb-[max(1rem,var(--mobile-content-inset-bottom,0px))] text-sm text-ink-muted"
               >
-                <span>Notifications couldn’t be loaded.</span>
+                <span>{t("Notifications couldn’t be loaded.")}</span>
                 <Button
                   variant="outline"
                   size="sm"

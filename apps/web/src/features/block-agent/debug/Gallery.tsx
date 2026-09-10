@@ -4,6 +4,7 @@
  * `/component/agent-ui`.
  */
 
+import { t } from '@macro/i18n';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { MagicChipView } from '@core/component/LexicalMarkdown/component/decorator/MagicChip/MagicChipView';
 import type { MagicChipPresentation } from '@core/component/LexicalMarkdown/component/decorator/MagicChip/presentation';
@@ -500,7 +501,7 @@ function ElicitationFormDemo() {
   const [values, setValues] = createStore(initialValues(FIXTURE_ELICITATION));
   const errors = () => validate(FIXTURE_ELICITATION, values);
   return (
-    <ToolCard title="Macro Coder is asking" status="running" defaultOpen>
+    <ToolCard title={t("Macro Coder is asking")} status="running" defaultOpen>
       <ElicitationForm
         schema={FIXTURE_ELICITATION}
         values={values}
@@ -520,11 +521,11 @@ export default function AgentUiGallery() {
     <StaticMarkdownContext>
       <div class="size-full overflow-auto">
         <div class="mx-auto flex max-w-3xl flex-col gap-8 px-6 py-8">
-          <Item label="ElicitationForm (live validation)">
+          <Item label={t("ElicitationForm (live validation)")}>
             <ElicitationFormDemo />
           </Item>
 
-          <Item label="MagicChip (booting, writing, done)">
+          <Item label={t("MagicChip (booting, writing, done)")}>
             <MagicChipStateDemo
               presentation={{
                 kind: 'working',
@@ -556,7 +557,7 @@ export default function AgentUiGallery() {
             />
           </Item>
 
-          <Item label="MagicChip asking (form, url, tool draft)">
+          <Item label={t("MagicChip asking (form, url, tool draft)")}>
             <MagicChipAskingDemo
               request={{ kind: 'form', schema: FIXTURE_ELICITATION }}
             />

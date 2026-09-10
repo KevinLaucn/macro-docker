@@ -11,6 +11,7 @@
  * back to the flat form the agent also sent, through these.
  */
 
+import { t } from '@macro/i18n';
 import { CalendarDraftComposer } from '@core/component/AI/component/tool/calendar/DraftComposer';
 import { EmailDraftComposer } from '@core/component/AI/component/tool/email/DraftComposer';
 import type {
@@ -157,11 +158,11 @@ export function QuestionFields(props: {
         {(question) => (
           <div class="flex flex-col gap-2">
             <div class="text-xs text-ink-muted">
-              Opens{' '}
+              {t('Opens')} {' '}
               <span class="font-medium text-ink">
                 {urlHost(question().url)}
               </span>{' '}
-              in a new tab.
+              {t('in a new tab.')}
             </div>
             <div class="rounded-md border border-edge-muted bg-surface px-2 py-1 font-mono text-xs text-ink-muted break-all">
               {question().url}
@@ -172,7 +173,7 @@ export function QuestionFields(props: {
       <Match when={unrecognized(props.question)}>
         {(question) => (
           <div class="text-xs text-ink-extra-muted italic">
-            This client cannot display a "{question().mode}" request.
+            {t('This client cannot display a "{mode}" request.', { mode: question().mode })}
           </div>
         )}
       </Match>
@@ -223,7 +224,7 @@ export function QuestionActions(props: {
             disabled={props.locked}
             onClick={() => submit(question().draft)}
           >
-            Submit
+            {t("Submit")}
           </Button>
         )}
       </Match>

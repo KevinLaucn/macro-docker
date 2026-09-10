@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { ScrollIndicators } from '@core/component/VerticalScrollIndicators';
 import { AnimatedSquareSidebarIcon } from '@icon/square-sidebar';
 import CaretDownIcon from '@phosphor/caret-down.svg';
@@ -162,7 +163,7 @@ export function RailListLoading() {
   return (
     <div class="grid min-h-20 place-items-center text-ink-muted">
       <SpinnerIcon
-        aria-label="Loading conversations"
+        aria-label={t("Loading conversations@@chat")}
         class="size-4 animate-spin"
       />
     </div>
@@ -173,7 +174,7 @@ export function RailListLoadingMore(props: {
   variant: 'channel' | 'recent' | 'slim';
 }) {
   return (
-    <div role="status" aria-label="Loading more conversations">
+    <div role="status" aria-label={t("Loading more conversations@@chat")}>
       <For each={LOADING_SKELETON_ROWS}>
         {(row) => (
           <div
@@ -223,7 +224,7 @@ export function RailListError(props: {
         props.compact ? 'py-2' : 'min-h-20 flex-col'
       )}
     >
-      <span>Couldn’t load conversations.</span>
+      <span>{t("Couldn’t load conversations.@@chat")}</span>
       <Button variant="outline" size="xs" onClick={() => void props.retry()}>
         Try again
       </Button>

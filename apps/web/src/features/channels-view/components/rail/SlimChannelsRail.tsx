@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { runCreateAction } from '@app/features/command/Launcher';
 import { DEBUG_SETTING_KEYS, useDebugSetting } from '@app/lib/debugSettings';
 import { openNewChannelModal } from '@channel/CreateChannelModal';
@@ -96,7 +97,7 @@ function SlimListError(props: { retry: () => Promise<void> }) {
       <Button
         variant="outline"
         size="icon-sm"
-        label="Retry loading conversations"
+        label={t("Retry loading conversations@@chat")}
         tooltipPlacement="right"
         onClick={() => void props.retry()}
       >
@@ -199,7 +200,7 @@ function SlimCreateMenu() {
         variant="outline"
         size="icon-sm"
         class="size-10 rounded-full bg-transparent"
-        label="Create conversation"
+        label={t("Create conversation@@chat")}
       >
         <PlusIcon class="size-4" />
       </Dropdown.Trigger>

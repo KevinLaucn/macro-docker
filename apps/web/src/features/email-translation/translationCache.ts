@@ -2,15 +2,24 @@ const MEMORY_CACHE = new Map<string, string>();
 const SESSION_STORAGE_PREFIX = 'macro.trans.cache.';
 const MAX_SESSION_KEYS = 500;
 
-function getCacheKey(text: string, targetLang: string): string {
-  return `${targetLang}:${text.trim()}`;
+/**
+ * Cache key now includes sourceLang to prevent cross-language collisions.
+ * e.g. "Gift" (en: 礼物, de: 毒物) must not share a cache entry.
+ */
+function getCacheKey(
+  text: string,
+  sourceLang: string,
+  targetLang: string
+): string {
+  return `${sourceLang}:${targetLang}:${text.trim()}`;
 }
 
 export function getCachedText(
   text: string,
+  sourceLang: string,
   targetLang: string
 ): string | undefined {
-  const key = getCacheKey(text, targetLang);
+  const key = getCacheKey(text, sourceLang, targetLang);
   // 1. Memory cache hit (fastest)
   const memHit = MEMORY_CACHE.get(key);
   if (memHit !== undefined) {
@@ -37,10 +46,11 @@ export function getCachedText(
 
 export function setCachedText(
   text: string,
+  sourceLang: string,
   targetLang: string,
   translated: string
 ): void {
-  const key = getCacheKey(text, targetLang);
+  const key = getCacheKey(text, sourceLang, targetLang);
   MEMORY_CACHE.set(key, translated);
 
   if (typeof window !== 'undefined' && window.sessionStorage) {

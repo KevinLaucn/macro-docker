@@ -1,6 +1,8 @@
 /**
  * Plaintext Mixed-Language Translation Planner
  * Handles subjects, snippets, and plain text message bodies.
+ *
+ * V2: Adapted to new cache API with sourceLang parameter.
  */
 
 import { logTranslationDebug } from './debugLog';
@@ -22,12 +24,6 @@ export async function planAndTranslateText(
 
   const targetLang = options?.targetLang || getTargetLanguage();
 
-  // Check cache first for the exact string
-  const cached = getCachedText(text.trim(), targetLang);
-  if (cached !== undefined) {
-    return cached;
-  }
-
   // Split into language runs
   const runs = await splitLanguageRuns(text, targetLang, options?.signal);
   if (runs.length === 0 || options?.signal?.aborted) {
@@ -37,7 +33,6 @@ export async function planAndTranslateText(
   // Fast path: if all runs are KEEP, return immediately without translation
   const allKeep = runs.every((r) => r.decision === 'KEEP');
   if (allKeep) {
-    setCachedText(text.trim(), targetLang, text);
     return text;
   }
 
@@ -57,6 +52,13 @@ export async function planAndTranslateText(
         decision: 'KEEP',
       });
       translatedParts.push(run.text);
+      continue;
+    }
+
+    // Check cache with sourceLang included in key
+    const cached = getCachedText(run.text.trim(), run.detectedLang, targetLang);
+    if (cached !== undefined) {
+      translatedParts.push(cached);
       continue;
     }
 
@@ -81,6 +83,8 @@ export async function planAndTranslateText(
         translatedText: restored,
       });
 
+      // Cache with sourceLang
+      setCachedText(run.text.trim(), run.detectedLang, targetLang, restored);
       translatedParts.push(restored);
     } catch (err) {
       console.warn(
@@ -92,7 +96,5 @@ export async function planAndTranslateText(
     }
   }
 
-  const finalResult = translatedParts.join('');
-  setCachedText(text.trim(), targetLang, finalResult);
-  return finalResult;
+  return translatedParts.join('');
 }

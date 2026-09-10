@@ -1,13 +1,23 @@
 /**
- * DOM-aware Translation Planner
- * Orchestrates DOM segmentation, language runs, non-translatable entity protection,
- * rate-limited translation, and safe write-back using stable segment mappings.
+ * DOM-aware Translation Planner (V2: Node-Addressed Writeback)
+ *
+ * Orchestrates DOM segmentation, per-TextNode language detection,
+ * non-translatable entity protection, structural label/value protection,
+ * rate-limited translation, and node-exact write-back.
+ *
+ * Core invariant: each TextNode is translated and written back independently.
+ * SemanticBlock provides context only — never used as a cross-node writeback unit.
  */
 
 import { logTranslationDebug } from './debugLog';
 import { splitLanguageRuns } from './languageRuns';
 import { collectSemanticBlocks, type SemanticBlock } from './segmentation';
-import { detectProtectedSpans, restoreProtectedSpans } from './tokenProtection';
+import type { TranslationUnit } from './segmentation';
+import {
+  detectProtectedSpans,
+  isStructuralValueNode,
+  restoreProtectedSpans,
+} from './tokenProtection';
 import { getTargetLanguage, translateRawText } from './translatorClient';
 
 export interface PlanOptions {
@@ -17,51 +27,20 @@ export interface PlanOptions {
 }
 
 /**
- * Replaces a slice of text in a block across multiple TextNodes without changing DOM hierarchy.
+ * Per-unit translation job — each job corresponds to exactly one TextNode.
  */
-function applyTranslatedRunToTextNodes(
-  block: SemanticBlock,
-  runStart: number,
-  runEnd: number,
-  translatedText: string
-): void {
-  const overlapping = block.nodeMappings.filter(
-    (m) => m.start < runEnd && m.end > runStart
-  );
-
-  if (overlapping.length === 0) return;
-
-  if (overlapping.length === 1 && overlapping[0]) {
-    const m = overlapping[0];
-    const nodeVal = m.node.nodeValue || '';
-    const localStart = Math.max(0, runStart - m.start);
-    const localEnd = Math.min(nodeVal.length, runEnd - m.start);
-
-    const prefix = nodeVal.slice(0, localStart);
-    const suffix = nodeVal.slice(localEnd);
-    m.node.nodeValue = prefix + translatedText + suffix;
-    return;
-  }
-
-  const first = overlapping[0];
-  if (!first) return;
-
-  const firstVal = first.node.nodeValue || '';
-  const firstLocalStart = Math.max(0, runStart - first.start);
-  const firstPrefix = firstVal.slice(0, firstLocalStart);
-  first.node.nodeValue = firstPrefix + translatedText;
-
-  for (let i = 1; i < overlapping.length; i++) {
-    const m = overlapping[i];
-    if (!m) continue;
-    const nodeVal = m.node.nodeValue || '';
-    if (m.end <= runEnd) {
-      m.node.nodeValue = '';
-    } else {
-      const localEnd = runEnd - m.start;
-      m.node.nodeValue = nodeVal.slice(localEnd);
-    }
-  }
+interface TranslationJob {
+  unit: TranslationUnit;
+  block: SemanticBlock;
+  /** Language runs detected within this single TextNode's text */
+  runs: Array<{
+    text: string;
+    start: number;
+    end: number;
+    sourceLang: string;
+    decision: 'KEEP' | 'TRANSLATE' | 'PROTECTED';
+    confidence: number;
+  }>;
 }
 
 export async function planAndTranslateHtml(
@@ -82,47 +61,65 @@ export async function planAndTranslateHtml(
     return html;
   }
 
-  interface TranslationJob {
-    block: SemanticBlock;
-    runStart: number;
-    runEnd: number;
-    originalText: string;
-    sourceLang: string;
-    segmentId: string;
-  }
-
   const jobs: TranslationJob[] = [];
 
-  // 1. Analyze each semantic block into language runs
+  // 1. Analyze each TextNode independently within its SemanticBlock context
   for (const block of blocks) {
     if (signal?.aborted) return html;
 
-    const runs = await splitLanguageRuns(block.fullText, targetLang, signal);
-    let runIdx = 0;
+    for (const unit of block.units) {
+      if (signal?.aborted) return html;
 
-    for (const run of runs) {
-      const segmentId = `${block.blockId}-run-${runIdx++}`;
+      const text = unit.originalText;
+      if (!text.trim()) continue;
 
-      if (run.decision === 'KEEP') {
+      // Check structural entity protection (DOM-based label/value detection)
+      if (isStructuralValueNode(unit.node)) {
         logTranslationDebug({
           blockId: block.blockId,
-          segmentId,
-          originalText: run.text,
-          detectedLanguage: run.detectedLang,
-          confidence: run.confidence,
-          decision: 'KEEP',
+          segmentId: unit.unitId,
+          originalText: text,
+          decision: 'PROTECTED',
         });
+        continue; // Skip — value of a protected label
+      }
+
+      // Split the single TextNode's text into language runs
+      const langRuns = await splitLanguageRuns(text, targetLang, signal);
+
+      const jobRuns: TranslationJob['runs'] = [];
+      let hasTranslatable = false;
+
+      for (const run of langRuns) {
+        if (run.decision === 'TRANSLATE') {
+          hasTranslatable = true;
+        }
+        jobRuns.push({
+          text: run.text,
+          start: run.start,
+          end: run.end,
+          sourceLang: run.detectedLang,
+          decision: run.decision,
+          confidence: run.confidence,
+        });
+      }
+
+      if (!hasTranslatable) {
+        // All runs are KEEP — log and skip
+        for (const run of jobRuns) {
+          logTranslationDebug({
+            blockId: block.blockId,
+            segmentId: unit.unitId,
+            originalText: run.text,
+            detectedLanguage: run.sourceLang,
+            confidence: run.confidence,
+            decision: 'KEEP',
+          });
+        }
         continue;
       }
 
-      jobs.push({
-        block,
-        runStart: run.start,
-        runEnd: run.end,
-        originalText: run.text,
-        sourceLang: run.detectedLang,
-        segmentId,
-      });
+      jobs.push({ unit, block, runs: jobRuns });
     }
   }
 
@@ -130,7 +127,8 @@ export async function planAndTranslateHtml(
     return doc.body.innerHTML;
   }
 
-  // 2. Execute translation jobs with limited concurrency, token validation, and failure isolation
+  // 2. Execute translation jobs with limited concurrency
+  //    Each job translates ONE TextNode and writes back to that exact node.
   let activeIndex = 0;
 
   const worker = async () => {
@@ -140,43 +138,66 @@ export async function planAndTranslateHtml(
       const job = jobs[currentIndex];
       if (!job) continue;
 
-      // Detect non-translatable spans and generate unique placeholders ⟦P0⟧, ⟦P1⟧
-      const { protectedText, spanMap } = detectProtectedSpans(job.originalText);
-
       try {
-        const translated = await translateRawText(
-          protectedText,
-          job.sourceLang,
-          targetLang
-        );
+        // Build the translated text for this TextNode by processing each run
+        const translatedParts: string[] = [];
 
-        // Validate placeholders and restore original entities safely
-        const restored = restoreProtectedSpans(
-          translated,
-          job.originalText,
-          spanMap
-        );
+        for (const run of job.runs) {
+          if (run.decision === 'KEEP' || run.decision === 'PROTECTED') {
+            logTranslationDebug({
+              blockId: job.block.blockId,
+              segmentId: job.unit.unitId,
+              originalText: run.text,
+              detectedLanguage: run.sourceLang,
+              confidence: run.confidence,
+              decision: run.decision,
+            });
+            translatedParts.push(run.text);
+            continue;
+          }
 
-        logTranslationDebug({
-          blockId: job.block.blockId,
-          segmentId: job.segmentId,
-          originalText: job.originalText,
-          detectedLanguage: job.sourceLang,
-          decision: 'TRANSLATE',
-          translatorPair: `${job.sourceLang}->${targetLang}`,
-          translatedText: restored,
-        });
+          // TRANSLATE: protect entities, translate, restore
+          const { protectedText, spanMap } = detectProtectedSpans(run.text);
 
-        // Write back safely to DOM
-        applyTranslatedRunToTextNodes(
-          job.block,
-          job.runStart,
-          job.runEnd,
-          restored
-        );
+          try {
+            const translated = await translateRawText(
+              protectedText,
+              run.sourceLang,
+              targetLang
+            );
+
+            const restored = restoreProtectedSpans(
+              translated,
+              run.text,
+              spanMap
+            );
+
+            logTranslationDebug({
+              blockId: job.block.blockId,
+              segmentId: job.unit.unitId,
+              originalText: run.text,
+              detectedLanguage: run.sourceLang,
+              decision: 'TRANSLATE',
+              translatorPair: `${run.sourceLang}->${targetLang}`,
+              translatedText: restored,
+            });
+
+            translatedParts.push(restored);
+          } catch (err) {
+            console.warn(
+              `[EmailTranslation] Failed to translate run in ${job.unit.unitId}:`,
+              err
+            );
+            // Failure isolation: keep original text for this run
+            translatedParts.push(run.text);
+          }
+        }
+
+        // Node-exact writeback: only modify this TextNode's nodeValue
+        job.unit.node.nodeValue = translatedParts.join('');
       } catch (err) {
         console.warn(
-          `[EmailTranslation] Failed to translate segment ${job.segmentId}:`,
+          `[EmailTranslation] Failed to process unit ${job.unit.unitId}:`,
           err
         );
         // Failure isolation: keep original text intact

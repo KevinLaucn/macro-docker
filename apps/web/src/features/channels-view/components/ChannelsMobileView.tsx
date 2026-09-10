@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { openEntityInSplitFromUnifiedList } from '@app/features/next-soup/utils';
 import { DEBUG_SETTING_KEYS, useDebugSetting } from '@app/lib/debugSettings';
 import { useGlobalNotificationSource } from '@components/app/GlobalAppState';
@@ -134,7 +135,7 @@ export function ChannelsMobileView(props: {
             <Match when={!forceEmptyState() && props.source.isLoading()}>
               <div class="grid min-h-32 place-items-center text-ink-muted">
                 <SpinnerIcon
-                  aria-label="Loading conversations"
+                  aria-label={t("Loading conversations@@chat")}
                   class="size-5 animate-spin"
                 />
               </div>
@@ -147,7 +148,7 @@ export function ChannelsMobileView(props: {
               }
             >
               <div class="flex min-h-32 flex-col items-center justify-center gap-3 px-(--mobile-chrome-gutter) text-sm text-ink-muted">
-                <span>Conversations couldn’t be loaded.</span>
+                <span>{t("Conversations couldn’t be loaded.@@chat")}</span>
                 <Button
                   variant="outline"
                   size="sm"
@@ -199,7 +200,7 @@ export function ChannelsMobileView(props: {
               <Show when={props.source.isLoadingMore()}>
                 <div class="flex h-12 items-center justify-center text-ink-muted">
                   <SpinnerIcon
-                    aria-label="Loading more conversations"
+                    aria-label={t("Loading more conversations@@chat")}
                     class="size-4 animate-spin"
                   />
                 </div>
@@ -212,7 +213,7 @@ export function ChannelsMobileView(props: {
                 }
               >
                 <div class="flex items-center justify-center gap-2 py-3 text-xs text-ink-muted">
-                  <span>Couldn’t load more conversations.</span>
+                  <span>{t("Couldn’t load more conversations.@@chat")}</span>
                   <Button
                     variant="outline"
                     size="xs"

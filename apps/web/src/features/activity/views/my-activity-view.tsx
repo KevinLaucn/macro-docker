@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { SoupSectionHeader } from '@app/features/next-soup/soup-view/section-header';
 import { SplitHeaderLeft } from '@components/app/split-layout/components/SplitHeader';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
@@ -210,7 +211,7 @@ function FeedTail(props: { state: MyActivityState }) {
     >
       <Show when={ready()?.loadingMore}>Loading…</Show>
       <Show when={!ready()?.loadingMore && ready()?.moreFailed}>
-        <span>Couldn't load more.</span>
+        <span>{t("Couldn't load more.@@activity")}</span>
         <button
           type="button"
           class="text-ink underline-offset-2 hover:underline"

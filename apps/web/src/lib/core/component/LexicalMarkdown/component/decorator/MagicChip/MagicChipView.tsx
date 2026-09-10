@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import {
   createLiveQuestion,
   type DraftedTool,
@@ -171,7 +172,7 @@ const AskingActions: Component<ChipAsking & { onOpen?: () => void }> = (
       disabled={!props.onOpen}
       onClick={props.onOpen}
     >
-      Open in session
+      {t('Open in session')}
     </Button>
   </>
 );
@@ -229,7 +230,7 @@ const ChipHeader: Component<{
     <Button
       variant="ghost"
       size="icon-xs"
-      aria-label="Open in session"
+      aria-label={t("Open in session")}
       disabled={!props.onOpen}
       onClick={props.onOpen}
     >

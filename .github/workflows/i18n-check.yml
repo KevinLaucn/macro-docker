@@ -1,14 +1,6 @@
 name: i18n Health Gate
 
 on:
-  push:
-    branches:
-      - main
-      - custom-email-tracking
-  pull_request:
-    branches:
-      - main
-      - custom-email-tracking
   workflow_dispatch:
 
 jobs:

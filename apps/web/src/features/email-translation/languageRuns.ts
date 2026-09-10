@@ -2,6 +2,9 @@
  * Mixed-language Run Detection
  * Combines Unicode Script heuristics, Intl.Segmenter, and LanguageDetector
  * to split mixed text into homogeneous language runs with explicit KEEP / TRANSLATE decisions.
+ *
+ * V2: Fixed mixed-language bug where any CJK character caused entire segment to KEEP.
+ *     Now uses proportion-based detection with context inheritance for short/ambiguous text.
  */
 
 import { detectLanguageWithConfidence } from './languageDetector';
@@ -71,6 +74,9 @@ export function hasCjk(text: string): boolean {
   return false;
 }
 
+/** CJK dominance threshold: if CJK characters make up > 70% of script characters, treat as Chinese */
+const CJK_DOMINANCE_RATIO = 0.7;
+
 const KNOWN_TRANSLATOR_SOURCE_LANGUAGES = new Set([
   'en',
   'de',
@@ -92,7 +98,10 @@ function detectGermanEmailPhrase(text: string): boolean {
   );
 }
 
-async function detectTranslatableLanguage(text: string): Promise<{
+async function detectTranslatableLanguage(
+  text: string,
+  contextLang?: string
+): Promise<{
   detected: string;
   confidence: number;
 }> {
@@ -101,24 +110,56 @@ async function detectTranslatableLanguage(text: string): Promise<{
   }
 
   const res = await detectLanguageWithConfidence(text);
-  const detected = res?.detectedLanguage
+  const rawDetected = res?.detectedLanguage
     ? normalizeLanguageCode(res.detectedLanguage)
-    : 'en';
+    : undefined;
+  const confidence = res?.confidence ?? 0;
 
-  if (!KNOWN_TRANSLATOR_SOURCE_LANGUAGES.has(detected)) {
+  // 'und' (undetermined) or no result → inherit context language or default to 'en'
+  if (!rawDetected || rawDetected === 'und') {
+    if (contextLang && contextLang !== 'und') {
+      return { detected: contextLang, confidence: 0.5 };
+    }
     return { detected: 'en', confidence: 0.5 };
   }
 
-  return { detected, confidence: res?.confidence ?? 0.85 };
+  if (!KNOWN_TRANSLATOR_SOURCE_LANGUAGES.has(rawDetected)) {
+    return { detected: 'en', confidence: 0.5 };
+  }
+
+  return { detected: rawDetected, confidence };
+}
+
+/**
+ * Counts CJK and Latin script characters in text, returning their counts
+ * and the total number of script characters (ignoring whitespace/punctuation).
+ */
+function countScriptChars(text: string): {
+  cjk: number;
+  latin: number;
+  total: number;
+} {
+  let cjk = 0;
+  let latin = 0;
+  for (const ch of text) {
+    if (isCjkChar(ch)) cjk++;
+    else if (isLatinChar(ch)) latin++;
+  }
+  return { cjk, latin, total: cjk + latin };
 }
 
 /**
  * Splits text into logical chunks by boundary (punctuation, linebreaks, script transition).
+ *
+ * @param contextLang Optional language inherited from surrounding context
+ *   (e.g. the dominant language of the containing SemanticBlock).
+ *   Used to resolve ambiguous short segments.
  */
 export async function splitLanguageRuns(
   text: string,
   targetLang: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  contextLang?: string
 ): Promise<LanguageRun[]> {
   if (!text || !text.trim()) {
     return [];
@@ -126,7 +167,7 @@ export async function splitLanguageRuns(
 
   const normTarget = normalizeLanguageCode(targetLang);
 
-  // If text is purely CJK and target is zh, fast path: KEEP
+  // If text is purely CJK (no Latin prose at all) and target is zh, fast path: KEEP
   if (!/[a-zA-Z]{3,}/.test(text) && hasCjk(text) && normTarget === 'zh') {
     return [
       {
@@ -192,6 +233,8 @@ export async function splitLanguageRuns(
   }
 
   const runs: LanguageRun[] = [];
+  // Track the last detected language as rolling context for ambiguous segments
+  let rollingContextLang = contextLang;
 
   for (const seg of rawSegments) {
     if (signal?.aborted) break;
@@ -210,50 +253,62 @@ export async function splitLanguageRuns(
       continue;
     }
 
-    // Determine language of this segment
-    const containsCjk = hasCjk(trimmed);
-    const containsLatin = /[a-zA-Z]{2,}/.test(trimmed);
+    // Count script characters for proportion-based detection
+    const { cjk, latin, total } = countScriptChars(trimmed);
 
-    if (containsCjk && !containsLatin) {
-      // Pure CJK sentence -> matches target?
-      const isTarget = normTarget === 'zh';
+    if (total === 0) {
+      // Pure punctuation/numbers/symbols → KEEP
       runs.push({
+        text: seg.text,
+        start: seg.start,
+        end: seg.end,
+        detectedLang: normTarget,
+        confidence: 1.0,
+        decision: 'KEEP',
+      });
+      continue;
+    }
+
+    if (cjk > 0 && latin === 0) {
+      // Pure CJK sentence → matches target?
+      const isTarget = normTarget === 'zh';
+      const run: LanguageRun = {
         text: seg.text,
         start: seg.start,
         end: seg.end,
         detectedLang: 'zh',
         confidence: 1.0,
         decision: isTarget ? 'KEEP' : 'TRANSLATE',
-      });
-    } else if (!containsCjk && containsLatin) {
-      // Pure Latin sentence -> run detector
-      const { detected, confidence } =
-        await detectTranslatableLanguage(trimmed);
+      };
+      runs.push(run);
+      rollingContextLang = 'zh';
+    } else if (cjk === 0 && latin > 0) {
+      // Pure Latin sentence → run detector
+      const { detected, confidence } = await detectTranslatableLanguage(
+        trimmed,
+        rollingContextLang
+      );
       const isTarget = detected === normTarget;
 
-      runs.push({
+      const run: LanguageRun = {
         text: seg.text,
         start: seg.start,
         end: seg.end,
         detectedLang: detected,
         confidence,
         decision: isTarget ? 'KEEP' : 'TRANSLATE',
-      });
+      };
+      runs.push(run);
+      rollingContextLang = detected;
     } else {
-      // Mixed within sentence (e.g. "系统找不到网域 test.com，因此无法将您的邮件递送至")
-      // Check if CJK is dominant (> 30% of characters are CJK)
-      let cjkCount = 0;
-      let _latinCount = 0;
-      for (const ch of trimmed) {
-        if (isCjkChar(ch)) cjkCount++;
-        else if (isLatinChar(ch)) _latinCount++;
-      }
+      // Mixed CJK + Latin within sentence
+      // Use proportion-based detection instead of "any CJK → KEEP"
+      const cjkRatio = total > 0 ? cjk / total : 0;
 
-      if (cjkCount > 0 && normTarget === 'zh') {
-        // If Chinese target and CJK is present in this segment,
-        // it's a Chinese sentence with technical words or brand names (e.g. test.com, DNS)
-        // We MUST NOT send the whole sentence to en->zh translator!
-        // KEEP it intact.
+      if (cjkRatio >= CJK_DOMINANCE_RATIO && normTarget === 'zh') {
+        // CJK dominant (>70%) — this is a Chinese sentence with embedded
+        // brand names / tech terms (e.g. "系统找不到网域 test.com")
+        // KEEP intact to avoid sending Chinese to en→zh translator
         runs.push({
           text: seg.text,
           start: seg.start,
@@ -262,10 +317,14 @@ export async function splitLanguageRuns(
           confidence: 0.95,
           decision: 'KEEP',
         });
+        rollingContextLang = 'zh';
       } else {
-        // Run detector
-        const { detected, confidence } =
-          await detectTranslatableLanguage(trimmed);
+        // Latin dominant or roughly equal → run language detector
+        // This handles cases like "Gift is a German word" or mixed German/English
+        const { detected, confidence } = await detectTranslatableLanguage(
+          trimmed,
+          rollingContextLang
+        );
         const isTarget = detected === normTarget;
 
         runs.push({
@@ -276,6 +335,7 @@ export async function splitLanguageRuns(
           confidence,
           decision: isTarget ? 'KEEP' : 'TRANSLATE',
         });
+        rollingContextLang = detected;
       }
     }
   }

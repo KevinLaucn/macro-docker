@@ -15,6 +15,7 @@
  * under review opens the tool's own composer here.
  */
 
+import { t } from '@macro/i18n';
 import type {
   AnsweredField,
   AnsweredValue,
@@ -81,7 +82,7 @@ export function ElicitationPart(props: { part: ElicitationPartData }) {
           <div class="text-sm text-ink">{props.part.message}</div>
           <Show when={!elicitation.canAnswer()}>
             <div class="text-xs text-ink-extra-muted">
-              Only {elicitation.ownerName()} can answer this.
+              Only {elicitation.ownerName()} {t("can answer this.")}
             </div>
           </Show>
           {match(props.part.request)
@@ -221,7 +222,7 @@ function ResolvedQuestion(props: { part: ElicitationPartData }) {
 
   return (
     <ToolCard
-      title="Question"
+      title={t("Question")}
       subtitle={props.part.message}
       status={props.part.outcome.kind === 'errored' ? 'failed' : 'completed'}
       muted={props.part.outcome.kind === 'errored'}

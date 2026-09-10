@@ -11,6 +11,7 @@
  * native control does.
  */
 
+import { t } from '@macro/i18n';
 import CheckIcon from '@phosphor/check.svg';
 import type {
   ElicitationOption,
@@ -149,7 +150,7 @@ function OtherRow(props: {
         type="button"
         role={props.role}
         aria-checked={props.checked}
-        aria-label="Other"
+        aria-label={t("Other")}
         tabIndex={props.tabIndex}
         class="flex items-center outline-none"
         disabled={props.disabled}
@@ -163,7 +164,7 @@ function OtherRow(props: {
       <input
         type="text"
         class="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-placeholder"
-        placeholder="Type your own answer"
+        placeholder={t("Type your own answer")}
         disabled={props.disabled}
         value={props.text}
         onInput={(event) => props.onInput(event.currentTarget.value)}
@@ -415,7 +416,7 @@ function FieldControl(props: {
         ))
         .with({ type: 'unrecognized' }, (field) => (
           <div class="text-xs text-ink-extra-muted italic">
-            This client cannot display a {field.typeName} field.
+            {t("This client cannot display a {typeName} field.", { typeName: field.typeName })}
           </div>
         ))
         .exhaustive()}

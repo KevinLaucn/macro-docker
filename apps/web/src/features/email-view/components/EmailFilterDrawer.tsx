@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { MobileFilterDrawer } from '@app/components/view-shell/MobileFilterDrawer';
 import { MobileDrawer } from '@components/app/mobile/MobileDrawer';
 import { Accordion } from '@kobalte/core/accordion';
@@ -13,7 +14,7 @@ export function EmailFilterDrawer() {
   return (
     <MobileFilterDrawer
       triggerLabel="Open email filters"
-      label="Email filters"
+      label={t("Email filters@@email")}
       activeCount={
         filters.activeCount() + (state.inboxIds === undefined ? 0 : 1)
       }

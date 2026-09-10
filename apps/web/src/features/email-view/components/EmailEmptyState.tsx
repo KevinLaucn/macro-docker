@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { DOCS_BASE } from '@app/constants/docs-links';
 import { useAddInboxFlow, useEmailLinksStatus } from '@core/email-link';
 import EmptyStateEmailGraphic from '@design/empty-state-email.svg';
@@ -81,8 +82,8 @@ export function EmailEmptyState() {
         <EmptyStatePanel
           centered
           graphic={EmptyStateInboxTrayGraphic}
-          title="No inboxes selected"
-          description="Pick at least one inbox to see its email."
+          title={t("No inboxes selected@@email")}
+          description={t("Pick at least one inbox to see its email.@@email")}
           primaryAction={{
             label: 'Show all inboxes',
             onClick: () => setInboxIds(undefined),
@@ -96,7 +97,7 @@ export function EmailEmptyState() {
             centered
             graphic={EmptyStateNoSearchMatchGraphic}
             title={`No results for "${search()}"`}
-            description="Search across subjects, senders, and message content. Try a different query."
+            description={t("Search across subjects, senders, and message content. Try a different query.@@email")}
             documentationUrl={`${DOCS_BASE}/product/search`}
           />
         )}
@@ -106,7 +107,7 @@ export function EmailEmptyState() {
         <EmptyStatePanel
           centered
           graphic={EmptyStateNoFilterMatchGraphic}
-          title="No email matching the filters"
+          title={t("No email matching the filters@@email")}
           description="Try adjusting or clearing your filters to see more results."
         >
           <FilteredHiddenBanner

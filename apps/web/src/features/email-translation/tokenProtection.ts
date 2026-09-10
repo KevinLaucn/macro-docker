@@ -382,3 +382,148 @@ export const restoreTokens = (
 
   return restored;
 };
+
+// ────────────────────────────────────────────────────────────────────
+// Structural Label/Value Entity Protection (DOM-based, not regex-based)
+// ────────────────────────────────────────────────────────────────────
+
+/**
+ * Labels whose corresponding value should be protected from translation.
+ * Matched case-insensitively against the text content of the sibling/label cell.
+ */
+const PROTECTED_VALUE_LABELS = new Set([
+  'name',
+  'company',
+  'organization',
+  'organisation',
+  'domain',
+  'website',
+  'email',
+  'e-mail',
+  'account',
+  'account id',
+  'account number',
+  'account no',
+  'payment profile',
+  'payment profile id',
+  'profile id',
+  'customer id',
+  'customer number',
+  'order id',
+  'order number',
+  'order no',
+  'sku',
+  'tracking number',
+  'tracking id',
+  'invoice id',
+  'invoice number',
+  'invoice no',
+  'reference',
+  'reference id',
+  'ref id',
+  'serial number',
+  'serial no',
+  'phone',
+  'phone number',
+  'tel',
+  'telephone',
+  'fax',
+  'mobile',
+  'username',
+  'user name',
+  'user id',
+  'login',
+  'password',
+  'api key',
+  'token',
+  'verification code',
+  'invite code',
+  'auth code',
+]);
+
+/**
+ * Checks if a label text (normalized) matches a known protected value label.
+ */
+function isProtectedLabel(labelText: string): boolean {
+  const normalized = labelText
+    .toLowerCase()
+    .replace(/[:：\s]+$/g, '')
+    .trim();
+  return PROTECTED_VALUE_LABELS.has(normalized);
+}
+
+/**
+ * Determines if a TextNode is the "value" side of a label-value pair in the DOM.
+ * This uses structural DOM context (table rows, sibling elements) rather than
+ * regex matching on text content, avoiding false positives in prose.
+ *
+ * Recognized patterns:
+ * 1. Table: <tr><td>Label</td><td>[VALUE TextNode]</td></tr>
+ * 2. Sibling: <div><span>Label</span><strong>[VALUE TextNode]</strong></div>
+ *
+ * @returns true if the TextNode should be PROTECTED (not translated)
+ */
+export function isStructuralValueNode(textNode: Text): boolean {
+  const parent = textNode.parentElement;
+  if (!parent) return false;
+
+  // Pattern 1: Table cell — check if previous sibling TD/TH contains a protected label
+  const parentTag = parent.tagName.toUpperCase();
+  if (parentTag === 'TD' || parentTag === 'TH') {
+    const prevSibling = parent.previousElementSibling;
+    if (
+      prevSibling &&
+      (prevSibling.tagName.toUpperCase() === 'TD' ||
+        prevSibling.tagName.toUpperCase() === 'TH')
+    ) {
+      const labelText = prevSibling.textContent || '';
+      if (isProtectedLabel(labelText)) {
+        return true;
+      }
+    }
+  }
+
+  // Pattern 2: Inline sibling — the TextNode's parent is preceded by a label element
+  // e.g. <div><span>Name</span><strong>ChnPrint Studio</strong></div>
+  const prevEl = parent.previousElementSibling;
+  if (prevEl) {
+    const prevTag = prevEl.tagName.toUpperCase();
+    const inlineTags = new Set([
+      'SPAN',
+      'LABEL',
+      'DT',
+      'B',
+      'STRONG',
+      'EM',
+      'I',
+    ]);
+    if (inlineTags.has(prevTag)) {
+      const labelText = prevEl.textContent || '';
+      if (isProtectedLabel(labelText)) {
+        return true;
+      }
+    }
+  }
+
+  // Pattern 3: The TextNode's grandparent is a TD, and grandparent's previous sibling
+  // is a label cell (for nested structures like <td><strong>Value</strong></td>)
+  const grandparent = parent.parentElement;
+  if (grandparent) {
+    const gpTag = grandparent.tagName.toUpperCase();
+    if (gpTag === 'TD' || gpTag === 'TH') {
+      const prevCell = grandparent.previousElementSibling;
+      if (
+        prevCell &&
+        (prevCell.tagName.toUpperCase() === 'TD' ||
+          prevCell.tagName.toUpperCase() === 'TH')
+      ) {
+        const labelText = prevCell.textContent || '';
+        if (isProtectedLabel(labelText)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}

@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import {
   type EntityActionViewContext,
   toEntityActionListState,
@@ -145,7 +146,7 @@ export function ChannelMutedIndicator(props: {
     <Show when={props.muted}>
       <Tooltip
         as="span"
-        label="Notifications are muted"
+        label={t("Notifications are muted@@chat")}
         placement="right"
         class={cn(
           'size-4 shrink-0 justify-center text-ink-extra-muted',
@@ -153,7 +154,7 @@ export function ChannelMutedIndicator(props: {
         )}
       >
         <span
-          aria-label="Notifications muted"
+          aria-label={t("Notifications muted@@chat")}
           class="flex size-full items-center justify-center"
         >
           <BellSlashIcon class="size-full" />
@@ -240,7 +241,7 @@ function MessageSenderName(props: { id?: string }) {
       <Match when={isCurrentUser()}>You</Match>
       <Match when={botName()}>{(name) => name()}</Match>
       <Match when={macroId()}>{(id) => <UserDisplayName id={id()} />}</Match>
-      <Match when={true}>Someone</Match>
+      <Match when={true}>{t("Someone@@chat")}</Match>
     </Switch>
   );
 }

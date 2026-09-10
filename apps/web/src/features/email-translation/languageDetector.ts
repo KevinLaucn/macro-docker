@@ -1,6 +1,9 @@
 let detectorInstance: any = null;
 let pendingDetectorPromise: Promise<any> | null = null;
 
+/** Confidence threshold below which we return 'und' (undetermined) */
+const LOW_CONFIDENCE_THRESHOLD = 0.4;
+
 export function isLanguageDetectorSupported(): boolean {
   if (typeof globalThis === 'undefined') return false;
   return 'LanguageDetector' in globalThis;
@@ -13,7 +16,20 @@ export async function getDetectorInstance(): Promise<any> {
   pendingDetectorPromise = (async () => {
     try {
       if ('LanguageDetector' in globalThis) {
-        detectorInstance = await (globalThis as any).LanguageDetector.create();
+        // Prefer creating with expectedInputLanguages for better accuracy
+        // on multilingual email content (en/de/zh).
+        // Fall back gracefully if the browser doesn't support this option.
+        try {
+          detectorInstance = await (
+            globalThis as any
+          ).LanguageDetector.create({
+            expectedInputLanguages: ['en', 'de', 'zh'],
+          });
+        } catch {
+          detectorInstance = await (
+            globalThis as any
+          ).LanguageDetector.create();
+        }
       }
       return detectorInstance;
     } finally {
@@ -35,12 +51,22 @@ export async function detectLanguageWithConfidence(
     if (detector && typeof detector.detect === 'function') {
       const results = await detector.detect(sample);
       if (Array.isArray(results) && results.length > 0 && results[0]) {
+        const confidence =
+          typeof results[0].confidence === 'number'
+            ? results[0].confidence
+            : 0.8;
+
+        // Low confidence → return 'und' to let caller inherit context
+        if (confidence < LOW_CONFIDENCE_THRESHOLD) {
+          return {
+            detectedLanguage: 'und',
+            confidence,
+          };
+        }
+
         return {
           detectedLanguage: results[0].detectedLanguage,
-          confidence:
-            typeof results[0].confidence === 'number'
-              ? results[0].confidence
-              : 0.8,
+          confidence,
         };
       }
     }

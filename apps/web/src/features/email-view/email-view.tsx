@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { ViewShell } from '@app/components/view-shell';
 import { type PillTabItem, PillTabs } from '@components/app/mobile/PillTabs';
 import { SplitHeaderLeft } from '@components/app/split-layout/components/SplitHeader';
@@ -40,7 +41,7 @@ function EmailListFallback() {
           : 'rounded-2xl'
       )}
     >
-      <SpinnerIcon aria-label="Loading email" class="size-5 animate-spin" />
+      <SpinnerIcon aria-label={t("Loading email@@email")} class="size-5 animate-spin" />
     </Surface>
   );
 }

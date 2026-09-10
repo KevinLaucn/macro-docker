@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { ViewShell } from '@app/components/view-shell';
 import { createSizeBreakpoints } from '@app/util/create-size-breakpoints';
 import { useGlobalBlockOrchestrator } from '@components/app/GlobalAppState';
@@ -172,7 +173,7 @@ function ChannelsViewRoot() {
                 fallback={
                   <div class="grid size-full place-items-center text-ink-muted">
                     <SpinnerIcon
-                      aria-label="Loading channels"
+                      aria-label={t("Loading channels@@chat")}
                       class="size-5 animate-spin"
                     />
                   </div>

@@ -1,21 +1,48 @@
 /**
  * DOM-aware Semantic Block Segmentation
- * Identifies block-level containers (P, DIV, LI, TD, etc.) without parent/child double-counting.
- * Extracts text and retains precise TextNode offsets for safe write-back.
+ *
+ * V2: Node-addressed architecture.
+ * Each TextNode is independently tracked as a TranslationUnit.
+ * SemanticBlock provides context (parent element, sibling info) but
+ * never concatenates TextNodes into a single fullText for cross-node writeback.
+ *
+ * Hard boundaries: TD, TH, P, LI, H1-H6, BLOCKQUOTE, PRE, etc.
+ * These elements are never merged across for translation.
  */
 
+/**
+ * Represents a single TextNode as an independent translation unit.
+ * The text is translated and written back to this exact node only.
+ */
+export interface TranslationUnit {
+  /** Reference to the original DOM TextNode */
+  node: Text;
+  /** Original text content of this TextNode (snapshot before translation) */
+  originalText: string;
+  /** The immediate parent element of this TextNode (for structural detection) */
+  parentElement: Element | null;
+  /** Unique identifier for this unit */
+  unitId: string;
+}
+
+/**
+ * A semantic block is a leaf-level block element containing one or more
+ * TextNodes (TranslationUnits). It provides context for language detection
+ * and structural entity detection, but each TextNode is translated independently.
+ */
+export interface SemanticBlock {
+  blockId: string;
+  element: Element;
+  /** Individual TextNodes, each independently addressable */
+  units: TranslationUnit[];
+}
+
+// ── Legacy compat: keep old interface available for textPlanner ──
 export interface TextNodeMapping {
   node: Text;
   start: number;
   end: number;
   segmentId: string;
-}
-
-export interface SemanticBlock {
-  blockId: string;
-  element: Element;
-  fullText: string;
-  nodeMappings: TextNodeMapping[];
 }
 
 const BLOCK_TAGS = new Set([
@@ -39,6 +66,10 @@ const BLOCK_TAGS = new Set([
   'SUMMARY',
 ]);
 
+/**
+ * Tags whose content must never be translated.
+ * Aligned with Firefox Translations exclusion list.
+ */
 const EXCLUDED_TAGS = new Set([
   'SCRIPT',
   'STYLE',
@@ -47,10 +78,16 @@ const EXCLUDED_TAGS = new Set([
   'BUTTON',
   'INPUT',
   'TEXTAREA',
+  'CODE',
+  'KBD',
+  'SAMP',
+  'VAR',
+  'TEMPLATE',
 ]);
 
 /**
  * Traverses DOM tree and finds the lowest (leaf-most) block elements that contain text.
+ * Each TextNode inside a leaf block becomes an independent TranslationUnit.
  */
 export function collectSemanticBlocks(root: Element): SemanticBlock[] {
   const blocks: SemanticBlock[] = [];
@@ -66,13 +103,47 @@ export function collectSemanticBlocks(root: Element): SemanticBlock[] {
     return false;
   }
 
+  function collectUnitsFromElement(
+    el: Element,
+    blockId: string
+  ): TranslationUnit[] {
+    const units: TranslationUnit[] = [];
+    let unitCounter = 0;
+
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (parent && EXCLUDED_TAGS.has(parent.tagName.toUpperCase())) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+
+    let textNode = walker.nextNode() as Text | null;
+    while (textNode) {
+      const val = textNode.nodeValue || '';
+      if (val.trim()) {
+        units.push({
+          node: textNode,
+          originalText: val,
+          parentElement: textNode.parentElement,
+          unitId: `${blockId}-unit-${unitCounter++}`,
+        });
+      }
+      textNode = walker.nextNode() as Text | null;
+    }
+
+    return units;
+  }
+
   function walk(el: Element) {
     const tag = el.tagName.toUpperCase();
     if (EXCLUDED_TAGS.has(tag)) return;
 
     if (BLOCK_TAGS.has(tag)) {
       // If this block element has child block elements, descend into children instead
-      // to avoid processing both parent and child.
+      // to avoid processing both parent and child (hard boundary enforcement).
       if (hasChildBlock(el)) {
         for (let i = 0; i < el.children.length; i++) {
           const child = el.children[i];
@@ -81,45 +152,15 @@ export function collectSemanticBlocks(root: Element): SemanticBlock[] {
         return;
       }
 
-      // Leaf block element: extract all TextNodes inside it
+      // Leaf block element: extract all TextNodes as independent units
       const blockId = `block-${blockCounter++}`;
-      const mappings: TextNodeMapping[] = [];
-      let fullText = '';
-      let segmentCounter = 0;
+      const units = collectUnitsFromElement(el, blockId);
 
-      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
-        acceptNode(node) {
-          const parent = node.parentElement;
-          if (parent && EXCLUDED_TAGS.has(parent.tagName.toUpperCase())) {
-            return NodeFilter.FILTER_REJECT;
-          }
-          return NodeFilter.FILTER_ACCEPT;
-        },
-      });
-
-      let textNode = walker.nextNode() as Text | null;
-      while (textNode) {
-        const val = textNode.nodeValue || '';
-        if (val) {
-          const start = fullText.length;
-          fullText += val;
-          const end = fullText.length;
-          mappings.push({
-            node: textNode,
-            start,
-            end,
-            segmentId: `${blockId}-seg-${segmentCounter++}`,
-          });
-        }
-        textNode = walker.nextNode() as Text | null;
-      }
-
-      if (fullText.trim()) {
+      if (units.length > 0) {
         blocks.push({
           blockId,
           element: el,
-          fullText,
-          nodeMappings: mappings,
+          units,
         });
       }
       return;
@@ -137,43 +178,14 @@ export function collectSemanticBlocks(root: Element): SemanticBlock[] {
   // If no block tags were found (e.g. naked text in body or inline tags only),
   // treat the root itself as a single block.
   if (blocks.length === 0) {
-    const mappings: TextNodeMapping[] = [];
-    let fullText = '';
-    let segCounter = 0;
+    const blockId = 'root-block';
+    const units = collectUnitsFromElement(root, blockId);
 
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode(node) {
-        const parent = node.parentElement;
-        if (parent && EXCLUDED_TAGS.has(parent.tagName.toUpperCase())) {
-          return NodeFilter.FILTER_REJECT;
-        }
-        return NodeFilter.FILTER_ACCEPT;
-      },
-    });
-
-    let textNode = walker.nextNode() as Text | null;
-    while (textNode) {
-      const val = textNode.nodeValue || '';
-      if (val) {
-        const start = fullText.length;
-        fullText += val;
-        const end = fullText.length;
-        mappings.push({
-          node: textNode,
-          start,
-          end,
-          segmentId: `root-seg-${segCounter++}`,
-        });
-      }
-      textNode = walker.nextNode() as Text | null;
-    }
-
-    if (fullText.trim()) {
+    if (units.length > 0) {
       blocks.push({
-        blockId: 'root-block',
+        blockId,
         element: root,
-        fullText,
-        nodeMappings: mappings,
+        units,
       });
     }
   }

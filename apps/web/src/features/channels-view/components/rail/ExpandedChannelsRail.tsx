@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { runCreateAction } from '@app/features/command/Launcher';
 import { DEBUG_SETTING_KEYS, useDebugSetting } from '@app/lib/debugSettings';
 import { openNewChannelModal } from '@channel/CreateChannelModal';
@@ -422,7 +423,7 @@ export function ExpandedChannelsRail() {
             <span>Use</span>
             <Hotkey shortcut="[" theme="subtle" />
             <Hotkey shortcut="]" theme="subtle" />
-            <span>to jump sections</span>
+            <span>{t("to jump sections@@chat")}</span>
           </footer>
         </Show>
       </div>

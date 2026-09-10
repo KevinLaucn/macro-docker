@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { ModelCatalogPicker } from '@core/component/AI/component/input/ModelCatalogPicker';
 import { isLargeModelCatalog } from '@core/component/AI/component/input/modelCatalog';
 import { toast } from '@core/component/Toast/Toast';
@@ -262,7 +263,7 @@ export function Harness() {
                         class="settings-input w-56"
                         disabled
                       >
-                        <option>Loading models…</option>
+                        <option>{t("Loading models…")}</option>
                       </select>
                     }
                   >
@@ -271,7 +272,7 @@ export function Harness() {
                       fallback={
                         <div class="flex items-center gap-2">
                           <p class="text-xs text-negative">
-                            Could not load Cursor models.
+                            {t("Could not load Cursor models.")}
                           </p>
                           <Button
                             type="button"
@@ -288,7 +289,7 @@ export function Harness() {
                         when={cursorModelData()?.status === 'available'}
                         fallback={
                           <p class="text-xs text-ink-muted">
-                            Cursor does not support model selection.
+                            {t("Cursor does not support model selection.")}
                           </p>
                         }
                       >
@@ -501,7 +502,7 @@ function HarnessRemoveDialog(props: {
       <Panel depth={2} class="rounded-xl text-ink">
         <Panel.Header class="px-5 py-3">
           <Dialog.Title class="text-sm font-semibold">
-            Remove {props.harnessName}?
+            {t('Remove {harnessName}?', { harnessName: props.harnessName })}
           </Dialog.Title>
         </Panel.Header>
         <Panel.Body class="p-5">
