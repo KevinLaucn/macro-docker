@@ -3,7 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { destroyDetector } from './languageDetector';
 import { planAndTranslateText } from './textPlanner';
 import { detectProtectedSpans, restoreProtectedSpans } from './tokenProtection';
-import { clearTranslationCache } from './translationCache';
+import {
+  clearTranslationCache,
+  getCachedText,
+  setCachedText,
+} from './translationCache';
 import { planAndTranslateHtml } from './translationPlanner';
 import { destroyAllTranslators } from './translatorClient';
 
@@ -357,5 +361,208 @@ describe('DOM-aware Email Translation Planner', () => {
 
     // Must fall back to original text to prevent corrupting data
     expect(safeRestored).toBe(original);
+  });
+
+  // CASE 12: DOM structural invariant: tag hierarchy, attributes, and node structure remain 100% identical
+  it('CASE 12: Preserves DOM structural invariant across complex HTML trees', async () => {
+    const inputHtml = `
+      <div id="wrapper" class="main-body" data-role="email">
+        <h1 style="color: blue;">Account Notification</h1>
+        <p class="intro">
+          Please check your <a href="https://example.com/login" target="_blank" rel="noopener">credentials</a> carefully.
+        </p>
+        <table border="1" cellpadding="4">
+          <thead>
+            <tr><th>Feature</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Two-factor Auth</td>
+              <td><span class="badge active">Enabled</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    const result = await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    const parser = new DOMParser();
+    const docBefore = parser.parseFromString(inputHtml, 'text/html');
+    const docAfter = parser.parseFromString(result, 'text/html');
+
+    function assertStructuralEquality(nodeA: Element, nodeB: Element) {
+      expect(nodeB.tagName).toBe(nodeA.tagName);
+      expect(nodeB.attributes.length).toBe(nodeA.attributes.length);
+      for (let i = 0; i < nodeA.attributes.length; i++) {
+        const attrA = nodeA.attributes[i];
+        expect(nodeB.getAttribute(attrA.name)).toBe(attrA.value);
+      }
+      expect(nodeB.children.length).toBe(nodeA.children.length);
+      for (let i = 0; i < nodeA.children.length; i++) {
+        assertStructuralEquality(nodeA.children[i], nodeB.children[i]);
+      }
+    }
+
+    assertStructuralEquality(docBefore.body, docAfter.body);
+    expect(result).toContain('[译]');
+  });
+
+  // CASE 13: Google Workspace table email fixture preserves label-value pairing and prevents column escaping
+  it('CASE 13: Google Workspace table fixture keeps values in column 2 and protects entities', async () => {
+    const inputHtml = `
+      <table class="account-table">
+        <tbody>
+          <tr>
+            <td>Domain</td>
+            <td>chnprints.com</td>
+          </tr>
+          <tr>
+            <td>Name</td>
+            <td>ChnPrint Studio</td>
+          </tr>
+          <tr>
+            <td>Account number</td>
+            <td>1234-5678-9012</td>
+          </tr>
+          <tr>
+            <td>Payment profile ID</td>
+            <td>9876-5432-1098</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+
+    const result = await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(result, 'text/html');
+    const rows = doc.querySelectorAll('tr');
+
+    // 1. Table structure preserved: exactly 4 rows, 2 cells each
+    expect(rows.length).toBe(4);
+    rows.forEach((row) => {
+      const cells = row.querySelectorAll('td');
+      expect(cells.length).toBe(2);
+    });
+
+    // 2. Value cells (2nd column) are protected by isStructuralValueNode
+    expect(rows[0].querySelectorAll('td')[1].textContent?.trim()).toBe(
+      'chnprints.com'
+    );
+    expect(rows[1].querySelectorAll('td')[1].textContent?.trim()).toBe(
+      'ChnPrint Studio'
+    );
+    expect(rows[2].querySelectorAll('td')[1].textContent?.trim()).toBe(
+      '1234-5678-9012'
+    );
+    expect(rows[3].querySelectorAll('td')[1].textContent?.trim()).toBe(
+      '9876-5432-1098'
+    );
+
+    // 3. Labels in 1st column are translated
+    expect(rows[0].querySelectorAll('td')[0].textContent).toContain('[译]');
+  });
+
+  // CASE 14: Mixed-language per-segment translator routing
+  it('CASE 14: Routes English and German to separate translators and skips Chinese', async () => {
+    mockDetectFn.mockImplementation(async (text: string) => {
+      if (/[\u4e00-\u9fa5]/.test(text)) {
+        return [{ detectedLanguage: 'zh', confidence: 0.99 }];
+      }
+      if (text.includes('Guten Tag') || text.includes('Rechnung')) {
+        return [{ detectedLanguage: 'de', confidence: 0.98 }];
+      }
+      return [{ detectedLanguage: 'en', confidence: 0.95 }];
+    });
+
+    const inputHtml = `
+      <div>
+        <p>Hello, your monthly subscription invoice is ready.</p>
+        <p>Guten Tag, Ihre Rechnung steht zum Download bereit.</p>
+        <p>您好，您的月度账单已经生成。</p>
+      </div>
+    `;
+
+    const result = await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    // English translated via en->zh
+    expect((globalThis as any).Translator.create).toHaveBeenCalledWith({
+      sourceLanguage: 'en',
+      targetLanguage: 'zh',
+    });
+
+    // German translated via de->zh
+    expect((globalThis as any).Translator.create).toHaveBeenCalledWith({
+      sourceLanguage: 'de',
+      targetLanguage: 'zh',
+    });
+
+    // Chinese does NOT invoke translator
+    expect((globalThis as any).Translator.create).not.toHaveBeenCalledWith({
+      sourceLanguage: 'zh',
+      targetLanguage: 'zh',
+    });
+
+    // Chinese content remains 100% intact
+    expect(result).toContain('您好，您的月度账单已经生成。');
+    expect(result).not.toContain('[译] 您好');
+  });
+
+  // CASE 15: sourceLang cache isolation prevents collision between identically-spelled words across languages
+  it('CASE 15: Isolates cache entries by sourceLanguage to prevent cross-language collisions', () => {
+    setCachedText('Gift', 'en', 'zh', '礼物');
+    setCachedText('Gift', 'de', 'zh', '毒物');
+
+    expect(getCachedText('Gift', 'en', 'zh')).toBe('礼物');
+    expect(getCachedText('Gift', 'de', 'zh')).toBe('毒物');
+    expect(getCachedText('Gift', 'fr', 'zh')).toBeUndefined();
+  });
+
+  // CASE 16: Hard boundary isolation for table cells, list items, and paragraphs
+  it('CASE 16: Strictly isolates text across TD, TH, LI, and P boundaries without cross-element merging', async () => {
+    const inputHtml = `
+      <table>
+        <thead>
+          <tr>
+            <th>Header Alpha</th>
+            <th>Header Beta</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>First Column Item</td>
+            <td>Second Column Item</td>
+          </tr>
+        </tbody>
+      </table>
+      <ul>
+        <li>First Step Instruction</li>
+        <li>Second Step Instruction</li>
+      </ul>
+      <p>Paragraph Alpha Content</p>
+      <p>Paragraph Beta Content</p>
+    `;
+
+    const result = await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(result, 'text/html');
+
+    const ths = doc.querySelectorAll('th');
+    expect(ths[0].textContent?.trim()).toBe('[译] Header Alpha');
+    expect(ths[1].textContent?.trim()).toBe('[译] Header Beta');
+
+    const tds = doc.querySelectorAll('td');
+    expect(tds[0].textContent?.trim()).toBe('[译] First Column Item');
+    expect(tds[1].textContent?.trim()).toBe('[译] Second Column Item');
+
+    const lis = doc.querySelectorAll('li');
+    expect(lis[0].textContent?.trim()).toBe('[译] First Step Instruction');
+    expect(lis[1].textContent?.trim()).toBe('[译] Second Step Instruction');
+
+    const ps = doc.querySelectorAll('p');
+    expect(ps[0].textContent?.trim()).toBe('[译] Paragraph Alpha Content');
+    expect(ps[1].textContent?.trim()).toBe('[译] Paragraph Beta Content');
   });
 });
