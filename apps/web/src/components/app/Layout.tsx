@@ -24,6 +24,7 @@ import { MacroMcpSetupModal } from '@app/features/integrations/mcp-setup/MacroMc
 import { Paywall } from '@app/features/paywall/Paywall';
 import { PropertyEditorModal } from '@app/features/property/editor/PropertyEditorModal';
 import { ReminderComposerModal } from '@app/features/reminders/ReminderComposerModal';
+import { SelfHostHealthPrompt } from '@app/features/self-host-health';
 import { useOnboardingV4Flag } from '@app/features/setup/flow/useOnboardingV4Flag';
 import { GlobalShareModal } from '@app/features/sharing/global-share-modal/GlobalShareModal';
 import { IosShareSheet } from '@app/features/sharing/ios-share-sheet/IosShareSheet';
@@ -259,6 +260,8 @@ function LayoutInner(props: RouteSectionProps) {
           <Show when={!AUTH_URLS.includes(location.pathname)}>
             <GithubReauthenticationPrompt />
             <GmailReauthenticationPrompt />
+            {/* PRIVATE-HOOK: self_host_health:prompt */}
+            <SelfHostHealthPrompt />
             <CalendarPermissionPrompt />
           </Show>
           <GlobalShortcuts />

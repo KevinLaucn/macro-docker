@@ -52,20 +52,32 @@ export const Billing = () => {
   });
 
   const userTeam = createMemo(() => {
-    const currentTeam = team.data;
-    const uid = userId();
-    if (!currentTeam || !uid) return;
+    try {
+      const currentTeam = team.data;
+      const uid = userId();
+      if (!currentTeam || !uid) return;
 
-    return currentTeam.team;
+      return currentTeam.team;
+    } catch {
+      return undefined;
+    }
   });
 
   const teamRole = createMemo(() => {
     const uid = userId();
-    const team = userTeam();
+    const current = userTeam();
 
-    if (!team) return;
+    if (!current) return 'owner';
 
-    return team.owner_id === uid ? 'owner' : 'member';
+    return current.owner_id === uid ? 'owner' : 'member';
+  });
+
+  const memberCount = createMemo(() => {
+    try {
+      return team.data?.members?.length ?? 1;
+    } catch {
+      return 1;
+    }
   });
 
   const handleCheckout = async () => {
@@ -112,8 +124,8 @@ export const Billing = () => {
               <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-2">
                   <h2 class="text-lg font-medium text-ink">
-                    <Show when={!hasPaid()} fallback={t('Premium plan')}>
-                      {t('Free plan')}
+                    <Show when={!hasPaid()} fallback={t('Enterprise Plan')}>
+                      {t('Enterprise Plan')}
                     </Show>
                   </h2>
 
@@ -131,17 +143,13 @@ export const Billing = () => {
                       )}
                     </p>
                   </Match>
-                  <Match
-                    when={hasPaid() && teamRole() === 'owner' && team.data}
-                  >
-                    {(team) => (
-                      <p class="text-ink-extra-muted text-xs">
-                        {t('{count} {users} • $40 per seat / month', {
-                          count: team().members.length,
-                          users: plural('user', team().members.length),
-                        })}
-                      </p>
-                    )}
+                  <Match when={true}>
+                    <p class="text-ink-extra-muted text-xs">
+                      {t('{count} {users} • Self-hosted Unlimited Seats', {
+                        count: memberCount(),
+                        users: plural('user', memberCount()),
+                      })}
+                    </p>
                   </Match>
                 </Switch>
               </div>
@@ -165,30 +173,26 @@ export const Billing = () => {
               </Show>
             </header>
             <ul class="border-t border-t-edge-muted pt-4 flex flex-wrap gap-4 text-sm text-ink-muted">
-              <PlanFeatures tier={hasPaid() ? 'premium' : 'free'} />
+              <PlanFeatures tier="premium" />
             </ul>
           </section>
         </SettingsCard>
       </SettingsSection>
 
-      <Show
-        when={
-          !hasPaid() &&
-          canManageSubscription() &&
-          (!teamRole() || teamRole() === 'owner')
-        }
-      >
-        <SettingsSection>
-          <SettingsCard>
-            <section class="flex flex-col gap-4 p-4">
-              <header class="flex items-center gap-2">
-                <div class="flex flex-col">
-                  <h2 class="text-lg font-medium text-ink">{t('Premium')}</h2>
-                  <p class="text-ink-extra-muted text-xs">
-                    {t('$40 per seat / month')}
-                  </p>
-                </div>
+      <SettingsSection>
+        <SettingsCard>
+          <section class="flex flex-col gap-4 p-4">
+            <header class="flex items-center gap-2">
+              <div class="flex flex-col">
+                <h2 class="text-lg font-medium text-ink">
+                  {t('Team & Enterprise Pricing')}
+                </h2>
+                <p class="text-ink-extra-muted text-xs">
+                  {t('$40 per seat / month (Included in Self-Hosted)')}
+                </p>
+              </div>
 
+              <Show when={!hasPaid() && canManageSubscription()}>
                 <Button
                   class="ml-auto rounded-full py-1.5 px-3"
                   depth={2}
@@ -197,14 +201,14 @@ export const Billing = () => {
                 >
                   {t('Upgrade now')}
                 </Button>
-              </header>
-              <ul class="border-t border-t-edge-muted pt-4 flex flex-wrap gap-4 text-sm text-ink-muted">
-                <PlanFeatures tier="premium" />
-              </ul>
-            </section>
-          </SettingsCard>
-        </SettingsSection>
-      </Show>
+              </Show>
+            </header>
+            <ul class="border-t border-t-edge-muted pt-4 flex flex-wrap gap-4 text-sm text-ink-muted">
+              <PlanFeatures tier="premium" />
+            </ul>
+          </section>
+        </SettingsCard>
+      </SettingsSection>
     </SettingsPage>
   );
 };

@@ -1,19 +1,21 @@
-import fs from "node:fs";
-import path from "node:path";
-import { parse } from "@babel/parser";
-import traverseModule from "@babel/traverse";
+import fs from 'node:fs';
+import path from 'node:path';
+import { parse } from '@babel/parser';
+import traverseModule from '@babel/traverse';
 
 const traverse = (traverseModule as any).default || traverseModule;
 
-const webSrcDir = path.resolve(__dirname, "../../apps/web/src");
-const diffDir = path.resolve(__dirname, "./diff");
+const webSrcDir = path.resolve(__dirname, '../../apps/web/src');
+const diffDir = path.resolve(__dirname, './diff');
 
 import {
-  TRANSLATABLE_ATTRIBUTES,
-  IGNORED_TAGS,
-  shouldTranslateText as shouldAuditText,
+  getObjectPropertyName,
   isIgnoredPath,
-} from "./ast-utils";
+  parseSimpleTemplateLiteral,
+  shouldTranslateText as shouldAuditText,
+  TRANSLATABLE_ATTRIBUTES,
+  TRANSLATABLE_OBJECT_KEYS,
+} from './ast-utils';
 
 function getAllFiles(dir: string, ext: RegExp, list: string[] = []): string[] {
   const files = fs.readdirSync(dir);
@@ -21,10 +23,15 @@ function getAllFiles(dir: string, ext: RegExp, list: string[] = []): string[] {
     const full = path.join(dir, file);
     const stat = fs.statSync(full);
     if (stat.isDirectory()) {
-      if (file !== "node_modules" && file !== "dist" && file !== ".vite") {
+      if (file !== 'node_modules' && file !== 'dist' && file !== '.vite') {
         getAllFiles(full, ext, list);
       }
-    } else if (ext.test(file) && !file.endsWith(".d.ts") && !file.endsWith(".test.ts") && !file.endsWith(".test.tsx")) {
+    } else if (
+      ext.test(file) &&
+      !file.endsWith('.d.ts') &&
+      !file.endsWith('.test.ts') &&
+      !file.endsWith('.test.tsx')
+    ) {
       list.push(full);
     }
   }
@@ -56,18 +63,30 @@ async function audit() {
   }
 
   console.log(`🔎 Auditing untranslated literals in: ${arg || targetDir}`);
-  const untranslated: { file: string; line: number; type: string; snippet: string }[] = [];
+  const untranslated: {
+    file: string;
+    line: number;
+    type: string;
+    snippet: string;
+  }[] = [];
 
   for (const file of files) {
     if (isIgnoredPath(file)) continue;
     const rel = path.relative(webSrcDir, file);
-    const code = fs.readFileSync(file, "utf-8");
-    if (!file.endsWith(".tsx") && !code.includes("toast")) continue;
+    const code = fs.readFileSync(file, 'utf-8');
+    if (
+      !file.endsWith('.tsx') &&
+      !code.includes('toast') &&
+      !Array.from(TRANSLATABLE_OBJECT_KEYS).some((key) =>
+        code.includes(`${key}:`)
+      )
+    )
+      continue;
 
     try {
       const ast = parse(code, {
-        sourceType: "module",
-        plugins: ["jsx", "typescript"],
+        sourceType: 'module',
+        plugins: ['jsx', 'typescript'],
       });
 
       traverse(ast, {
@@ -77,21 +96,108 @@ async function audit() {
             untranslated.push({
               file: rel,
               line: p.node.loc?.start?.line ?? 0,
-              type: "JSXText",
+              type: 'JSXText',
               snippet: raw.trim().slice(0, 60),
             });
           }
         },
         JSXAttribute(p: any) {
           const attr = p.node.name?.name;
-          if (TRANSLATABLE_ATTRIBUTES.has(attr) && p.node.value?.type === "StringLiteral") {
-            const val = p.node.value.value;
-            if (shouldAuditText(val)) {
+          if (!TRANSLATABLE_ATTRIBUTES.has(attr)) return;
+          const line = p.node.loc?.start?.line ?? 0;
+          const value = p.node.value;
+          if (value?.type === 'StringLiteral' && shouldAuditText(value.value)) {
+            untranslated.push({
+              file: rel,
+              line,
+              type: `JSXAttribute(${attr})`,
+              snippet: value.value.slice(0, 60),
+            });
+          } else if (value?.type === 'JSXExpressionContainer') {
+            const exp = value.expression;
+            if (exp.type === 'StringLiteral' && shouldAuditText(exp.value)) {
               untranslated.push({
                 file: rel,
-                line: p.node.loc?.start?.line ?? 0,
+                line,
                 type: `JSXAttribute(${attr})`,
-                snippet: val.slice(0, 60),
+                snippet: exp.value.slice(0, 60),
+              });
+            } else if (exp.type === 'TemplateLiteral') {
+              const unit = parseSimpleTemplateLiteral(exp);
+              if (unit && shouldAuditText(unit.template)) {
+                untranslated.push({
+                  file: rel,
+                  line,
+                  type: `JSXAttribute(${attr})`,
+                  snippet: unit.template.slice(0, 60),
+                });
+              }
+            }
+          }
+        },
+        ObjectProperty(p: any) {
+          if (rel.includes('lib/service-clients/')) return;
+          const propName = getObjectPropertyName(p.node.key);
+          if (!propName || !TRANSLATABLE_OBJECT_KEYS.has(propName)) return;
+
+          const line = p.node.loc?.start?.line ?? 0;
+          const value = p.node.value;
+          if (value.type === 'StringLiteral' && shouldAuditText(value.value)) {
+            untranslated.push({
+              file: rel,
+              line,
+              type: `ObjectProperty(${propName})`,
+              snippet: value.value.slice(0, 60),
+            });
+          } else if (value.type === 'TemplateLiteral') {
+            const unit = parseSimpleTemplateLiteral(value);
+            if (unit && shouldAuditText(unit.template)) {
+              untranslated.push({
+                file: rel,
+                line,
+                type: `ObjectProperty(${propName})`,
+                snippet: unit.template.slice(0, 60),
+              });
+            }
+          }
+        },
+        CallExpression(p: any) {
+          const callee = p.node.callee;
+          const isToast =
+            (callee.type === 'MemberExpression' &&
+              callee.object?.name === 'toast' &&
+              [
+                'success',
+                'error',
+                'info',
+                'warning',
+                'loading',
+                'message',
+              ].includes(callee.property?.name)) ||
+            (callee.type === 'Identifier' && callee.name === 'toast');
+
+          if (!isToast || p.node.arguments.length === 0) return;
+
+          const firstArg = p.node.arguments[0];
+          const line = p.node.loc?.start?.line ?? 0;
+          if (
+            firstArg.type === 'StringLiteral' &&
+            shouldAuditText(firstArg.value)
+          ) {
+            untranslated.push({
+              file: rel,
+              line,
+              type: 'Toast',
+              snippet: firstArg.value.slice(0, 60),
+            });
+          } else if (firstArg.type === 'TemplateLiteral') {
+            const unit = parseSimpleTemplateLiteral(firstArg);
+            if (unit && shouldAuditText(unit.template)) {
+              untranslated.push({
+                file: rel,
+                line,
+                type: 'Toast',
+                snippet: unit.template.slice(0, 60),
               });
             }
           }
@@ -107,9 +213,9 @@ async function audit() {
   }
 
   fs.writeFileSync(
-    path.join(diffDir, "audit-untranslated.json"),
+    path.join(diffDir, 'audit-untranslated.json'),
     JSON.stringify(untranslated, null, 2),
-    "utf-8"
+    'utf-8'
   );
 
   const summaryByFile: Record<string, number> = {};
@@ -119,21 +225,29 @@ async function audit() {
 
   const sortedFiles = Object.entries(summaryByFile).sort((a, b) => b[1] - a[1]);
 
-  console.log("==========================================");
+  console.log('==========================================');
   console.log(`📋 i18n Audit Report:`);
   console.log(`  - Target:                               ${targetDir}`);
-  console.log(`  - Potential Untranslated Literals:      ${untranslated.length}`);
-  console.log(`  - Affected Files:                       ${sortedFiles.length}`);
+  console.log(
+    `  - Potential Untranslated Literals:      ${untranslated.length}`
+  );
+  console.log(
+    `  - Affected Files:                       ${sortedFiles.length}`
+  );
 
   if (untranslated.length > 0) {
     console.log(`\n🔍 Untranslated Details (file:line:col):`);
     for (const item of untranslated) {
-      console.log(`  apps/web/src/${item.file}:${item.line} [${item.type}] "${item.snippet}"`);
+      console.log(
+        `  apps/web/src/${item.file}:${item.line} [${item.type}] "${item.snippet}"`
+      );
     }
   }
 
-  console.log(`\nFull report saved to packages/i18n/diff/audit-untranslated.json`);
-  console.log("==========================================");
+  console.log(
+    `\nFull report saved to packages/i18n/diff/audit-untranslated.json`
+  );
+  console.log('==========================================');
 }
 
 audit();

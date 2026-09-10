@@ -1,6 +1,6 @@
 import { createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import { translateText } from './translateText';
+import { translateTextDetailed } from './translateText';
 import type {
   MessageTranslationData,
   MessageTranslationOverride,
@@ -92,14 +92,17 @@ export async function toggleRowTranslation(
 
   try {
     const [translatedName, translatedSnippet] = await Promise.all([
-      name ? translateText(name) : Promise.resolve(name),
-      snippet ? translateText(snippet) : Promise.resolve(snippet),
+      name ? translateTextDetailed(name) : Promise.resolve(undefined),
+      snippet ? translateTextDetailed(snippet) : Promise.resolve(undefined),
     ]);
 
     setRowTranslations(threadId, {
-      status: 'translated',
-      translatedName,
-      translatedSnippet,
+      status:
+        translatedName?.partial || translatedSnippet?.partial
+          ? 'partial'
+          : 'translated',
+      translatedName: translatedName?.text ?? name,
+      translatedSnippet: translatedSnippet?.text ?? snippet,
     });
   } catch (err) {
     console.error(
@@ -221,7 +224,8 @@ export function isMessageTranslated(
   const override = getMessageOverride(messageId);
   if (override === 'original') return false;
   if (override === 'translated') return true;
-  return getThreadTranslationStatus(threadId) === 'translated';
+  const threadStatus = getThreadTranslationStatus(threadId);
+  return threadStatus === 'translated' || threadStatus === 'partial';
 }
 
 // 7. Clear/reset thread state & message overrides

@@ -11,8 +11,8 @@
 
 import { logTranslationDebug } from './debugLog';
 import { splitLanguageRuns } from './languageRuns';
-import { collectSemanticBlocks, type SemanticBlock } from './segmentation';
 import type { TranslationUnit } from './segmentation';
+import { collectSemanticBlocks, type SemanticBlock } from './segmentation';
 import {
   detectProtectedSpans,
   isStructuralValueNode,
@@ -25,6 +25,11 @@ export interface PlanOptions {
   targetLang?: string;
   concurrency?: number;
   signal?: AbortSignal;
+}
+
+export interface HtmlTranslationResult {
+  html: string;
+  partial: boolean;
 }
 
 /**
@@ -44,11 +49,11 @@ interface TranslationJob {
   }>;
 }
 
-export async function planAndTranslateHtml(
+export async function planAndTranslateHtmlDetailed(
   html: string,
   options?: PlanOptions
-): Promise<string> {
-  if (!html || !html.trim()) return html;
+): Promise<HtmlTranslationResult> {
+  if (!html || !html.trim()) return { html, partial: false };
 
   const targetLang = options?.targetLang || getTargetLanguage();
   const concurrency = options?.concurrency || 4;
@@ -59,7 +64,7 @@ export async function planAndTranslateHtml(
 
   const blocks = collectSemanticBlocks(doc.body);
   if (blocks.length === 0 || signal?.aborted) {
-    return html;
+    return { html, partial: false };
   }
 
   const jobs: TranslationJob[] = [];
@@ -67,10 +72,10 @@ export async function planAndTranslateHtml(
 
   // 1. Analyze each TextNode independently within its SemanticBlock context
   for (const block of blocks) {
-    if (signal?.aborted) return html;
+    if (signal?.aborted) return { html, partial: false };
 
     for (const unit of block.units) {
-      if (signal?.aborted) return html;
+      if (signal?.aborted) return { html, partial: false };
 
       const text = unit.originalText;
       if (!text.trim()) continue;
@@ -134,12 +139,13 @@ export async function planAndTranslateHtml(
   }
 
   if (jobs.length === 0 || signal?.aborted) {
-    return doc.body.innerHTML;
+    return { html: doc.body.innerHTML, partial: false };
   }
 
   // 2. Execute translation jobs with limited concurrency
   //    Each job translates ONE TextNode and writes back to that exact node.
   let activeIndex = 0;
+  let partial = false;
 
   const worker = async () => {
     while (activeIndex < jobs.length) {
@@ -227,6 +233,7 @@ export async function planAndTranslateHtml(
               err
             );
             // Failure isolation: keep original text for this run
+            partial = true;
             translatedParts.push(run.text);
           }
         }
@@ -239,6 +246,7 @@ export async function planAndTranslateHtml(
           err
         );
         // Failure isolation: keep original text intact
+        partial = true;
       }
     }
   };
@@ -248,5 +256,12 @@ export async function planAndTranslateHtml(
   );
   await Promise.all(pool);
 
-  return doc.body.innerHTML;
+  return { html: doc.body.innerHTML, partial };
+}
+
+export async function planAndTranslateHtml(
+  html: string,
+  options?: PlanOptions
+): Promise<string> {
+  return (await planAndTranslateHtmlDetailed(html, options)).html;
 }

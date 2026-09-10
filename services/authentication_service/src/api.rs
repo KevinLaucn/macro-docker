@@ -39,7 +39,7 @@ mod logout;
 mod oauth;
 mod oauth2;
 mod permissions;
-mod permissions_extractor;
+pub(crate) mod permissions_extractor;
 mod session;
 pub(crate) mod signup_policy;
 mod user;
@@ -126,6 +126,11 @@ fn api_router(state: ApiContext) -> Router<ApiContext> {
             webhooks::router().layer(axum::middleware::from_fn(
                 macro_middleware::connection_drop_prevention_handler,
             )),
+        )
+        // PRIVATE-HOOK: self_host_health:admin_route
+        .nest(
+            "/admin",
+            crate::features::self_host_health::router(state.clone()),
         );
 
     #[cfg(feature = "full-saas")]

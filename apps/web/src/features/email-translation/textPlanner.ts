@@ -16,32 +16,38 @@ export interface TextTranslationOptions {
   signal?: AbortSignal;
 }
 
-export async function planAndTranslateText(
+export interface TextTranslationResult {
+  text: string;
+  partial: boolean;
+}
+
+export async function planAndTranslateTextDetailed(
   text: string,
   options?: TextTranslationOptions
-): Promise<string> {
-  if (!text || !text.trim()) return text;
+): Promise<TextTranslationResult> {
+  if (!text || !text.trim()) return { text, partial: false };
 
   const targetLang = options?.targetLang || getTargetLanguage();
 
   // Split into language runs
   const runs = await splitLanguageRuns(text, targetLang, options?.signal);
   if (runs.length === 0 || options?.signal?.aborted) {
-    return text;
+    return { text, partial: false };
   }
 
   // Fast path: if all runs are KEEP, return immediately without translation
   const allKeep = runs.every((r) => r.decision === 'KEEP');
   if (allKeep) {
-    return text;
+    return { text, partial: false };
   }
 
   // Translate each run according to its decision
   const translatedParts: string[] = [];
+  let partial = false;
 
   for (let i = 0; i < runs.length; i++) {
     const run = runs[i];
-    if (options?.signal?.aborted) return text;
+    if (options?.signal?.aborted) return { text, partial: false };
 
     if (run.decision === 'KEEP') {
       logTranslationDebug({
@@ -92,9 +98,17 @@ export async function planAndTranslateText(
         err
       );
       // Fallback: keep original text for this run
+      partial = true;
       translatedParts.push(run.text);
     }
   }
 
-  return translatedParts.join('');
+  return { text: translatedParts.join(''), partial };
+}
+
+export async function planAndTranslateText(
+  text: string,
+  options?: TextTranslationOptions
+): Promise<string> {
+  return (await planAndTranslateTextDetailed(text, options)).text;
 }

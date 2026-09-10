@@ -29,7 +29,8 @@ export function EmailThreadTranslateButton(
   const status = () =>
     props.threadId ? getThreadTranslationStatus(props.threadId) : 'idle';
 
-  const isTranslated = () => status() === 'translated';
+  const isPartial = () => status() === 'partial';
+  const isTranslated = () => status() === 'translated' || isPartial();
   const isTranslating = () => status() === 'loading';
 
   const msgs = () => props.messages ?? [];
@@ -50,7 +51,12 @@ export function EmailThreadTranslateButton(
     }
   };
 
-  const label = () => (isTranslated() ? t('Show original') : t('Translate'));
+  const label = () =>
+    isPartial()
+      ? t('Partial translation failed. Original text was kept.')
+      : isTranslated()
+        ? t('Show original')
+        : t('Translate');
 
   return (
     <Show when={isAvailable() && props.threadId}>
@@ -82,7 +88,13 @@ export function EmailThreadTranslateButton(
           <CircleNotch class="size-3.5 animate-spin text-ink-placeholder" />
         </Show>
         <Show when={!props.hideLabel}>
-          <span>{isTranslated() ? t('Original') : t('Translate')}</span>
+          <span>
+            {isPartial()
+              ? t('Partial')
+              : isTranslated()
+                ? t('Original')
+                : t('Translate')}
+          </span>
         </Show>
       </Button>
     </Show>

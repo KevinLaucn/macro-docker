@@ -36,6 +36,7 @@ export type SettingsTab =
   | 'Email'
   | 'GitHub'
   | 'Admin'
+  | 'SelfHostHealth'
   | 'Extensions';
 
 // Where "Back to app" (and move-to-split) should return to: the layout the user

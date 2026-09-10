@@ -20,9 +20,7 @@ export async function getDetectorInstance(): Promise<any> {
         // on multilingual email content (en/de/zh).
         // Fall back gracefully if the browser doesn't support this option.
         try {
-          detectorInstance = await (
-            globalThis as any
-          ).LanguageDetector.create({
+          detectorInstance = await (globalThis as any).LanguageDetector.create({
             expectedInputLanguages: ['en', 'de', 'zh'],
           });
         } catch {

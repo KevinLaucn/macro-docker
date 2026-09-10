@@ -9,7 +9,7 @@ import {
   type TranslatableMessage,
   translateSingleMessage,
 } from './translateMessage';
-import { translateText } from './translateText';
+import { translateTextDetailed } from './translateText';
 
 export async function translateThread(
   threadId: string,
@@ -19,20 +19,23 @@ export async function translateThread(
   setThreadTranslationStatus(threadId, 'loading');
 
   try {
+    let partial = false;
     await Promise.all([
       title
-        ? translateText(title)
-            .then((translatedTitle) =>
+        ? translateTextDetailed(title)
+            .then((translatedTitle) => {
+              partial ||= translatedTitle.partial;
               setThreadTitleTranslation(threadId, {
-                status: 'translated',
-                translatedTitle,
-              })
-            )
+                status: translatedTitle.partial ? 'partial' : 'translated',
+                translatedTitle: translatedTitle.text,
+              });
+            })
             .catch((err) => {
               console.error(
                 `[EmailTranslation] Failed to translate thread title ${threadId}:`,
                 err
               );
+              partial = true;
               setThreadTitleTranslation(threadId, { status: 'error' });
             })
         : Promise.resolve(),
@@ -50,10 +53,13 @@ export async function translateThread(
 
         setCachedMessageTranslation(id, { status: 'loading' });
         const translated = await translateSingleMessage(msg);
+        if (translated.status === 'partial' || translated.status === 'error') {
+          partial = true;
+        }
         setCachedMessageTranslation(id, translated);
       }),
     ]);
-    setThreadTranslationStatus(threadId, 'translated');
+    setThreadTranslationStatus(threadId, partial ? 'partial' : 'translated');
   } catch (err) {
     console.error(
       `[EmailTranslation] Failed to translate thread ${threadId}:`,

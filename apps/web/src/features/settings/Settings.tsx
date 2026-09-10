@@ -1,3 +1,4 @@
+import { SelfHostHealth } from '@app/features/self-host-health';
 import { Billing } from '@app/features/settings/Billing';
 import { Bots } from '@app/features/settings/Bots';
 import { PillTabs } from '@components/app/mobile/PillTabs';
@@ -404,9 +405,20 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   <Notifications />
                 </Show>
                 <Show when={isCurrentTab('Billing')}>
-                  <Suspense>
-                    <Billing />
-                  </Suspense>
+                  <ErrorBoundary
+                    fallback={(err) => {
+                      console.error('Failed to load Billing settings:', err);
+                      return (
+                        <div class="p-8 text-ink text-sm">
+                          {t('Failed to load Billing settings.')}
+                        </div>
+                      );
+                    }}
+                  >
+                    <Suspense>
+                      <Billing />
+                    </Suspense>
+                  </ErrorBoundary>
                 </Show>
                 <Show when={isCurrentTab('Appearance')}>
                   <ErrorBoundary
@@ -462,6 +474,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 </Show>
                 <Show when={isCurrentTab('Admin')}>
                   <Admin />
+                </Show>
+                {/* PRIVATE-HOOK: self_host_health:settings_tab */}
+                <Show when={isCurrentTab('SelfHostHealth')}>
+                  <Suspense>
+                    <SelfHostHealth />
+                  </Suspense>
                 </Show>
                 <Show when={isCurrentTab('Extensions')}>
                   <Extensions />

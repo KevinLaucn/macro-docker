@@ -108,7 +108,7 @@ UI 内容：
 - 分组卡片：认证、数据库、存储、队列、Gmail、Webhook、DSS 文档存储、邮件打开追踪、邮件翻译、服务运行态。
 - 每项显示状态、最近检查时间、错误原因、建议修复动作。
 - 提供“立即重新检查”按钮。
-- 保留最近一次成功结果和最近一次失败结果，避免接口短暂失败时页面空白。
+- 保留当前状态、`last_checked`、`failure_since`、`consecutive_failures`，避免接口短暂失败时页面空白。
 - UI 保持轻量：默认只展示状态、官方估算数量、本地落库数量、差值、上次检查时间；详情折叠展示。
 
 ## 常驻通知方案
@@ -141,7 +141,7 @@ UI 内容：
 
 原因：
 
-- 1 分钟适合极轻量的单 endpoint ping，不适合包含数据库、SQS、S3、Gmail、容器状态的综合检查。
+- 1 分钟适合极轻量的单 endpoint ping，不适合包含数据库、SQS、S3、Gmail 的综合检查。
 - 2 分钟对自托管 SaaS 足够及时，且不会给小型 2H8G 主机增加明显压力。
 - 页面打开时立即查一次，后台轮询 2 分钟一次。
 - Gmail 官方数量 `users.getProfile` 检查默认也跟随 2 分钟轮询；该 API 很轻，主要用于展示 `messagesTotal` / `threadsTotal` / `historyId`。
@@ -217,7 +217,7 @@ UI 内容：
 - Gmail 官方实时 `threadsTotal` / `messagesTotal` 估算数量。
 - 最近同步游标 / historyId。
 - 最近一次成功同步时间。
-- 当前是否有同步任务在运行。
+- 当前 backfill 任务状态与推进量。
 - SQS 同步队列积压数量。
 - DLQ 数量。
 
@@ -259,13 +259,13 @@ UI 显示：
 - `GET /health` 返回 `200`。
 - 生产反代 `/dss/*` 是否正确转发到 `document_storage_service`。
 - 文档 S3 bucket 是否存在。
-- 文档 S3 bucket 最小读写探针是否成功。
+- 文档 S3 bucket `HeadBucket` 只读探针是否成功。
 - internal auth key / header 是否配置正确。
 
 状态判断：
 
 - `/health` 不通：`critical`。
-- 文档 S3 bucket 不存在或不可读写：`critical`。
+- 文档 S3 bucket 不存在、不可达或无读权限：`critical`。
 - `/dss/*` 反代错误：`critical`。
 - internal auth key 配置错误：`critical`。
 
@@ -313,7 +313,7 @@ UI 显示：
 - DSS 文档存储：检查 `/health`、`/dss/*` 反代、文档 S3 bucket、internal auth key。
 - 后台 worker 消费延迟：只查队列存在不够，要查积压和 DLQ。
 - 服务间 internal auth key：错误会造成 webhook、sync、storage 调用失败。
-- 磁盘空间：自部署最常见故障之一，尤其 Postgres、OpenSearch、Docker volume。
+- 磁盘空间：自部署最常见故障之一，尤其 Postgres、OpenSearch、Docker volume；仅通过 `doctor.py` / SSH 层检查，不进入 Rust UI 自动轮询。
 - SSL / public URL / reverse proxy：Gmail push、OAuth callback、webhook 都依赖公网回调正确。
 - 系统时间漂移：OAuth、JWT、签名校验都依赖时间。
 - 最近失败事件：比单次 ping 更有价值，例如最近 15 分钟 Gmail watch renewal / webhook failure。
@@ -347,12 +347,13 @@ UI 显示：
 - 制造一个 S3/SQS/FusionAuth/Gmail 异常后，右下角常驻提示。
 - 修复后提示自动消失。
 
-### Phase 3：深度业务契约检查
+### Phase 3：补充业务契约检查
 
-- 加入 Gmail watch/push、Gmail 同步进度、像素追踪写入状态、recent sync、DLQ、OpenSearch、Kafka、反代配置。
+- Gmail 官方数量、watch 续订、Gmail 同步进度、SQS redrive DLQ、DSS internal auth 与文档 S3 `HeadBucket` 已进入 Phase 1。
+- 后续补充像素追踪写入状态、OpenSearch、Kafka、更多反代配置。
 - 宿主机磁盘和 Docker 容器状态保留在 `doctor.py` / SSH 层，不通过 `authentication-service` 读取。
-- 加入每项 remediation hint。
-- 加入后端缓存、超时、并发限制。
+- 继续细化每项 remediation hint。
+- 加入更细粒度后端缓存与并发限制。
 
 验收：
 

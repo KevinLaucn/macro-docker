@@ -108,6 +108,8 @@ use tokio_util::task::TaskTracker;
 
 mod api;
 mod config;
+// PRIVATE-HOOK: self_host_health:features
+mod features;
 mod generate_password;
 mod microsoft_token_cipher;
 mod rate_limit_config;
@@ -309,6 +311,11 @@ async fn main() -> anyhow::Result<()> {
     let search_event_queue = macro_queues::SearchEventQueue::new();
     let link_manager_queue = macro_queues::LinkManagerQueue::new();
     let email_backfill_queue = macro_queues::EmailBackfillQueue::new();
+    // PRIVATE-HOOK: self_host_health:gmail_queue_probe_wiring
+    let gmail_inbox_sync_queue = macro_queues::GmailInboxSyncQueue::new();
+    let gmail_inbox_sync_retry_queue = macro_queues::GmailInboxSyncRetryQueue::new();
+    let gmail_ops_queue = macro_queues::GmailOpsQueue::new();
+    let gmail_ops_retry_queue = macro_queues::GmailOpsRetryQueue::new();
     #[cfg(feature = "full-saas")]
     let ingress_queue = SqsQueue::new(
         aws_sdk_sqs::Client::new(&macro_aws_config::get_macro_aws_config().await),
@@ -323,7 +330,11 @@ async fn main() -> anyhow::Result<()> {
 
     let sqs_client = sqs_client::SQS::new(aws_sdk_sqs::Client::new(&aws_config))
         .email_link_manager_queue(&link_manager_queue)
-        .email_backfill_queue(&email_backfill_queue);
+        .email_backfill_queue(&email_backfill_queue)
+        .gmail_inbox_sync_queue(&gmail_inbox_sync_queue)
+        .gmail_inbox_sync_retry_queue(&gmail_inbox_sync_retry_queue)
+        .gmail_ops_queue(&gmail_ops_queue)
+        .gmail_ops_retry_queue(&gmail_ops_retry_queue);
     #[cfg(feature = "full-saas")]
     let sqs_client = sqs_client.search_event_queue(&search_event_queue);
     tracing::trace!("initialized sqs client");

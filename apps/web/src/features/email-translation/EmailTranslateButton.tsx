@@ -14,11 +14,16 @@ export interface EmailTranslateButtonProps {
 }
 
 export function EmailTranslateButton(props: EmailTranslateButtonProps) {
-  const isTranslated = () => props.state === 'translated';
+  const isPartial = () => props.state === 'partial';
+  const isTranslated = () => props.state === 'translated' || isPartial();
   const isLoading = () => props.state === 'loading';
 
   const tooltipLabel = () =>
-    isTranslated() ? t('Show original') : t('Translate');
+    isPartial()
+      ? t('Partial translation failed. Original text was kept.')
+      : isTranslated()
+        ? t('Show original')
+        : t('Translate');
 
   return (
     <Button

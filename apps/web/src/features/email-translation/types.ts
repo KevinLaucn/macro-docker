@@ -1,4 +1,9 @@
-export type TranslationStatus = 'idle' | 'loading' | 'translated' | 'error';
+export type TranslationStatus =
+  | 'idle'
+  | 'loading'
+  | 'translated'
+  | 'partial'
+  | 'error';
 
 export type MessageTranslationOverride = 'inherit' | 'translated' | 'original';
 

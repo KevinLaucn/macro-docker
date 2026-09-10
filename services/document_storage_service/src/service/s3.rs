@@ -58,6 +58,16 @@ impl S3Client {
         &self.docx_upload_bucket
     }
 
+    pub async fn health_check_document_storage_bucket(&self) -> anyhow::Result<()> {
+        self.inner
+            .head_bucket()
+            .bucket(&self.document_storage_bucket)
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn get_document(&self, key: &str) -> anyhow::Result<Vec<u8>> {
         get::get(&self.inner, &self.document_storage_bucket, key).await
     }

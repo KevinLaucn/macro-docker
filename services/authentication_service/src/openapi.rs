@@ -2,6 +2,7 @@
 
 mod api;
 mod config;
+mod features;
 mod generate_password;
 mod microsoft_token_cipher;
 mod rate_limit_config;

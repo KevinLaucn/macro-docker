@@ -1,5 +1,5 @@
-import { translateHtml } from './translateHtml';
-import { translateText } from './translateText';
+import { translateHtmlDetailed } from './translateHtml';
+import { translateTextDetailed } from './translateText';
 import type { MessageTranslationData } from './types';
 
 export type TranslatableMessage = {
@@ -16,26 +16,37 @@ export async function translateSingleMessage(
   const result: MessageTranslationData = {
     status: 'translated',
   };
+  let partial = false;
 
   try {
     if (message.body_html_sanitized) {
       // HTML email: translate DOM text nodes while keeping all HTML structure and styles
       const htmlStr = message.body_html_sanitized.toString();
-      result.translatedHtml = await translateHtml(htmlStr);
+      const translatedHtml = await translateHtmlDetailed(htmlStr);
+      result.translatedHtml = translatedHtml.html;
+      partial ||= translatedHtml.partial;
 
       if (message.body_replyless) {
-        result.translatedReplylessHtml = await translateHtml(
+        const translatedReplylessHtml = await translateHtmlDetailed(
           message.body_replyless.toString()
         );
+        result.translatedReplylessHtml = translatedReplylessHtml.html;
+        partial ||= translatedReplylessHtml.partial;
       }
     } else if (message.body_macro) {
       // Plaintext Macro email
-      result.translatedText = await translateText(
+      const translatedText = await translateTextDetailed(
         message.body_macro.toString()
       );
+      result.translatedText = translatedText.text;
+      partial ||= translatedText.partial;
     } else if (message.body_text) {
       // Standard plaintext email
-      result.translatedText = await translateText(message.body_text.toString());
+      const translatedText = await translateTextDetailed(
+        message.body_text.toString()
+      );
+      result.translatedText = translatedText.text;
+      partial ||= translatedText.partial;
     }
 
     // Also translate snippet for collapsed messages / previews
@@ -51,7 +62,13 @@ export async function translateSingleMessage(
       rawSnippet = doc.body.textContent?.replace(/\s+/g, ' ').trim() ?? '';
     }
     if (rawSnippet) {
-      result.translatedSnippet = await translateText(rawSnippet);
+      const translatedSnippet = await translateTextDetailed(rawSnippet);
+      result.translatedSnippet = translatedSnippet.text;
+      partial ||= translatedSnippet.partial;
+    }
+
+    if (partial) {
+      result.status = 'partial';
     }
 
     return result;

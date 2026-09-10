@@ -6,6 +6,7 @@ import BuildingsIcon from '@phosphor/buildings.svg';
 import CpuIcon from '@phosphor/cpu.svg';
 import CreditCardIcon from '@phosphor/credit-card.svg';
 import HardDrivesIcon from '@phosphor/hard-drives.svg';
+import HeartbeatIcon from '@phosphor/heartbeat.svg';
 import KeyIcon from '@phosphor/key.svg';
 import KeyboardIcon from '@phosphor/keyboard.svg';
 import PlugIcon from '@phosphor/plug.svg';
@@ -85,7 +86,10 @@ export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
   },
   {
     label: 'Admin',
-    items: [{ tab: 'Admin', label: 'Debug', icon: BugIcon }],
+    items: [
+      { tab: 'Admin', label: 'Debug', icon: BugIcon },
+      { tab: 'SelfHostHealth', label: 'Health Check', icon: HeartbeatIcon },
+    ],
   },
 ];
 
@@ -121,6 +125,7 @@ const SETTINGS_TAB_SLUGS: Record<SettingsTab, string> = {
   Email: 'email',
   GitHub: 'github',
   Admin: 'admin',
+  SelfHostHealth: 'health-check',
   Extensions: 'extensions',
 };
 
@@ -198,6 +203,7 @@ export const useSettingsTabAvailable = () => {
       case 'Mobile':
         return isNativeMobilePlatform() && DEV_MODE_ENV;
       case 'Admin':
+      case 'SelfHostHealth':
         return hasAdminPanel();
       default:
         return false;

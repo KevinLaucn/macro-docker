@@ -21,6 +21,9 @@ use crate::api::threads::get_thread_access_level;
 use crate::api::{documents::get_documents_metadata, items::validate_item_ids};
 use axum::{
     Router,
+    extract::State,
+    http::StatusCode,
+    response::IntoResponse,
     routing::{delete, get, post, put},
 };
 use macro_authorization::{InternalOnly, MacroAuthorizationExtractor};
@@ -194,11 +197,23 @@ pub fn router(state: ApiContext) -> Router<ApiContext> {
         )
         .route("/item_ids", get(get_item_ids::get_item_ids_handler))
         .route("/validate_item_ids", post(validate_item_ids::handler))
+        // PRIVATE-HOOK: self_host_health:dss_internal_storage_probe
         .route("/health", get(health_handler))
 }
 
 async fn health_handler(
+    State(ctx): State<ApiContext>,
     _auth: MacroAuthorizationExtractor<AuthorizationService, InternalOnly>,
-) -> &'static str {
-    "healthy"
+) -> impl IntoResponse {
+    match ctx.s3_client.health_check_document_storage_bucket().await {
+        Ok(()) => (StatusCode::OK, "healthy").into_response(),
+        Err(error) => {
+            tracing::error!(error=?error, "DSS internal storage health check failed");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "document storage bucket is not reachable",
+            )
+                .into_response()
+        }
+    }
 }

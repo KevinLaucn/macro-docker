@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearThreadTranslation,
+  getCachedMessageTranslation,
   getThreadTitleTranslation,
   getThreadTranslationStatus,
 } from './emailTranslationState';
@@ -51,5 +52,34 @@ describe('email thread translation', () => {
 
     expect(getThreadTranslationStatus(threadId)).toBe('idle');
     expect(getThreadTitleTranslation(threadId)?.status).toBe('idle');
+  });
+
+  it('marks the thread partial when a message run falls back to original text', async () => {
+    const threadId = 'thread-partial-test';
+
+    (globalThis as any).Translator.create = vi.fn(async () => ({
+      translate: vi.fn(async (text: string) => {
+        if (text.includes('FAIL_ME')) {
+          throw new Error('Translator crash');
+        }
+        return `[译] ${text}`;
+      }),
+      destroy: vi.fn(),
+    }));
+
+    await translateThread(threadId, [
+      {
+        db_id: 'message-partial-test',
+        body_text: 'First sentence. FAIL_ME should stay original.',
+      },
+    ]);
+
+    expect(getThreadTranslationStatus(threadId)).toBe('partial');
+    expect(getCachedMessageTranslation('message-partial-test')?.status).toBe(
+      'partial'
+    );
+    expect(
+      getCachedMessageTranslation('message-partial-test')?.translatedText
+    ).toContain('FAIL_ME should stay original');
   });
 });

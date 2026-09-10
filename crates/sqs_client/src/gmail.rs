@@ -25,6 +25,22 @@ impl SQS {
         self
     }
 
+    pub fn gmail_inbox_sync_queue_url(&self) -> Option<&str> {
+        self.gmail_inbox_sync_queue.as_deref()
+    }
+
+    pub fn gmail_inbox_sync_retry_queue_url(&self) -> Option<&str> {
+        self.gmail_inbox_sync_retry_queue.as_deref()
+    }
+
+    pub fn gmail_ops_queue_url(&self) -> Option<&str> {
+        self.gmail_ops_queue.as_deref()
+    }
+
+    pub fn gmail_ops_retry_queue_url(&self) -> Option<&str> {
+        self.gmail_ops_retry_queue.as_deref()
+    }
+
     /// Sends a notification message to the Gmail inbox sync queue
     #[tracing::instrument(skip(self))]
     pub async fn enqueue_gmail_inbox_sync_notification(

@@ -170,6 +170,7 @@ sha1 = "0.10.6"
 sqlx = { workspace = true }
 sqs_client = { path = "../../crates/sqs_client", default-features = false, features = [
   "email",
+  "gmail",
 ] }
 strum = { workspace = true }
 teams = { path = "../../crates/teams", optional = true }

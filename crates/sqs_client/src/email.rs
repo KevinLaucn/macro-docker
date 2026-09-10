@@ -29,6 +29,22 @@ impl SQS {
         self
     }
 
+    pub fn email_link_manager_queue_url(&self) -> Option<&str> {
+        self.link_manager_queue.as_deref()
+    }
+
+    pub fn email_scheduled_queue_url(&self) -> Option<&str> {
+        self.email_scheduled_queue.as_deref()
+    }
+
+    pub fn email_backfill_queue_url(&self) -> Option<&str> {
+        self.email_backfill_queue.as_deref()
+    }
+
+    pub fn email_crm_cleanup_queue_url(&self) -> Option<&str> {
+        self.email_crm_cleanup_queue.as_deref()
+    }
+
     #[cfg(feature = "sfs_uploader")]
     pub fn sfs_uploader_queue(mut self, email_sfs_uploader_queue: &str) -> Self {
         self.email_sfs_uploader_queue = Some(email_sfs_uploader_queue.to_string());

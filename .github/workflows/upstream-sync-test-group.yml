@@ -61,3 +61,32 @@ jobs:
       - name: Test i18n
         if: inputs.group == 'i18n'
         run: bun test packages/i18n
+
+      - name: Typecheck i18n package
+        if: inputs.group == 'i18n'
+        run: bun x tsc -p packages/i18n/tsconfig.json --noEmit
+
+      - name: Run AST extraction & enforce i18n gate
+        if: inputs.group == 'i18n'
+        run: |
+          bun packages/i18n/extract.ts
+          node -e '
+            const fs = require("fs");
+            const failures = fs.existsSync("packages/i18n/diff/parse-failures.json")
+              ? JSON.parse(fs.readFileSync("packages/i18n/diff/parse-failures.json", "utf8"))
+              : [];
+            const details = fs.existsSync("packages/i18n/diff/missing-details.json")
+              ? JSON.parse(fs.readFileSync("packages/i18n/diff/missing-details.json", "utf8"))
+              : {};
+            const explicitMissing = Object.entries(details).filter(([, meta]) => meta.isExplicit);
+            if (failures.length > 0) {
+              console.error("Blocking failure: " + failures.length + " source files failed AST parsing.");
+              console.error(JSON.stringify(failures, null, 2));
+              process.exit(1);
+            }
+            if (explicitMissing.length > 0) {
+              console.error("Blocking failure: " + explicitMissing.length + " explicit t()/__t() keys are missing from zh-CN.json.");
+              console.error(JSON.stringify(Object.fromEntries(explicitMissing), null, 2));
+              process.exit(1);
+            }
+          '

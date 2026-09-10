@@ -1,3 +1,4 @@
+import type { SelfHostHealthReport } from '@app/features/self-host-health/types';
 import { ENABLE_BEARER_TOKEN_AUTH } from '@core/constant/featureFlags';
 import { SERVER_HOSTS } from '@core/constant/servers';
 import { fetchWithToken } from '@core/util/fetchWithToken';
@@ -1001,6 +1002,16 @@ export const authServiceClient = {
         method: 'DELETE',
       })
     ).map(() => undefined);
+  },
+
+  // PRIVATE-HOOK: self_host_health:client_method
+  async getSelfHostHealthCheck() {
+    return await fetchWithAuth<SelfHostHealthReport>(
+      `${authHost}/admin/health-check`,
+      {
+        method: 'GET',
+      }
+    );
   },
 };
 

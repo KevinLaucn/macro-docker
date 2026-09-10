@@ -4,41 +4,16 @@
     "features/block-md/component/ComposeSkill.tsx",
     "lib/core/component/LexicalMarkdown/component/menu/SkillsMenu/SkillsMenu.tsx"
   ],
-  "Save": [
-    "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "features/settings/Team.tsx",
-    "features/settings/Harness.tsx"
-  ],
-  "Failed to mark as done": [
-    "features/next-soup/actions/make-mark-done-action.ts",
-    "features/entity/extractors-notification/notification-actions.tsx",
-    "features/block-email/component/EmailContext.tsx"
-  ],
-  "Marked as done": [
-    "features/next-soup/actions/make-mark-done-action.ts",
-    "features/entity/extractors-notification/notification-actions.tsx",
-    "features/block-email/component/EmailContext.tsx"
-  ],
-  "Undo": [
-    "features/next-soup/actions/make-mark-done-action.ts",
-    "features/entity/extractors-notification/notification-actions.tsx",
-    "features/block-email/component/EmailContext.tsx"
-  ],
-  "Failed to undo": [
-    "features/next-soup/actions/make-mark-done-action.ts",
-    "features/entity/extractors-notification/notification-actions.tsx",
-    "features/block-email/component/EmailContext.tsx"
-  ],
   "Copied": [
     "features/settings/Team.tsx",
     "features/block-agent/ui/ToolErrorCard.tsx",
     "features/channel/Bots/CredentialField.tsx",
     "lib/core/component/AI/component/McpSetupCards.tsx"
   ],
-  "Harness": [
+  "Loading models…": [
     "features/settings/Harness.tsx",
     "features/settings/Agents.tsx",
-    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx"
+    "features/block-agent/component/ComposeAgentSession.tsx"
   ],
   "Close": [
     "features/settings/ApiKeys.tsx",
@@ -81,5 +56,15 @@
     "features/block-agent/component/parts/PermissionPart.tsx",
     "features/block-agent/component/parts/UserToolCall.tsx",
     "features/block-agent/component/parts/ToolCallPart.tsx"
+  ],
+  "Show original": [
+    "features/email-translation/SoupListTranslateButton.tsx",
+    "features/email-translation/EmailTranslateButton.tsx",
+    "features/email-translation/EmailThreadTranslateButton.tsx"
+  ],
+  "Translate": [
+    "features/email-translation/SoupListTranslateButton.tsx",
+    "features/email-translation/EmailTranslateButton.tsx",
+    "features/email-translation/EmailThreadTranslateButton.tsx"
   ]
 }

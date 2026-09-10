@@ -61,10 +61,13 @@ export function MessageList(props: MessageListProps) {
   );
   const displayedTitle = createMemo(() => {
     const threadId = context.thread()?.db_id;
+    const translationStatus = threadId
+      ? getThreadTranslationStatus(threadId)
+      : 'idle';
     if (
       threadId &&
       emailTranslationEnabled() &&
-      getThreadTranslationStatus(threadId) === 'translated'
+      (translationStatus === 'translated' || translationStatus === 'partial')
     ) {
       return (
         getThreadTitleTranslation(threadId)?.translatedTitle ?? props.title

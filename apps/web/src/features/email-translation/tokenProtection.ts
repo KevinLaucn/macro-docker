@@ -573,7 +573,8 @@ export function isStructuralValueNode(textNode: Text): boolean {
   ) {
     prevSiblingNode = prevSiblingNode.previousSibling;
   }
-  if (prevSiblingNode && prevSiblingNode.nodeType === 1) { // Element node
+  if (prevSiblingNode && prevSiblingNode.nodeType === 1) {
+    // Element node
     const prevInlineEl = prevSiblingNode as Element;
     if (INLINE_LABEL_TAGS.has(prevInlineEl.tagName.toUpperCase())) {
       const labelText = prevInlineEl.textContent || '';

@@ -112,5 +112,45 @@ hooks:
     expected: "if (isTranslated()) {"
     context:
       - "const cached = getCachedMessageTranslation(props.message.db_id);"
-
-
+  - id: self_host_health_admin_route
+    file: services/authentication_service/src/api.rs
+    marker: "// PRIVATE-HOOK: self_host_health:admin_route"
+    expected: "crate::features::self_host_health::router(state.clone())"
+    context:
+      - ".nest(\"/admin\","
+  - id: self_host_health_features
+    file: services/authentication_service/src/main.rs
+    marker: "// PRIVATE-HOOK: self_host_health:features"
+    expected: "mod features;"
+    context:
+      - "mod config;"
+  - id: self_host_health_gmail_queue_probe_wiring
+    file: services/authentication_service/src/main.rs
+    marker: "// PRIVATE-HOOK: self_host_health:gmail_queue_probe_wiring"
+    expected: "let gmail_inbox_sync_queue = macro_queues::GmailInboxSyncQueue::new();"
+    context:
+      - "let email_backfill_queue = macro_queues::EmailBackfillQueue::new();"
+  - id: self_host_health_dss_internal_storage_probe
+    file: services/document_storage_service/src/api/internal.rs
+    marker: "// PRIVATE-HOOK: self_host_health:dss_internal_storage_probe"
+    expected: ".route(\"/health\", get(health_handler))"
+    context:
+      - "pub fn router(state: ApiContext) -> Router<ApiContext> {"
+  - id: self_host_health_settings_tab
+    file: apps/web/src/features/settings/Settings.tsx
+    marker: "{/* PRIVATE-HOOK: self_host_health:settings_tab */}"
+    expected: "<SelfHostHealth />"
+    context:
+      - "isCurrentTab('SelfHostHealth')"
+  - id: self_host_health_prompt
+    file: apps/web/src/components/app/Layout.tsx
+    marker: "{/* PRIVATE-HOOK: self_host_health:prompt */}"
+    expected: "<SelfHostHealthPrompt />"
+    context:
+      - "<GmailReauthenticationPrompt />"
+  - id: self_host_health_client_method
+    file: apps/web/src/lib/service-clients/service-auth/client.ts
+    marker: "// PRIVATE-HOOK: self_host_health:client_method"
+    expected: "async getSelfHostHealthCheck()"
+    context:
+      - "fetchWithAuth<SelfHostHealthReport>"

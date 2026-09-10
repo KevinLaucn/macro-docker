@@ -2,6 +2,22 @@ name: i18n Health Gate
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/i18n-check.yml"
+      - "apps/web/**"
+      - "packages/i18n/**"
+      - "bun.lock"
+      - "package.json"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/i18n-check.yml"
+      - "apps/web/**"
+      - "packages/i18n/**"
+      - "bun.lock"
+      - "package.json"
 
 jobs:
   i18n-check:
@@ -18,7 +34,7 @@ jobs:
           bun-version: 1.3.5
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile || bun install
+        run: bun install --frozen-lockfile
 
       - name: Verify zh-CN dictionary JSON syntax
         run: |
@@ -31,22 +47,36 @@ jobs:
       - name: Typecheck i18n package
         run: bun x tsc -p packages/i18n/tsconfig.json --noEmit
 
-      - name: Run AST extraction & verify zero parse failures
+      - name: Run AST extraction & enforce i18n gate
         run: |
           bun packages/i18n/extract.ts
           node -e '
             const fs = require("fs");
             const parseFailuresPath = "packages/i18n/diff/parse-failures.json";
+            const missingDetailsPath = "packages/i18n/diff/missing-details.json";
             const failures = fs.existsSync(parseFailuresPath)
               ? JSON.parse(fs.readFileSync(parseFailuresPath, "utf8"))
               : [];
+            const details = fs.existsSync(missingDetailsPath)
+              ? JSON.parse(fs.readFileSync(missingDetailsPath, "utf8"))
+              : {};
+            const explicitMissing = Object.entries(details).filter(([, meta]) => meta.isExplicit);
             if (failures.length > 0) {
               console.error("❌ Blocking Failure: " + failures.length + " source files failed AST parsing!");
               console.error(JSON.stringify(failures, null, 2));
               process.exit(1);
             }
+            if (explicitMissing.length > 0) {
+              console.error("❌ Blocking Failure: " + explicitMissing.length + " explicit t()/__t() keys are missing from zh-CN.json!");
+              console.error(JSON.stringify(Object.fromEntries(explicitMissing), null, 2));
+              process.exit(1);
+            }
             console.log("✅ Zero AST parse failures detected across all scanned files.");
+            console.log("✅ All explicit t()/__t() keys are translated in zh-CN.json.");
           '
+
+      - name: Run untranslated UI audit
+        run: bun packages/i18n/audit.ts
 
       - name: Upload i18n diff artifacts
         uses: actions/upload-artifact@v4
