@@ -565,4 +565,86 @@ describe('DOM-aware Email Translation Planner', () => {
     expect(ps[0].textContent?.trim()).toBe('[译] Paragraph Alpha Content');
     expect(ps[1].textContent?.trim()).toBe('[译] Paragraph Beta Content');
   });
+
+  // CASE 17: Exclusion attributes: translate="no", .notranslate, and contenteditable are never translated
+  it('CASE 17: Respects translate="no", notranslate class, and contenteditable elements', async () => {
+    const inputHtml = `
+      <div>
+        <p>This regular paragraph will be translated.</p>
+        <p translate="no">This paragraph has translate="no" and must be kept.</p>
+        <p class="notranslate">This paragraph has class="notranslate" and must be kept.</p>
+        <div contenteditable="true">Editable content must not be translated.</div>
+      </div>
+    `;
+
+    const result = await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    expect(result).toContain('[译] This regular paragraph will be translated.');
+    expect(result).toContain(
+      'This paragraph has translate="no" and must be kept.'
+    );
+    expect(result).not.toContain(
+      '[译] This paragraph has translate="no" and must be kept.'
+    );
+    expect(result).toContain(
+      'This paragraph has class="notranslate" and must be kept.'
+    );
+    expect(result).not.toContain(
+      '[译] This paragraph has class="notranslate" and must be kept.'
+    );
+    expect(result).toContain('Editable content must not be translated.');
+    expect(result).not.toContain(
+      '[译] Editable content must not be translated.'
+    );
+  });
+
+  // CASE 18: Multilingual & inline structural label-value protection
+  it('CASE 18: Protects structured values in German, Chinese, and inline sibling label patterns', async () => {
+    const inputHtml = `
+      <table>
+        <tr><td>Konto</td><td>DE89370400440532013000</td></tr>
+      </table>
+      <div>
+        <span>Domain:</span> chnprints.com
+      </div>
+      <div>
+        <strong>Name:</strong> ChnPrint Studio
+      </div>
+    `;
+
+    const result = await planAndTranslateHtml(inputHtml, { targetLang: 'zh' });
+
+    // German Konto value protected
+    expect(result).toContain('DE89370400440532013000');
+    expect(result).not.toContain('[译] DE89370400440532013000');
+
+    // Inline <span>Domain:</span> value protected
+    expect(result).toContain('chnprints.com');
+    expect(result).not.toContain('[译] chnprints.com');
+
+    // Inline <strong>Name:</strong> value protected
+    expect(result).toContain('ChnPrint Studio');
+    expect(result).not.toContain('[译] ChnPrint Studio');
+  });
+
+  // CASE 19: HTML translation caching: repeated calls reuse cached runs
+  it('CASE 19: HTML translation caches runs and avoids redundant translator calls', async () => {
+    const inputHtml = `<p>Unique email statement for cache test.</p>`;
+
+    const firstResult = await planAndTranslateHtml(inputHtml, {
+      targetLang: 'zh',
+    });
+    expect(firstResult).toContain(
+      '[译] Unique email statement for cache test.'
+    );
+    const callCountAfterFirst = mockTranslateFn.mock.calls.length;
+    expect(callCountAfterFirst).toBeGreaterThan(0);
+
+    const secondResult = await planAndTranslateHtml(inputHtml, {
+      targetLang: 'zh',
+    });
+    expect(secondResult).toBe(firstResult);
+    // Translator must not be called again
+    expect(mockTranslateFn.mock.calls.length).toBe(callCountAfterFirst);
+  });
 });

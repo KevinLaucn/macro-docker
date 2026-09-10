@@ -18,6 +18,7 @@ import {
   isStructuralValueNode,
   restoreProtectedSpans,
 } from './tokenProtection';
+import { getCachedText, setCachedText } from './translationCache';
 import { getTargetLanguage, translateRawText } from './translatorClient';
 
 export interface PlanOptions {
@@ -62,6 +63,7 @@ export async function planAndTranslateHtml(
   }
 
   const jobs: TranslationJob[] = [];
+  let rollingContextLang: string | undefined;
 
   // 1. Analyze each TextNode independently within its SemanticBlock context
   for (const block of blocks) {
@@ -84,8 +86,13 @@ export async function planAndTranslateHtml(
         continue; // Skip — value of a protected label
       }
 
-      // Split the single TextNode's text into language runs
-      const langRuns = await splitLanguageRuns(text, targetLang, signal);
+      // Split the single TextNode's text into language runs with context inheritance
+      const langRuns = await splitLanguageRuns(
+        text,
+        targetLang,
+        signal,
+        rollingContextLang
+      );
 
       const jobRuns: TranslationJob['runs'] = [];
       let hasTranslatable = false;
@@ -93,6 +100,9 @@ export async function planAndTranslateHtml(
       for (const run of langRuns) {
         if (run.decision === 'TRANSLATE') {
           hasTranslatable = true;
+        }
+        if (run.detectedLang && run.detectedLang !== 'und') {
+          rollingContextLang = run.detectedLang;
         }
         jobRuns.push({
           text: run.text,
@@ -156,6 +166,26 @@ export async function planAndTranslateHtml(
             continue;
           }
 
+          // Check translation cache with sourceLang before calling translator
+          const cached = getCachedText(
+            run.text.trim(),
+            run.sourceLang,
+            targetLang
+          );
+          if (cached !== undefined) {
+            logTranslationDebug({
+              blockId: job.block.blockId,
+              segmentId: job.unit.unitId,
+              originalText: run.text,
+              detectedLanguage: run.sourceLang,
+              decision: 'TRANSLATE',
+              translatorPair: `${run.sourceLang}->${targetLang}`,
+              translatedText: cached,
+            });
+            translatedParts.push(cached);
+            continue;
+          }
+
           // TRANSLATE: protect entities, translate, restore
           const { protectedText, spanMap } = detectProtectedSpans(run.text);
 
@@ -181,6 +211,14 @@ export async function planAndTranslateHtml(
               translatorPair: `${run.sourceLang}->${targetLang}`,
               translatedText: restored,
             });
+
+            // Cache the translated result with sourceLang
+            setCachedText(
+              run.text.trim(),
+              run.sourceLang,
+              targetLang,
+              restored
+            );
 
             translatedParts.push(restored);
           } catch (err) {

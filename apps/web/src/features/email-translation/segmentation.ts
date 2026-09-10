@@ -86,6 +86,24 @@ const EXCLUDED_TAGS = new Set([
 ]);
 
 /**
+ * Checks if an element is excluded from translation due to tag name,
+ * translate="no" attribute, notranslate class, or contenteditable.
+ */
+export function isExcludedElement(el: Element): boolean {
+  const tag = el.tagName.toUpperCase();
+  if (EXCLUDED_TAGS.has(tag)) return true;
+  if (el.getAttribute('translate') === 'no') return true;
+  if (el.classList && el.classList.contains('notranslate')) return true;
+  if (
+    el.getAttribute('contenteditable') === 'true' ||
+    el.getAttribute('contenteditable') === ''
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Traverses DOM tree and finds the lowest (leaf-most) block elements that contain text.
  * Each TextNode inside a leaf block becomes an independent TranslationUnit.
  */
@@ -112,8 +130,14 @@ export function collectSemanticBlocks(root: Element): SemanticBlock[] {
 
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
-        const parent = node.parentElement;
-        if (parent && EXCLUDED_TAGS.has(parent.tagName.toUpperCase())) {
+        let parent: Element | null = node.parentElement;
+        while (parent && parent !== el) {
+          if (isExcludedElement(parent)) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          parent = parent.parentElement;
+        }
+        if (parent && isExcludedElement(parent)) {
           return NodeFilter.FILTER_REJECT;
         }
         return NodeFilter.FILTER_ACCEPT;
@@ -138,8 +162,8 @@ export function collectSemanticBlocks(root: Element): SemanticBlock[] {
   }
 
   function walk(el: Element) {
+    if (isExcludedElement(el)) return;
     const tag = el.tagName.toUpperCase();
-    if (EXCLUDED_TAGS.has(tag)) return;
 
     if (BLOCK_TAGS.has(tag)) {
       // If this block element has child block elements, descend into children instead

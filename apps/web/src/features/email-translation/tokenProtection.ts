@@ -392,6 +392,7 @@ export const restoreTokens = (
  * Matched case-insensitively against the text content of the sibling/label cell.
  */
 const PROTECTED_VALUE_LABELS = new Set([
+  // English
   'name',
   'company',
   'organization',
@@ -439,6 +440,72 @@ const PROTECTED_VALUE_LABELS = new Set([
   'verification code',
   'invite code',
   'auth code',
+  // German
+  'firma',
+  'webseite',
+  'konto',
+  'kontonummer',
+  'konto-id',
+  'kunden-id',
+  'kundennummer',
+  'bestell-id',
+  'bestellnummer',
+  'bestell-nr',
+  'rechnungs-id',
+  'rechnungsnummer',
+  'rechnungs-nr',
+  'telefon',
+  'telefonnummer',
+  'benutzername',
+  'benutzer-id',
+  'passwort',
+  // Chinese
+  '姓名',
+  '名称',
+  '公司',
+  '企业',
+  '组织',
+  '域名',
+  '网址',
+  '网站',
+  '邮箱',
+  '电子邮箱',
+  '账号',
+  '账户',
+  '账号id',
+  '账户id',
+  '账号编号',
+  '客户id',
+  '客户编号',
+  '订单编号',
+  '订单号',
+  '订单id',
+  '发票编号',
+  '发票号',
+  '物流单号',
+  '快递单号',
+  '运单号',
+  '序列号',
+  '电话',
+  '手机',
+  '手机号',
+  '联系电话',
+  '用户名',
+  '用户id',
+  '密码',
+  '验证码',
+  '授权码',
+]);
+
+const INLINE_LABEL_TAGS = new Set([
+  'SPAN',
+  'LABEL',
+  'DT',
+  'B',
+  'STRONG',
+  'EM',
+  'I',
+  'CODE',
 ]);
 
 /**
@@ -458,8 +525,10 @@ function isProtectedLabel(labelText: string): boolean {
  * regex matching on text content, avoiding false positives in prose.
  *
  * Recognized patterns:
- * 1. Table: <tr><td>Label</td><td>[VALUE TextNode]</td></tr>
- * 2. Sibling: <div><span>Label</span><strong>[VALUE TextNode]</strong></div>
+ * 1. Table/DL: <tr><td>Label</td><td>[VALUE TextNode]</td></tr> or <dt>Label</dt><dd>[VALUE]</dd>
+ * 2. Nested sibling: <div><span>Label</span><strong>[VALUE TextNode]</strong></div>
+ * 3. Direct inline sibling: <div><span>Label:</span> [VALUE TextNode]</div>
+ * 4. Grandparent cell: <td><strong>[VALUE TextNode]</strong></td> preceded by label cell
  *
  * @returns true if the TextNode should be PROTECTED (not translated)
  */
@@ -467,14 +536,15 @@ export function isStructuralValueNode(textNode: Text): boolean {
   const parent = textNode.parentElement;
   if (!parent) return false;
 
-  // Pattern 1: Table cell — check if previous sibling TD/TH contains a protected label
+  // Pattern 1: Table cell / Definition item — check previous sibling cell
   const parentTag = parent.tagName.toUpperCase();
-  if (parentTag === 'TD' || parentTag === 'TH') {
+  if (parentTag === 'TD' || parentTag === 'TH' || parentTag === 'DD') {
     const prevSibling = parent.previousElementSibling;
     if (
       prevSibling &&
       (prevSibling.tagName.toUpperCase() === 'TD' ||
-        prevSibling.tagName.toUpperCase() === 'TH')
+        prevSibling.tagName.toUpperCase() === 'TH' ||
+        prevSibling.tagName.toUpperCase() === 'DT')
     ) {
       const labelText = prevSibling.textContent || '';
       if (isProtectedLabel(labelText)) {
@@ -483,39 +553,48 @@ export function isStructuralValueNode(textNode: Text): boolean {
     }
   }
 
-  // Pattern 2: Inline sibling — the TextNode's parent is preceded by a label element
+  // Pattern 2: Nested inline sibling — parent element is preceded by an inline label
   // e.g. <div><span>Name</span><strong>ChnPrint Studio</strong></div>
   const prevEl = parent.previousElementSibling;
-  if (prevEl) {
-    const prevTag = prevEl.tagName.toUpperCase();
-    const inlineTags = new Set([
-      'SPAN',
-      'LABEL',
-      'DT',
-      'B',
-      'STRONG',
-      'EM',
-      'I',
-    ]);
-    if (inlineTags.has(prevTag)) {
-      const labelText = prevEl.textContent || '';
+  if (prevEl && INLINE_LABEL_TAGS.has(prevEl.tagName.toUpperCase())) {
+    const labelText = prevEl.textContent || '';
+    if (isProtectedLabel(labelText)) {
+      return true;
+    }
+  }
+
+  // Pattern 2b: Direct inline sibling within the same parent
+  // e.g. <div><span>Name:</span> ChnPrint Studio</div> or <p><strong>Domain:</strong> chnprints.com</p>
+  let prevSiblingNode = textNode.previousSibling;
+  while (
+    prevSiblingNode &&
+    prevSiblingNode.nodeType === 3 && // Text node
+    !(prevSiblingNode.nodeValue || '').trim()
+  ) {
+    prevSiblingNode = prevSiblingNode.previousSibling;
+  }
+  if (prevSiblingNode && prevSiblingNode.nodeType === 1) { // Element node
+    const prevInlineEl = prevSiblingNode as Element;
+    if (INLINE_LABEL_TAGS.has(prevInlineEl.tagName.toUpperCase())) {
+      const labelText = prevInlineEl.textContent || '';
       if (isProtectedLabel(labelText)) {
         return true;
       }
     }
   }
 
-  // Pattern 3: The TextNode's grandparent is a TD, and grandparent's previous sibling
-  // is a label cell (for nested structures like <td><strong>Value</strong></td>)
+  // Pattern 3: Grandparent is TD/TH/DD with previous sibling label cell
+  // e.g. <td><strong>Value</strong></td>
   const grandparent = parent.parentElement;
   if (grandparent) {
     const gpTag = grandparent.tagName.toUpperCase();
-    if (gpTag === 'TD' || gpTag === 'TH') {
+    if (gpTag === 'TD' || gpTag === 'TH' || gpTag === 'DD') {
       const prevCell = grandparent.previousElementSibling;
       if (
         prevCell &&
         (prevCell.tagName.toUpperCase() === 'TD' ||
-          prevCell.tagName.toUpperCase() === 'TH')
+          prevCell.tagName.toUpperCase() === 'TH' ||
+          prevCell.tagName.toUpperCase() === 'DT')
       ) {
         const labelText = prevCell.textContent || '';
         if (isProtectedLabel(labelText)) {
