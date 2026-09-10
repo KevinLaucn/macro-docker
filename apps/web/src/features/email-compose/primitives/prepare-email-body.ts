@@ -153,8 +153,7 @@ function getComposerQuotedBodyHtml(replyingTo: EmailMessage): string | undefined
   const html = replyingTo.body_html_sanitized?.toString();
   if (!html) return undefined;
   // PRIVATE-HOOK: read_receipts:strip-own-pixels
-  const isSent = Boolean(replyingTo.sent_at || (replyingTo as { is_sent?: boolean }).is_sent);
-  return isSent ? stripOwnTrackingPixelsFromHtml(html) : html;
+  return replyingTo.is_sent ? stripOwnTrackingPixelsFromHtml(html) : html;
 }
 
 const $appendPreviousEmail = (

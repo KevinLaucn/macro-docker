@@ -49,6 +49,7 @@ export interface EmailMessage {
   from?: null | EmailContact;
   internal_date_ts?: string | null;
   is_draft: boolean;
+  is_sent?: boolean;
   labels: EmailLabel[];
   link_id: string;
   provider_id?: string | null;

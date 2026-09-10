@@ -62,6 +62,7 @@ export function toEmailThread(thread: ApiThread): EmailThread {
         : message.from,
       internal_date_ts: message.internal_date_ts,
       is_draft: message.is_draft,
+      is_sent: message.is_sent,
       labels: message.labels.map((label) => ({
         name: label.name,
         provider_label_id: label.provider_label_id,
