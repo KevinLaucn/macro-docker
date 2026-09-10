@@ -88,6 +88,19 @@ when only slightly above the bottom. Composer and viewport resizing respect the
 same boundary. Returning to the bottom resumes following; loading older messages
 preserves the reading position.
 
+On Safari and iOS, open or navigate near the oldest loaded messages and allow the
+history buffer to fill, then flick into older history. Loading should stop once
+roughly six screens are available above the viewport and resume as you approach
+that buffer. Check that pagination retains the visible message, and that latest
+stays pinned when messages arrive, images load, or the composer resizes. Verify
+message/reply navigation, restoration, and the custom scrollbar after pagination.
+Very long flings or slow responses can still exhaust the available scroll range.
+
+Inline document mentions should show their stored title before entering the viewport
+and while preview requests are pending. With a slow preview response, check that a
+long, unchanged title retains its line wrapping as the preview loads; a renamed
+document should update to its fetched title afterward.
+
 Message and reply links reveal the target inside its thread. Keyboard message
 navigation scrolls only when the selected message is outside the usable viewport.
 Returning through split navigation restores the saved message position and expanded
@@ -149,3 +162,11 @@ instead.
 
 New users get `Macro Support x <name>` seeded with a welcome message that @mentions them —
 useful as a guaranteed-existing channel in tests.
+
+For mobile send regressions, keep the software keyboard open and send several
+short and multiline messages consecutively. The keyboard should remain open,
+the cleared composer should retain focus, and a pinned chat should remain at the
+bottom through composer resizing and server acknowledgement. Check that restoring
+the caret after send does not pan the page while the keyboard resizes. Repeat with dictation
+and check that sent text does not return. Scroll into history before an incoming
+message or acknowledgement and verify that it does not pull you to latest.
