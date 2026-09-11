@@ -6,6 +6,7 @@
 #
 # The service image builds the focused Email production aggregate consumed by the
 # VPS deployment. It intentionally avoids the full local development stack.
+# Trigger full multi-container rebuild (macro-services, macro-init, macro-web, macro-workers)
 name: Self-host images
 
 on:
