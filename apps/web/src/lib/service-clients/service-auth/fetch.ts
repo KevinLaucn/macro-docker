@@ -13,14 +13,27 @@ import { authServiceClient } from './client';
 function isExpired(token: string) {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    const exp = payload.exp * 1000;
-    return Date.now() / 1000 > exp;
+    const exp = Number(payload.exp) * 1000;
+    return !Number.isFinite(exp) || Date.now() >= exp;
   } catch {
     return true;
   }
 }
 
 let macroApiTokenPromise: Promise<string> | null = null;
+
+function cacheMacroApiTokenPromise(promise: Promise<string>) {
+  macroApiTokenPromise = promise;
+  void promise.catch(() => {
+    // A failed request must not poison the cache permanently. Keep the
+    // identity check so an older rejection cannot clear a newer request.
+    if (macroApiTokenPromise === promise) {
+      macroApiTokenPromise = null;
+    }
+  });
+  return promise;
+}
+
 export async function getMacroApiToken() {
   if (LOCAL_ONLY) {
     const apiToken = import.meta.env.__LOCAL_JWT__;
@@ -33,16 +46,17 @@ export async function getMacroApiToken() {
     return apiToken;
   }
 
-  macroApiTokenPromise = new Promise((resolve, reject) =>
-    authServiceClient.macroApiToken().then((result) => {
-      if (result.isErr()) {
-        reject(result.error);
-      } else {
-        resolve(result.value.macro_api_token);
-      }
-    })
+  return cacheMacroApiTokenPromise(
+    new Promise((resolve, reject) =>
+      authServiceClient.macroApiToken().then((result) => {
+        if (result.isErr()) {
+          reject(result.error);
+        } else {
+          resolve(result.value.macro_api_token);
+        }
+      })
+    )
   );
-  return macroApiTokenPromise;
 }
 
 type TextContentType = `text/${string}`;
