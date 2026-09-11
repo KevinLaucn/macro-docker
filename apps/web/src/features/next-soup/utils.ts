@@ -1043,13 +1043,22 @@ type TrashEmailsHandle = {
   undo: () => Promise<void>;
 };
 
+export type TrashEmailTarget = string | { id: string; linkId?: string };
+
 /**
- * Optimistically removes one or more email threads from soup + email caches,
- * then fires the TRASH label API calls in the background. Takes a single
- * snapshot before all removals so undo restores the complete pre-trash state.
+ * Trash one or more email threads.
+ *
+ * Optimistically removes them from the soup and from all email queries,
+ * then resolves the TRASH label and calls the API. If anything fails, rolls
+ * back the optimistic update.
+ *
  * Returns synchronously so the caller can show the undo toast immediately.
  */
-export function trashEmails(ids: string[]): TrashEmailsHandle {
+export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
+  const normalizedTargets = targets.map((t) =>
+    typeof t === 'string' ? { id: t, linkId: undefined } : t
+  );
+  const ids = normalizedTargets.map((t) => t.id);
   queryClient.cancelQueries({ queryKey: queryKeys.all.email });
 
   const previousEmail = queryClient.getQueriesData<{
@@ -1083,15 +1092,22 @@ export function trashEmails(ids: string[]): TrashEmailsHandle {
   // Map each thread ID to its assigned TRASH label ID (resolved lazily by API calls; used by undo)
   const threadTrashLabelIds = new Map<string, string>();
 
-  // Map thread IDs to their linkId if available from email queries or soup entities
+  // Map thread IDs to their linkId if available from explicit targets or cached email queries
   const threadLinkIds = new Map<string, string>();
+  for (const target of normalizedTargets) {
+    if (target.linkId) {
+      threadLinkIds.set(target.id, target.linkId);
+    }
+  }
   for (const [, data] of previousEmail) {
     if (!data?.pages) continue;
     for (const page of data.pages) {
       if (!page?.items) continue;
       for (const item of page.items) {
         if (item?.id && 'linkId' in item && item.linkId && idSet.has(item.id)) {
-          threadLinkIds.set(item.id, item.linkId);
+          if (!threadLinkIds.has(item.id)) {
+            threadLinkIds.set(item.id, item.linkId);
+          }
         }
       }
     }
@@ -1116,12 +1132,6 @@ export function trashEmails(ids: string[]): TrashEmailsHandle {
         ids.map(async (id) => {
           let linkId = threadLinkIds.get(id);
           if (!linkId) {
-            const entity = getSoupEntityById(id);
-            if (entity && 'linkId' in entity && typeof entity.linkId === 'string') {
-              linkId = entity.linkId;
-            }
-          }
-          if (!linkId) {
             const threadData = queryClient.getQueryData<{
               link_id?: string;
               pages?: Array<{ link_id?: string }>;
@@ -1132,35 +1142,13 @@ export function trashEmails(ids: string[]): TrashEmailsHandle {
               linkId = threadData.pages[0].link_id;
             }
           }
-          if (!linkId) {
-            const singleThread = queryClient.getQueryData<{
-              link_id?: string;
-              thread?: { link_id?: string };
-            }>(emailKeys.thread(id).queryKey);
-            if (singleThread?.link_id) {
-              linkId = singleThread.link_id;
-            } else if (singleThread?.thread?.link_id) {
-              linkId = singleThread.thread.link_id;
-            }
-          }
-          if (!linkId) {
-            try {
-              const fetched = await queryClient.fetchQuery({
-                queryKey: emailKeys.thread(id).queryKey,
-                queryFn: async () =>
-                  throwOnErr(async () => await emailClient.getThread({ thread_id: id })),
-              });
-              if (fetched?.thread?.link_id) {
-                linkId = fetched.thread.link_id;
-              }
-            } catch {
-              // Best-effort fetch
-            }
-          }
+
+          const matchedLabelId = linkId
+            ? trashLabels.find((label) => label.linkId === linkId)?.id
+            : undefined;
           const labelId =
-            (linkId
-              ? trashLabels.find((l) => l.linkId === linkId)?.id
-              : undefined) ?? fallbackTrashLabelId;
+            matchedLabelId ??
+            (trashLabels.length === 1 ? fallbackTrashLabelId : undefined);
 
           if (!labelId) {
             throw new Error('TRASH label not found');
