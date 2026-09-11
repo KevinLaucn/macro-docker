@@ -191,13 +191,9 @@ jobs:
           echo "Runner: ${{ inputs.services_runner || 'github' }}"
           echo "BUILD_START_TIME=$(date -u +%s)" >> "$GITHUB_ENV"
 
-      - name: Build service binaries
+      - name: Pre-build Nix cache plan
         env:
           NIX_CACHE_URL: ${{ vars.NIX_CACHE_URL }}
-          NIX_CACHE_SIGNING_KEY: ${{ steps.cache_policy.outputs.upload == 'true' && secrets.NIX_CACHE_SIGNING_KEY || '' }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p self-host/build/bin
@@ -315,6 +311,28 @@ jobs:
           print("================================\n")
           EOF
           python3 /tmp/print_plan.py
+
+      - name: Build service binaries
+        env:
+          NIX_CACHE_URL: ${{ vars.NIX_CACHE_URL }}
+          NIX_CACHE_SIGNING_KEY: ${{ steps.cache_policy.outputs.upload == 'true' && secrets.NIX_CACHE_SIGNING_KEY || '' }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p self-host/build/bin
+
+          # Concurrency policy:
+          # Use conservative concurrency on ephemeral GitHub-hosted runners (--max-jobs 2 --cores 4).
+          # Keeping max-jobs=2 limits blast radius while allowing one extra parallel derivation.
+          # cargoBuildHook passes -j $NIX_BUILD_CORES (-j 4) to cargo inside the derivation.
+          if [ "${{ inputs.services_runner || 'github' }}" = "github" ]; then
+            echo "Applying conservative concurrency settings for GitHub hosted runner (--max-jobs 2 --cores 4)"
+            NIX_JOBS_FLAG="--max-jobs 2 --cores 4"
+          else
+            NIX_JOBS_FLAG=""
+          fi
 
           # 3. Create live stream filter script
           cat << 'EOF' > /tmp/filter_nix_logs.py
@@ -676,6 +694,28 @@ jobs:
             exit "$BUILD_EXIT_CODE"
           fi
 
+          echo "BUILD_DURATION_SEC=$BUILD_DURATION_SEC" >> "$GITHUB_ENV"
+
+          cp -L result-bins/bin/* self-host/build/bin/ 2>/dev/null \
+            || cp -RL result-bins/* self-host/build/bin/
+
+          # The seeding CLI is development tooling; it has no place in a
+          # deployment image.
+          rm -f self-host/build/bin/seed_cli
+          ls -la self-host/build/bin
+
+      - name: Summarize build & sync cache
+        if: success()
+        env:
+          NIX_CACHE_URL: ${{ vars.NIX_CACHE_URL }}
+          NIX_CACHE_SIGNING_KEY: ${{ steps.cache_policy.outputs.upload == 'true' && secrets.NIX_CACHE_SIGNING_KEY || '' }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+        run: |
+          set -euo pipefail
+          BUILD_DURATION_SEC="${BUILD_DURATION_SEC:-0}"
+
           # 4. Generate and print build summary on success
           cat << 'EOF' > /tmp/summarize_nix_build.py
           import re, sys, os
@@ -837,9 +877,14 @@ jobs:
           python3 /tmp/summarize_nix_build.py "$BUILD_DURATION_SEC"
 
           # 5. Post-build cache sync: ensure the root binaries package is securely cached in S3
+          # 5. Post-build cache sync: ensure the root binaries package is securely cached in S3
           if [ -n "${NIX_CACHE_URL:-}" ] && [ -n "${NIX_CACHE_SIGNING_KEY:-}" ]; then
             key="$RUNNER_TEMP/nix-cache-signing-key"
             if [ -f "$key" ]; then
+              NO_RECURSIVE_FLAG=""
+              if nix copy --help 2>&1 | grep -q -- '--no-recursive'; then
+                NO_RECURSIVE_FLAG="--no-recursive"
+              fi
               key_arg="secret-key=$key"
               sep='?'; [[ "$NIX_CACHE_URL" == *\?* ]] && sep='&'
               dest_url="${NIX_CACHE_URL}${sep}${key_arg}"
@@ -847,14 +892,6 @@ jobs:
               nix copy $NO_RECURSIVE_FLAG --to "$dest_url" ".#self-host-email-binaries" 2>/dev/null || true
             fi
           fi
-
-          cp -L result-bins/bin/* self-host/build/bin/ 2>/dev/null \
-            || cp -RL result-bins/* self-host/build/bin/
-
-          # The seeding CLI is development tooling; it has no place in a
-          # deployment image.
-          rm -f self-host/build/bin/seed_cli
-          ls -la self-host/build/bin
 
       - name: Failure diagnostics
         if: failure()

@@ -468,7 +468,8 @@ export function createQuickAccessValue(): QuickAccessContextValue {
     // Process contacts (users)
     const contactData = contacts();
     for (const contact of contactData) {
-      if (isConnectedSecondaryInbox(contact.id)) continue;
+      if (!contact || !contact.id || isConnectedSecondaryInbox(contact.id))
+        continue;
       const lastInteraction = activityByUserId.get(contact.id);
 
       const version = getUserVersion(contact, lastInteraction);

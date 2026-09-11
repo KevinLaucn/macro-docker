@@ -27,8 +27,9 @@ export function useContacts(): Accessor<IUser[]> {
   const query = useContactsQuery();
   return createMemo(() => {
     if (!query.isSuccess) return [];
-    const contacts = query.data.contacts;
-    return contacts.map((c) => ({
+    const contacts = query.data?.contacts;
+    if (!Array.isArray(contacts)) return [];
+    return contacts.filter(Boolean).map((c) => ({
       id: c,
       email: idToEmail(c),
       name: idToDisplayName(c),
