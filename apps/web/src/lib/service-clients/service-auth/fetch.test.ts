@@ -11,8 +11,21 @@ vi.mock('./client', () => ({
   authServiceClient: { macroApiToken },
   getExpiresAt: (token: string) => {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const exp = Number(payload.exp) * 1000;
+      const payload: unknown = JSON.parse(atob(token.split('.')[1]));
+      if (
+        typeof payload !== 'object' ||
+        payload === null ||
+        !('exp' in payload)
+      ) {
+        return 0;
+      }
+
+      const expValue = payload.exp;
+      if (typeof expValue !== 'number' && typeof expValue !== 'string') {
+        return 0;
+      }
+
+      const exp = Number(expValue) * 1000;
       return Number.isFinite(exp) ? exp : 0;
     } catch {
       return 0;
