@@ -3007,7 +3007,7 @@ dependencies = [
 
 [[package]]
 name = "cache-wasm"
-version = "0.6.8"
+version = "0.6.10"
 dependencies = [
  "async-lock",
  "cache-core",
@@ -3790,9 +3790,11 @@ dependencies = [
  "models_properties",
  "models_soup",
  "notification",
+ "predicate-index",
  "rootcause",
  "serde",
  "soup",
+ "soup-filter-projection",
  "soup_realtime",
  "tokio",
  "tracing",

@@ -13,8 +13,9 @@ visible; local results do not trigger the tab-loading bar. A fresh server respon
 still replaces that result, and initial loads without usable data retain normal loading
 indicators.
 
-This is a best-effort display, not proof that every matching entity is cached. Loading
-more still follows the original server cursors and preserves already loaded pages.
+This is a best-effort display, not proof that every matching entity is cached. Outside
+the supported cached-Mail slice below, loading more follows the original server cursors
+and preserves already loaded pages.
 Newly loaded server rows join the retained display immediately, without duplicates or
 waiting for local recomputation to succeed. Removing pages from the server baseline
 invalidates overlays built from those pages.
@@ -72,6 +73,50 @@ Full email client. Tabs: `Signal` / `Noise` / `Sent` / `Calendar` / `Drafts` / `
 `All`. Compose via the `Email` button (or `Create` → `Email E`). On a fresh local user it
 shows `Connect your email` (Gmail/Google Workspace OAuth) — most functionality needs a
 connected account. Search is `Ctrl+F` within the surface.
+
+### Cached Mail filtering
+
+With browser GraphQL caching enabled and the email metadata backfill synchronized,
+All, Signal, Noise, Drafts, Sent, Calendar, and Shared support tab changes and new
+filter combinations while offline: account selection
+(including delegated inboxes), read/unread, and archive-based Done/Not Done. Mail Done
+means `inboxVisible = false`; it is **not** notification lifecycle state. Signal/Noise
+retain their Inbox scope, so archived mail is found using All + Done.
+
+A `Showing cached mail` notice identifies results over synchronized metadata, not a
+claim of complete mailbox coverage. These lists paginate locally beyond the first
+page without a server cursor. Filter, revision, or engine-generation changes restart
+the local page chain; online server results take over again when available. After
+reconnecting, `Load more` follows the same server page chain as the displayed rows,
+not a leftover local cursor. Account choices are cached in the viewer-scoped GraphQL catalog. Timestamp ordering and date
+headers use the selected Mail view's indexed timestamps, not a preview cached from
+another view. Drafts and Sent display their latest eligible message snapshot, even
+when a newer normal message is the ALL preview; no message bodies are needed.
+Sent also requires a canonical outbound timestamp. Trashed messages cannot supply
+any preview. Calendar uses the authoritative thread calendar-attachment flag.
+
+Shared requires a last-known thread grant through the viewer, a team, or an active
+channel, plus the existing Mail UI rule excluding viewer-owned threads. Merely
+having a different owner or a delegated inbox does not qualify. Shared metadata has
+its own full-scan backfill before body hydration. A successful complete scan marks
+old entries it did not return incomplete (not deleted); a failed or cancelled scan
+preserves last-known evidence. If concurrent cache changes invalidate the prior
+membership snapshot, hydration continues but that scan cannot revoke old evidence.
+Interrupted Shared scans restart at the beginning so
+scope reconciliation never mistakes a suffix for a full scan. Offline access is
+necessarily evaluated from the last synchronized grants.
+
+The lightweight metadata backfill runs before body hydration. Its refreshes scan all
+metadata: message-time watermarks alone miss archive/read changes on old threads.
+Filter availability therefore does not guarantee that opening every message body works offline. Missing
+projection proof is unknown, never false. Sender/recipient, attachment chips,
+property/tag refinements and non-created/updated sorts remain network-only or
+existing client refinements; durable offline sending/archiving is not added by this slice. No cache-format wipe is required: Mail uses a separate versioned profile
+and a new backfill checkpoint, preserving existing queued work. Deploy the backend
+schema additions before the client: it selects canonical message eligibility/recency
+fields, body-free canonical preview references, and viewer-relative share facts.
+The `soup-mail-v2` profile and new backfill checkpoint rebuild Mail proof without
+changing the persisted mutation queue format.
 
 Threads open at `/app/email/<thread-id>`. Click a message header to expand or
 collapse it; `Show N hidden messages` reveals the collapsed middle of a longer

@@ -1737,6 +1737,10 @@ input GraphqlEmailLiteral @oneOf {
 	"""
 	read: Boolean
 	"""
+	Inbox visibility: false selects archived (done) mail, independently of notifications.
+	"""
+	inboxVisible: Boolean
+	"""
 	The shared option.
 	"""
 	shared: GraphqlSharedEmailFilter
@@ -2901,6 +2905,41 @@ enum GraphqlLinkShare {
 	Members of the owner's team with the link can access the entity.
 	"""
 	TEAM
+}
+
+"""
+A body-free normalized message snapshot used by canonical Mail preview edges.
+Its ID identifies the same message across ALL, Drafts and Sent references.
+"""
+type GraphqlMailPreviewMessage {
+	"""
+	Global message ID.
+	"""
+	id: ID!
+	"""
+	Message subject.
+	"""
+	subject: String
+	"""
+	Message snippet, never a body.
+	"""
+	snippet: String
+	"""
+	Whether this message is a draft.
+	"""
+	isDraft: Boolean!
+	"""
+	Sender email address.
+	"""
+	senderEmail: String
+	"""
+	Sender display name.
+	"""
+	senderName: String
+	"""
+	Sender photo URL.
+	"""
+	senderPhotoUrl: String
 }
 
 """
@@ -4923,7 +4962,7 @@ type GraphqlSoupEmailThread implements GraphqlSoupEntity {
 	"""
 	entityType: GraphqlSoupEntityType!
 	"""
-	Opaque cache projection metadata, unavailable for this entity variant.
+	Opaque server-only facts used by the offline Mail projection.
 	"""
 	cacheProjection: SoupCacheProjection
 	"""
@@ -5058,6 +5097,18 @@ type GraphqlSoupEmailThread implements GraphqlSoupEntity {
 	Timestamp of the latest inbound message, in RFC 3339 format.
 	"""
 	latestInboundMessageTs: String
+	"""
+	Latest eligible message for ALL, INBOX, Calendar and Shared, without bodies.
+	"""
+	mailAllPreview: GraphqlMailPreviewMessage
+	"""
+	Latest eligible draft, even when a newer non-draft exists in the thread.
+	"""
+	mailDraftPreview: GraphqlMailPreviewMessage
+	"""
+	Latest eligible sent message, without bodies.
+	"""
+	mailSentPreview: GraphqlMailPreviewMessage
 	"""
 	A page of messages in this thread, newest first.
 	"""

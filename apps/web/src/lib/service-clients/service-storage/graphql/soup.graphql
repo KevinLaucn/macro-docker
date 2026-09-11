@@ -1,6 +1,7 @@
 query Soup($input: SoupInput!) {
 	user {
 		id
+		emailLinks @cacheOnly { id emailAddress photoUrl }
 		soup(input: $input) {
 			items {
 				...SoupItemFields
@@ -13,6 +14,7 @@ query Soup($input: SoupInput!) {
 query SoupBackfill($input: SoupInput!) {
 	user {
 		id @cacheOnly
+		emailLinks @cacheOnly { id emailAddress photoUrl }
 		soup(input: $input) {
 			items @cacheOnly {
 				...SoupItemFields
@@ -30,6 +32,57 @@ query SoupBackfill($input: SoupInput!) {
 			}
 			nextCursor
 		}
+	}
+}
+
+query SoupMailBackfill($input: SoupInput!) {
+	user {
+		id @cacheOnly
+		emailLinks @cacheOnly { id emailAddress photoUrl }
+		soup(input: $input) {
+			items @cacheOnly { ...SoupItemFields }
+			nextCursor
+		}
+	}
+}
+
+query SoupSharedMailBackfill($input: SoupInput!) {
+	user {
+		id @cacheOnly
+		emailLinks @cacheOnly { id emailAddress photoUrl }
+		soup(input: $input) {
+			items @cacheOnly { ...SoupItemFields }
+			scopeIds: items { __typename id }
+			nextCursor
+		}
+	}
+}
+
+query MailAccounts {
+	user {
+		id
+		emailLinks { id emailAddress photoUrl }
+	}
+}
+
+fragment MailPreviewFields on GraphqlMailPreviewMessage {
+	id
+	subject
+	snippet
+	isDraft
+	senderEmail
+	senderName
+	senderPhotoUrl
+}
+
+# Local-only selection: materialize canonical preview references instead of the
+# query-dependent preview fields last written by a different tab/filter.
+fragment MailItemFields on GraphqlSoupEntity {
+	...SoupItemFields
+	... on GraphqlSoupEmailThread {
+		mailAllPreview { ...MailPreviewFields }
+		mailDraftPreview { ...MailPreviewFields }
+		mailSentPreview { ...MailPreviewFields }
 	}
 }
 
@@ -106,6 +159,9 @@ fragment SoupItemFields on GraphqlSoupEntity {
 		inboxVisible
 		linkId
 		latestInboundMessageTs
+		mailAllPreview @cacheOnly { ...MailPreviewFields }
+		mailDraftPreview @cacheOnly { ...MailPreviewFields }
+		mailSentPreview @cacheOnly { ...MailPreviewFields }
 		emailName: name
 		snippet
 		senderEmail
