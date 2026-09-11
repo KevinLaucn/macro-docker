@@ -1095,7 +1095,20 @@ jobs:
             --build-arg MACRO_VERSION="$v" \
             --label "com.kevinlaucn.macro.profile=$profile" \
             -t "$img" self-host
-          docker push "$img"
+          # Retry docker push up to 3 times to guard against transient ghcr.io blob/network drops
+          for attempt in 1 2 3; do
+            echo "Pushing $img (attempt $attempt/3)..."
+            if docker push "$img"; then
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "docker push failed; retrying in 5s..."
+              sleep 5
+            else
+              echo "docker push failed after 3 attempts"
+              exit 1
+            fi
+          done
           docker_dur=$(( $(date -u +%s) - docker_start ))
           bin_count=$(find self-host/build/bin -type f -perm -111 | wc -l | tr -d ' ')
           bin_size=$(du -sh self-host/build/bin | awk '{print $1}')
@@ -1177,7 +1190,20 @@ jobs:
           docker build -f self-host/images/Dockerfile.web \
             --build-arg DIST_DIR=build/dist --build-arg MACRO_VERSION="$v" \
             -t "$img" self-host
-          docker push "$img"
+          # Retry docker push up to 3 times to guard against transient ghcr.io blob/network drops
+          for attempt in 1 2 3; do
+            echo "Pushing $img (attempt $attempt/3)..."
+            if docker push "$img"; then
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "docker push failed; retrying in 5s..."
+              sleep 5
+            else
+              echo "docker push failed after 3 attempts"
+              exit 1
+            fi
+          done
 
   init:
     name: macro-init
@@ -1212,7 +1238,20 @@ jobs:
             --build-arg MACRO_VERSION="$v" \
             --label "com.kevinlaucn.macro.profile=$profile" \
             -t "$img" .
-          docker push "$img"
+          # Retry docker push up to 3 times to guard against transient ghcr.io blob/network drops
+          for attempt in 1 2 3; do
+            echo "Pushing $img (attempt $attempt/3)..."
+            if docker push "$img"; then
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "docker push failed; retrying in 5s..."
+              sleep 5
+            else
+              echo "docker push failed after 3 attempts"
+              exit 1
+            fi
+          done
 
   workers:
     name: ${{ matrix.image }}
@@ -1241,4 +1280,17 @@ jobs:
           ns="$(echo "$NAMESPACE" | tr '[:upper:]' '[:lower:]')"
           img="$REGISTRY/$ns/${{ matrix.image }}:$v"
           docker build -f "${{ matrix.dockerfile }}" -t "$img" .
-          docker push "$img"
+          # Retry docker push up to 3 times to guard against transient ghcr.io blob/network drops
+          for attempt in 1 2 3; do
+            echo "Pushing $img (attempt $attempt/3)..."
+            if docker push "$img"; then
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "docker push failed; retrying in 5s..."
+              sleep 5
+            else
+              echo "docker push failed after 3 attempts"
+              exit 1
+            fi
+          done
