@@ -43,10 +43,10 @@ on:
         default: false
 
 concurrency:
-  group: self-host-images-${{ github.ref }}
-  # Only the newest image build for a branch is useful; stop stale queued or
-  # running builds when a newer push supersedes them.
-  cancel-in-progress: true
+  # Keep independent image builds alive so a targeted repair cannot cancel
+  # unrelated jobs from an earlier push on the same branch.
+  group: self-host-images-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
