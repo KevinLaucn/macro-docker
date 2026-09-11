@@ -97,6 +97,7 @@
         "connection_gateway"
         "contacts_service"
         "document_storage_service"
+        "document_cognition_service"
         "email_service"
         "image_proxy_service"
         "notification_service"
@@ -689,6 +690,11 @@
           serviceName = "document-storage-service";
           packageName = "document_storage_service";
           binaries = [ "document_storage_service" ];
+        }
+        {
+          serviceName = "document-cognition-service";
+          packageName = "document_cognition_service";
+          binaries = [ "document_cognition_service" ];
         }
         {
           serviceName = "email-service";
