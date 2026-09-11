@@ -12,8 +12,21 @@ import { authServiceClient } from './client';
 
 function isExpired(token: string) {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const exp = Number(payload.exp) * 1000;
+    const payload: unknown = JSON.parse(atob(token.split('.')[1]));
+    if (
+      typeof payload !== 'object' ||
+      payload === null ||
+      !('exp' in payload)
+    ) {
+      return true;
+    }
+
+    const expValue = payload.exp;
+    if (typeof expValue !== 'number' && typeof expValue !== 'string') {
+      return true;
+    }
+
+    const exp = Number(expValue) * 1000;
     return !Number.isFinite(exp) || Date.now() >= exp;
   } catch {
     return true;
@@ -22,7 +35,14 @@ function isExpired(token: string) {
 
 let macroApiTokenPromise: Promise<string> | null = null;
 
-function cacheMacroApiTokenPromise(promise: Promise<string>) {
+function requestMacroApiToken() {
+  const promise = authServiceClient.macroApiToken().then((result) => {
+    if (result.isErr()) {
+      throw result.error;
+    }
+    return result.value.macro_api_token;
+  });
+
   macroApiTokenPromise = promise;
   void promise.catch(() => {
     // A failed request must not poison the cache permanently. Keep the
@@ -41,22 +61,25 @@ export async function getMacroApiToken() {
       return apiToken;
     }
   }
-  const apiToken = await macroApiTokenPromise;
-  if (apiToken && !isExpired(apiToken)) {
+
+  const cachedPromise = macroApiTokenPromise;
+  if (!cachedPromise) {
+    return requestMacroApiToken();
+  }
+
+  const apiToken = await cachedPromise;
+  if (!isExpired(apiToken)) {
     return apiToken;
   }
 
-  return cacheMacroApiTokenPromise(
-    new Promise((resolve, reject) =>
-      authServiceClient.macroApiToken().then((result) => {
-        if (result.isErr()) {
-          reject(result.error);
-        } else {
-          resolve(result.value.macro_api_token);
-        }
-      })
-    )
-  );
+  // Another caller may already have replaced the expired entry while this
+  // caller was suspended awaiting it. Reuse that replacement instead of
+  // issuing a duplicate request.
+  if (macroApiTokenPromise !== cachedPromise) {
+    return getMacroApiToken();
+  }
+
+  return requestMacroApiToken();
 }
 
 type TextContentType = `text/${string}`;
