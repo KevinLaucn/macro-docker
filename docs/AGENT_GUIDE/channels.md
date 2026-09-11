@@ -14,7 +14,28 @@
 Channels are invite-only ("Only people you invite can see this channel"). A DM is just a
 channel between two users.
 
+## Agent session entities
+
+The Agents list includes owned and shared sessions. Rows show the shared agent
+icon and session title; opening one navigates to `/app/agent/<id>`. The session title
+menu uses the shared entity actions: Favorite/Unfavorite and Copy link, plus
+Rename and Delete for the owner. Rename uses the shared rename dialog, not a
+session-specific modal. Folder moves, duplication, and property/tag editing are
+not offered because those APIs do not support sessions. Runtime controls remain
+session-specific.
+
 ## Message composer
+
+The shared `@` menu also offers `Recent agent sessions` (the latest 500 accessible
+sessions, searchable by title or persona). These inline chips show the shared
+agent icon and an underlined session name, and open the existing session when clicked.
+They are references, not bot invocations: selecting a session does not start a new
+agent run. Sending or editing a message that references a session you own grants
+that channel/DM edit access to it. Non-owner references do not create grants.
+Access follows active membership; deleting the reference does not revoke the
+grant. Inaccessible sessions render a private/deleted label. Chips omit persona
+avatars and status; previews refresh periodically while the browser tab is active
+to update titles and access.
 
 Placeholder `Type @ to share with #<name>`. Click it, `type_text`, press Enter to send.
 The message renders immediately with avatar, email, timestamp. Composer extras: `Attach
