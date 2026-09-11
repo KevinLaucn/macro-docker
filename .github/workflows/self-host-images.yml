@@ -939,6 +939,7 @@ jobs:
             connection_gateway_service
             contacts_service
             document_storage_service
+            document_cognition_service
             email_service
             pubsub_workers
             image_proxy_service
@@ -958,7 +959,6 @@ jobs:
             seed_cli
             agent_harness_service
             agent_trigger_service
-            document_cognition_service
             convert_service
             mcp_server
             service
