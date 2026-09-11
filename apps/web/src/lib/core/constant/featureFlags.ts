@@ -12,7 +12,13 @@ import { analytics } from '@app/lib/analytics';
 export const LOCAL_ONLY = !!import.meta.hot;
 
 const parseBooleanOverride = (value: unknown): boolean | undefined =>
-  value === 'true' ? true : value === 'false' ? false : undefined;
+  typeof value === 'boolean'
+    ? value
+    : value === 'true'
+      ? true
+      : value === 'false'
+        ? false
+        : undefined;
 
 /**
  * Reads a `VITE_<flagName>` env override or a runtime `window.__MACRO_ENV__` override.
