@@ -8,29 +8,11 @@ import {
   type TextResponse,
 } from '@core/util/safeFetch';
 import { err, ok, type Result } from 'neverthrow';
-import { authServiceClient } from './client';
+import { authServiceClient, getExpiresAt } from './client';
 
 function isExpired(token: string) {
-  try {
-    const payload: unknown = JSON.parse(atob(token.split('.')[1]));
-    if (
-      typeof payload !== 'object' ||
-      payload === null ||
-      !('exp' in payload)
-    ) {
-      return true;
-    }
-
-    const expValue = payload.exp;
-    if (typeof expValue !== 'number' && typeof expValue !== 'string') {
-      return true;
-    }
-
-    const exp = Number(expValue) * 1000;
-    return !Number.isFinite(exp) || Date.now() >= exp;
-  } catch {
-    return true;
-  }
+  const expiresAt = getExpiresAt(token);
+  return expiresAt <= 0 || Date.now() >= expiresAt;
 }
 
 let macroApiTokenPromise: Promise<string> | null = null;
