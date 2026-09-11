@@ -1,9 +1,9 @@
-import { t } from '@macro/i18n';
 import { DOCS_BASE } from '@app/constants/docs-links';
 import { useAddInboxFlow, useEmailLinksStatus } from '@core/email-link';
 import EmptyStateInboxTrayGraphic from '@design/empty-state-inbox-tray.svg';
 import EmptyStateNoFilterMatchGraphic from '@design/empty-state-no-filter-match.svg';
 import EmptyStateNoSearchMatchGraphic from '@design/empty-state-no-search-match.svg';
+import { t } from '@macro/i18n';
 import { EmptyStatePanel, FilteredHiddenBanner } from '@ui';
 import { Match, Switch } from 'solid-js';
 import { useInboxView } from '../inbox-view-context';
@@ -47,7 +47,7 @@ export function InboxEmptyState() {
       <Match when={!emailActive()}>
         <EmptyStatePanel
           graphic={EmptyStateInboxTrayGraphic}
-          title={t("No notifications yet")}
+          title={t('No notifications yet')}
           description="Bring your inbox into Macro to triage signal from noise, reply faster, and let agents work alongside your mail."
           primaryAction={{
             label: 'Connect email',
@@ -77,7 +77,7 @@ export function InboxEmptyState() {
         <EmptyStatePanel
           graphic={EmptyStateInboxTrayGraphic}
           title={t("You're all caught up")}
-          description={t("Important items will appear here as they arrive.")}
+          description={t('Important items will appear here as they arrive.')}
           documentationUrl={`${DOCS_BASE}/product/inbox`}
         />
       </Match>

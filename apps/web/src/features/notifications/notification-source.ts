@@ -451,7 +451,7 @@ export function createNotificationSource(
         },
       } as NotifEvent,
       sent: true,
-      done: false,
+      state: 'unseen',
       created_at: now,
       updated_at: now,
     };

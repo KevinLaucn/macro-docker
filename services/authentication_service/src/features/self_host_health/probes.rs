@@ -22,6 +22,16 @@ static GMAIL_DEEP_PROBE_CACHE: LazyLock<
     tokio::sync::Mutex<HashMap<String, (Instant, HealthCheckItem)>>,
 > = LazyLock::new(|| tokio::sync::Mutex::new(HashMap::new()));
 
+pub(super) fn is_self_host_health_enabled(context: &ApiContext) -> bool {
+    matches!(context.environment, macro_env::Environment::Production)
+        || macro_env_var::maybe_read_env("ENABLE_SELF_HOST_HEALTH")
+            .map(|value| value.eq_ignore_ascii_case("true") || value == "1")
+            .unwrap_or(false)
+        || macro_env_var::maybe_read_env("MACRO_DOMAIN")
+            .map(|domain| !domain.trim().is_empty() && !domain.contains("localhost"))
+            .unwrap_or(false)
+}
+
 pub async fn run_all_probes(context: &ApiContext, macro_user_id: &str) -> SelfHostHealthReport {
     let overall_start = Instant::now();
     let mut checks = Vec::new();
@@ -61,12 +71,10 @@ pub async fn run_all_probes(context: &ApiContext, macro_user_id: &str) -> SelfHo
         }
     }
 
-    let is_production = matches!(context.environment, macro_env::Environment::Production);
-
     SelfHostHealthReport {
         overall_status,
         environment: format!("{:?}", context.environment),
-        is_production,
+        is_production: is_self_host_health_enabled(context),
         last_checked_at: Utc::now().to_rfc3339(),
         failure_since: None,
         consecutive_failures: 0,

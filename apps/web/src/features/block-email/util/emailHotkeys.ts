@@ -1,6 +1,7 @@
 import type { EmailThreadKeyboardHandlers } from '@app/features/email-thread/core/thread-keyboard';
 import { registerHotkey } from '@core/hotkey/hotkeys';
 import { TOKENS } from '@core/hotkey/tokens';
+import { t } from '@macro/i18n';
 
 export function registerEmailHotkeys(
   scopeId: string,
@@ -10,7 +11,7 @@ export function registerEmailHotkeys(
     registerHotkey({
       hotkey: 'opt+r',
       scopeId: scopeId,
-      description: 'Reply all to message',
+      description: t('Reply all to message', { context: 'email' }),
       keyDownHandler: handlers.replyAllToFocusedMessage,
       hotkeyToken: TOKENS.email.replyAll,
       displayPriority: 8,
@@ -20,7 +21,7 @@ export function registerEmailHotkeys(
   registerHotkey({
     hotkey: 'r',
     scopeId: scopeId,
-    description: 'Reply to message',
+    description: t('Reply to message', { context: 'email' }),
     keyDownHandler: handlers.replyToFocusedMessage,
     hotkeyToken: TOKENS.email.reply,
     displayPriority: 9,
@@ -29,7 +30,7 @@ export function registerEmailHotkeys(
   registerHotkey({
     hotkey: 'f',
     scopeId: scopeId,
-    description: 'Forward message',
+    description: t('Forward message'),
     keyDownHandler: handlers.forwardFocusedMessage,
     hotkeyToken: TOKENS.email.forward,
     displayPriority: 7,
@@ -37,7 +38,7 @@ export function registerEmailHotkeys(
   registerHotkey({
     hotkey: 'e',
     scopeId,
-    description: 'Mark done',
+    description: t('Mark done'),
     keyDownHandler: handlers.markDone,
     hotkeyToken: TOKENS.entity.action.markDone,
     displayPriority: 10,
@@ -46,7 +47,7 @@ export function registerEmailHotkeys(
   registerHotkey({
     hotkey: 'shift+e',
     scopeId,
-    description: 'Mark as not done',
+    description: t('Mark as not done'),
     keyDownHandler: handlers.markNotDone,
     hotkeyToken: TOKENS.entity.action.markNotDone,
     displayPriority: 10,
@@ -55,7 +56,7 @@ export function registerEmailHotkeys(
   registerHotkey({
     hotkey: 'u',
     scopeId,
-    description: 'Mark as unread',
+    description: t('Mark unread'),
     keyDownHandler: handlers.markUnread,
     hotkeyToken: TOKENS.entity.action.markUnread,
     displayPriority: 9,
@@ -64,7 +65,7 @@ export function registerEmailHotkeys(
   registerHotkey({
     hotkey: 'shift+u',
     scopeId,
-    description: 'Mark as read',
+    description: t('Mark read'),
     keyDownHandler: handlers.markRead,
     hotkeyToken: TOKENS.entity.action.markRead,
     displayPriority: 9,
@@ -72,21 +73,21 @@ export function registerEmailHotkeys(
   });
   registerHotkey({
     scopeId: scopeId,
-    description: 'Block sender',
+    description: t('Block sender'),
     keyDownHandler: handlers.blockSender,
     hotkeyToken: TOKENS.email.blockSender,
     displayPriority: 5,
   });
   registerHotkey({
     scopeId: scopeId,
-    description: 'Mark sender as Signal',
+    description: t('Mark sender as Signal', { context: 'email' }),
     keyDownHandler: handlers.markSenderSignal,
     hotkeyToken: TOKENS.email.markSenderSignal,
     displayPriority: 5,
   });
   registerHotkey({
     scopeId: scopeId,
-    description: 'Mark sender as Noise',
+    description: t('Mark sender as Noise', { context: 'email' }),
     keyDownHandler: handlers.markSenderNoise,
     hotkeyToken: TOKENS.email.markSenderNoise,
     displayPriority: 5,
@@ -94,14 +95,14 @@ export function registerEmailHotkeys(
   registerHotkey({
     hotkey: 'arrowup',
     scopeId,
-    description: 'Previous message',
+    description: t('Previous message', { context: 'email' }),
     keyDownHandler: handlers.navigateToPreviousMessage,
     hotkeyToken: TOKENS.email.previousMessage,
   });
   registerHotkey({
     hotkey: 'arrowdown',
     scopeId,
-    description: 'Next message',
+    description: t('Next message', { context: 'email' }),
     keyDownHandler: handlers.navigateToNextMessage,
     hotkeyToken: TOKENS.email.nextMessage,
   });

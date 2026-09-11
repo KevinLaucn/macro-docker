@@ -1,5 +1,6 @@
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
 import BotIcon from '@icon/wide-bot.svg';
+import { t } from '@macro/i18n';
 import BellIcon from '@phosphor/bell-simple.svg';
 import BugIcon from '@phosphor/bug.svg';
 import BuildingsIcon from '@phosphor/buildings.svg';
@@ -88,7 +89,7 @@ export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
     label: 'Admin',
     items: [
       { tab: 'Admin', label: 'Debug', icon: BugIcon },
-      { tab: 'SelfHostHealth', label: 'Health Check', icon: HeartbeatIcon },
+      { tab: 'SelfHostHealth', label: t('Health Check'), icon: HeartbeatIcon },
     ],
   },
 ];

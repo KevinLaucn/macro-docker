@@ -780,7 +780,7 @@
       selfHostEmailBinaryCargoExtraArgs = mkSelfHostBinaryCargoExtraArgs selfHostEmailBinaryDefinitions;
 
       # Split shared deps into core and cognition closures:
-      # core-deps builds only dependencies needed by the 13 core email services.
+      # core-deps builds only dependencies needed by the 13 core Email definitions.
       # cognition-deps builds dependencies specifically needed by document-cognition-service.
       # When cognition changes, core-deps derivation hash stays intact and substitutes from cache.
       selfHostEmailCoreCargoArtifacts = craneLib.buildDepsOnly (
@@ -810,7 +810,7 @@
       # Aggregate single derivation for Self-host Email Production:
       # Restores selfHostEmailCargoArtifacts once, shares a single target/release directory,
       # sequentially invokes cargo build for each package with its exact featureArgs,
-      # and installs all 13 verified binaries directly into $out/bin.
+      # and installs all 15 verified binaries directly into $out/bin.
       selfHostEmailAllBinaries = pkgs.lib.unique (
         pkgs.lib.concatMap (def: def.binaries) selfHostEmailBinaryDefinitions
       );
@@ -865,7 +865,7 @@
               test -x "$out/bin/${bin}"
             '') selfHostEmailAllBinaries}
 
-            # Verify that exact expected count of executables (13) is present in $out/bin
+            # Verify that the exact expected count of executables is present in $out/bin.
             actual_count=$(find "$out/bin" -maxdepth 1 -type f -perm -111 | wc -l | tr -d ' ')
             expected_count="${toString (builtins.length (pkgs.lib.unique (pkgs.lib.concatMap (def: def.binaries) selfHostEmailBinaryDefinitions)))}"
             if [ "$actual_count" -ne "$expected_count" ]; then

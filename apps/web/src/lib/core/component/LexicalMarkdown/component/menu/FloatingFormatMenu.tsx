@@ -8,6 +8,7 @@
 import { type PortalScope, ScopedPortal } from '@core/component/ScopedPortal';
 import { isMobile } from '@core/mobile/isMobile';
 import { debouncedDependent } from '@core/util/debounce';
+import { t } from '@macro/i18n';
 import TextCode from '@phosphor/code.svg';
 import CodeBlock from '@phosphor/code-block.svg';
 import BrokenLinkIcon from '@phosphor/link-break.svg';
@@ -87,19 +88,23 @@ const InlineFormatOptions: Array<{
   label: string;
   shortcut?: string;
 }> = [
-  { format: 'bold', icon: TextBold, label: 'Bold', shortcut: 'cmd+b' },
-  { format: 'italic', icon: TextItalic, label: 'Italic', shortcut: 'cmd+i' },
+  { format: 'bold', icon: TextBold, label: t('Bold'), shortcut: 'cmd+b' },
+  { format: 'italic', icon: TextItalic, label: t('Italic'), shortcut: 'cmd+i' },
   {
     format: 'underline',
     icon: TextUnderline,
-    label: 'Underline',
+    label: t('Underline'),
     shortcut: 'cmd+u',
   },
-  { format: 'strikethrough', icon: TextStriketrough, label: 'Strikethrough' },
-  { format: 'code', icon: TextCode, label: 'Inline code' },
-  { format: 'highlight', icon: TextHighlight, label: 'Highlight' },
-  { format: 'superscript', icon: TextSuper, label: 'Superscript' },
-  { format: 'subscript', icon: TextSub, label: 'Subscript' },
+  {
+    format: 'strikethrough',
+    icon: TextStriketrough,
+    label: t('Strikethrough'),
+  },
+  { format: 'code', icon: TextCode, label: t('Inline code') },
+  { format: 'highlight', icon: TextHighlight, label: t('Highlight') },
+  { format: 'superscript', icon: TextSuper, label: t('Superscript') },
+  { format: 'subscript', icon: TextSub, label: t('Subscript') },
 ];
 
 type ElementOption = {
@@ -109,15 +114,15 @@ type ElementOption = {
 };
 
 const HeadingOptions: ElementOption[] = [
-  { format: 'heading1', icon: TextH1, label: 'Heading 1' },
-  { format: 'heading2', icon: TextH2, label: 'Heading 2' },
-  { format: 'heading3', icon: TextH3, label: 'Heading 3' },
+  { format: 'heading1', icon: TextH1, label: t('Heading 1') },
+  { format: 'heading2', icon: TextH2, label: t('Heading 2') },
+  { format: 'heading3', icon: TextH3, label: t('Heading 3') },
 ];
 
 const ListOptions: ElementOption[] = [
-  { format: 'list-bullet', icon: ListBullets, label: 'Bullet List' },
-  { format: 'list-number', icon: ListNumbers, label: 'Numbered List' },
-  { format: 'list-check', icon: ListChecks, label: 'Checklist' },
+  { format: 'list-bullet', icon: ListBullets, label: t('Bullet List') },
+  { format: 'list-number', icon: ListNumbers, label: t('Numbered List') },
+  { format: 'list-check', icon: ListChecks, label: t('Checklist') },
 ];
 
 export function FloatingFormatMenu(props: {

@@ -4,7 +4,7 @@
   "dss": true,
   "notification": true,
   "websocket": true,
-  "cognition": false,
+  "cognition": true,
   "scheduled_actions": false,
   "ai_editing": false
 }

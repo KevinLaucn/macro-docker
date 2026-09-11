@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import { ViewSidebar } from '@app/components/view-shell';
 import { runCreateAction } from '@app/features/command/Launcher';
 import { DEBUG_SETTING_KEYS, useDebugSetting } from '@app/lib/debugSettings';
@@ -7,6 +6,7 @@ import { SplitPanel } from '@components/app/split-panel';
 import { useUserId } from '@core/context/user';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import type { ChannelEntity } from '@entity';
+import { t } from '@macro/i18n';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import { cn, Hotkey, Tabs } from '@ui';
 import { createSignal, For, Match, Show, Switch } from 'solid-js';
@@ -424,7 +424,7 @@ export function ExpandedChannelsRail() {
             <span>Use</span>
             <Hotkey shortcut="[" theme="subtle" />
             <Hotkey shortcut="]" theme="subtle" />
-            <span>{t("to jump sections@@chat")}</span>
+            <span>{t('to jump sections@@chat')}</span>
           </footer>
         </Show>
       </div>

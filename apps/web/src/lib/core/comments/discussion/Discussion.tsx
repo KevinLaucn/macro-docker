@@ -11,6 +11,7 @@ import { channelReplyInputOffsetX } from '@channel/Thread/utils/thread-rail-geom
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { toast } from '@core/component/Toast/Toast';
 import { getDisplayName, tryMacroId } from '@core/user';
+import { t } from '@macro/i18n';
 import CaretDown from '@phosphor/caret-down.svg';
 import CaretRight from '@phosphor/caret-right.svg';
 import {
@@ -166,7 +167,10 @@ export function Discussion() {
             <Show when={source.canEdit()}>
               <div class="mt-4">
                 <DiscussionInput
-                  input={{ mode: 'channel', placeholder: 'Leave a comment...' }}
+                  input={{
+                    mode: 'channel',
+                    placeholder: t('Leave a comment...'),
+                  }}
                   onSend={handleCreateThread}
                   onReady={(handle) => {
                     newThreadInputHandle = handle;
@@ -446,7 +450,7 @@ function DiscussionMessageView(props: {
               <DiscussionInput
                 input={{
                   mode: 'reply',
-                  placeholder: 'Edit comment...',
+                  placeholder: t('Edit comment...'),
                   value: props.comment.text,
                 }}
                 onSend={props.onEditSave}

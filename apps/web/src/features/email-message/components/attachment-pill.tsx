@@ -1,5 +1,5 @@
-import { t } from '@macro/i18n';
 import { EntityIcon } from '@core/component/EntityIcon';
+import { t } from '@macro/i18n';
 import X from '@phosphor/x.svg';
 import { FileTypeMap } from '@service-storage/fileTypeMap';
 import type { FileType } from '@service-storage/generated/schemas/fileType';
@@ -55,7 +55,9 @@ export function EmailAttachmentPill(props: EmailAttachmentPillProps) {
       <Show when={props.removable}>
         <button
           type="button"
-          aria-label={t("Remove {fileName}@@email", { fileName: props.attachment.fileName })}
+          aria-label={t('Remove {fileName}@@email', {
+            fileName: props.attachment.fileName,
+          })}
           class="ml-auto p-2 hover:text-failure"
           onPointerDown={(e) => {
             // Keep the editor's focus. Focusing its message card can scroll

@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import {
   createLiveQuestion,
   type DraftedTool,
@@ -15,6 +14,7 @@ import {
 } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { channelTheme } from '@core/component/LexicalMarkdown/theme';
 import { PulsingStar } from '@entity/components/PulsingStar';
+import { t } from '@macro/i18n';
 import ArrowUpRight from '@phosphor/arrow-up-right.svg';
 import type { ElicitationAnswer } from '@service-agent-harness/generated/schemas';
 import { Button, Layer } from '@ui';
@@ -230,7 +230,7 @@ const ChipHeader: Component<{
     <Button
       variant="ghost"
       size="icon-xs"
-      aria-label={t("Open in session")}
+      aria-label={t('Open in session')}
       disabled={!props.onOpen}
       onClick={props.onOpen}
     >

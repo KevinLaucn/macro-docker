@@ -4,12 +4,12 @@
  * same part components), and what it reported back.
  */
 
+import { t } from '@macro/i18n';
 import type {
   MessagePart,
   SubagentResult,
   ToolDetail,
 } from '@service-agent-fold/generated/types';
-import { t } from '@macro/i18n';
 import { For, type JSX, Show } from 'solid-js';
 import { match } from 'ts-pattern';
 import { FoldedOutput, Thought, ToolCard } from '../../ui';

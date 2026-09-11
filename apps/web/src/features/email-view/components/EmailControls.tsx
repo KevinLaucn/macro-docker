@@ -1,6 +1,6 @@
-import { t } from '@macro/i18n';
 import { ListFilterDropdown } from '@app/components/view-shell';
 import { PreviewButton } from '@components/app/split-layout/components/PreviewButton';
+import { t } from '@macro/i18n';
 import { Show } from 'solid-js';
 import { useEmailView } from '../email-view-context';
 import { useEmailFilters } from '../filters/use-email-filters';
@@ -20,7 +20,7 @@ export function EmailControls(props: EmailControlsProps) {
     <div class="flex min-w-0 shrink-0 items-center justify-end gap-2 @max-[720px]/view-shell:gap-1">
       <div class="relative shrink-0">
         <ListFilterDropdown
-          label={t("Filter email@@email")}
+          label={t('Filter email@@email')}
           open={props.filterOpen}
           onOpenChange={props.onFilterOpenChange}
           groups={filters.groups()}

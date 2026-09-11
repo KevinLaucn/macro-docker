@@ -11,6 +11,9 @@ use uuid::Uuid;
 
 use crate::api::context::ApiContext;
 
+#[cfg(test)]
+mod test;
+
 const TRANSPARENT_PIXEL_GIF: &[u8] = &[
     0x47, 0x49, 0x46, 0x38, 0x39, 0x61, // GIF89a
     0x01, 0x00, 0x01, 0x00, // 1x1
@@ -40,10 +43,12 @@ async fn open_pixel_handler(State(ctx): State<ApiContext>, Path(token): Path<Str
                 );
 
                 if open.is_first_open {
-                    if let Err(activity_err) =
-                        email_db_client::read_receipts::record_email_opened_activity(&ctx.db, &open)
-                            .await
-                    {
+                    let activity_res =
+                        email_db_client::read_receipts::record_email_opened_activity(
+                            &ctx.db, &open,
+                        )
+                        .await;
+                    if let Err(activity_err) = activity_res {
                         tracing::error!(
                             error = ?activity_err,
                             message_id = %open.message_id,
@@ -60,6 +65,10 @@ async fn open_pixel_handler(State(ctx): State<ApiContext>, Path(token): Path<Str
         }
     }
 
+    pixel_gif_response()
+}
+
+pub fn pixel_gif_response() -> Response {
     (
         [
             (header::CONTENT_TYPE, "image/gif"),
@@ -68,6 +77,10 @@ async fn open_pixel_handler(State(ctx): State<ApiContext>, Path(token): Path<Str
                 "no-cache, no-store, must-revalidate, max-age=0",
             ),
             (header::PRAGMA, "no-cache"),
+            (
+                header::HeaderName::from_static("x-content-type-options"),
+                "nosniff",
+            ),
         ],
         TRANSPARENT_PIXEL_GIF,
     )

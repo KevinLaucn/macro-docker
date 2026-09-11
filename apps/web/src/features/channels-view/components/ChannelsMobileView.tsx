@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import { createListController } from '@app/components/list';
 import { toEntityActionListState } from '@app/features/next-soup/actions';
 import { openEntityInSplitFromUnifiedList } from '@app/features/next-soup/utils';
@@ -12,6 +11,7 @@ import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { useUserId } from '@core/context/user';
 import type { ChannelEntity } from '@entity';
 import { isMutedItem } from '@entity/utils/notification';
+import { t } from '@macro/i18n';
 import SpinnerIcon from '@phosphor/spinner.svg';
 import { createElementSize } from '@solid-primitives/resize-observer';
 import { Button } from '@ui';
@@ -155,7 +155,7 @@ export function ChannelsMobileView(props: {
             <Match when={!forceEmptyState() && props.source.isLoading()}>
               <div class="grid min-h-32 place-items-center text-ink-muted">
                 <SpinnerIcon
-                  aria-label={t("Loading conversations@@chat")}
+                  aria-label={t('Loading conversations@@chat')}
                   class="size-5 animate-spin"
                 />
               </div>
@@ -168,7 +168,7 @@ export function ChannelsMobileView(props: {
               }
             >
               <div class="flex min-h-32 flex-col items-center justify-center gap-3 px-(--mobile-chrome-gutter) text-sm text-ink-muted">
-                <span>{t("Conversations couldn’t be loaded.@@chat")}</span>
+                <span>{t('Conversations couldn’t be loaded.@@chat')}</span>
                 <Button
                   variant="outline"
                   size="sm"
@@ -239,7 +239,7 @@ export function ChannelsMobileView(props: {
               <Show when={props.source.isLoadingMore()}>
                 <div class="flex h-12 items-center justify-center text-ink-muted">
                   <SpinnerIcon
-                    aria-label={t("Loading more conversations@@chat")}
+                    aria-label={t('Loading more conversations@@chat')}
                     class="size-4 animate-spin"
                   />
                 </div>
@@ -252,7 +252,7 @@ export function ChannelsMobileView(props: {
                 }
               >
                 <div class="flex items-center justify-center gap-2 py-3 text-xs text-ink-muted">
-                  <span>{t("Couldn’t load more conversations.@@chat")}</span>
+                  <span>{t('Couldn’t load more conversations.@@chat')}</span>
                   <Button
                     variant="outline"
                     size="xs"

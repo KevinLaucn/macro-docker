@@ -9,8 +9,8 @@
  * tool from its title.
  */
 
-import type { MessagePart } from '@service-agent-fold/generated/types';
 import { t } from '@macro/i18n';
+import type { MessagePart } from '@service-agent-fold/generated/types';
 import type { JSX } from 'solid-js';
 import { match } from 'ts-pattern';
 import { EditToolCall } from './EditToolCall';
@@ -38,7 +38,9 @@ export function ToolCallPart(props: {
     label: toolLabel(props.part.name),
     status: props.part.status,
     muted: failed(),
-    trailing: failed() ? <span class="text-ink">{t('Failed')}</span> : undefined,
+    trailing: failed() ? (
+      <span class="text-ink">{t('Failed')}</span>
+    ) : undefined,
   });
 
   return match(props.part.detail)

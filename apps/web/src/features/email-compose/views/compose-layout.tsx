@@ -1,7 +1,7 @@
 import { CircleSpinner } from '@core/component/CircleSpinner';
 import { registerHotkey, useHotkeyDOMScope } from '@core/hotkey/hotkeys';
 import { TOKENS } from '@core/hotkey/tokens';
-
+import { t } from '@macro/i18n';
 import { Button, cn } from '@ui';
 import { createSignal, type JSX, onMount, Show, Suspense } from 'solid-js';
 import { FromInboxSelector } from '../components/from-inbox-selector';
@@ -208,7 +208,7 @@ export function ComposeLayout(props: {
               >
                 <Show when={ctx.fromAddress?.()}>
                   <div class="text-xs text-ink-extra-muted/50 flex items-center gap-2 min-w-0 flex-1">
-                    <span class="w-14 shrink-0">from</span>
+                    <span class="w-14 shrink-0">{t('From')}</span>
                     <div class="min-w-0">
                       <FromInboxSelector
                         disabled={ctx.disabled()}

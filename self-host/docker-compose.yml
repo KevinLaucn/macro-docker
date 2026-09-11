@@ -74,7 +74,12 @@ services:
         cat <<EOF > /out/env-config.js
         window.__MACRO_ENV__ = {
           ADMIN_EMAIL: "$${ADMIN_EMAIL:-hello@chnprints.com}",
-          ENABLE_NEW_APP_VIEWS: "false",
+          ENABLE_NEW_APP_VIEWS: "$${ENABLE_NEW_APP_VIEWS:-false}",
+          DEFAULT_AI_MODEL: "$${DEFAULT_AI_MODEL:-openai/gpt-5.6}",
+          FREE_DEFAULT_AI_MODEL: "$${FREE_DEFAULT_AI_MODEL:-openai/gpt-5-mini}",
+          ENABLE_SIDEBAR_NEXT: "$${ENABLE_SIDEBAR_NEXT:-false}",
+          ENABLE_INBOX_RESYNC: "$${ENABLE_INBOX_RESYNC:-true}",
+          ENABLE_INBOX_SYNC_STATUS: "$${ENABLE_INBOX_SYNC_STATUS:-true}",
           ENABLE_CHAT_V3_AGENTS: "$${ENABLE_CHAT_V3_AGENTS:-true}",
           ENABLE_AGENT_SESSION_COMPOSER: "$${ENABLE_AGENT_SESSION_COMPOSER:-true}",
           BOT_MANAGEMENT: "$${BOT_MANAGEMENT:-true}",
@@ -88,7 +93,7 @@ services:
           ENABLE_ACTIVITY_FEED: "$${ENABLE_ACTIVITY_FEED:-true}",
           ENABLE_RECENT_VIEW: "$${ENABLE_RECENT_VIEW:-true}",
           ENABLE_TAG_TEAM_SHARING: "$${ENABLE_TAG_TEAM_SHARING:-true}",
-          ENABLE_AGENTS: "$${ENABLE_AGENTS:-true}",
+          ENABLE_AGENTS: "$${ENABLE_AGENTS:-false}",
           ENABLE_DOCS_COLLAB: "$${ENABLE_DOCS_COLLAB:-true}",
           ENABLE_CRM: "$${ENABLE_CRM:-true}",
           INLINE_AI_EDITING: "$${INLINE_AI_EDITING:-true}",
@@ -115,20 +120,20 @@ services:
           ENABLE_UNIFIED_LIST_AI_INPUT: "$${ENABLE_UNIFIED_LIST_AI_INPUT:-true}",
           ENABLE_CHAT_CHANNEL_ATTACHMENT: "$${ENABLE_CHAT_CHANNEL_ATTACHMENT:-true}",
           ENABLE_CURSOR_AGENTS: "$${ENABLE_CURSOR_AGENTS:-true}",
-          ENABLE_BEARER_TOKEN_AUTH: "$${ENABLE_BEARER_TOKEN_AUTH:-true}",
+          ENABLE_BEARER_TOKEN_AUTH: "$${ENABLE_BEARER_TOKEN_AUTH:-false}",
           ENABLE_PR_DISCUSSION_INPUT: "$${ENABLE_PR_DISCUSSION_INPUT:-true}",
           ENABLE_CALENDAR_PROMPT_WEB: "$${ENABLE_CALENDAR_PROMPT_WEB:-true}",
           ENABLE_MARKDOWN_SEARCH_TEXT: "$${ENABLE_MARKDOWN_SEARCH_TEXT:-true}",
           ENABLE_NEW_PRICING: "$${ENABLE_NEW_PRICING:-true}",
           ENABLE_ONBOARDING_V4: "$${ENABLE_ONBOARDING_V4:-true}",
           ENABLE_COGNITION: "$${ENABLE_COGNITION:-true}",
-          ENABLE_SCHEDULED_ACTIONS: "$${ENABLE_SCHEDULED_ACTIONS:-true}",
+          ENABLE_SCHEDULED_ACTIONS: "$${ENABLE_SCHEDULED_ACTIONS:-false}",
           FEATURES: {
-            cognition: false,
-            scheduledActions: false,
-            agents: false,
+            cognition: $${ENABLE_COGNITION:-true},
+            scheduledActions: $${ENABLE_SCHEDULED_ACTIONS:-false},
+            agents: $${ENABLE_AGENTS:-false},
             docsCollab: false,
-            enableNewAppViews: false,
+            enableNewAppViews: $${ENABLE_NEW_APP_VIEWS:-false},
             enableCrm: $${ENABLE_CRM:-true}
           },
           # ============================================================================
@@ -446,7 +451,6 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
 
   document_cognition_service:
-    profiles: ["full"]
     <<: *service
     command: ["/app/out/document_cognition_service"]
     environment:

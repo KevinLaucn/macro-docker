@@ -11,9 +11,9 @@
  * back to the flat form the agent also sent, through these.
  */
 
-import { t } from '@macro/i18n';
 import { CalendarDraftComposer } from '@core/component/AI/component/tool/calendar/DraftComposer';
 import { EmailDraftComposer } from '@core/component/AI/component/tool/email/DraftComposer';
+import { t } from '@macro/i18n';
 import type {
   ElicitationRequest,
   ElicitationSchema,
@@ -158,7 +158,7 @@ export function QuestionFields(props: {
         {(question) => (
           <div class="flex flex-col gap-2">
             <div class="text-xs text-ink-muted">
-              {t('Opens')} {' '}
+              {t('Opens')}{' '}
               <span class="font-medium text-ink">
                 {urlHost(question().url)}
               </span>{' '}
@@ -173,7 +173,9 @@ export function QuestionFields(props: {
       <Match when={unrecognized(props.question)}>
         {(question) => (
           <div class="text-xs text-ink-extra-muted italic">
-            {t('This client cannot display a "{mode}" request.', { mode: question().mode })}
+            {t('This client cannot display a "{mode}" request.', {
+              mode: question().mode,
+            })}
           </div>
         )}
       </Match>
@@ -224,7 +226,7 @@ export function QuestionActions(props: {
             disabled={props.locked}
             onClick={() => submit(question().draft)}
           >
-            {t("Submit")}
+            {t('Submit')}
           </Button>
         )}
       </Match>

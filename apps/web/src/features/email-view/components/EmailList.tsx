@@ -473,7 +473,7 @@ export function EmailList(props: EmailListProps) {
               >
                 <div class="grid min-h-0 flex-1 place-items-center text-ink-muted touch:pt-(--mobile-content-inset-top) touch:pb-(--mobile-content-inset-bottom)">
                   <SpinnerIcon
-                    aria-label={t("Loading email@@email")}
+                    aria-label={t('Loading email@@email')}
                     class="size-5 animate-spin"
                   />
                 </div>
@@ -484,7 +484,7 @@ export function EmailList(props: EmailListProps) {
                   ref={setEmptyViewport}
                   class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto text-sm text-ink-muted touch:pt-(--mobile-content-inset-top) touch:pb-(--mobile-content-inset-bottom)"
                 >
-                  <span>{t("Email couldn’t be loaded.@@email")}</span>
+                  <span>{t('Email couldn’t be loaded.@@email')}</span>
                   <Button
                     variant="outline"
                     size="sm"

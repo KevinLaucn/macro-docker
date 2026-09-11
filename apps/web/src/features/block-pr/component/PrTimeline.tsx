@@ -7,6 +7,7 @@ import {
 } from '@core/comments/discussion';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { ENABLE_PR_DISCUSSION_INPUT } from '@core/constant/featureFlags';
+import { t } from '@macro/i18n';
 import CaretDown from '@phosphor/caret-down.svg';
 import CaretRight from '@phosphor/caret-right.svg';
 import type { GithubPullRequestComment } from '@service-storage/generated/schemas';
@@ -107,7 +108,7 @@ export function PrTimeline(props: {
                   <DiscussionInput
                     input={{
                       mode: 'channel',
-                      placeholder: 'Leave a comment...',
+                      placeholder: t('Leave a comment...'),
                     }}
                     onSend={handleCreateThread}
                     onReady={(handle) => {

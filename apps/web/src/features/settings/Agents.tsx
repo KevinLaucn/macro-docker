@@ -877,7 +877,7 @@ function AgentDialog(props: {
                     when={selectedModelQuery()}
                     fallback={
                       <p class="settings-input text-ink-muted">
-                        {t("Model discovery unavailable")}
+                        {t('Model discovery unavailable')}
                       </p>
                     }
                     keyed
@@ -891,7 +891,7 @@ function AgentDialog(props: {
                             class="settings-input w-full"
                             disabled
                           >
-                            <option>{t("Loading models…")}</option>
+                            <option>{t('Loading models…')}</option>
                           </select>
                         }
                       >
@@ -900,7 +900,8 @@ function AgentDialog(props: {
                           fallback={
                             <div class="flex items-center gap-2">
                               <p class="min-w-0 flex-1 text-xs text-negative">
-                                {t("Could not load models for")} {selectedHarness()?.name ?? t("this harness")}.
+                                {t('Could not load models for')}{' '}
+                                {selectedHarness()?.name ?? t('this harness')}.
                               </p>
                               <Button
                                 type="button"
@@ -918,7 +919,9 @@ function AgentDialog(props: {
                             when={selectedModelData()?.status === 'available'}
                             fallback={
                               <p class="settings-input text-ink-muted">
-                                {t("Model selection is unsupported by this harness.")}
+                                {t(
+                                  'Model selection is unsupported by this harness.'
+                                )}
                               </p>
                             }
                           >
@@ -926,7 +929,7 @@ function AgentDialog(props: {
                               when={selectedModelOptions().length > 0}
                               fallback={
                                 <p class="settings-input text-ink-muted">
-                                  {t("This harness did not return any models.")}
+                                  {t('This harness did not return any models.')}
                                 </p>
                               }
                             >

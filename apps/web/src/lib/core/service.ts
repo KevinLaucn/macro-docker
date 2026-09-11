@@ -1,4 +1,5 @@
 import type { ResultError } from '@core/util/result';
+import { t } from '@macro/i18n';
 import type { Result } from 'neverthrow';
 import { z } from 'zod';
 import type { FlattenObject } from './util/flatten';
@@ -300,16 +301,16 @@ export type ServiceClient<T extends Svc<any, any, any>> =
  * Defines common fetch errors that can occur during API requests.
  */
 export const fetchErrorsSvc = new Svc('Common fetch errors')
-  .err('NETWORK_ERROR', { description: 'Network error occurred' })
-  .err('HTTP_ERROR', { description: 'HTTP error occurred' })
-  .err('NOT_FOUND', { description: 'Resource not found' })
-  .err('UNAUTHORIZED', { description: 'Unauthorized access' })
-  .err('FORBIDDEN', { description: 'Forbidden' })
-  .err('CONFLICT', { description: 'Resource conflict' })
-  .err('SERVER_ERROR', { description: 'Internal server error' })
-  .err('INVALID_JSON', { description: 'Invalid JSON in response' })
-  .err('UNKNOWN_ERROR', { description: 'An unknown error occurred' })
-  .err('GONE', { description: 'Resource deleted' });
+  .err('NETWORK_ERROR', { description: t('Network error occurred') })
+  .err('HTTP_ERROR', { description: t('HTTP error occurred') })
+  .err('NOT_FOUND', { description: t('Resource not found') })
+  .err('UNAUTHORIZED', { description: t('Unauthorized access') })
+  .err('FORBIDDEN', { description: t('Forbidden') })
+  .err('CONFLICT', { description: t('Resource conflict') })
+  .err('SERVER_ERROR', { description: t('Internal server error') })
+  .err('INVALID_JSON', { description: t('Invalid JSON in response') })
+  .err('UNKNOWN_ERROR', { description: t('An unknown error occurred') })
+  .err('GONE', { description: t('Resource deleted') });
 
 export type FetchError = keyof typeof fetchErrorsSvc.state.errors;
 

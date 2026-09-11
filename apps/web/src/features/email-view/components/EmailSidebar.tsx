@@ -1,9 +1,9 @@
-import { t } from '@macro/i18n';
 import { useViewTabHotkeys, ViewSidebar } from '@app/components/view-shell';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { SplitPanel } from '@components/app/split-panel';
 import { AnimatedNoiseIcon } from '@icon/wide-noise';
 import { AnimatedSignalIcon } from '@icon/wide-signal';
+import { t } from '@macro/i18n';
 import CalendarBlankIcon from '@phosphor/calendar-blank.svg';
 import EnvelopeIcon from '@phosphor/envelope.svg';
 import FileIcon from '@phosphor/file.svg';
@@ -55,7 +55,7 @@ export function EmailNavigation(props: { onNavigate?: () => void }) {
 
   return (
     <div class="flex flex-col gap-6">
-      <ViewSidebar.Nav aria-label={t("Email tabs@@email")}>
+      <ViewSidebar.Nav aria-label={t('Email tabs@@email')}>
         <For each={EMAIL_TABS}>
           {(item) => <Tab item={item} onNavigate={props.onNavigate} />}
         </For>
@@ -86,7 +86,7 @@ export function EmailSidebar() {
 
   return (
     <ViewSidebar.Root
-      aria-label={t("Email navigation@@email")}
+      aria-label={t('Email navigation@@email')}
       class="gap-4 border-r-0 pt-2"
     >
       <ViewSidebar.Header>

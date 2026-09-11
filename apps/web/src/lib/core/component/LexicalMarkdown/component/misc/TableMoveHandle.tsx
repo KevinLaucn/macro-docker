@@ -17,6 +17,7 @@ import {
   getDOMCellFromTarget,
   type TableCellNode,
 } from '@lexical/table';
+import { t } from '@macro/i18n';
 import ColumnsIcon from '@phosphor/columns.svg';
 import ColumnsPlusLeftIcon from '@phosphor/columns-plus-left.svg';
 import ColumnsPlusRightIcon from '@phosphor/columns-plus-right.svg';
@@ -67,22 +68,22 @@ type MenuItem = {
 // 2×2 grid: column inserts side by side on top, row inserts below.
 const INSERT_ITEMS: MenuItem[] = [
   {
-    label: 'Insert column left',
+    label: t('Insert column left'),
     icon: ColumnsPlusLeftIcon,
     action: () => $insertTableColumnAtSelection(false),
   },
   {
-    label: 'Insert column right',
+    label: t('Insert column right'),
     icon: ColumnsPlusRightIcon,
     action: () => $insertTableColumnAtSelection(true),
   },
   {
-    label: 'Insert row below',
+    label: t('Insert row below'),
     icon: RowsPlusBottomIcon,
     action: () => $insertTableRowAtSelection(true),
   },
   {
-    label: 'Insert row above',
+    label: t('Insert row above'),
     icon: RowsPlusTopIcon,
     action: () => $insertTableRowAtSelection(false),
   },

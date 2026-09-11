@@ -318,7 +318,9 @@ export function AutomationComposer() {
                 disabled={createMutation.isPending}
                 onClick={handleCreate}
               >
-                {createMutation.isPending ? t('Creating…') : t('Create', { context: 'automation' })}
+                {createMutation.isPending
+                  ? t('Creating…')
+                  : t('Create', { context: 'automation' })}
               </Button>
             </div>
           </div>

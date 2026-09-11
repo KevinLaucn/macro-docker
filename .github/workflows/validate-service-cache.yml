@@ -46,8 +46,8 @@ jobs:
           assert output["run_web"] == "true"
           assert output["run_workers"] == "true"
           targets = json.loads(output["service_targets"])
-          assert len(targets) == 12, targets
-          assert len(set(targets)) == 12, targets
+          assert len(targets) == 14, targets
+          assert len(set(targets)) == 14, targets
 
           script = pathlib.Path("self-host/scripts/affected-services.py")
           spec = importlib.util.spec_from_file_location("affected_services", script)
@@ -77,7 +77,7 @@ jobs:
 
           lock = module.compute_impact(["Cargo.lock"], False, closures)
           assert lock["run_services"] is True, lock
-          assert len(lock["service_targets"]) == 12, lock
+          assert len(lock["service_targets"]) == 14, lock
           assert lock["run_workers"] is True, lock
           assert lock["run_init"] is True, lock
 

@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import {
   SearchBar,
   useViewControlHotkeys,
@@ -6,6 +5,7 @@ import {
 } from '@app/components/view-shell';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { SplitPanel } from '@components/app/split-panel';
+import { t } from '@macro/i18n';
 import MenuIcon from '@phosphor/list.svg';
 import PlusIcon from '@phosphor/plus.svg';
 import { Button, Dropdown, pressHandlers } from '@ui';
@@ -79,7 +79,7 @@ export function EmailHeader(props: EmailHeaderProps) {
             size="sm"
             square
             class="size-8 shrink-0 rounded-full"
-            aria-label={t("Open Email navigation@@email")}
+            aria-label={t('Open Email navigation@@email')}
           >
             <MenuIcon class="size-4" />
           </Dropdown.Trigger>
@@ -110,12 +110,12 @@ export function EmailHeader(props: EmailHeaderProps) {
       <div class="flex min-w-0 items-center justify-between gap-3">
         <SearchBar
           ref={(element) => (searchInput = element)}
-          label={t("Search email@@email")}
+          label={t('Search email@@email')}
           value={state.search}
           hotkey="cmd+f"
           onValueChange={(search) => setState('search', search)}
           onEscape={props.onSearchEscape}
-          placeholder={t("Search email@@email")}
+          placeholder={t('Search email@@email')}
           class="max-w-md flex-1"
         />
         <EmailControls

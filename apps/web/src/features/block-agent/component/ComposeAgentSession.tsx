@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import { useSplitLayout } from '@components/app/split-layout/layout';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { MODEL_PRETTYNAME, Model } from '@core/component/AI/constant/model';
@@ -12,6 +11,7 @@ import {
   MACRO_AGENT_NAME,
 } from '@core/constant/macroAgent';
 import { registerHotkey, useHotkeyDOMScope } from '@core/hotkey/hotkeys';
+import { t } from '@macro/i18n';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import CaretRightIcon from '@phosphor/caret-right.svg';
 import CheckIcon from '@phosphor/check.svg';
@@ -187,7 +187,7 @@ export function ComposeAgentSession(props: ComposeAgentSessionProps) {
       <div class="flex items-center gap-1">
         <div class="flex flex-1 items-center gap-2 px-2 text-xs font-medium text-ink-extra-muted">
           <RobotIcon class="size-3.5" />
-          {t("New agent session")}
+          {t('New agent session')}
         </div>
         <Show when={splitPanel.handle.isPopover()}>
           <Button
@@ -205,9 +205,9 @@ export function ComposeAgentSession(props: ComposeAgentSessionProps) {
         <textarea
           ref={promptRef}
           rows={4}
-          aria-label={t("Task for the agent")}
+          aria-label={t('Task for the agent')}
           class="ph-no-capture min-h-24 w-full grow resize-none bg-transparent px-2 text-xl/7 font-medium text-ink outline-none placeholder:text-ink-placeholder"
-          placeholder={t("Give your agent a prompt...")}
+          placeholder={t('Give your agent a prompt...')}
           value={prompt()}
           onInput={(event) => setPrompt(event.currentTarget.value)}
           onKeyDown={(event) => {
@@ -296,9 +296,9 @@ function PersonaGrid(props: {
   return (
     <section class="flex shrink-0 flex-col gap-2 px-2" aria-label="Agent">
       <div class="flex items-center justify-between text-xxs font-medium uppercase text-ink-extra-muted">
-        <span>{t("Agent")}</span>
+        <span>{t('Agent')}</span>
         <Show when={props.loading}>
-          <span class="normal-case">{t("Loading yours…")}</span>
+          <span class="normal-case">{t('Loading yours…')}</span>
         </Show>
       </div>
       <div
@@ -367,7 +367,7 @@ function PersonaGrid(props: {
       </div>
       <Show when={props.error}>
         <p class="text-xs text-negative">
-          {t("Your saved agents could not be loaded. You can still start with")}{' '}
+          {t('Your saved agents could not be loaded. You can still start with')}{' '}
           {MACRO_AGENT_NAME} or {CURSOR_BOT_NAME}.
         </p>
       </Show>
@@ -391,7 +391,7 @@ function ModelPicker(props: {
         variant="outline"
         size="sm"
         class={PILL_CLASS}
-        aria-label={t("Model override")}
+        aria-label={t('Model override')}
         tooltip={props.value ? 'Model override' : 'Model (agent default)'}
       >
         <CpuIcon class="size-3.5 shrink-0" />
@@ -444,7 +444,7 @@ function ModelPicker(props: {
           </Show>
           <Show when={props.loading}>
             <div class="px-2 py-2 text-xs text-ink-extra-muted">
-              {t("Loading models…")}
+              {t('Loading models…')}
             </div>
           </Show>
           <Show when={!props.loading && props.available.length === 0}>

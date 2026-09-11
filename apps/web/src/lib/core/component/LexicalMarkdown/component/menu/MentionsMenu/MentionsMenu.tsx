@@ -13,6 +13,7 @@ import { useDateSearch } from '@core/util/dateSearch/useDateSearch';
 import { debouncedDependent } from '@core/util/debounce';
 import { useIsKeyPressActive } from '@core/util/useIsKeyPressActive';
 import type { EmailEntity } from '@entity';
+import { t } from '@macro/i18n';
 import type { HistoryItem as Item } from '@queries/history/history';
 import { createLazyMemo } from '@solid-primitives/memo';
 import { createVirtualizer } from '@tanstack/solid-virtual';
@@ -289,13 +290,13 @@ function MentionsMenuInner(props: MentionsMenuProps) {
     const buckets: BucketConfig[] = [
       {
         id: 'users',
-        label: groups().length > 0 ? 'People & Groups' : 'People',
+        label: groups().length > 0 ? t('People & Groups') : t('People'),
         getData: () => usersAndGroups() ?? [],
         getFullCount: () => usersAndGroups()?.length ?? 0,
       },
       {
         id: 'documents',
-        label: 'Documents, Agents, & Tasks',
+        label: t('Documents, Agents, & Tasks'),
         getData: () => docs() ?? [],
         getFullCount: docsMention.totalCount,
         hasMore: docsMention.hasMore,
@@ -304,7 +305,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
       },
       {
         id: 'channels',
-        label: 'Channels',
+        label: t('Channels'),
         getData: () => channels() ?? [],
         getFullCount: channelsMention.totalCount,
         hasMore: channelsMention.hasMore,
@@ -313,7 +314,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
       },
       {
         id: 'companies',
-        label: 'Companies',
+        label: t('Companies'),
         getData: () => companies() ?? [],
         getFullCount: () => companyMention?.totalCount() ?? 0,
         hasMore: () => companyMention?.hasMore() ?? false,
@@ -322,7 +323,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
       },
       {
         id: 'emails',
-        label: 'Emails',
+        label: t('Emails'),
         getData: () => emails() ?? [],
         getFullCount: totalEmailCount,
         hasMore: hasMoreEmails,
@@ -331,7 +332,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
       },
       {
         id: 'dates',
-        label: 'Dates',
+        label: t('Dates'),
         getData: () => dates() ?? [],
         getFullCount: () => dates()?.length ?? 0,
       },
@@ -340,7 +341,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
     if (props.showOpenTabs) {
       buckets.unshift({
         id: 'openTabs',
-        label: 'Open Tabs',
+        label: t('Open Tabs'),
         getData: () => openTabs() ?? [],
         getFullCount: () => openTabs()?.length ?? 0,
       });

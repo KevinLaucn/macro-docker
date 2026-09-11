@@ -1,8 +1,8 @@
-import { t } from '@macro/i18n';
 import { useViewTabHotkeys } from '@app/components/view-shell';
 import { PillTabs } from '@components/app/mobile/PillTabs';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
+import { t } from '@macro/i18n';
 import { Tabs } from '@ui';
 import { Show } from 'solid-js';
 import { useInboxView } from '../inbox-view-context';
@@ -41,7 +41,7 @@ export function InboxTabs() {
       fallback={
         <div class="flex h-8 min-w-0 flex-1 items-center gap-3">
           <Tabs
-            aria-label={t("Notification views")}
+            aria-label={t('Notification views')}
             list={INBOX_TABS}
             value={state.tab}
             onChange={handleTabChange}

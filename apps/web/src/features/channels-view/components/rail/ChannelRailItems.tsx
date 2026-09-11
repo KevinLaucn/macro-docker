@@ -1,28 +1,15 @@
-import { t } from '@macro/i18n';
 import {
   type EntityActionViewContext,
   toEntityActionListState,
 } from '@app/features/next-soup/actions';
-import {
-  markChannelNotificationsSeenOnOpen,
-  openEntityInNewTab,
-} from '@app/features/next-soup/utils';
-import { SoupEntityActionsMenu } from '@app/features/soup/SoupEntityActionsMenu';
-import { useGlobalNotificationSource } from '@components/app/GlobalAppState';
-import {
-  ContextMenuContent,
-  MenuGroup,
-  MenuItem,
-  MenuSeparator,
-} from '@core/component/ContextMenu';
 import { SoupEntityContextMenu } from '@app/features/soup/SoupEntityContextMenu';
-import { joinChannelCall } from '@channel/Call/join-channel-call';
 import { StaticMarkdown } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { useUserId } from '@core/context/user';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { getDisplayName, tryMacroId } from '@core/user';
 import type { MacroId } from '@core/user/macroId';
 import { type ChannelEntity, Entity } from '@entity';
+import { t } from '@macro/i18n';
 import ReplyIcon from '@phosphor/arrow-bend-up-left.svg';
 import AtIcon from '@phosphor/at.svg';
 import BellSlashIcon from '@phosphor/bell-slash.svg';
@@ -131,7 +118,7 @@ export function ChannelMutedIndicator(props: {
     <Show when={props.muted}>
       <Tooltip
         as="span"
-        label={t("Notifications are muted@@chat")}
+        label={t('Notifications are muted@@chat')}
         placement="right"
         class={cn(
           'size-4 shrink-0 justify-center text-ink-extra-muted',
@@ -139,7 +126,7 @@ export function ChannelMutedIndicator(props: {
         )}
       >
         <span
-          aria-label={t("Notifications muted@@chat")}
+          aria-label={t('Notifications muted@@chat')}
           class="flex size-full items-center justify-center"
         >
           <BellSlashIcon class="size-full" />
@@ -226,7 +213,7 @@ function MessageSenderName(props: { id?: string }) {
       <Match when={isCurrentUser()}>You</Match>
       <Match when={botName()}>{(name) => name()}</Match>
       <Match when={macroId()}>{(id) => <UserDisplayName id={id()} />}</Match>
-      <Match when={true}>{t("Someone@@chat")}</Match>
+      <Match when={true}>{t('Someone@@chat')}</Match>
     </Switch>
   );
 }

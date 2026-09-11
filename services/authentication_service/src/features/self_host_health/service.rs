@@ -60,7 +60,7 @@ impl SelfHostHealthService {
             }
         }
 
-        let mut report = if matches!(self.context.environment, macro_env::Environment::Production) {
+        let mut report = if probes::is_self_host_health_enabled(&self.context) {
             probes::run_all_probes(&self.context, macro_user_id).await
         } else {
             disabled_report(self.context.environment)

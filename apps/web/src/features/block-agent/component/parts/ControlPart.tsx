@@ -9,8 +9,8 @@
  * the runtime's own words.
  */
 
-import type { MessagePart } from '@service-agent-fold/generated/types';
 import { t } from '@macro/i18n';
+import type { MessagePart } from '@service-agent-fold/generated/types';
 import { match } from 'ts-pattern';
 import { ActionLine } from '../../ui';
 
@@ -20,38 +20,28 @@ type ControlPartData = Extract<MessagePart, { kind: 'control' }>;
 function label(part: ControlPartData): string {
   return (
     match([part.control, part.outcome] as const)
-      .with(
-        [{ kind: 'set_model' }, { kind: 'pending' }],
-        ([control]) =>
-          t('Setting model to {model}…', { model: control.model })
+      .with([{ kind: 'set_model' }, { kind: 'pending' }], ([control]) =>
+        t('Setting model to {model}…', { model: control.model })
       )
-      .with(
-        [{ kind: 'set_model' }, { kind: 'accepted' }],
-        ([control]) =>
-          t('Model set to {model}', { model: control.model })
+      .with([{ kind: 'set_model' }, { kind: 'accepted' }], ([control]) =>
+        t('Model set to {model}', { model: control.model })
       )
-      .with(
-        [{ kind: 'set_model' }, { kind: 'rejected' }],
-        ([control]) =>
-          t("Couldn't switch to {model}", { model: control.model })
+      .with([{ kind: 'set_model' }, { kind: 'rejected' }], ([control]) =>
+        t("Couldn't switch to {model}", { model: control.model })
       )
-      .with(
-        [{ kind: 'compact' }, { kind: 'pending' }],
-        () => t('Compacting context…')
+      .with([{ kind: 'compact' }, { kind: 'pending' }], () =>
+        t('Compacting context…')
       )
-      .with(
-        [{ kind: 'compact' }, { kind: 'accepted' }],
-        () => t('Context compacted')
+      .with([{ kind: 'compact' }, { kind: 'accepted' }], () =>
+        t('Context compacted')
       )
-      .with(
-        [{ kind: 'compact' }, { kind: 'rejected' }],
-        () => t("Couldn't compact the context")
+      .with([{ kind: 'compact' }, { kind: 'rejected' }], () =>
+        t("Couldn't compact the context")
       )
       // A stop is acknowledged the moment it is issued — nothing answers it, so
       // it has no pending state worth naming and cannot be refused.
-      .with(
-        [{ kind: 'stop' }, { kind: 'rejected' }],
-        () => t("Couldn't stop the agent")
+      .with([{ kind: 'stop' }, { kind: 'rejected' }], () =>
+        t("Couldn't stop the agent")
       )
       .with([{ kind: 'stop' }, { kind: 'pending' }], () => t('Stopped'))
       .with([{ kind: 'stop' }, { kind: 'accepted' }], () => t('Stopped'))

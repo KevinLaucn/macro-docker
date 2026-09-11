@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { SYSTEM_PROPERTY_IDS } from '@property/constants';
 import type { SoupProperty } from '@service-storage/generated/schemas';
 import type { ApiGroupByField as ApiGroupedSoupField } from '@service-storage/generated/schemas/apiGroupByField';
@@ -131,7 +132,7 @@ export function resolveGroupMetaForKey(
       if (key === NOT_SET_GROUP_KEY) {
         return {
           key,
-          label: 'No Project',
+          label: t('No Project'),
           displayOrder: Number.MAX_SAFE_INTEGER,
         };
       }
@@ -140,7 +141,11 @@ export function resolveGroupMetaForKey(
     })
     .with({ type: 'property' }, (propertyGroupBy) => {
       if (key === NOT_SET_GROUP_KEY) {
-        return { key, label: 'Not Set', displayOrder: Number.MAX_SAFE_INTEGER };
+        return {
+          key,
+          label: t('Not Set'),
+          displayOrder: Number.MAX_SAFE_INTEGER,
+        };
       }
 
       const propertyValueType = getGroupedPropertyValueType(

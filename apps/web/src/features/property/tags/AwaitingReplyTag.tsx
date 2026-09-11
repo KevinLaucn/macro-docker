@@ -1,5 +1,5 @@
-import type { EmailEntity } from '@entity';
 import { awaitingReplyTagId } from '@app/features/extensions/extensionsState';
+import type { EmailEntity } from '@entity';
 import { useTagsQuery } from '@queries/properties/tags';
 import { cn } from '@ui';
 import { createMemo, type JSX, Show } from 'solid-js';

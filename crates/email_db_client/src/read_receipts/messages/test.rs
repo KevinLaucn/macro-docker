@@ -89,3 +89,20 @@ async fn first_open_records_one_activity_event(pool: Pool<Postgres>) -> anyhow::
 
     Ok(())
 }
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn set_tracking_token_fails_when_zero_rows_affected(
+    pool: Pool<Postgres>,
+) -> anyhow::Result<()> {
+    let non_existent_message_id = Uuid::from_u128(0x99999999_9999_9999_9999_999999999999);
+    let link_id = Uuid::from_u128(0x10000000_0000_0000_0000_000000000001);
+    let token = Uuid::from_u128(0x88888888_8888_8888_8888_888888888888);
+
+    let result =
+        set_message_open_tracking_token(&pool, non_existent_message_id, link_id, token).await;
+    assert!(result.is_err());
+    let err_msg = result.unwrap_err().to_string();
+    assert!(err_msg.contains("0 rows matched"));
+
+    Ok(())
+}

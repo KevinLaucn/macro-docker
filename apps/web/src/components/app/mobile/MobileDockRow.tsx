@@ -91,7 +91,9 @@ function CreateMenu() {
             }}
           </For>
           <MobileTouchMenu.Separator />
-          <MobileTouchMenu.Footer>{t('Create', { context: 'dock' })}</MobileTouchMenu.Footer>
+          <MobileTouchMenu.Footer>
+            {t('Create', { context: 'dock' })}
+          </MobileTouchMenu.Footer>
         </MobileTouchMenu.Content>
       </MobileTouchMenu>
     </MobileDockIsland>

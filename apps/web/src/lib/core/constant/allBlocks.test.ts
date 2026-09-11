@@ -1,4 +1,4 @@
-import { ConcreteBlockRegistry } from '@core/block';
+import { ConcreteBlockRegistry, VirtualBlockRegistry } from '@core/block';
 import { describe, expect, it } from 'vitest';
 
 const definitionFiles = import.meta.glob(
@@ -12,12 +12,17 @@ const definitionFiles = import.meta.glob(
 
 describe('block definition discovery', () => {
   it('has one definition file for every concrete block', () => {
-    const discoveredNames = Object.keys(definitionFiles).map((path) =>
-      path
-        .split('/')
-        .at(-2)
-        ?.replace(/^block-/, '')
-    );
+    const virtualBlockNames = new Set<string>(VirtualBlockRegistry);
+    const discoveredNames = Object.keys(definitionFiles)
+      .map((path) =>
+        path
+          .split('/')
+          .at(-2)
+          ?.replace(/^block-/, '')
+      )
+      .filter(
+        (name): name is string => Boolean(name) && !virtualBlockNames.has(name)
+      );
 
     expect(discoveredNames.sort()).toEqual([...ConcreteBlockRegistry].sort());
   });

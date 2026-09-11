@@ -944,6 +944,7 @@ jobs:
             search_processing_service
             document_upload_finalizer_local_worker
             macro_db_migrate
+            localstack_provision
           )
 
           for bin in "${expected[@]}"; do

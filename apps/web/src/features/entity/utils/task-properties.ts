@@ -1,19 +1,20 @@
+import { t } from '@macro/i18n';
 import { PROPERTY_OPTION_IDS, SYSTEM_PROPERTY_IDS } from '@property/constants';
 import type { TaskEntityWithProperties } from '../types/entity';
 
 export const TASK_STATUS_OPTIONS = [
-  { value: PROPERTY_OPTION_IDS.STATUS.NOT_STARTED, label: 'Not Started' },
-  { value: PROPERTY_OPTION_IDS.STATUS.IN_PROGRESS, label: 'In Progress' },
-  { value: PROPERTY_OPTION_IDS.STATUS.IN_REVIEW, label: 'In Review' },
-  { value: PROPERTY_OPTION_IDS.STATUS.COMPLETED, label: 'Completed' },
-  { value: PROPERTY_OPTION_IDS.STATUS.CANCELED, label: 'Canceled' },
+  { value: PROPERTY_OPTION_IDS.STATUS.NOT_STARTED, label: t('Not Started') },
+  { value: PROPERTY_OPTION_IDS.STATUS.IN_PROGRESS, label: t('In Progress') },
+  { value: PROPERTY_OPTION_IDS.STATUS.IN_REVIEW, label: t('In Review') },
+  { value: PROPERTY_OPTION_IDS.STATUS.COMPLETED, label: t('Completed') },
+  { value: PROPERTY_OPTION_IDS.STATUS.CANCELED, label: t('Canceled') },
 ] as const;
 
 const TASK_PRIORITY_OPTIONS = [
-  { value: PROPERTY_OPTION_IDS.PRIORITY.URGENT, label: 'Urgent' },
-  { value: PROPERTY_OPTION_IDS.PRIORITY.HIGH, label: 'High' },
-  { value: PROPERTY_OPTION_IDS.PRIORITY.MEDIUM, label: 'Medium' },
-  { value: PROPERTY_OPTION_IDS.PRIORITY.LOW, label: 'Low' },
+  { value: PROPERTY_OPTION_IDS.PRIORITY.URGENT, label: t('Urgent') },
+  { value: PROPERTY_OPTION_IDS.PRIORITY.HIGH, label: t('High') },
+  { value: PROPERTY_OPTION_IDS.PRIORITY.MEDIUM, label: t('Medium') },
+  { value: PROPERTY_OPTION_IDS.PRIORITY.LOW, label: t('Low') },
 ] as const;
 
 // Retired from the default stage set, but companies may still carry these
@@ -29,13 +30,13 @@ const LEGACY_STAGE_IDS: ReadonlySet<string> = new Set([
  * display order of stage filters/columns when legacy stages are shown.
  */
 export const ALL_COMPANY_STAGE_OPTIONS = [
-  { value: PROPERTY_OPTION_IDS.STAGE.LEAD, label: 'Lead' },
-  { value: PROPERTY_OPTION_IDS.STAGE.QUALIFIED, label: 'Qualified' },
-  { value: PROPERTY_OPTION_IDS.STAGE.DEMO, label: 'Demo' },
-  { value: PROPERTY_OPTION_IDS.STAGE.TRIAL, label: 'Trial' },
-  { value: PROPERTY_OPTION_IDS.STAGE.NEGOTIATION, label: 'Negotiation' },
-  { value: PROPERTY_OPTION_IDS.STAGE.CUSTOMER, label: 'Customer' },
-  { value: PROPERTY_OPTION_IDS.STAGE.CHURNED, label: 'Churned' },
+  { value: PROPERTY_OPTION_IDS.STAGE.LEAD, label: t('Lead') },
+  { value: PROPERTY_OPTION_IDS.STAGE.QUALIFIED, label: t('Qualified') },
+  { value: PROPERTY_OPTION_IDS.STAGE.DEMO, label: t('Demo') },
+  { value: PROPERTY_OPTION_IDS.STAGE.TRIAL, label: t('Trial') },
+  { value: PROPERTY_OPTION_IDS.STAGE.NEGOTIATION, label: t('Negotiation') },
+  { value: PROPERTY_OPTION_IDS.STAGE.CUSTOMER, label: t('Customer') },
+  { value: PROPERTY_OPTION_IDS.STAGE.CHURNED, label: t('Churned') },
 ] as const;
 
 /** The default (non-legacy) stage set, in canonical order. */

@@ -16,6 +16,9 @@ use sqlx::types::Uuid;
 
 use crate::api::context::{ApiContext, AuthorizationService};
 
+#[cfg(test)]
+mod test;
+
 #[derive(Debug, Clone, sqlx::FromRow, Serialize)]
 pub struct ReadReceiptStatus {
     pub message_id: Uuid,
@@ -29,16 +32,25 @@ pub struct ReadReceiptStatusesResponse {
     pub statuses: Vec<ReadReceiptStatus>,
 }
 
+pub const MAX_BATCH_SIZE: usize = 200;
+
 #[derive(Debug, thiserror::Error)]
 pub enum ReadReceiptStatusError {
+    #[error("Batch size {0} exceeds maximum allowed size of {1}")]
+    BatchTooLarge(usize, usize),
     #[error("Database query error")]
     Query(#[from] anyhow::Error),
 }
 
 impl IntoResponse for ReadReceiptStatusError {
     fn into_response(self) -> Response {
-        tracing::error!(error = ?self, "read receipt status query failed");
-        (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
+        match self {
+            Self::BatchTooLarge(..) => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
+            Self::Query(_) => {
+                tracing::error!(error = ?self, "read receipt status query failed");
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
+            }
+        }
     }
 }
 
@@ -48,6 +60,13 @@ pub async fn batch_handler(
     authorization: MacroAuthorizationExtractor<AuthorizationService, UserOrInternal>,
     Json(ids): Json<Vec<Uuid>>,
 ) -> Result<Json<ReadReceiptStatusesResponse>, ReadReceiptStatusError> {
+    if ids.len() > MAX_BATCH_SIZE {
+        return Err(ReadReceiptStatusError::BatchTooLarge(
+            ids.len(),
+            MAX_BATCH_SIZE,
+        ));
+    }
+
     if ids.is_empty() {
         return Ok(Json(ReadReceiptStatusesResponse {
             statuses: Vec::new(),

@@ -1,7 +1,7 @@
-import { t } from '@macro/i18n';
 import { SoupSectionHeader } from '@app/features/next-soup/soup-view/section-header';
 import { SplitHeaderLeft } from '@components/app/split-layout/components/SplitHeader';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
+import { t } from '@macro/i18n';
 import { createElementSize } from '@solid-primitives/resize-observer';
 import {
   createEffect,

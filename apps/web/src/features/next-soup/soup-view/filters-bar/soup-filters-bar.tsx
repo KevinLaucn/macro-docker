@@ -1,3 +1,8 @@
+import {
+  emailTranslationEnabled,
+  isTranslationSupported,
+  SoupListTranslateButton,
+} from '@app/features/email-translation';
 import { SearchFiltersRow } from '@app/features/next-soup/soup-view/filters-bar/search/search-filters-row';
 import { SoupActiveFiltersBar } from '@app/features/next-soup/soup-view/filters-bar/soup-active-filters-bar';
 import { SoupViewContextGroup } from '@app/features/next-soup/soup-view/filters-bar/soup-view-context-group';
@@ -15,11 +20,6 @@ import {
   SplitToolbarRight,
 } from '@components/app/split-layout/components/SplitToolbar';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
-import {
-  emailTranslationEnabled,
-  isTranslationSupported,
-  SoupListTranslateButton,
-} from '@app/features/email-translation';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { createMemo, createSignal, Show } from 'solid-js';
 

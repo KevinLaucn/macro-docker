@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { cn } from '@ui';
 import { createSignal, Show } from 'solid-js';
 import { useCompose } from '../context/compose-context';
@@ -41,7 +42,7 @@ export function ComposeSubject(props: {
           ctx.isMobile() ? 'min-h-7 flex items-center' : 'w-14'
         )}
       >
-        {ctx.isMobile() ? 'Subject:' : 'Subject'}
+        {ctx.isMobile() ? t('Subject:') : t('Subject')}
       </div>
       <div class="flex-1 min-w-0">
         <Show
@@ -51,7 +52,7 @@ export function ComposeSubject(props: {
               ref={props.inputRef}
               type="text"
               value={ctx.subject()}
-              placeholder="Subject"
+              placeholder={t('Subject')}
               class="w-full resize-none text-sm placeholder:text-ink-placeholder p-1"
               onInput={(e) => ctx.setSubject(e.currentTarget.value)}
               onKeyDown={blurOnEscape}

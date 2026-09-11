@@ -52,6 +52,7 @@ import {
 import { blockHandleSignal } from '@core/signal/load';
 import { useCanEdit } from '@core/signal/permissions';
 import { createRenameDssEntityMutation } from '@entity';
+import { t } from '@macro/i18n';
 import { invalidateUserQuota } from '@queries/auth';
 import { cognitionApiServiceClient } from '@service-cognition/client';
 import { createCallback } from '@solid-primitives/rootless';
@@ -284,7 +285,7 @@ function ChatInner(props: {
 
   registerScopeSignalHotkey(scopeId, {
     hotkey: 'enter',
-    description: 'Focus Chat Input',
+    description: t('Focus Chat Input', { context: 'chat' }),
     keyDownHandler: () => {
       editor.controls.focus();
       return true;
@@ -296,7 +297,7 @@ function ChatInner(props: {
   // Ctrl+C while AI is generating stops the stream.
   registerScopeSignalHotkey(scopeId, {
     hotkey: 'ctrl+c',
-    description: 'Stop AI response',
+    description: t('Stop AI response', { context: 'chat' }),
     condition: () => chat.isGenerating(),
     keyDownHandler: () => {
       void onStop();

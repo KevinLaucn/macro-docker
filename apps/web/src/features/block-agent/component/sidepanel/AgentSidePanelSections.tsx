@@ -66,7 +66,12 @@ export function AgentSidePanelSections() {
 
   return (
     <>
-      <SidePanel.Section id="details" title={t('Details')} defaultOpen order={10}>
+      <SidePanel.Section
+        id="details"
+        title={t('Details')}
+        defaultOpen
+        order={10}
+      >
         <SidePanel.Grid>
           <SidePanel.Row label={t('Status')}>
             <SessionStatusPill status={status()} />

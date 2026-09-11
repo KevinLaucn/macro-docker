@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import { ViewShell } from '@app/components/view-shell';
 import { MaybeSoupEntityActionDrawerManager } from '@app/features/soup';
 import { createSizeBreakpoints } from '@app/util/create-size-breakpoints';
@@ -9,6 +8,7 @@ import { SplitPanel } from '@components/app/split-panel';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { ListEntityMetadataQueryProvider } from '@entity';
+import { t } from '@macro/i18n';
 import SpinnerIcon from '@phosphor/spinner.svg';
 import { createElementSize } from '@solid-primitives/resize-observer';
 import { createMemo, createSignal, onMount, Show, Suspense } from 'solid-js';
@@ -175,7 +175,7 @@ function ChannelsViewRoot() {
                   fallback={
                     <div class="grid size-full place-items-center text-ink-muted">
                       <SpinnerIcon
-                        aria-label={t("Loading channels@@chat")}
+                        aria-label={t('Loading channels@@chat')}
                         class="size-5 animate-spin"
                       />
                     </div>

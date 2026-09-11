@@ -1645,13 +1645,13 @@
   },
   {
     "file": "features/next-soup/actions/make-delete-action.ts",
-    "line": 141,
+    "line": 147,
     "type": "ObjectProperty(label)",
     "snippet": "Undo"
   },
   {
     "file": "features/next-soup/actions/make-delete-action.ts",
-    "line": 146,
+    "line": 152,
     "type": "Toast",
     "snippet": "Restored from Trash"
   },
@@ -4296,18 +4296,6 @@
     "snippet": "Try again"
   },
   {
-    "file": "features/email-message/components/message-actions.tsx",
-    "line": 38,
-    "type": "JSXAttribute(tooltip)",
-    "snippet": "Reply"
-  },
-  {
-    "file": "features/email-message/components/message-actions.tsx",
-    "line": 48,
-    "type": "JSXAttribute(tooltip)",
-    "snippet": "Forward"
-  },
-  {
     "file": "features/block-video/definition.ts",
     "line": 54,
     "type": "ObjectProperty(description)",
@@ -6781,7 +6769,7 @@
   },
   {
     "file": "features/self-host-health/SelfHostHealth.tsx",
-    "line": 240,
+    "line": 251,
     "type": "JSXText",
     "snippet": "ms"
   },
@@ -16144,60 +16132,6 @@
     "line": 62,
     "type": "JSXAttribute(label)",
     "snippet": "Attach files"
-  },
-  {
-    "file": "components/ui/components/Hotkey.tsx",
-    "line": 31,
-    "type": "ObjectProperty(label)",
-    "snippet": "bg-ink-extra-muted border border-ink-extra-muted text-surfac"
-  },
-  {
-    "file": "components/ui/components/Hotkey.tsx",
-    "line": 35,
-    "type": "ObjectProperty(label)",
-    "snippet": "bg-ink-disabled border border-ink-disabled text-surface"
-  },
-  {
-    "file": "components/ui/components/Hotkey.tsx",
-    "line": 39,
-    "type": "ObjectProperty(label)",
-    "snippet": "bg-ink-muted border border-ink-muted text-surface"
-  },
-  {
-    "file": "components/ui/components/Hotkey.tsx",
-    "line": 43,
-    "type": "ObjectProperty(label)",
-    "snippet": "bg-ink-extra-muted border border-edge text-surface"
-  },
-  {
-    "file": "components/ui/components/Hotkey.tsx",
-    "line": 47,
-    "type": "ObjectProperty(label)",
-    "snippet": "bg-accent border border-accent/30 text-surface"
-  },
-  {
-    "file": "components/ui/components/Hotkey.tsx",
-    "line": 51,
-    "type": "ObjectProperty(label)",
-    "snippet": "bg-current border border-current text-surface"
-  },
-  {
-    "file": "components/ui/components/Hotkey.tsx",
-    "line": 55,
-    "type": "ObjectProperty(label)",
-    "snippet": "bg-accent border border-accent text-surface"
-  },
-  {
-    "file": "components/ui/components/Hotkey.tsx",
-    "line": 59,
-    "type": "ObjectProperty(label)",
-    "snippet": "bg-surface border border-dialog text-ink"
-  },
-  {
-    "file": "components/ui/components/Hotkey.tsx",
-    "line": 64,
-    "type": "ObjectProperty(label)",
-    "snippet": "bg-ink border border-ink text-surface"
   },
   {
     "file": "components/ui/components/DeleteDialog.tsx",

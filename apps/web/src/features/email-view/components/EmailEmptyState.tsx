@@ -1,10 +1,10 @@
-import { t } from '@macro/i18n';
 import { DOCS_BASE } from '@app/constants/docs-links';
 import { useAddInboxFlow, useEmailLinksStatus } from '@core/email-link';
 import EmptyStateEmailGraphic from '@design/empty-state-email.svg';
 import EmptyStateInboxTrayGraphic from '@design/empty-state-inbox-tray.svg';
 import EmptyStateNoFilterMatchGraphic from '@design/empty-state-no-filter-match.svg';
 import EmptyStateNoSearchMatchGraphic from '@design/empty-state-no-search-match.svg';
+import { t } from '@macro/i18n';
 import { EmptyStatePanel, FilteredHiddenBanner } from '@ui';
 import { Match, Switch } from 'solid-js';
 import { match } from 'ts-pattern';
@@ -21,34 +21,46 @@ const MOBILE_TOP_INSET_CLASS = 'touch:pt-(--mobile-content-inset-top)';
 function tabCopy(tab: EmailTab): { title: string; description: string } {
   return match(tab)
     .with('important', () => ({
-      title: 'Inbox zero',
-      description:
-        "You're all caught up. New email will appear here as it arrives.",
+      title: t('Inbox zero'),
+      description: t(
+        "You're all caught up. New email will appear here as it arrives."
+      ),
     }))
     .with('noise', () => ({
-      title: 'No noise',
-      description:
+      title: t('No noise'),
+      description: t(
         'Low-priority email like newsletters and notifications collects here. Nothing to clear right now.',
+        { context: 'email' }
+      ),
     }))
     .with('sent', () => ({
-      title: 'No sent email',
-      description: 'Email you send will appear here.',
+      title: t('No sent email', { context: 'email' }),
+      description: t('Email you send will appear here.', { context: 'email' }),
     }))
     .with('calendar', () => ({
-      title: 'No calendar email',
-      description: 'Invitations and event updates will appear here.',
+      title: t('No calendar email', { context: 'email' }),
+      description: t('Invitations and event updates will appear here.', {
+        context: 'email',
+      }),
     }))
     .with('drafts', () => ({
-      title: 'No drafts',
-      description: "Email you start but haven't sent will appear here.",
+      title: t('No drafts', { context: 'email' }),
+      description: t("Email you start but haven't sent will appear here.", {
+        context: 'email',
+      }),
     }))
     .with('shared', () => ({
-      title: 'No shared email',
-      description: 'Threads teammates share with you will appear here.',
+      title: t('No shared email', { context: 'email' }),
+      description: t('Threads teammates share with you will appear here.', {
+        context: 'email',
+      }),
     }))
     .with('all', () => ({
-      title: 'No email yet',
-      description: 'Everything in your inbox will appear here as it arrives.',
+      title: t('No email yet', { context: 'email' }),
+      description: t(
+        'Everything in your inbox will appear here as it arrives.',
+        { context: 'email' }
+      ),
     }))
     .exhaustive();
 }
@@ -82,8 +94,8 @@ export function EmailEmptyState() {
         <EmptyStatePanel
           centered
           graphic={EmptyStateInboxTrayGraphic}
-          title={t("No inboxes selected@@email")}
-          description={t("Pick at least one inbox to see its email.@@email")}
+          title={t('No inboxes selected@@email')}
+          description={t('Pick at least one inbox to see its email.@@email')}
           primaryAction={{
             label: 'Show all inboxes',
             onClick: () => setInboxIds(undefined),
@@ -97,7 +109,9 @@ export function EmailEmptyState() {
             centered
             graphic={EmptyStateNoSearchMatchGraphic}
             title={`No results for "${search()}"`}
-            description={t("Search across subjects, senders, and message content. Try a different query.@@email")}
+            description={t(
+              'Search across subjects, senders, and message content. Try a different query.@@email'
+            )}
             documentationUrl={`${DOCS_BASE}/product/search`}
           />
         )}
@@ -107,7 +121,7 @@ export function EmailEmptyState() {
         <EmptyStatePanel
           centered
           graphic={EmptyStateNoFilterMatchGraphic}
-          title={t("No email matching the filters@@email")}
+          title={t('No email matching the filters@@email')}
           description="Try adjusting or clearing your filters to see more results."
         >
           <FilteredHiddenBanner

@@ -106,3 +106,30 @@ fn strip_blocked_pixels_removes_1x1_and_preserves_cid_and_regular_images() {
     assert!(cleaned.contains("logo.png"));
     assert!(cleaned.contains("<p>Hello world</p>"));
 }
+
+#[test]
+fn strip_blocked_pixels_keeps_third_party_non_pixel_with_tracking_path() {
+    let html = r#"<p>Article</p><img src="https://cdn.example.com/t/o/banner.jpg" width="600" height="200">"#;
+    let cleaned = strip_blocked_tracking_pixels(html);
+    assert_eq!(cleaned, html);
+}
+
+#[test]
+fn strip_blocked_pixels_removes_self_hosted_uuid_tracking_pixel() {
+    let html = r#"<p>Notice</p><img src="https://email.custom-domain.com/t/o/12345678-1234-1234-1234-123456789abc">"#;
+    let cleaned = strip_blocked_tracking_pixels(html);
+    assert!(!cleaned.contains("12345678-1234-1234-1234-123456789abc"));
+    assert_eq!(cleaned, "<p>Notice</p>");
+}
+
+#[test]
+fn strip_open_tracking_pixels_handles_self_hosted_cross_origin() {
+    let self_host_url = "https://email.custom-domain.com";
+    let token = "fedcba98-7654-3210-fedc-ba9876543210";
+    let pixel_url = open_tracking_pixel_url(self_host_url, token);
+    let html = format!(r#"<blockquote><img src="{pixel_url}"></blockquote>"#);
+
+    let cleaned = strip_open_tracking_pixels(&html, self_host_url);
+    assert!(!cleaned.contains(token));
+    assert_eq!(cleaned, "<blockquote></blockquote>");
+}

@@ -1,9 +1,9 @@
-import { t } from '@macro/i18n';
 import { ModelCatalogPicker } from '@core/component/AI/component/input/ModelCatalogPicker';
 import { isLargeModelCatalog } from '@core/component/AI/component/input/modelCatalog';
 import { toast } from '@core/component/Toast/Toast';
 import { ThrownResultError } from '@core/util/result';
 import CursorIcon from '@icon/wide-cursor-ide.svg';
+import { t } from '@macro/i18n';
 import ArrowUpRightIcon from '@phosphor/arrow-up-right.svg';
 import HardDrivesIcon from '@phosphor/hard-drives.svg';
 import TerminalWindowIcon from '@phosphor/terminal-window.svg';
@@ -263,7 +263,7 @@ export function Harness() {
                         class="settings-input w-56"
                         disabled
                       >
-                        <option>{t("Loading models…")}</option>
+                        <option>{t('Loading models…')}</option>
                       </select>
                     }
                   >
@@ -272,7 +272,7 @@ export function Harness() {
                       fallback={
                         <div class="flex items-center gap-2">
                           <p class="text-xs text-negative">
-                            {t("Could not load Cursor models.")}
+                            {t('Could not load Cursor models.')}
                           </p>
                           <Button
                             type="button"
@@ -289,7 +289,7 @@ export function Harness() {
                         when={cursorModelData()?.status === 'available'}
                         fallback={
                           <p class="text-xs text-ink-muted">
-                            {t("Cursor does not support model selection.")}
+                            {t('Cursor does not support model selection.')}
                           </p>
                         }
                       >

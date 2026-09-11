@@ -5,8 +5,8 @@
  * row-level facts every card shares.
  */
 
-import type { ToolName } from '@service-agent-fold/generated/types';
 import { t } from '@macro/i18n';
+import type { ToolName } from '@service-agent-fold/generated/types';
 import type { JSX } from 'solid-js';
 import type { ToolStatus } from '../../ui';
 

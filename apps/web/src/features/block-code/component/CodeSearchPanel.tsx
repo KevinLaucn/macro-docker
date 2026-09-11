@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import {
   closeSearchPanel,
   findNext,
@@ -11,6 +10,7 @@ import {
 } from '@codemirror/search';
 import type { EditorState } from '@codemirror/state';
 import { type EditorView, runScopeHandlers } from '@codemirror/view';
+import { t } from '@macro/i18n';
 import ReplaceAllIcon from '@phosphor/arrow-bend-double-up-right.svg';
 import ReplaceIcon from '@phosphor/arrow-bend-up-right.svg';
 import CaretDown from '@phosphor/caret-down.svg';
@@ -208,19 +208,19 @@ export function CodeSearchPanel(props: CodeSearchPanelProps) {
 
         <ModifierToggle
           glyph="Aa"
-          label={t("Match case")}
+          label={t('Match case')}
           active={query().caseSensitive}
           onToggle={() => commit({ caseSensitive: !query().caseSensitive })}
         />
         <ModifierToggle
           glyph="ab"
-          label={t("Match whole word")}
+          label={t('Match whole word')}
           active={query().wholeWord}
           onToggle={() => commit({ wholeWord: !query().wholeWord })}
         />
         <ModifierToggle
           glyph=".*"
-          label={t("Use regular expression")}
+          label={t('Use regular expression')}
           active={query().regexp}
           onToggle={() => commit({ regexp: !query().regexp })}
         />
@@ -231,7 +231,7 @@ export function CodeSearchPanel(props: CodeSearchPanelProps) {
 
         <Button
           size="icon-sm"
-          tooltip={t("Previous match")}
+          tooltip={t('Previous match')}
           shortcut="shift+enter"
           onClick={() => findPrevious(props.view)}
         >
@@ -239,13 +239,13 @@ export function CodeSearchPanel(props: CodeSearchPanelProps) {
         </Button>
         <Button
           size="icon-sm"
-          tooltip={t("Next match")}
+          tooltip={t('Next match')}
           shortcut="enter"
           onClick={() => findNext(props.view)}
         >
           <CaretDown />
         </Button>
-        <Button size="icon-sm" tooltip={t("Close find")} onClick={close}>
+        <Button size="icon-sm" tooltip={t('Close find')} onClick={close}>
           <X />
         </Button>
       </div>
@@ -276,7 +276,7 @@ export function CodeSearchPanel(props: CodeSearchPanelProps) {
           </Button>
           <Button
             size="icon-sm"
-            tooltip={t("Replace all")}
+            tooltip={t('Replace all')}
             onClick={() => replaceAll(props.view)}
           >
             <ReplaceAllIcon />

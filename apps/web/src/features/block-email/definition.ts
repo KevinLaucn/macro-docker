@@ -1,10 +1,11 @@
 import { defineBlock, LoadErrors } from '@core/block';
+import { t } from '@macro/i18n';
 import { ok } from 'neverthrow';
 import EmailBlock from './component/Block';
 
 export const definition = defineBlock({
   name: 'email',
-  description: 'View and manage email threads',
+  description: t('View and manage email threads', { context: 'email' }),
   component: EmailBlock,
   liveTrackingEnabled: true,
   syncServiceEnabled: false,

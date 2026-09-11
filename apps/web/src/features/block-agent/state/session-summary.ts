@@ -4,12 +4,12 @@
  * `FoldedMessage[]`; the Solid layer wraps calls in memos.
  */
 
+import { t } from '@macro/i18n';
 import type {
   FoldedMessage,
   MessagePart,
   PlanEntry,
 } from '@service-agent-fold/generated/types';
-import { t } from '@macro/i18n';
 import { diffLines } from 'diff';
 import type { CountItem } from '../ui';
 

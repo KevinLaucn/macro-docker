@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import { ViewShell } from '@app/components/view-shell';
 import { type PillTabItem, PillTabs } from '@components/app/mobile/PillTabs';
 import { SplitHeaderLeft } from '@components/app/split-layout/components/SplitHeader';
@@ -7,6 +6,7 @@ import { SplitPanel } from '@components/app/split-panel';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { ListEntityMetadataQueryProvider } from '@entity';
+import { t } from '@macro/i18n';
 import SpinnerIcon from '@phosphor/spinner.svg';
 import { cn, Surface } from '@ui';
 import {
@@ -41,7 +41,10 @@ function EmailListFallback() {
           : 'rounded-2xl'
       )}
     >
-      <SpinnerIcon aria-label={t("Loading email@@email")} class="size-5 animate-spin" />
+      <SpinnerIcon
+        aria-label={t('Loading email@@email')}
+        class="size-5 animate-spin"
+      />
     </Surface>
   );
 }

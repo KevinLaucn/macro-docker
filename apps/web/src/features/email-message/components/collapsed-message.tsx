@@ -1,3 +1,4 @@
+import type { EmailMessage } from '@app/features/email-message/core/email-message';
 import { ReadReceiptStatus } from '@app/features/email-read-receipts';
 import {
   emailTranslationEnabled,
@@ -5,7 +6,6 @@ import {
   isMessageTranslated,
   isTranslationSupported,
 } from '@app/features/email-translation';
-import type { EmailMessage } from '@app/features/email-message/core/email-message';
 import { Tooltip } from '@ui';
 import { createMemo, type JSX, Show } from 'solid-js';
 import { getSenderDisplayName } from '../core/email-user';

@@ -1,3 +1,4 @@
+import { SERVER_HOSTS } from '@core/constant/servers';
 import { locale, t } from '@macro/i18n';
 import { differenceInMinutes } from 'date-fns';
 import type { ReadReceiptStatusData } from './client';

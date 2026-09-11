@@ -95,7 +95,9 @@ pub fn strip_blocked_tracking_pixels(html: &str) -> String {
     let Ok(cid_re) = Regex::new(r#"(?i)\bsrc\s*=\s*["']?cid:"#) else {
         return html.to_string();
     };
-    let Ok(macro_pixel_re) = Regex::new(r#"(?i)\bsrc\s*=\s*["'][^"']*/t/o/[^"']*["']"#) else {
+    let Ok(macro_pixel_re) = Regex::new(
+        r#"(?i)\bsrc\s*=\s*["'](?:https?://(?:[a-z0-9.-]*\.)?macro\.com/t/o/[^"']*|https?://[^"']*/t/o/[0-9a-fA-F-]{36}(?:[?#][^"']*)?|/t/o/[^"']*)["']"#,
+    ) else {
         return html.to_string();
     };
 

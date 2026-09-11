@@ -3,6 +3,7 @@ import { createHotkeyGroup, registerHotkey } from '@core/hotkey/hotkeys';
 import type { HotkeyToken } from '@core/hotkey/tokens';
 import { TOKENS } from '@core/hotkey/tokens';
 import type { ValidHotkey } from '@core/hotkey/types';
+import { t } from '@macro/i18n';
 import BugIcon from '@phosphor/bug.svg';
 import TextCode from '@phosphor/code.svg';
 import TextHighlight from '@phosphor/paint-roller.svg';
@@ -31,55 +32,55 @@ const INLINE_FORMATS: InlineFormatDef[] = [
   {
     token: TOKENS.md.bold,
     format: 'bold',
-    description: 'Bold',
+    description: t('Bold'),
     icon: TextBold,
     hotkey: 'cmd+b',
   },
   {
     token: TOKENS.md.italic,
     format: 'italic',
-    description: 'Italic',
+    description: t('Italic'),
     icon: TextItalic,
     hotkey: 'cmd+i',
   },
   {
     token: TOKENS.md.underline,
     format: 'underline',
-    description: 'Underline',
+    description: t('Underline'),
     icon: TextUnderline,
     hotkey: 'cmd+u',
   },
   {
     token: TOKENS.md.strikethrough,
     format: 'strikethrough',
-    description: 'Strikethrough',
+    description: t('Strikethrough'),
     icon: TextStrikethrough,
     hotkey: 'shift+cmd+x',
   },
   {
     token: TOKENS.md.highlight,
     format: 'highlight',
-    description: 'Highlight',
+    description: t('Highlight'),
     icon: TextHighlight,
     hotkey: 'shift+cmd+h',
   },
   {
     token: TOKENS.md.inlineCode,
     format: 'code',
-    description: 'Inline code',
+    description: t('Inline code'),
     icon: TextCode,
     hotkey: 'cmd+e',
   },
   {
     token: TOKENS.md.superscript,
     format: 'superscript',
-    description: 'Superscript',
+    description: t('Superscript'),
     icon: TextSuper,
   },
   {
     token: TOKENS.md.subscript,
     format: 'subscript',
-    description: 'Subscript',
+    description: t('Subscript'),
     icon: TextSub,
   },
 ];
@@ -118,7 +119,7 @@ function registerLexicalStateDebuggerHotkey(
     scopeId,
     runWithInputFocused: true,
     hotkeyToken: TOKENS.md.toggleStateDebugger,
-    description: 'Toggle lexical state debugger',
+    description: t('Toggle lexical state debugger'),
     icon: BugIcon,
     hide: () => options.canUseStateDebugger?.() === false,
     condition: () => options.canUseStateDebugger?.() !== false,

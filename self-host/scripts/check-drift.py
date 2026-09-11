@@ -59,7 +59,8 @@ env_example = (SELF_HOST / ".env.example").read_text()
 # Extract binaries actually executed in self-host/docker-compose.yml
 compose_bins = set(re.findall(r'/app/out/([a-zA-Z0-9_-]+)', compose))
 
-# Default Email production required binaries (12 services in compose + macro_db_migrate in init = 13 in image)
+# Default Email runtime binaries. The image additionally carries the migration,
+# LocalStack provisioning, and optional cognition binaries verified below.
 email_required_bins = [
     "authentication_service",
     "connection_gateway_service",
@@ -73,11 +74,11 @@ email_required_bins = [
     "unfurl_service",
     "search_processing_service",
     "document_upload_finalizer_local_worker",
+    "document_cognition_service",
 ]
 
 # Binaries used only in optional Compose profiles ("full", "agents")
 optional_profile_bins = {
-    "document_cognition_service",
     "service",
     "agent_harness_service",
 }
@@ -146,7 +147,7 @@ expected_email_capabilities = {
     "dss": True,
     "notification": True,
     "websocket": True,
-    "cognition": False,
+    "cognition": True,
     "scheduled_actions": False,
     "ai_editing": False,
 }
@@ -176,7 +177,10 @@ for service in (
     "ai_editing_worker",
 ):
     match = re.search(rf"^  {service}:\n(.*?)(?=^  \w|^volumes:)", compose, re.M | re.S)
-    if not match or 'profiles: ["full"]' not in match.group(1):
+    if service == "document_cognition_service":
+        if match and 'profiles: ["full"]' in match.group(1):
+            fail(f"{service} must be available in the default Email profile")
+    elif not match or 'profiles: ["full"]' not in match.group(1):
         fail(f"{service} must stay behind the full Compose profile")
 
 web_assets_match = re.search(r"^  web_assets:\n(.*?)(?=^  \w|^volumes:)", compose, re.M | re.S)
@@ -185,8 +189,15 @@ if not web_assets_match:
 else:
     web_assets = web_assets_match.group(1)
     for flag in ("cognition", "scheduledActions", "agents", "docsCollab"):
-        if f"{flag}: false" not in web_assets:
-            fail(f"Email profile web runtime config must set FEATURES.{flag} to false")
+        expected = "true" if flag == "cognition" else "false"
+        if f"{flag}: {expected}" not in web_assets and not (
+            flag == "cognition" and "cognition: $${ENABLE_COGNITION:-true}" in web_assets
+        ) and not (
+            flag == "scheduledActions" and "scheduledActions: $${ENABLE_SCHEDULED_ACTIONS:-false}" in web_assets
+        ) and not (
+            flag == "agents" and "agents: $${ENABLE_AGENTS:-false}" in web_assets
+        ):
+            fail(f"Email profile web runtime config must set FEATURES.{flag} to {expected}")
 
 for image in ("macro-ai-editing-worker", "macro-analytics-proxy"):
     if image in workflow:

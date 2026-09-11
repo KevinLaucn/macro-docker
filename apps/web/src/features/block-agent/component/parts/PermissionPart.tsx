@@ -1,7 +1,7 @@
 /** A permission request, with the outcome (chosen option) as trailing text. */
 
-import type { MessagePart } from '@service-agent-fold/generated/types';
 import { t } from '@macro/i18n';
+import type { MessagePart } from '@service-agent-fold/generated/types';
 import { Show } from 'solid-js';
 import { ToolCard } from '../../ui';
 

@@ -22,6 +22,35 @@ let batchScheduled = false;
 
 export const MAX_STATUS_BATCH_CHUNK = 100;
 
+async function resolveReadReceiptStatusChunk(
+  chunkIds: string[],
+  currentBatch: Map<string, PendingBatchRequest[]>,
+  queryClient?: QueryClient
+): Promise<void> {
+  try {
+    const res = await throwOnErr(() =>
+      readReceiptsClient.getStatuses(chunkIds)
+    );
+    const statuses = res.statuses || [];
+    const statusMap = new Map<string, ReadReceiptStatusData>();
+    for (const s of statuses) statusMap.set(s.message_id, s);
+    for (const id of chunkIds) {
+      const status = statusMap.get(id) ?? {
+        message_id: id,
+        first_opened_at: null,
+        last_opened_at: null,
+        open_count: 0,
+      };
+      queryClient?.setQueryData(['email', 'read-receipt', id], status);
+      for (const cb of currentBatch.get(id) ?? []) cb.resolve(status);
+    }
+  } catch (err) {
+    for (const id of chunkIds) {
+      for (const cb of currentBatch.get(id) ?? []) cb.reject(err);
+    }
+  }
+}
+
 export function flushReadReceiptStatusBatch(queryClient?: QueryClient): void {
   const currentBatch = pendingBatch;
   pendingBatch = new Map();
@@ -32,39 +61,7 @@ export function flushReadReceiptStatusBatch(queryClient?: QueryClient): void {
 
   for (let i = 0; i < ids.length; i += MAX_STATUS_BATCH_CHUNK) {
     const chunkIds = ids.slice(i, i + MAX_STATUS_BATCH_CHUNK);
-    readReceiptsClient
-      .getStatuses(chunkIds)
-      .then((res) => {
-        const statuses = res.statuses || [];
-        const statusMap = new Map<string, ReadReceiptStatusData>();
-        for (const s of statuses) {
-          statusMap.set(s.message_id, s);
-        }
-
-        for (const id of chunkIds) {
-          const status = statusMap.get(id) ?? {
-            message_id: id,
-            first_opened_at: null,
-            last_opened_at: null,
-            open_count: 0,
-          };
-          if (queryClient) {
-            queryClient.setQueryData(['email', 'read-receipt', id], status);
-          }
-          const callbacks = currentBatch.get(id) ?? [];
-          for (const cb of callbacks) {
-            cb.resolve(status);
-          }
-        }
-      })
-      .catch((err) => {
-        for (const id of chunkIds) {
-          const callbacks = currentBatch.get(id) ?? [];
-          for (const cb of callbacks) {
-            cb.reject(err);
-          }
-        }
-      });
+    void resolveReadReceiptStatusChunk(chunkIds, currentBatch, queryClient);
   }
 }
 

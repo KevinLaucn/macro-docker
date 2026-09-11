@@ -13,7 +13,7 @@ export const Model = {
   opus5: 'anthropic/claude-opus-5',
   haiku45: 'anthropic/claude-haiku-4-5',
   gpt56: 'openai/gpt-5.6',
-  gpt56Mini: 'openai/gpt-5.6-mini',
+  gpt56Mini: 'openai/gpt-5-mini',
 } as const;
 
 // `Model` is both a value (the const above) and a type (the union of api ids).
@@ -30,7 +30,7 @@ export const MODEL_PRETTYNAME: ExhaustiveMap = {
   'anthropic/claude-opus-5': 'Opus 5',
   'anthropic/claude-haiku-4-5': 'Haiku 4.5',
   'openai/gpt-5.6': 'GPT-5.6',
-  'openai/gpt-5.6-mini': 'GPT-5.6 mini',
+  'openai/gpt-5-mini': 'GPT-5 mini',
 } as const;
 
 export const MODEL_PROVIDER_ICON: ExhaustiveMap = {
@@ -38,18 +38,35 @@ export const MODEL_PROVIDER_ICON: ExhaustiveMap = {
   'anthropic/claude-opus-5': AnthropicIcon,
   'anthropic/claude-haiku-4-5': AnthropicIcon,
   'openai/gpt-5.6': OpenAiIcon,
-  'openai/gpt-5.6-mini': OpenAiIcon,
+  'openai/gpt-5-mini': OpenAiIcon,
 };
 
+function runtimeModel(key: string, fallback: TModel): TModel {
+  if (typeof window === 'undefined') return fallback;
+  const value = (
+    window as unknown as { __MACRO_ENV__?: Record<string, unknown> }
+  ).__MACRO_ENV__?.[key];
+  return typeof value === 'string' &&
+    Object.values(Model).includes(value as TModel)
+    ? (value as TModel)
+    : fallback;
+}
+
 /** Default model for paid users. */
-export const DEFAULT_MODEL: TModel = Model.sonnet5;
+export const DEFAULT_MODEL: TModel = runtimeModel(
+  'DEFAULT_AI_MODEL',
+  Model.sonnet5
+);
 
 /**
  * Default model for free users. Free users aren't entitled to the premium
  * "smart" models (which the backend rejects with a 403), so they start on the
  * fast model instead of Opus.
  */
-export const FREE_DEFAULT_MODEL: TModel = Model.haiku45;
+export const FREE_DEFAULT_MODEL: TModel = runtimeModel(
+  'FREE_DEFAULT_AI_MODEL',
+  Model.haiku45
+);
 
 /** Models a paid user may select — the full set. */
 export const PAID_MODELS: readonly TModel[] = Object.values(Model);
@@ -78,7 +95,7 @@ export const MODEL_PROVIDER: ExhaustiveMap = {
   'anthropic/claude-opus-5': 'anthropic',
   'anthropic/claude-haiku-4-5': 'anthropic',
   'openai/gpt-5.6': 'openai',
-  'openai/gpt-5.6-mini': 'openai',
+  'openai/gpt-5-mini': 'openai',
 } as const;
 
 /** Options for {@link alternateProviderModel}. */

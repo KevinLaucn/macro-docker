@@ -39,6 +39,61 @@
     "features/settings/HarnessPairingDialog.tsx",
     "features/block-agent/component/parts/UserToolCall.tsx"
   ],
+  "To": [
+    "features/email-message/components/email-message-top-bar.tsx",
+    "features/email-compose/views/compose-recipients.tsx",
+    "features/block-agent/component/parts/UserToolCall.tsx"
+  ],
+  "Cc": [
+    "features/email-message/components/email-message-top-bar.tsx",
+    "features/email-compose/views/compose-recipients.tsx",
+    "features/block-agent/component/parts/UserToolCall.tsx"
+  ],
+  "Bcc": [
+    "features/email-message/components/email-message-top-bar.tsx",
+    "features/email-compose/views/compose-recipients.tsx",
+    "features/block-agent/component/parts/UserToolCall.tsx"
+  ],
+  "Bold": [
+    "features/block-md/component/useMarkdownCommands.ts",
+    "features/block-md/component/FormatTools.tsx",
+    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
+  ],
+  "Italic": [
+    "features/block-md/component/useMarkdownCommands.ts",
+    "features/block-md/component/FormatTools.tsx",
+    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
+  ],
+  "Underline": [
+    "features/block-md/component/useMarkdownCommands.ts",
+    "features/block-md/component/FormatTools.tsx",
+    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
+  ],
+  "Strikethrough": [
+    "features/block-md/component/useMarkdownCommands.ts",
+    "features/block-md/component/FormatTools.tsx",
+    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
+  ],
+  "Highlight": [
+    "features/block-md/component/useMarkdownCommands.ts",
+    "features/block-md/component/FormatTools.tsx",
+    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
+  ],
+  "Inline code": [
+    "features/block-md/component/useMarkdownCommands.ts",
+    "features/block-md/component/FormatTools.tsx",
+    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
+  ],
+  "Superscript": [
+    "features/block-md/component/useMarkdownCommands.ts",
+    "features/block-md/component/FormatTools.tsx",
+    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
+  ],
+  "Subscript": [
+    "features/block-md/component/useMarkdownCommands.ts",
+    "features/block-md/component/FormatTools.tsx",
+    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
+  ],
   "Loading…": [
     "features/contacts/Contact/ContactSharingSection.tsx",
     "features/contacts/Contact/ContactEmailsSection.tsx",
@@ -48,6 +103,7 @@
   "Details": [
     "features/contacts/Contact/Contact.tsx",
     "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
+    "features/block-chat/component/TopBar.tsx",
     "features/companies/Company/Company.tsx"
   ],
   "Failed": [

@@ -1,6 +1,7 @@
 import { EMAIL_COMPOSE_TO_INPUT_ID } from '@app/features/email-compose/core/constants';
 import type { EmailRecipient } from '@app/features/email-compose/core/email-recipient';
 import { RecipientSelector } from '@core/component/RecipientSelector';
+import { t } from '@macro/i18n';
 
 import { cn } from '@ui';
 import { createSignal, type JSX, onCleanup, Show } from 'solid-js';
@@ -213,7 +214,7 @@ export function ComposeRecipients(props: {
           activate(field);
         }
       }}
-      placeholder={ctx.isMobile() ? '' : 'Macro users or email addresses'}
+      placeholder={ctx.isMobile() ? '' : t('Macro users or email addresses')}
       focusOnMount={opts?.focusOnMount}
       openOnFocus={false}
       hideBorder
@@ -282,7 +283,7 @@ export function ComposeRecipients(props: {
   const toRow = (handlers?: RowFocusHandlers) =>
     fieldRow(
       'to',
-      fieldLabel('To'),
+      fieldLabel(t('To')),
       <>
         {summarizable(
           'to',
@@ -304,14 +305,14 @@ export function ComposeRecipients(props: {
   const ccRow = (handlers?: RowFocusHandlers) =>
     fieldRow(
       'cc',
-      fieldLabel('Cc'),
+      fieldLabel(t('Cc')),
       summarizable('cc', recipientSelector('cc', props.ccRef)),
       handlers
     );
   const bccRow = (handlers?: RowFocusHandlers) =>
     fieldRow(
       'bcc',
-      fieldLabel('Bcc'),
+      fieldLabel(t('Bcc')),
       summarizable('bcc', recipientSelector('bcc', props.bccRef)),
       handlers
     );
@@ -338,7 +339,7 @@ export function ComposeRecipients(props: {
               onClick={expand}
             >
               <span class="text-sm shrink-0 text-ink-placeholder min-h-9 flex items-center">
-                Cc/Bcc, From:
+                {t('Cc/Bcc, From:')}
               </span>
               <span class="ph-no-capture text-sm text-ink-muted truncate min-h-9 flex items-center">
                 {ctx.fromAddress?.()}
@@ -349,7 +350,9 @@ export function ComposeRecipients(props: {
           {ccRow(rowFocusHandlers('cc'))}
           {bccRow(rowFocusHandlers('bcc'))}
           <div class="flex items-center gap-2 py-1 border-b border-edge-muted">
-            <div class="text-sm shrink-0 text-ink-placeholder">From:</div>
+            <div class="text-sm shrink-0 text-ink-placeholder">
+              {t('From:')}
+            </div>
             <div class="flex-1 min-w-0 min-h-9 flex items-center">
               <FromInboxSelector
                 disabled={ctx.disabled()}

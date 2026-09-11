@@ -36,6 +36,7 @@ SERVICE_ROOTS: dict[str, str] = {
     "connection-gateway": "connection_gateway",
     "contacts-service": "contacts_service",
     "document-storage-service": "document_storage_service",
+    "document-cognition-service": "document_cognition_service",
     "email-service": "email_service",
     "image-proxy-service": "image_proxy_service",
     "notification-service": "notification_service",
@@ -44,6 +45,7 @@ SERVICE_ROOTS: dict[str, str] = {
     "search-processing-service": "search_processing_service",
     "upload-finalizer": "document_upload_finalizer_handler",
     "macro-db-migrator": "macro_db_migrator",
+    "localstack-provisioner": "xtask_local",
 }
 
 # These inputs change the derivation graph/toolchain or files copied into every
@@ -178,22 +180,25 @@ def nix_email_definitions() -> dict[str, str]:
     block is refactored enough that either marker disappears, CI fails closed.
     """
     text = NIX_PATH.read_text(encoding="utf-8")
-    start_marker = "selfHostEmailBinaryDefinitions = ["
-    end_marker = "# Strip --no-default-features"
+    core_marker = "selfHostEmailCoreBinaryDefinitions = ["
+    cognition_marker = "selfHostEmailCognitionBinaryDefinitions = ["
+    combined_marker = "selfHostEmailBinaryDefinitions ="
 
-    if start_marker not in text or end_marker not in text:
+    if any(marker not in text for marker in (core_marker, cognition_marker, combined_marker)):
         raise RuntimeError(
-            "could not locate the complete selfHostEmailBinaryDefinitions block "
+            "could not locate the split self-host Email binary definition blocks "
             "in nix/cloud-storage.nix"
         )
 
-    tail = text.split(start_marker, 1)[1]
-    block, separator, _ = tail.partition(end_marker)
-    if not separator:
+    core_tail = text.split(core_marker, 1)[1]
+    core_block, core_separator, remainder = core_tail.partition(cognition_marker)
+    cognition_block, cognition_separator, _ = remainder.partition(combined_marker)
+    if not core_separator or not cognition_separator:
         raise RuntimeError(
-            "could not locate the end of selfHostEmailBinaryDefinitions in "
-            "nix/cloud-storage.nix"
+            "could not locate the complete split self-host Email binary definitions "
+            "in nix/cloud-storage.nix"
         )
+    block = core_block + cognition_block
 
     pairs = re.findall(
         r'serviceName\s*=\s*"([^"]+)";\s*\n\s*packageName\s*=\s*"([^"]+)";',
@@ -315,6 +320,7 @@ def compute_impact(
     run_init = (
         force_all
         or "self-host-email-macro-db-migrator" in service_targets
+        or "self-host-email-localstack-provisioner" in service_targets
         or any(matches(path, INIT_EXACT, INIT_PREFIXES) for path in changed)
     )
 

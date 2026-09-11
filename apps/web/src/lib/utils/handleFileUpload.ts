@@ -2,6 +2,7 @@ import { useSplitLayout } from '@components/app/split-layout/layout';
 import { toast } from '@core/component/Toast/Toast';
 import { fileTypeToBlockName } from '@core/constant/allBlocks';
 import { type UploadInput, uploadFiles } from '@core/util/upload';
+import { t } from '@macro/i18n';
 import { refetchHistory } from '@queries/history/history';
 import { refetchSoupEntity } from '@queries/soup/cache';
 
@@ -37,10 +38,10 @@ export function useHandleFileUpload({
         refetchSoupEntity(createdProjectId, 'project', { includeRoot: true });
         refetchHistory();
 
-        toast.success(`Uploaded ${upload.name}`, {
+        toast.success(t('Uploaded {name}', { name: upload.name }), {
           actions: [
             {
-              label: 'Open folder',
+              label: t('Open folder'),
               onClick: () => {
                 openWithSplit(
                   { type: 'project', id: createdProjectId },

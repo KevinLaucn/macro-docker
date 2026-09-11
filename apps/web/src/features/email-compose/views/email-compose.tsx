@@ -6,7 +6,7 @@ import {
 } from '@components/app/split-layout/components/SplitLabel';
 import { EmailPermissionsBanner } from '@core/component/EmailPermissionsBanner';
 import { WrapUnlessMobile } from '@core/mobile/WrapUnlessMobile';
-
+import { t } from '@macro/i18n';
 import { Surface } from '@ui';
 
 import { createSignal, Show } from 'solid-js';
@@ -120,10 +120,13 @@ export function EmailComposeView(props: EmailComposeViewProps) {
         <SplitHeaderLeft>
           <StaticSplitLabel
             class="ph-no-capture"
-            label={ctxValue.subject() || previewName?.() || 'Draft email'}
+            label={ctxValue.subject() || previewName?.() || t('Draft email')}
             iconType="email"
             badges={[
-              <SplitHeaderBadge text="draft" tooltip="This is a Draft Email" />,
+              <SplitHeaderBadge
+                text={t('draft')}
+                tooltip={t('This is a Draft Email')}
+              />,
             ]}
           />
         </SplitHeaderLeft>

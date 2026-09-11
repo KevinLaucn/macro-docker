@@ -1,9 +1,9 @@
-import { t } from '@macro/i18n';
 import { PipedreamConnectorIcon } from '@core/pipedream/ConnectorIcon';
 import {
   createPipedreamCatalogConnect,
   createPipedreamCatalogSearch,
 } from '@core/pipedream/catalog';
+import { t } from '@macro/i18n';
 import SpinnerIcon from '@phosphor/spinner-gap.svg';
 import XIcon from '@phosphor/x.svg';
 import type { PipedreamCatalogEntryResponse } from '@service-cognition/client';
@@ -56,9 +56,9 @@ export function PipedreamAppPicker(props: {
     <div class="flex flex-col gap-3">
       <input
         type="search"
-        aria-label={t("Search connectors")}
+        aria-label={t('Search connectors')}
         class="settings-input w-full"
-        placeholder={t("Search all connectors…")}
+        placeholder={t('Search all connectors…')}
         value={catalog.searchInput()}
         onInput={(event) => catalog.onSearchInput(event.currentTarget.value)}
       />

@@ -19,6 +19,7 @@ import {
 import { DEV_MODE_ENV } from '@core/constant/featureFlags';
 import { useBlockDocumentName } from '@core/util/currentBlockDocumentName';
 import IconShared from '@icon/wide-share.svg';
+import { t } from '@macro/i18n';
 import ChatDebugIcon from '@phosphor/chat-text.svg';
 import Info from '@phosphor/info.svg';
 import Notepad from '@phosphor/notepad.svg';
@@ -40,12 +41,12 @@ export function TopBar(props: {
 
   const ops: FileOperation[] = [
     {
-      label: 'Details',
+      label: t('Details'),
       icon: Info,
       action: detailsControl.toggle,
     },
     {
-      label: 'Edit AI Instructions',
+      label: t('Edit AI Instructions'),
       icon: Notepad,
       action: openInstructions,
     },
