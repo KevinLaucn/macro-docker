@@ -3257,5 +3257,13 @@
   "from": "发件人",
   "From:": "发件人：",
   "Cc/Bcc, From:": "抄送/密送、发件人：",
-  "Macro users or email addresses": "Macro 用户或电子邮箱地址"
+  "Macro users or email addresses": "Macro 用户或电子邮箱地址",
+  "No duration": "无时长",
+  "Failed to create channel for call": "创建通话频道失败",
+  "Failed to start call": "启动通话失败",
+  "New Call": "新建通话",
+  "Starting...": "正在启动…",
+  "Start Call": "开始通话",
+  "A call is active in this channel": "此频道中有正在进行的通话",
+  "Active for": "已进行"
 }

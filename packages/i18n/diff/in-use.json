@@ -15,6 +15,10 @@
     "features/inbox-view/types.ts",
     "features/dynamic-ui/schema.ts",
     "features/dynamic-ui/widgets/List.tsx",
+    "features/tasks-view/queries/task-query.ts",
+    "features/tasks-view/types.ts",
+    "features/tasks-view/constants.ts",
+    "features/tasks-view/persistence.ts",
     "features/reminders/ReminderForm.tsx",
     "components/ui/components/Calendar.tsx",
     "lib/core/util/taskCreation.ts",
@@ -84,8 +88,10 @@
     "features/email-view/components/EmailList.tsx",
     "features/email-view/constants.ts",
     "features/email-view/persistence.ts",
+    "components/app/sidebar-next/queries/use-sidebar-unread.ts",
     "lib/core/component/LexicalMarkdown/component/decorator/HtmlRender.tsx",
     "features/next-soup/sidebar/soup-filter-presets.test.ts",
+    "features/next-soup/actions/make-mark-done-action.test.ts",
     "features/email-view/queries/email-query.test.ts"
   ],
   "channels": [
@@ -130,7 +136,9 @@
     "components/app/mobile/mobile-dock-views.ts",
     "components/app/mobile/mobile-nav-views.ts",
     "components/app/GlobalHotkeys.tsx",
+    "components/app/sidebar-next/sidebar-rail.tsx",
     "components/app/sidebar-next/nav-items.ts",
+    "components/app/sidebar-next/queries/use-sidebar-unread.ts",
     "components/app/split-layout/componentRegistry.tsx",
     "lib/core/context/quickAccess/types.ts",
     "lib/core/component/AI/component/tool/Notifications.tsx",
@@ -139,6 +147,7 @@
     "lib/constants/list-views.ts",
     "lib/queries/persistence-scopes.ts",
     "features/next-soup/sidebar/soup-filter-presets.test.ts",
+    "components/app/sidebar-next/queries/use-sidebar-unread.test.ts",
     "components/app/split-layout/tests/layoutManager.test.ts",
     "components/app/split-layout/tests/previewController.test.ts",
     "components/app/split-layout/tests/previewPersistence.test.ts"
@@ -146,6 +155,7 @@
   "calls": [
     "features/next-soup/sidebar/soup-filter-presets.ts",
     "features/next-soup/filters/configs/entity.ts",
+    "features/next-soup/soup-view/soup-view-create-button.tsx",
     "features/next-soup/soup-view/empty-states.tsx",
     "features/next-soup/soup-view/tab-lists.ts",
     "features/next-soup/soup-view/filters-bar/search/search-filters-state.ts",
@@ -191,6 +201,7 @@
     "lib/constants/list-views.ts",
     "features/next-soup/sidebar/soup-filter-presets.test.ts",
     "features/soup/filters/facets/compile.test.ts",
+    "components/app/sidebar-next/queries/use-sidebar-unread.test.ts",
     "components/app/split-layout/tests/layoutManager.test.ts"
   ],
   "Personal": [
@@ -208,6 +219,7 @@
     "features/next-soup/soup-view/tab-lists.ts",
     "features/block-agent/component/parts/UserToolCall.tsx",
     "features/email-view/constants.ts",
+    "components/ui/components/Checkbox.docs.tsx",
     "features/block-agent/component/parts/ToolCallPart.test.tsx",
     "lib/queries/email/write-completion.test.tsx"
   ],
@@ -243,6 +255,7 @@
     "features/next-soup/soup-view/empty-states.tsx",
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/next-soup/soup-view/NewCallButton.tsx",
     "features/next-soup/soup-view/use-soup-view-hotkeys.ts",
     "features/next-soup/soup-view/preview-content-row.ts",
     "features/next-soup/soup-view/views/inbox/inbox-card-layouts.tsx",
@@ -254,6 +267,7 @@
     "features/next-soup/actions/make-rename-action.ts",
     "features/next-soup/actions/make-copy-action.ts",
     "features/next-soup/actions/make-mark-done-action.ts",
+    "features/block-call/component/CallRecording/CallRecordingParticipants.tsx",
     "features/settings/MutedItemRow.tsx",
     "features/settings/Agents.tsx",
     "features/home/home-hub.tsx",
@@ -296,6 +310,10 @@
     "features/channel/Channel/InlineMessageEditor.tsx",
     "features/channel/Channel/Channel.tsx",
     "features/channel/Channel/ChannelTopBarLiveIndicators.tsx",
+    "features/channel/Call/join-channel-call.ts",
+    "features/channel/Call/open-channel-call-tab.ts",
+    "features/channel/Call/use-callkit.ts",
+    "features/channel/Call/InCallPanel/InCallParticipantsListPopover.tsx",
     "features/channel/CreateChannelModal.tsx",
     "features/channel/Attachments/attachment-utils.ts",
     "features/channel/Attachments/ChannelAttachmentEntitySection.tsx",
@@ -322,6 +340,7 @@
     "features/block-channel/component/NewChannelBlockAdapter.tsx",
     "features/block-channel/utils/link.ts",
     "components/app/PreviewPanel.tsx",
+    "components/app/sidebar-next/queries/use-sidebar-unread.ts",
     "components/app/split-layout/componentRegistry.tsx",
     "components/app/split-layout/components/SplitHeader.tsx",
     "components/app/split-layout/components/SplitFileMenu.tsx",
@@ -398,6 +417,7 @@
     "lib/analytics/app-events.ts",
     "features/next-soup/utils.test.ts",
     "features/next-soup/soup-view/preview-content-row.test.ts",
+    "features/next-soup/soup-view/NewCallButton.test.tsx",
     "features/next-soup/actions/make-delete-action.test.ts",
     "features/next-soup/actions/make-create-reminder-action.test.ts",
     "features/next-soup/actions/make-mark-done-action.test.ts",
@@ -412,10 +432,12 @@
     "features/channel/Input/tests/entity-mention.test.ts",
     "features/channel/Input/tests/create-input-view.test.ts",
     "features/channel/Input/tests/task-mode.test.tsx",
+    "features/channel/Input/tests/create-input-state.test.ts",
     "features/notifications/tests/notification-stacking.test.ts",
     "features/notifications/tests/mark-message-notifications.test.tsx",
     "features/notifications/tests/notification-platform.test.ts",
     "features/notifications/tests/notification-source.test.ts",
+    "components/app/sidebar-next/queries/use-sidebar-unread.test.ts",
     "components/app/split-layout/tests/layoutManager.test.ts",
     "lib/core/util/freshSort.test.ts",
     "lib/core/util/fuzzy.test.ts",
@@ -591,6 +613,8 @@
     "features/next-soup/actions/make-copy-link-action.ts",
     "features/next-soup/actions/make-remove-from-project-action.ts",
     "features/next-soup/actions/make-mark-done-action.ts",
+    "features/block-call/component/CallRecording/CallRecordingSplitHeader.tsx",
+    "features/block-call/component/CallRecording/CallRecordingBody.tsx",
     "features/home/home-hub.tsx",
     "features/email-message/attachment-action-adapter.ts",
     "features/block-video/component/TopBar.tsx",
@@ -652,6 +676,7 @@
     "features/block-canvas/component/FileSelector.tsx",
     "features/block-canvas/model/CanvasModel.ts",
     "features/dynamic-ui/Gallery.tsx",
+    "features/tasks-view/components/TasksSidebar.tsx",
     "features/notifications/notification-navigation.ts",
     "features/notifications/use-notification-updates.ts",
     "features/notifications/components/DebouncedNotificationReadMarker.tsx",
@@ -767,8 +792,10 @@
     "features/channel/Input/tests/entity-mention.test.ts",
     "features/channel/Input/tests/upload-attachments.test.ts",
     "features/channel/Channel/tests/message-editing.test.ts",
+    "features/notifications/tests/notification-source.test.ts",
     "features/reminders/reminder-composer.test.ts",
     "features/reminders/reminder-schedule.test.ts",
+    "components/app/sidebar-next/queries/use-sidebar-unread.test.ts",
     "lib/core/util/fuzzy.test.ts",
     "lib/core/tests/token.test.ts",
     "lib/core/component/AI/component/input/Attachment.test.tsx",
@@ -853,6 +880,11 @@
     "features/dynamic-ui/schema.ts",
     "features/dynamic-ui/widgets/List.tsx",
     "features/soup/createSoupEntityActions.ts",
+    "features/tasks-view/queries/task-query.ts",
+    "features/tasks-view/types.ts",
+    "features/tasks-view/components/task-list/TaskGroupHeader.tsx",
+    "features/tasks-view/constants.ts",
+    "features/tasks-view/persistence.ts",
     "features/reminders/ReminderEditorSplit.tsx",
     "features/onboarding/sandbox/sandbox-store.ts",
     "features/onboarding/lessons/command-k.tsx",
@@ -940,6 +972,10 @@
     "features/next-soup/filters/query-filters.ts",
     "features/next-soup/filters/predicates.ts",
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/block-call/definition.ts",
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx",
+    "features/block-call/component/CallRecording/CallRecordingSplitHeader.tsx",
+    "features/block-call/component/CallRecording/CallRecordingBody.tsx",
     "features/home/home-hub.tsx",
     "features/property/utils/entityConversion.ts",
     "features/property/tags/entityTagging.ts",
@@ -956,6 +992,7 @@
     "features/channels-view/components/rail/hooks/useChannelRailActivity.ts",
     "features/block-agent/component/parts/UserToolCall.tsx",
     "features/channel/Channel/channel-tabs.ts",
+    "features/channel/Call/call-tabs.ts",
     "features/channel/Attachments/attachment-utils.ts",
     "features/channel/Attachments/ChannelAttachmentEntitySection.tsx",
     "features/block-canvas/model/CanvasModel.ts",
@@ -1023,6 +1060,7 @@
     "lib/queries/notification/entity-mutations.ts",
     "lib/queries/notification/user-notifications.ts",
     "lib/queries/favorites/favorites.ts",
+    "lib/queries/call/keys.ts",
     "lib/queries/preview/fetchers.ts",
     "lib/queries/preview/graphql.ts",
     "lib/queries/soup/normalized-cache/normalizer.ts",
@@ -1048,12 +1086,40 @@
     "lib/service-clients/service-storage/itemType.test.ts",
     "../../../packages/i18n/context.test.ts"
   ],
+  "seen": [
+    "features/next-soup/filters/filter-store/compile.ts",
+    "features/next-soup/filters/inbox-query-filters.ts",
+    "features/inbox-view/queries/inbox-search.ts",
+    "features/soup/filters/facets/constants.ts",
+    "features/notifications/notification-state.ts",
+    "features/notifications/notification-source.ts",
+    "lib/core/component/AI/component/tool/Notifications.tsx",
+    "lib/queries/notification/user-notifications.ts",
+    "lib/queries/soup/normalized-cache/operations.ts",
+    "lib/queries/soup/graphql/ast.ts",
+    "features/next-soup/sidebar/soup-filter-presets.test.ts",
+    "features/next-soup/filters/filter-store/compile.test.ts",
+    "features/next-soup/filters/inbox-query-filters.test.ts",
+    "features/next-soup/utils.test.ts",
+    "features/entity/tests/filter.test.ts",
+    "features/entity/tests/notification.test.ts",
+    "features/notifications/tests/mark-message-notifications.test.tsx",
+    "features/notifications/tests/notification-source.test.ts",
+    "features/notifications/tests/notification-state.test.ts",
+    "features/email-view/queries/email-query.test.ts",
+    "components/app/sidebar-next/queries/use-sidebar-unread.test.ts",
+    "lib/queries/notification/tests/user-notifications.test.tsx",
+    "lib/queries/soup/normalized-cache/operations.test.ts",
+    "lib/queries/soup/graphql/ast.test.ts",
+    "lib/service-clients/service-notification/client.test.ts"
+  ],
   "Owner": [
     "features/next-soup/filters/filter-store/compile.ts",
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
     "features/next-soup/soup-view/filters-bar/use-filter-refinements.tsx",
     "features/next-soup/soup-view/views/companies/company-grid-template.ts",
     "features/next-soup/soup-view/group-options.ts",
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx",
     "features/settings/Team.tsx",
     "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
     "features/property/component/modal/CreatePropertyModal.tsx",
@@ -1064,6 +1130,7 @@
     "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
     "features/soup/filters/facets/constants.ts",
     "features/companies/crm/display-options.ts",
+    "components/ui/components/Select.docs.tsx",
     "components/app/side-panel/FileSidePanelSections.tsx",
     "lib/core/component/DetailsDrawer.tsx",
     "lib/core/component/SharePermissions.tsx",
@@ -1074,6 +1141,24 @@
     "features/email-view/queries/email-query.test.ts",
     "../../../packages/i18n/context.test.ts",
     "../../../packages/i18n/runtime.test.ts"
+  ],
+  "Read": [
+    "features/next-soup/filters/filter-store/compile.ts",
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/inbox-view/inbox-facets.ts",
+    "features/block-agent/ui/ToolErrorCard.tsx",
+    "features/block-agent/debug/Gallery.tsx",
+    "features/soup/filters/facets/constants.ts",
+    "features/email-view/filters/email-facets.ts",
+    "lib/core/component/AI/component/tool/ReadMetadata.tsx",
+    "lib/core/component/AI/component/tool/ReadChannel.tsx",
+    "lib/core/component/AI/component/tool/ReadChat.tsx",
+    "lib/core/component/AI/component/tool/ReadContent.tsx",
+    "lib/core/component/AI/component/tool/ReadCallRecord.tsx",
+    "lib/core/component/AI/component/tool/ReadThread.tsx",
+    "lib/queries/soup/graphql/ast.ts",
+    "features/block-agent/context/create-agent-session-feed.test.ts",
+    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/presentation.test.ts"
   ],
   "Importance": [
     "features/next-soup/filters/filter-store/compile.ts",
@@ -1103,6 +1188,9 @@
   ],
   "Participant": [
     "features/next-soup/filters/filter-store/compile.ts",
+    "features/channel/Call/use-callkit.ts",
+    "features/channel/Call/InCallPanel/InCallParticipantsListPopover.tsx",
+    "features/channel/Call/InCallPanel/InCallStripAvatarImage.tsx",
     "features/soup/filters/facets/constants.ts",
     "lib/queries/soup/graphql/ast.ts"
   ],
@@ -1113,6 +1201,7 @@
     "features/next-soup/soup-view/sort-options.tsx",
     "features/next-soup/soup-view/views/tasks/task-grid-template.ts",
     "features/next-soup/soup-view/group-options.ts",
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx",
     "features/block-pr/side-panel/github-pull-request.tsx",
     "features/property/mocks/mockProperties.ts",
     "features/entity/mocks/mockEntityData.ts",
@@ -1120,13 +1209,16 @@
     "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
     "features/theme/components/ThemeTokenEditor.tsx",
     "features/soup/filters/facets/constants.ts",
+    "features/tasks-view/filters/use-task-filters.tsx",
+    "features/tasks-view/components/task-list/task-grid-template.ts",
+    "features/tasks-view/components/task-list/TaskListHeader.tsx",
+    "features/tasks-view/constants.ts",
     "features/email-view/filters/email-facets.ts",
     "lib/core/util/linearImport.ts",
     "lib/queries/soup/graphql/ast.ts",
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.test.ts",
     "features/property/extractors/PropertyPill.test.tsx",
     "features/activity/queries/property-value.test.ts",
-    "components/ui/components/Badge.test.tsx",
     "lib/core/component/TaskPreviewProperties.test.tsx",
     "lib/core/component/AI/component/tool/ReadActivity.test.tsx",
     "lib/queries/properties/entity.test.tsx",
@@ -1163,12 +1255,16 @@
     "features/soup/filters/facets/compile.ts",
     "features/soup/filters/facets/types.ts",
     "features/soup/filters/facets/clause.ts",
+    "features/tasks-view/filters/task-facets.ts",
     "features/email-view/filters/email-facets.ts",
     "features/onboarding/lessons/sidebar-nav.tsx",
     "features/onboarding/lessons/create-entity.tsx",
+    "lib/core/component/AI/component/tool/Notifications.tsx",
     "lib/core/component/TopBar/LoginButton.tsx",
+    "lib/queries/soup/normalized-cache/operations.ts",
     "features/next-soup/filters/filter-store/compile.test.ts",
     "features/next-soup/filters/configs/document-type-query.test.ts",
+    "features/soup/filters/facets/tag-facet.test.ts",
     "features/soup/filters/facets/evaluate.test.ts",
     "features/soup/filters/facets/compile.test.ts"
   ],
@@ -1266,6 +1362,9 @@
     "features/channel/Participants/ChannelTeamSettingsPanel.tsx",
     "features/channel/Input/accepted-file-types.ts",
     "features/channel/Message/BotIcon.tsx",
+    "features/channel/Call/CallOverlay.tsx",
+    "features/channel/Call/InCallPanel/InCallParticipantAvatar.tsx",
+    "features/channel/Call/InCallPanel/InCallAvatarPlaceholder.tsx",
     "features/channel/CreateChannelModal.tsx",
     "features/email-translation/EmailTranslationSection.tsx",
     "features/getting-started/getting-started.tsx",
@@ -1280,19 +1379,28 @@
     "features/dynamic-ui/widgets/Md.tsx",
     "features/dynamic-ui/render.tsx",
     "features/email-thread/views/bottom-reply-buttons.tsx",
+    "features/tasks-view/components/TasksHeader.tsx",
     "features/notifications/notification-navigation.ts",
-    "features/email-view/components/EmailSidebar.tsx",
     "features/email-view/components/EmailHeader.tsx",
     "features/email-view/components/EmailInboxSelector.tsx",
     "features/onboarding/sandbox/sandbox-store.ts",
     "features/onboarding/lessons/create-entity.tsx",
     "features/block-project/component/ProjectCreateMenu.tsx",
+    "components/ui/components/ButtonGroup.tsx",
+    "components/ui/components/InputGroup.docs.tsx",
+    "components/ui/components/Button.docs.tsx",
+    "components/ui/components/InputGroup.tsx",
+    "components/ui/components/Input.docs.tsx",
+    "components/ui/components/Badge.docs.tsx",
     "components/ui/components/Avatar.tsx",
     "components/ui/components/Badge.tsx",
     "components/ui/components/ToggleSwitch.tsx",
+    "components/ui/components/ToggleSwitch.docs.tsx",
     "components/ui/components/Button.tsx",
     "components/ui/components/SegmentedControl.tsx",
+    "components/ui/components/Input.tsx",
     "components/ui/components/PillButton.tsx",
+    "components/ui/components/Avatar.docs.tsx",
     "components/view-shell/ListDropdowns.tsx",
     "components/app/PreviewPanel.tsx",
     "components/app/split-layout/componentRegistry.tsx",
@@ -1345,9 +1453,6 @@
     "features/entity/tests/buildEntityData.test.ts",
     "features/channel/Input/tests/entity-mention.test.ts",
     "features/block-code/util/fileMode.test.ts",
-    "components/ui/utils/variants.test.ts",
-    "components/ui/components/Button.test.tsx",
-    "components/ui/components/Badge.test.tsx",
     "components/app/split-layout/tests/layoutManager.test.ts",
     "components/app/split-layout/tests/previewController.test.ts",
     "components/app/split-layout/tests/previewPersistence.test.ts",
@@ -1432,6 +1537,7 @@
   ],
   "Channel": [
     "features/next-soup/soup-view/soup-view-create-button.tsx",
+    "features/block-call/sidebar/active-call-widget.tsx",
     "features/property/utils/display.ts",
     "features/property/hooks/usePropertyEntityDisplay.tsx",
     "features/command/Launcher.tsx",
@@ -1449,6 +1555,7 @@
   "New": [
     "features/next-soup/soup-view/soup-view-create-button.tsx",
     "features/channel/Message/NewDivider.tsx",
+    "features/tasks-view/components/TasksHeader.tsx",
     "lib/core/comments/MessageTopRow.tsx",
     "features/channel/Message/tests/date-divider.test.tsx"
   ],
@@ -1474,6 +1581,7 @@
     "features/command/Launcher.tsx",
     "features/notifications/notification-event-catalog.ts",
     "features/companies/CreateContactModal.tsx",
+    "features/email-view/components/EmailHeader.tsx",
     "features/email-view/components/EmailList.tsx",
     "features/email-view/email-view.tsx",
     "features/block-email/component/Block.tsx",
@@ -1485,6 +1593,7 @@
     "lib/core/component/EntityIcon.tsx",
     "lib/core/component/AI/component/tool/ListEntities.tsx",
     "lib/core/constant/SettingsState.tsx",
+    "features/entity/tests/filter.test.ts",
     "features/entity/composed/list-entity/email.test.tsx",
     "components/app/split-layout/tests/createSplitAutofocus.test.tsx"
   ],
@@ -1509,6 +1618,7 @@
     "features/channel/Input/TaskComposer.tsx",
     "features/channel/Message/ActionMenu.tsx",
     "features/command/Launcher.tsx",
+    "features/tasks-view/components/task-list/TaskListHeader.tsx",
     "features/block-project/component/ProjectCreateMenu.tsx",
     "lib/core/component/EntityIcon.tsx",
     "lib/core/component/LexicalMarkdown/plugins/actions/actions.ts",
@@ -1543,6 +1653,7 @@
     "features/channels-view/channels-view-context.tsx",
     "features/command/Launcher.tsx",
     "features/command/CommandMenu.tsx",
+    "features/tasks-view/queries/use-tasks-query.ts",
     "features/email-view/queries/use-email-query.ts",
     "components/view-shell/use-view-tab-hotkeys.ts",
     "lib/core/hotkey/types.ts",
@@ -1676,7 +1787,8 @@
   ],
   "New task": [
     "features/next-soup/soup-view/empty-states.tsx",
-    "features/block-md/component/ComposeTask.tsx"
+    "features/block-md/component/ComposeTask.tsx",
+    "features/tasks-view/components/TasksSidebar.tsx"
   ],
   "No automations to show": [
     "features/next-soup/soup-view/empty-states.tsx"
@@ -1806,11 +1918,15 @@
     "features/block-agent/component/parts/ToolCallPart.tsx",
     "features/block-agent/state/session-summary.ts",
     "features/block-agent/debug/Gallery.tsx",
+    "features/ui-gallery/components/GallerySidebar.tsx",
     "features/command/useCommandItems.ts",
     "features/command/CommandMenu.tsx",
     "features/command/mobile/MobileSearchInput.tsx",
+    "features/tasks-view/queries/use-tasks-query.ts",
+    "features/tasks-view/components/TasksHeader.tsx",
     "features/email-view/queries/use-email-query.ts",
     "features/email-view/components/EmailHeader.tsx",
+    "components/ui/components/InputGroup.docs.tsx",
     "components/view-shell/SearchBar.tsx",
     "components/app/app-sidebar/sidebar.tsx",
     "components/app/mobile/MobileDockRow.tsx",
@@ -1941,6 +2057,7 @@
     "lib/queries/soup/graphql/ast.ts",
     "lib/graphql-cache/worker/browser-test/performance-harness.ts",
     "features/next-soup/sidebar/soup-filter-presets.test.ts",
+    "features/next-soup/actions/make-mark-done-action.test.ts",
     "features/calendar/types.test.ts",
     "features/calendar/hooks/use-calendar-accounts.test.ts",
     "features/email-view/queries/email-query.test.ts",
@@ -1980,7 +2097,8 @@
   ],
   "Drafts": [
     "features/next-soup/soup-view/tab-lists.ts",
-    "features/email-view/constants.ts"
+    "features/email-view/constants.ts",
+    "components/ui/components/Checkbox.docs.tsx"
   ],
   "Attachments": [
     "features/next-soup/soup-view/tab-lists.ts",
@@ -1995,7 +2113,8 @@
     "components/app/split-layout/componentRegistry.tsx"
   ],
   "My tasks": [
-    "features/next-soup/soup-view/tab-lists.ts"
+    "features/next-soup/soup-view/tab-lists.ts",
+    "features/tasks-view/constants.ts"
   ],
   "Recent": [
     "features/next-soup/soup-view/tab-lists.ts",
@@ -2076,8 +2195,7 @@
   ],
   "Search inboxes...": [
     "features/next-soup/soup-view/filters-bar/inbox-selector.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/email-view/components/EmailInboxSelector.tsx"
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx"
   ],
   "Connect another account": [
     "features/next-soup/soup-view/filters-bar/inbox-selector.tsx",
@@ -2093,16 +2211,19 @@
   ],
   "Sort": [
     "features/next-soup/soup-view/filters-bar/mobile-filter-drawer.tsx",
-    "features/next-soup/soup-view/filters-bar/sort-dropdown.tsx"
+    "features/next-soup/soup-view/filters-bar/sort-dropdown.tsx",
+    "features/tasks-view/components/TasksFilterDrawer.tsx"
   ],
   "Filters": [
     "features/next-soup/soup-view/filters-bar/mobile-filter-drawer.tsx",
     "features/next-soup/soup-view/filters-bar/search/mobile-search-filter-drawer.tsx",
     "features/inbox-view/components/InboxFilters.tsx",
+    "features/tasks-view/components/TasksFilterDrawer.tsx",
     "components/view-shell/MobileFilterDrawer.tsx"
   ],
   "Inboxes": [
-    "features/next-soup/soup-view/filters-bar/mobile-filter-drawer.tsx"
+    "features/next-soup/soup-view/filters-bar/mobile-filter-drawer.tsx",
+    "features/email-view/components/EmailInboxSelector.tsx"
   ],
   "Only": [
     "features/next-soup/soup-view/filters-bar/mobile-filter-drawer.tsx",
@@ -2117,6 +2238,7 @@
     "features/next-soup/soup-view/filters-bar/use-filter-refinements.tsx",
     "features/next-soup/soup-view/group-options.ts",
     "features/integrations/import-linear/ImportLinear.tsx",
+    "features/tasks-view/constants.ts",
     "lib/core/util/linearImport.ts"
   ],
   "text": [
@@ -2149,6 +2271,7 @@
     "features/block-calendar/components/CalendarSearch.tsx",
     "features/setup/flow/shared.tsx",
     "features/block-pdf/component/PageOverlay.tsx",
+    "features/block-agent/ui/AgentModelSelector.tsx",
     "features/block-agent/ui/ElicitationForm.tsx",
     "features/block-agent/component/AgentMessage.tsx",
     "features/block-agent/component/parts/SubagentToolCall.tsx",
@@ -2244,7 +2367,8 @@
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
     "features/next-soup/soup-view/filters-bar/use-filter-refinements.tsx",
-    "features/entity/components/Badges.tsx"
+    "features/entity/components/Badges.tsx",
+    "features/tasks-view/filters/use-task-filters.tsx"
   ],
   "Search creators": [
     "features/next-soup/soup-view/filters-bar/mobile-filter-drawer.tsx"
@@ -2268,7 +2392,6 @@
     "lib/core/component/FindBar.tsx",
     "lib/core/component/AI/component/tool/Search.tsx",
     "lib/analytics/analytics.ts",
-    "components/ui/components/Button.test.tsx",
     "lib/core/component/AI/component/message/AssistantMessageParts.test.tsx"
   ],
   "Type": [
@@ -2311,6 +2434,10 @@
     "features/block-md/component/MarkdownPopup.tsx",
     "features/inbox-view/inbox-facets.ts",
     "features/command/CommandMenu.tsx",
+    "features/tasks-view/tasks-view.tsx",
+    "features/tasks-view/components/task-list/TaskList.tsx",
+    "features/tasks-view/components/TasksSidebar.tsx",
+    "features/tasks-view/components/TasksHeader.tsx",
     "features/notifications/notification-event-catalog.ts",
     "features/onboarding/components/MockAppChrome.tsx",
     "components/app/app-sidebar/sidebar.tsx",
@@ -2345,21 +2472,6 @@
     "features/channel/sidebar/channels-recent-widget.tsx",
     "features/email-view/filters/email-facets.ts",
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.test.ts"
-  ],
-  "Read": [
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/inbox-view/inbox-facets.ts",
-    "features/block-agent/ui/ToolErrorCard.tsx",
-    "features/block-agent/debug/Gallery.tsx",
-    "features/email-view/filters/email-facets.ts",
-    "lib/core/component/AI/component/tool/ReadMetadata.tsx",
-    "lib/core/component/AI/component/tool/ReadChannel.tsx",
-    "lib/core/component/AI/component/tool/ReadChat.tsx",
-    "lib/core/component/AI/component/tool/ReadContent.tsx",
-    "lib/core/component/AI/component/tool/ReadCallRecord.tsx",
-    "lib/core/component/AI/component/tool/ReadThread.tsx",
-    "features/block-agent/context/create-agent-session-feed.test.ts",
-    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/presentation.test.ts"
   ],
   "Not Done": [
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx"
@@ -2413,6 +2525,8 @@
     "features/property/mocks/mockProperties.ts",
     "features/entity/utils/task-properties.ts",
     "features/entity/composed/list-entity/foreign.tsx",
+    "features/tasks-view/filters/task-facets.ts",
+    "components/ui/components/Badge.docs.tsx",
     "lib/core/util/linearImport.ts",
     "lib/core/internal/ThemeDebug.tsx",
     "lib/tauri/TauriProvider.tsx",
@@ -2425,6 +2539,7 @@
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
     "features/entity/utils/task-properties.ts",
+    "features/tasks-view/filters/task-facets.ts",
     "lib/core/util/linearImport.ts",
     "lib/core/component/AI/component/tool/CalendarTools.tsx"
   ],
@@ -2436,6 +2551,10 @@
     "features/next-soup/soup-view/group-options.ts",
     "features/property/mocks/mockProperties.ts",
     "features/entity/mocks/mockEntityData.ts",
+    "features/tasks-view/filters/use-task-filters.tsx",
+    "features/tasks-view/components/task-list/task-grid-template.ts",
+    "features/tasks-view/components/task-list/TaskListHeader.tsx",
+    "features/tasks-view/constants.ts",
     "lib/core/util/linearImport.ts"
   ],
   "Urgent": [
@@ -2444,7 +2563,12 @@
     "features/property/mocks/mockProperties.ts",
     "features/entity/extractors-property/property-helpers.ts",
     "features/entity/utils/task-properties.ts",
+    "features/tasks-view/filters/task-facets.ts",
+    "features/property/tags/tag-options.test.ts",
+    "features/property/tags/SidebarTagsSection.test.tsx",
     "features/property/tags/tag-sets-context.test.tsx",
+    "features/soup/filters/facets/tag-facet.test.ts",
+    "features/tasks-view/queries/task-search.test.ts",
     "lib/core/util/linearImport.test.ts",
     "lib/core/component/AI/component/tool/Properties.test.tsx"
   ],
@@ -2504,6 +2628,8 @@
     "features/email-message/core/email-user.ts",
     "features/contacts/Contact/ContactEmailsSection.tsx",
     "features/email-thread/views/email-participants.tsx",
+    "features/tasks-view/filters/use-task-filters.tsx",
+    "features/tasks-view/components/task-list/TaskGridLayout.tsx",
     "features/companies/Company/CompanyEmailsSection.tsx",
     "lib/core/component/TopBar/ShareButton.tsx",
     "features/property/editors/selectors/entityUtils.test.ts"
@@ -2531,11 +2657,14 @@
     "features/settings/Settings.tsx",
     "features/settings/Tags.tsx",
     "features/property/mocks/mockProperties.ts",
+    "features/property/tags/use-tag-filter-group.tsx",
+    "features/property/tags/SidebarTagsSection.tsx",
     "features/property/tags/EntityRowTags.tsx",
     "features/property/side-panel/properties/EntityPropertiesSection.tsx",
     "features/property/editor/PropertyEditorModal.tsx",
     "lib/core/constant/settingsTabsConfig.tsx",
     "lib/core/constant/SettingsState.tsx",
+    "features/property/tags/SidebarTagsSection.test.tsx",
     "lib/queries/properties/graphql/entity-options.test.ts"
   ],
   "Filter by tag...": [
@@ -2690,6 +2819,7 @@
     "features/entity/mocks/mockEntityData.ts",
     "features/entity/extractors-property/property-helpers.ts",
     "features/entity/utils/task-properties.ts",
+    "features/tasks-view/filters/task-facets.ts",
     "lib/core/internal/ThemeDebug.tsx",
     "features/activity/core/collapse-runs.test.ts"
   ],
@@ -2699,7 +2829,8 @@
     "features/entity/mocks/mockEntityData.ts",
     "features/entity/extractors-property/property-helpers.ts",
     "features/entity/utils/task-properties.ts",
-    "features/block-canvas/component/FloatingMenu.tsx"
+    "features/block-canvas/component/FloatingMenu.tsx",
+    "features/tasks-view/filters/task-facets.ts"
   ],
   "Low": [
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
@@ -2707,11 +2838,14 @@
     "features/entity/mocks/mockEntityData.ts",
     "features/entity/extractors-property/property-helpers.ts",
     "features/entity/utils/task-properties.ts",
+    "features/tasks-view/filters/task-facets.ts",
     "features/activity/core/collapse-runs.test.ts"
   ],
   "Inbox": [
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
     "features/settings/Notifications.tsx",
+    "features/email-view/components/EmailInboxSelector.tsx",
+    "components/ui/components/Checkbox.docs.tsx",
     "lib/core/constant/SettingsState.tsx",
     "lib/queries/email/graphql/mapper.test.ts"
   ],
@@ -2745,6 +2879,8 @@
     "features/block-agent/state/elicitation-form.ts",
     "features/block-agent/debug/replay/Replay.tsx",
     "features/channel/Channel/ThreadList.tsx",
+    "features/channel/Call/CallContext.tsx",
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx",
     "features/block-canvas/component/CanvasController.tsx",
     "features/block-canvas/component/nodes/BaseCanvasRectangle.tsx",
     "features/block-canvas/component/nodes/TextBox.tsx",
@@ -2753,6 +2889,11 @@
     "features/block-canvas/component/SelectionRenderer.tsx",
     "features/block-canvas/component/edges/Line.tsx",
     "features/block-canvas/model/CanvasModel.ts",
+    "features/tasks-view/queries/use-tasks-query.ts",
+    "features/tasks-view/queries/task-query.ts",
+    "features/tasks-view/types.ts",
+    "features/tasks-view/constants.ts",
+    "features/tasks-view/persistence.ts",
     "features/notifications/notification-helpers.ts",
     "features/block-code/component/CodeMirror.tsx",
     "features/block-code/component/cmTheme.ts",
@@ -2798,6 +2939,7 @@
     "lib/graphql-cache/worker/coordinator-page-adapter.ts",
     "lib/analytics/providers.ts",
     "features/block-agent/state/elicitation-form.test.ts",
+    "features/channel/Call/tests/call-overlay-muted.test.tsx",
     "lib/graphql-cache/telemetry.test.ts",
     "lib/graphql-cache/worker/worker-core.test.ts"
   ],
@@ -2840,6 +2982,12 @@
     "features/property/tags/EntityRowTags.tsx",
     "features/property/side-panel/properties/EntityPropertiesSection.tsx",
     "features/property/editor/PropertyEditorModal.tsx",
+    "features/soup/filters/facets/tag-facet.ts",
+    "features/tasks-view/filters/use-task-filters.tsx",
+    "features/tasks-view/queries/task-search.ts",
+    "features/tasks-view/components/TasksSidebar.tsx",
+    "features/email-view/types.ts",
+    "features/email-view/components/EmailSidebar.tsx",
     "lib/core/internal/ThemeDebug.tsx",
     "lib/core/constant/settingsTabsConfig.tsx"
   ],
@@ -2879,6 +3027,9 @@
     "features/block-agent/ui/DiffChanges.tsx",
     "features/block-agent/debug/Gallery.tsx",
     "features/block-agent/debug/replay/driver.ts",
+    "features/channel/Call/CallOverlay.tsx",
+    "features/channel/Call/CallControls/CallControls.tsx",
+    "features/ui-gallery/registry.ts",
     "features/notifications/components/PlatformNotificationProvider.tsx",
     "components/ui/components/ConfirmDialog.tsx",
     "components/app/mobile/ConfirmDrawer.tsx",
@@ -2897,6 +3048,7 @@
     "features/calendar/types.test.ts",
     "features/calendar/utils/event-reminders.test.ts",
     "features/calendar/components/composer/create-calendar-event-form-controller.test.ts",
+    "features/block-agent/ui/model-groups.test.ts",
     "features/block-agent/component/parts/ElicitationPart.test.tsx",
     "features/channel/Channel/tests/thread-manager.test.ts",
     "lib/core/component/AI/component/tool/calendar/event-form-adapter.test.ts",
@@ -2910,6 +3062,7 @@
   "Group": [
     "features/next-soup/soup-view/filters-bar/group-dropdown.tsx",
     "features/block-canvas/component/CanvasController.tsx",
+    "features/tasks-view/components/TasksFilterDrawer.tsx",
     "lib/graphql-cache/exchange/normalized-cache-exchange.test.ts"
   ],
   "list": [
@@ -2917,6 +3070,7 @@
     "features/next-soup/soup-view/soup-view-context.tsx",
     "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
     "features/next-soup/soup-view/soup-view-tabs.tsx",
+    "features/block-call/component/CallRecording/CallRecordingParticipants.tsx",
     "features/settings/Bots.tsx",
     "features/settings/SignatureEditor.tsx",
     "features/email-compose/primitives/attachment-persistence.ts",
@@ -2947,6 +3101,38 @@
   "Clear active filters": [
     "features/next-soup/soup-view/filters-bar/soup-active-filters-bar.tsx"
   ],
+  "Failed to create channel for call": [
+    "features/next-soup/soup-view/NewCallButton.tsx"
+  ],
+  "Failed to start call": [
+    "features/next-soup/soup-view/NewCallButton.tsx"
+  ],
+  "Call": [
+    "features/next-soup/soup-view/NewCallButton.tsx",
+    "features/block-call/definition.ts",
+    "features/block-call/component/CallRecording/CallRecordingSplitHeader.tsx",
+    "features/channel/Channel/channel-tabs.ts",
+    "features/channel/Call/ChannelCallButton.tsx",
+    "features/notifications/notification-event-catalog.ts",
+    "lib/core/component/EntityIcon.tsx",
+    "../../../packages/i18n/context.test.ts"
+  ],
+  "New Call": [
+    "features/next-soup/soup-view/NewCallButton.tsx"
+  ],
+  "To: Macro users or email addresses": [
+    "features/next-soup/soup-view/NewCallButton.tsx",
+    "features/channel/CreateChannelModal.tsx",
+    "features/block-channel/component/Compose.tsx"
+  ],
+  "Starting...": [
+    "features/next-soup/soup-view/NewCallButton.tsx"
+  ],
+  "Start Call": [
+    "features/next-soup/soup-view/NewCallButton.tsx",
+    "features/channel/Call/ChannelCallButton.tsx",
+    "features/next-soup/soup-view/NewCallButton.test.tsx"
+  ],
   "Last viewed": [
     "features/next-soup/soup-view/sort-options.tsx"
   ],
@@ -2975,7 +3161,8 @@
     "lib/service-clients/service-storage/graphql-soup.ts"
   ],
   "Not set": [
-    "features/next-soup/soup-view/soup-view-context.tsx"
+    "features/next-soup/soup-view/soup-view-context.tsx",
+    "features/tasks-view/components/task-list/TaskGroupHeader.tsx"
   ],
   "Go to top of list": [
     "features/next-soup/soup-view/use-soup-view-hotkeys.ts"
@@ -3049,6 +3236,7 @@
     "features/command/Launcher.tsx",
     "features/command/CommandMenu.tsx",
     "features/soup/createSoupEntityActions.ts",
+    "features/tasks-view/components/task-list/TaskList.tsx",
     "features/email-view/components/EmailList.tsx",
     "components/app/app-sidebar/sidebar.tsx"
   ],
@@ -3076,6 +3264,7 @@
     "features/property/utils/display.ts",
     "features/activity/primitives/actor-name.ts",
     "features/entity/extractors/entity-title.tsx",
+    "features/tasks-view/components/task-list/TaskGridLayout.tsx",
     "features/block-channel/component/Compose.tsx",
     "lib/core/component/LexicalMarkdown/component/decorator/DocumentMention.tsx",
     "lib/core/component/LexicalMarkdown/component/decorator/UnknownMention.tsx",
@@ -3083,14 +3272,20 @@
   ],
   "Assignees": [
     "features/next-soup/soup-view/views/tasks/task-grid-template.ts",
-    "features/property/mocks/mockProperties.ts"
+    "features/property/mocks/mockProperties.ts",
+    "features/tasks-view/filters/use-task-filters.tsx",
+    "features/tasks-view/components/task-list/task-grid-template.ts",
+    "features/tasks-view/components/task-list/TaskListHeader.tsx"
   ],
   "Created By": [
-    "features/next-soup/soup-view/views/tasks/TaskListHeader.tsx"
+    "features/next-soup/soup-view/views/tasks/TaskListHeader.tsx",
+    "features/tasks-view/components/task-list/TaskListHeader.tsx"
   ],
   "Updated": [
     "features/next-soup/soup-view/views/tasks/TaskListHeader.tsx",
     "features/next-soup/soup-view/views/inbox/inbox-card-layouts.tsx",
+    "features/tasks-view/components/task-list/TaskListHeader.tsx",
+    "features/tasks-view/constants.ts",
     "lib/core/util/linearImport.ts",
     "lib/fullcalendar-solid/FullCalendar.test.tsx"
   ],
@@ -3120,6 +3315,8 @@
     "features/activity/primitives/actor-name.ts",
     "features/block-agent/debug/Gallery.tsx",
     "features/channel/Message/ReactionChip.tsx",
+    "features/channel/Call/InCallPanel/InCallParticipantsListPopover.tsx",
+    "features/channel/Call/InCallPanel/InCallStripAvatarImage.tsx",
     "features/onboarding/sandbox/sandbox-store.ts",
     "features/activity/primitives/actor-name.test.ts",
     "features/channel/Message/tests/reactions.test.tsx"
@@ -3133,6 +3330,7 @@
   ],
   "metadata": [
     "features/next-soup/soup-view/views/inbox/InboxCard.tsx",
+    "features/block-call/component/CallRecording/CallRecordingVideo.tsx",
     "features/entity/composed/list-entity/foreign.tsx",
     "features/channel/Media/MediaVideo.tsx",
     "lib/core/component/VideoPreview.tsx",
@@ -3140,6 +3338,7 @@
     "lib/queries/agent-session/session-fold.ts",
     "lib/queries/soup/transform-utils.ts",
     "lib/service-clients/service-storage/graphql-soup.ts",
+    "features/block-call/component/CallRecording/CallRecordingVideo.test.tsx",
     "lib/queries/agent-session/session-fold.test.ts"
   ],
   "Link copied to clipboard": [
@@ -3207,8 +3406,7 @@
     "features/calendar/components/composer/EventForm.tsx",
     "features/property/tags/TagEditorDialog.tsx",
     "features/reminders/ReminderEditorSplit.tsx",
-    "features/settings/Harness.test.tsx",
-    "components/ui/components/Button.test.tsx"
+    "features/settings/Harness.test.tsx"
   ],
   "Copy link to current view": [
     "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx"
@@ -3242,6 +3440,7 @@
     "features/entity/extractors-property/entity-key-properties.tsx",
     "features/block-canvas/util/style.ts",
     "features/block-canvas/component/FloatingMenu.tsx",
+    "features/tasks-view/constants.ts",
     "features/companies/Company/CompanyMetadataSection.tsx",
     "lib/core/component/TopBar/linkShare.ts",
     "lib/core/component/TopBar/linkShare.test.ts"
@@ -3253,6 +3452,7 @@
     "features/property/api/converters.ts",
     "features/activity/queries/property-value.ts",
     "features/entity/extractors-property/property-helpers.ts",
+    "features/tasks-view/constants.ts",
     "features/reminders/ReminderForm.tsx",
     "lib/queries/properties/entity.ts",
     "lib/service-clients/service-storage/graphql-soup.ts"
@@ -3260,6 +3460,7 @@
   "Project": [
     "features/next-soup/soup-view/group-options.ts",
     "features/property/utils/display.ts",
+    "features/tasks-view/constants.ts",
     "lib/core/component/AI/component/tool/ListEntities.tsx",
     "lib/queries/preview/tests/graphql.test.ts"
   ],
@@ -3303,6 +3504,7 @@
     "features/property/editors/selectors/PropertyEntitySelector.tsx",
     "features/property/hooks/usePropertyEntityDisplay.tsx",
     "features/inbox-view/components/InboxList.tsx",
+    "features/tasks-view/components/task-list/TaskList.tsx",
     "features/email-view/components/EmailList.tsx",
     "lib/core/component/ItemPreview.tsx",
     "lib/core/component/LexicalMarkdown/component/decorator/DocumentMention.tsx"
@@ -3310,6 +3512,7 @@
   "Load More": [
     "features/next-soup/soup-view/soup-view.tsx",
     "features/inbox-view/components/InboxList.tsx",
+    "features/tasks-view/components/task-list/TaskList.tsx",
     "features/email-view/components/EmailList.tsx"
   ],
   "Failed to mark as done": [
@@ -3459,6 +3662,7 @@
   ],
   "Share": [
     "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/block-call/component/CallRecording/CallRecordingSplitHeader.tsx",
     "features/settings/Agents.tsx",
     "features/settings/Tags.tsx",
     "features/settings/HarnessPairingDialog.tsx",
@@ -3586,6 +3790,7 @@
     "features/block-agent/ui/ToolErrorCard.tsx",
     "features/channel/Bots/CredentialField.tsx",
     "features/channel/Participants/ChannelJoinLinkButton.tsx",
+    "features/ui-gallery/components/CodeBlock.tsx",
     "lib/core/component/AI/component/McpSetupCards.tsx",
     "lib/core/component/AI/component/AIChatEmptyState.tsx",
     "features/channel/Participants/ChannelJoinLinkButton.test.tsx"
@@ -3605,6 +3810,211 @@
     "features/next-soup/actions/make-mark-done-action.ts",
     "features/entity/extractors-notification/notification-actions.tsx",
     "features/email-thread/thread-completion-adapter.tsx"
+  ],
+  "Join call@@call": [
+    "features/block-call/sidebar/active-call-widget.tsx"
+  ],
+  "Dismiss@@call": [
+    "features/block-call/sidebar/active-call-widget.tsx"
+  ],
+  "Dismiss": [
+    "features/block-call/sidebar/active-call-widget.tsx",
+    "features/block-md/component/TaskDuplicateMatches.tsx",
+    "features/paywall/PaywallComponent.tsx",
+    "components/app/app-sidebar/sidebar-promo.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/MagicChipView.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/MagicChipView.test.tsx"
+  ],
+  "Incoming call@@call": [
+    "features/block-call/sidebar/active-call-widget.tsx"
+  ],
+  "Call@@call": [
+    "features/block-call/definition.ts",
+    "features/block-call/component/CallRecording/CallRecordingSplitHeader.tsx"
+  ],
+  "details": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx",
+    "features/calendar/utils/calendar-description.ts",
+    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
+    "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
+    "features/block-project/component/sidepanel/ProjectSidePanelSections.tsx",
+    "components/app/side-panel/FileSidePanelSections.tsx",
+    "lib/core/component/DetailsDrawer.tsx",
+    "lib/core/component/LexicalMarkdown/component/decorator/ContactMention.tsx"
+  ],
+  "Details@@call": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx"
+  ],
+  "Details": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx",
+    "features/block-video/component/TopBar.tsx",
+    "features/block-pr/component/sidepanel/PrSidePanelSections.tsx",
+    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
+    "features/contacts/Contact/Contact.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
+    "features/block-image/component/TopBar.tsx",
+    "features/block-chat/component/TopBar.tsx",
+    "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
+    "features/block-unknown/component/TopBar.tsx",
+    "features/block-canvas/component/TopBar.tsx",
+    "features/companies/Company/Company.tsx",
+    "features/block-code/component/TopBar.tsx",
+    "features/block-project/component/TopBar.tsx",
+    "features/block-project/component/sidepanel/ProjectSidePanelSections.tsx",
+    "components/app/side-panel/FileSidePanelSections.tsx",
+    "lib/core/component/DetailsDrawer.tsx"
+  ],
+  "Properties@@call": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx"
+  ],
+  "Properties": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx",
+    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
+    "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
+    "features/companies/Company/Company.tsx",
+    "features/block-email/component/sidepanel/EmailSidePanelSections.tsx",
+    "features/block-project/component/sidepanel/ProjectSidePanelSections.tsx",
+    "components/app/side-panel/FileSidePanelSections.tsx"
+  ],
+  "Sharing@@call": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx"
+  ],
+  "Sharing": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx",
+    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
+    "features/property/tags/TagEditorDialog.tsx",
+    "features/contacts/Contact/Contact.tsx",
+    "features/companies/Company/Company.tsx"
+  ],
+  "Owner@@call": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx"
+  ],
+  "Started@@call": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx"
+  ],
+  "Started": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx",
+    "lib/document-processing-types/jobTypes/jobStatus.ts"
+  ],
+  "Ended@@call": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx"
+  ],
+  "Duration@@call": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx"
+  ],
+  "Duration": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx",
+    "features/entity/composed/list-entity/foreign.tsx"
+  ],
+  "Status@@call": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx"
+  ],
+  "In progress@@call": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx",
+    "features/block-call/component/CallRecording/CallRecordingBody.tsx"
+  ],
+  "Share with team@@call": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx"
+  ],
+  "Lets everyone on your team view and search this call's transcript and AI summary.@@call": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx"
+  ],
+  "References@@call": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx"
+  ],
+  "References": [
+    "features/block-call/component/sidepanel/CallSidePanelSections.tsx",
+    "features/block-video/component/TopBar.tsx",
+    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
+    "features/block-pdf/component/TopBar.tsx",
+    "features/block-image/component/TopBar.tsx",
+    "features/block-unknown/component/TopBar.tsx",
+    "features/block-canvas/component/TopBar.tsx",
+    "features/block-code/component/TopBar.tsx",
+    "features/block-email/component/sidepanel/EmailSidePanelSections.tsx",
+    "components/app/ResponsiveBlockToolbar.tsx",
+    "lib/core/component/ReferencesModal.tsx"
+  ],
+  "Transcript@@call": [
+    "features/block-call/component/CallTranscript.tsx",
+    "features/block-call/component/CallRecording/CallRecordingBody.tsx"
+  ],
+  "Sync to video time@@call": [
+    "features/block-call/component/CallTranscript.tsx"
+  ],
+  "Summary@@call": [
+    "features/block-call/component/CallRecording/CallRecordingSummary.tsx"
+  ],
+  "Generating summary…@@call": [
+    "features/block-call/component/CallRecording/CallRecordingSummary.tsx"
+  ],
+  "Call Recording@@call": [
+    "features/block-call/component/CallRecording/CallRecordingSplitHeader.tsx"
+  ],
+  "Share@@call": [
+    "features/block-call/component/CallRecording/CallRecordingSplitHeader.tsx"
+  ],
+  "Ask Macro@@call": [
+    "features/block-call/component/CallRecording/CallRecordingSplitHeader.tsx"
+  ],
+  "Ask Macro": [
+    "features/block-call/component/CallRecording/CallRecordingSplitHeader.tsx",
+    "features/block-md/component/TopBar.tsx",
+    "features/block-md/component/MarkdownPopup.tsx",
+    "features/chat/ChatWithAgentButton.tsx",
+    "features/block-pdf/component/TopBar.tsx",
+    "features/block-canvas/component/TopBar.tsx",
+    "features/block-email/component/TopBar.tsx",
+    "features/block-channel/component/NewChannelBlockAdapter.tsx"
+  ],
+  "Chat@@call": [
+    "features/block-call/component/CallRecording/CallRecordingSplitHeader.tsx"
+  ],
+  "Chat": [
+    "features/block-call/component/CallRecording/CallRecordingSplitHeader.tsx",
+    "features/block-md/component/TopBar.tsx",
+    "features/chat/ChatWithAgentButton.tsx",
+    "features/property/utils/display.ts",
+    "features/block-pdf/component/TopBar.tsx",
+    "features/notifications/notification-event-catalog.ts",
+    "features/block-email/component/TopBar.tsx",
+    "features/block-project/component/TopBar.tsx",
+    "components/app/ResponsiveBlockToolbar.tsx",
+    "components/app/sidebar-next/nav-items.ts",
+    "lib/core/component/EntityIcon.tsx",
+    "lib/core/component/AI/component/tool/ListEntities.tsx"
+  ],
+  "Call Again@@call": [
+    "features/block-call/component/CallRecording/CallRecordingSplitHeader.tsx"
+  ],
+  "Actions@@call": [
+    "features/block-call/component/CallRecording/CallRecordingBody.tsx"
+  ],
+  "Actions": [
+    "features/block-call/component/CallRecording/CallRecordingBody.tsx",
+    "features/block-md/component/Notebook.tsx",
+    "features/entity/EntitySelectionToolbarModal.tsx",
+    "features/block-pdf/component/sidepanel/PdfSidePanelSections.tsx",
+    "features/ui-gallery/types.ts",
+    "features/block-email/EmailBlockAdapter.tsx",
+    "components/ui/components/Button.docs.tsx",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "Recording@@call": [
+    "features/block-call/component/CallRecording/CallRecordingBody.tsx"
+  ],
+  "Participants@@call": [
+    "features/block-call/component/CallRecording/CallRecordingParticipants.tsx"
+  ],
+  "This recording uses a media format your browser can't play.@@call": [
+    "features/block-call/component/CallRecording/CallRecordingVideo.tsx"
+  ],
+  "You can still open or download the recording to play it in another app.@@call": [
+    "features/block-call/component/CallRecording/CallRecordingVideo.tsx"
+  ],
+  "Open or download recording@@call": [
+    "features/block-call/component/CallRecording/CallRecordingVideo.tsx"
   ],
   "Close settings": [
     "features/settings/Settings.tsx"
@@ -3629,6 +4039,7 @@
   ],
   "Settings": [
     "features/settings/Settings.tsx",
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx",
     "features/onboarding/components/MockAppChrome.tsx",
     "components/app/app-sidebar/sidebar.tsx",
     "components/app/mobile/MobileDockRow.tsx",
@@ -3750,6 +4161,7 @@
   "Admin": [
     "features/settings/Settings.tsx",
     "features/settings/Team.tsx",
+    "components/ui/components/Select.docs.tsx",
     "lib/core/constant/settingsTabsConfig.tsx",
     "lib/core/constant/SettingsState.tsx"
   ],
@@ -3797,6 +4209,7 @@
     "features/reminders/ReminderForm.tsx",
     "components/ui/components/ConfirmDialog.tsx",
     "components/ui/components/DeleteDialog.tsx",
+    "components/ui/components/Panel.docs.tsx",
     "components/app/mobile/ConfirmDrawer.tsx",
     "lib/core/internal/ThemeDebug.tsx",
     "lib/core/component/ForwardToChannel.tsx",
@@ -3836,6 +4249,7 @@
     "features/calendar/components/composer/RecurrenceBuilder.tsx",
     "features/activity/core/describe-action.ts",
     "features/block-pdf/model/Section.ts",
+    "components/ui/components/ToggleSwitch.docs.tsx",
     "lib/core/component/AI/component/tool/calendar/event-preview-model.ts",
     "features/calendar/utils/recurrence.test.ts",
     "features/activity/core/describe-action.test.ts"
@@ -3971,7 +4385,8 @@
   ],
   "Member": [
     "features/settings/Team.tsx",
-    "features/entity/mocks/mockEntityData.ts"
+    "features/entity/mocks/mockEntityData.ts",
+    "components/ui/components/Select.docs.tsx"
   ],
   "Enter email address": [
     "features/settings/Team.tsx"
@@ -4042,7 +4457,9 @@
     "features/settings/Team.tsx",
     "features/entity/composed/list-entity/channel.tsx",
     "features/setup/flow/TeamStep.tsx",
-    "features/team-invitations/TeamInviteAcceptance.tsx"
+    "features/team-invitations/TeamInviteAcceptance.tsx",
+    "features/channel/Channel/ActiveCallMessage.tsx",
+    "features/channel/Call/ChannelCallButton.tsx"
   ],
   "Team@@team": [
     "features/settings/Team.tsx"
@@ -4292,6 +4709,8 @@
     "features/setup/primitives.tsx",
     "features/setup/ConnectorRow.tsx",
     "features/setup/flow/EmailStep.tsx",
+    "features/channel/Call/livekit-loader.ts",
+    "features/channel/Call/native-call-state.ts",
     "features/block-canvas/operation/connect.ts",
     "features/block-canvas/util/renderQueue.ts",
     "features/block-canvas/util/connectors.ts",
@@ -4303,7 +4722,8 @@
     "lib/core/pipedream/catalog.ts",
     "lib/queries/pipedream-connectors.ts",
     "features/settings/Agents.test.tsx",
-    "features/settings/agentMcpServers.test.ts"
+    "features/settings/agentMcpServers.test.ts",
+    "features/channel/Call/tests/call-overlay-muted.test.tsx"
   ],
   "Connect": [
     "features/settings/Email.tsx",
@@ -4345,6 +4765,9 @@
     "features/settings/PipedreamIntegrations.tsx",
     "features/settings/Integrations.tsx",
     "features/extensions/TagSelectorDropdown.tsx",
+    "components/ui/components/Button.docs.tsx",
+    "components/ui/components/Checkbox.docs.tsx",
+    "components/ui/components/Select.docs.tsx",
     "lib/core/internal/ThemeDebug.tsx"
   ],
   "Backfilling…": [
@@ -4355,7 +4778,8 @@
     "features/home/home-backfill-progress.tsx",
     "features/block-md/comments/CommentThreadDrawer.tsx",
     "features/setup/flow/SummaryStep.tsx",
-    "features/block-pdf/model/Section.ts"
+    "features/block-pdf/model/Section.ts",
+    "features/ui-gallery/components/CoveragePage.tsx"
   ],
   "threads": [
     "features/settings/Email.tsx",
@@ -4697,8 +5121,7 @@
     "features/setup/flow/PlanStep.tsx",
     "features/onboarding/components-lib.tsx",
     "features/onboarding/InteractiveOnboardingModal.tsx",
-    "features/onboarding/InteractiveOnboarding.tsx",
-    "components/ui/components/Button.test.tsx"
+    "features/onboarding/InteractiveOnboarding.tsx"
   ],
   "Are you absolutely sure?": [
     "features/settings/Account.tsx"
@@ -4763,6 +5186,7 @@
     "features/settings/PipedreamIntegrations.tsx",
     "features/settings/Integrations.tsx",
     "components/ui/components/ConfirmDialog.tsx",
+    "components/ui/components/Panel.docs.tsx",
     "components/app/mobile/ConfirmDrawer.tsx",
     "lib/core/internal/ThemeDebug.tsx"
   ],
@@ -4872,8 +5296,7 @@
     "components/app/split-layout/SplitButtons.tsx",
     "lib/core/component/Lightbox/Lightbox.tsx",
     "lib/core/component/AI/component/input/useAiDataConsent.tsx",
-    "routes/Root.tsx",
-    "components/ui/components/Button.test.tsx"
+    "routes/Root.tsx"
   ],
   "e.g. CI, local scripts": [
     "features/settings/ApiKeys.tsx"
@@ -4915,6 +5338,7 @@
     "features/channel/Message/Root.tsx",
     "features/theme/types/themeTypes.ts",
     "features/theme/components/ThemeTokenEditor.tsx",
+    "components/ui/foundations/colors.docs.tsx",
     "lib/core/component/Themes.tsx",
     "lib/core/component/LexicalMarkdown/plugins/comments/commentPlugin.ts",
     "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/presentation.ts",
@@ -4941,6 +5365,7 @@
     "features/block-agent/component/parts/ToolCallPart.tsx",
     "features/block-agent/component/ComposeAgentSession.tsx",
     "features/block-agent/debug/Gallery.tsx",
+    "components/ui/components/TextField.docs.tsx",
     "components/app/split-layout/context.ts",
     "components/app/split-layout/components/SplitFileMenu.tsx",
     "lib/core/internal/App.tsx",
@@ -5023,6 +5448,7 @@
     "features/block-canvas/component/CanvasController.tsx",
     "features/soup/createSoupEntityActions.ts",
     "features/block-email/component/TopBar.tsx",
+    "components/ui/components/Button.docs.tsx",
     "components/ui/components/DeleteDialog.tsx",
     "components/app/split-layout/components/SplitFileMenu.tsx",
     "lib/core/component/DocumentPreview.tsx",
@@ -5080,7 +5506,8 @@
     "lib/queries/email/write-completion.test.tsx"
   ],
   "Avatar": [
-    "features/settings/Agents.tsx"
+    "features/settings/Agents.tsx",
+    "components/ui/components/Avatar.docs.tsx"
   ],
   "Optional · square images work best": [
     "features/settings/Agents.tsx",
@@ -5221,6 +5648,7 @@
     "lib/core/component/LexicalMarkdown/component/core/StaticMarkdown.tsx",
     "lib/queries/properties/graphql/entity.ts",
     "lib/utils/favicon.ts",
+    "features/block-call/component/CallRecording/CallRecordingVideo.test.tsx",
     "features/settings/Harness.test.tsx"
   ],
   "Font": [
@@ -5329,7 +5757,9 @@
     "lib/core/component/AI/component/tool/Properties.tsx"
   ],
   "New tag": [
-    "features/settings/Tags.tsx"
+    "features/settings/Tags.tsx",
+    "features/property/tags/SidebarTagsSection.tsx",
+    "features/property/tags/SidebarTagsSection.test.tsx"
   ],
   "Share with team": [
     "features/settings/Tags.tsx",
@@ -5378,7 +5808,8 @@
     "features/settings/Notifications.tsx"
   ],
   "Desktop notifications": [
-    "features/settings/Notifications.tsx"
+    "features/settings/Notifications.tsx",
+    "components/ui/components/ToggleSwitch.docs.tsx"
   ],
   "Receive push notifications on this device": [
     "features/settings/Notifications.tsx"
@@ -5545,6 +5976,7 @@
   ],
   "Default": [
     "features/settings/Appearance.tsx",
+    "components/ui/components/Panel.docs.tsx",
     "lib/core/internal/ThemeDebug.tsx",
     "lib/core/component/LexicalMarkdown/component/debug/MarkdownParseTestPage.tsx"
   ],
@@ -5564,7 +5996,8 @@
     "components/app/GlobalHotkeys.tsx"
   ],
   "Currently": [
-    "features/settings/Appearance.tsx"
+    "features/settings/Appearance.tsx",
+    "components/ui/components/ToggleSwitch.docs.tsx"
   ],
   "Dark": [
     "features/settings/Appearance.tsx"
@@ -5723,7 +6156,8 @@
     "features/settings/Integrations.tsx"
   ],
   "Connecting...": [
-    "features/settings/Integrations.tsx"
+    "features/settings/Integrations.tsx",
+    "features/channel/Call/ChannelCallTab.tsx"
   ],
   "Try Again": [
     "features/settings/Integrations.tsx",
@@ -6121,7 +6555,8 @@
   "Try again": [
     "features/home/home-hub.tsx",
     "features/home/home-section-boundary.tsx",
-    "features/inbox-view/components/InboxList.tsx"
+    "features/inbox-view/components/InboxList.tsx",
+    "features/tasks-view/components/task-list/TaskList.tsx"
   ],
   "Connect your inbox": [
     "features/home/home-hub.tsx"
@@ -6256,36 +6691,6 @@
   ],
   "Downloading {fileName}": [
     "features/block-video/component/TopBar.tsx"
-  ],
-  "Details": [
-    "features/block-video/component/TopBar.tsx",
-    "features/block-pr/component/sidepanel/PrSidePanelSections.tsx",
-    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
-    "features/contacts/Contact/Contact.tsx",
-    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "features/block-image/component/TopBar.tsx",
-    "features/block-chat/component/TopBar.tsx",
-    "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
-    "features/block-unknown/component/TopBar.tsx",
-    "features/block-canvas/component/TopBar.tsx",
-    "features/companies/Company/Company.tsx",
-    "features/block-code/component/TopBar.tsx",
-    "features/block-project/component/TopBar.tsx",
-    "features/block-project/component/sidepanel/ProjectSidePanelSections.tsx",
-    "components/app/side-panel/FileSidePanelSections.tsx",
-    "lib/core/component/DetailsDrawer.tsx"
-  ],
-  "References": [
-    "features/block-video/component/TopBar.tsx",
-    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
-    "features/block-pdf/component/TopBar.tsx",
-    "features/block-image/component/TopBar.tsx",
-    "features/block-unknown/component/TopBar.tsx",
-    "features/block-canvas/component/TopBar.tsx",
-    "features/block-code/component/TopBar.tsx",
-    "features/block-email/component/sidepanel/EmailSidePanelSections.tsx",
-    "components/app/ResponsiveBlockToolbar.tsx",
-    "lib/core/component/ReferencesModal.tsx"
   ],
   "View a GitHub pull request": [
     "features/block-pr/definition.ts"
@@ -6521,6 +6926,7 @@
   "Duplicate": [
     "features/block-automation/component/Automation.tsx",
     "features/soup/createSoupEntityActions.ts",
+    "components/ui/components/Button.docs.tsx",
     "components/app/split-layout/components/SplitFileMenu.tsx"
   ],
   "Run Now": [
@@ -6644,16 +7050,6 @@
     "features/calendar/components/CalendarSettingsDropdown.tsx",
     "features/calendar/availability/settings.ts",
     "components/app/app-sidebar/calendar-sidebar-preview.tsx"
-  ],
-  "details": [
-    "features/calendar/utils/calendar-description.ts",
-    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
-    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
-    "features/block-project/component/sidepanel/ProjectSidePanelSections.tsx",
-    "components/app/side-panel/FileSidePanelSections.tsx",
-    "lib/core/component/DetailsDrawer.tsx",
-    "lib/core/component/LexicalMarkdown/component/decorator/ContactMention.tsx"
   ],
   "Choose month": [
     "features/calendar/components/MonthDrawer.tsx",
@@ -7450,6 +7846,7 @@
     "lib/graphql-cache/worker/coordinator-core.ts",
     "features/entity/tests/notification.test.ts",
     "features/block-agent/component/parts/ToolCallPart.test.tsx",
+    "features/notifications/tests/notification-source.test.ts",
     "lib/queries/soup/backfill.test.tsx",
     "lib/graphql-cache/protocol.test.ts",
     "lib/graphql-cache/exchange/normalized-cache-exchange.test.ts",
@@ -7487,27 +7884,6 @@
   "Dispatch to Agent": [
     "features/block-md/component/TopBar.tsx",
     "components/app/ResponsiveBlockToolbar.tsx"
-  ],
-  "Chat": [
-    "features/block-md/component/TopBar.tsx",
-    "features/chat/ChatWithAgentButton.tsx",
-    "features/property/utils/display.ts",
-    "features/block-pdf/component/TopBar.tsx",
-    "features/notifications/notification-event-catalog.ts",
-    "features/block-email/component/TopBar.tsx",
-    "features/block-project/component/TopBar.tsx",
-    "components/app/ResponsiveBlockToolbar.tsx",
-    "components/app/sidebar-next/nav-items.ts",
-    "lib/core/component/EntityIcon.tsx",
-    "lib/core/component/AI/component/tool/ListEntities.tsx"
-  ],
-  "Ask Macro": [
-    "features/block-md/component/TopBar.tsx",
-    "features/block-md/component/MarkdownPopup.tsx",
-    "features/chat/ChatWithAgentButton.tsx",
-    "features/block-pdf/component/TopBar.tsx",
-    "features/block-canvas/component/TopBar.tsx",
-    "features/block-email/component/TopBar.tsx"
   ],
   "Code Actions": [
     "features/block-md/component/TopBar.tsx"
@@ -7556,14 +7932,6 @@
   "Similar Tasks": [
     "features/block-md/component/TaskDuplicateList.tsx"
   ],
-  "Properties": [
-    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
-    "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
-    "features/companies/Company/Company.tsx",
-    "features/block-email/component/sidepanel/EmailSidePanelSections.tsx",
-    "features/block-project/component/sidepanel/ProjectSidePanelSections.tsx",
-    "components/app/side-panel/FileSidePanelSections.tsx"
-  ],
   "Stats": [
     "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx"
   ],
@@ -7573,12 +7941,6 @@
     "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
     "components/app/app-sidebar/sidebar.tsx"
   ],
-  "Sharing": [
-    "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
-    "features/property/tags/TagEditorDialog.tsx",
-    "features/contacts/Contact/Contact.tsx",
-    "features/companies/Company/Company.tsx"
-  ],
   "Lets everyone on your team insert this snippet from the ; menu and edit it.": [
     "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx"
   ],
@@ -7586,6 +7948,7 @@
     "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
     "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
     "features/block-chat/component/sidepanel/ChatSidePanelSections.tsx",
+    "features/tasks-view/constants.ts",
     "components/app/side-panel/FileSidePanelSections.tsx",
     "lib/core/util/linearImport.ts",
     "lib/core/component/DetailsDrawer.tsx",
@@ -7685,13 +8048,6 @@
   "Duplicate Tasks": [
     "features/block-md/component/TaskDuplicateMatches.tsx"
   ],
-  "Dismiss": [
-    "features/block-md/component/TaskDuplicateMatches.tsx",
-    "features/paywall/PaywallComponent.tsx",
-    "components/app/app-sidebar/sidebar-promo.tsx",
-    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/MagicChipView.tsx",
-    "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/MagicChipView.test.tsx"
-  ],
   "Dismiss all": [
     "features/block-md/component/TaskDuplicateMatches.tsx"
   ],
@@ -7771,13 +8127,6 @@
   ],
   "Focus Title or Markdown Editor": [
     "features/block-md/component/Notebook.tsx"
-  ],
-  "Actions": [
-    "features/block-md/component/Notebook.tsx",
-    "features/entity/EntitySelectionToolbarModal.tsx",
-    "features/block-pdf/component/sidepanel/PdfSidePanelSections.tsx",
-    "features/block-email/EmailBlockAdapter.tsx",
-    "components/app/split-layout/components/SplitFileMenu.tsx"
   ],
   "Offline": [
     "features/block-md/component/CollabStatus.tsx",
@@ -8131,7 +8480,10 @@
   ],
   "In progress": [
     "features/property/mocks/mockProperties.ts",
+    "features/entity/composed/list-entity/wide-layout.tsx",
+    "features/entity/composed/list-entity/call.tsx",
     "features/entity/composed/list-entity/foreign.tsx",
+    "features/tasks-view/filters/task-facets.ts",
     "features/activity/core/collapse-runs.test.ts"
   ],
   "Lead": [
@@ -8257,6 +8609,7 @@
   ],
   "Input": [
     "features/property/utils/display.ts",
+    "components/ui/components/Input.docs.tsx",
     "lib/core/component/AI/component/debug/StaticMarkdownStream.tsx",
     "lib/core/component/LexicalMarkdown/component/debug/MarkdownParseTestPage.tsx"
   ],
@@ -8264,7 +8617,8 @@
     "features/property/utils/display.ts"
   ],
   "Checkbox": [
-    "features/property/utils/display.ts"
+    "features/property/utils/display.ts",
+    "components/ui/components/Checkbox.docs.tsx"
   ],
   "Option": [
     "features/property/utils/display.ts"
@@ -8323,6 +8677,9 @@
   "Creating...": [
     "features/property/tags/TagPicker.tsx",
     "lib/core/component/LexicalMarkdown/component/menu/TagsMenu.tsx"
+  ],
+  "No tags yet": [
+    "features/property/tags/SidebarTagsSection.tsx"
   ],
   "Create tag": [
     "features/property/tags/TagEditorDialog.tsx",
@@ -8710,7 +9067,8 @@
   ],
   "Palette": [
     "features/entity/mocks/mockEntityData.ts",
-    "features/theme/components/ThemeTokenEditor.tsx"
+    "features/theme/components/ThemeTokenEditor.tsx",
+    "components/ui/foundations/colors.docs.tsx"
   ],
   "Prepend": [
     "features/entity/bulk-edit/BulkRenameEntitiesView.tsx"
@@ -8858,6 +9216,13 @@
     "features/entity/components/Badges.tsx",
     "lib/queries/soup/graphql/ast.ts"
   ],
+  "Participants": [
+    "features/entity/composed/list-entity/call.tsx",
+    "features/channel/Channel/channel-tabs.ts"
+  ],
+  "No duration": [
+    "features/entity/composed/list-entity/call.tsx"
+  ],
   "Attached Items@@chat": [
     "features/entity/composed/list-entity/channel.tsx"
   ],
@@ -8907,9 +9272,6 @@
     "features/entity/composed/list-entity/foreign.tsx"
   ],
   "GitHub has not reported any check runs for this pull request.": [
-    "features/entity/composed/list-entity/foreign.tsx"
-  ],
-  "Duration": [
     "features/entity/composed/list-entity/foreign.tsx"
   ],
   "#{number}": [
@@ -9088,6 +9450,7 @@
   "Favorites": [
     "features/favorites/sidebar/favorites-section.tsx",
     "features/command/FavoritesCommands.tsx",
+    "features/tasks-view/components/TasksSidebar.tsx",
     "lib/service-clients/service-storage/graphql-favorites.test.ts"
   ],
   "Open in new split@@favorites": [
@@ -9458,14 +9821,6 @@
   "Create conversation@@chat": [
     "features/channels-view/components/rail/SlimChannelsRail.tsx"
   ],
-  "Open in new tab@@chat": [
-    "features/channels-view/components/rail/ChannelRailItems.tsx"
-  ],
-  "Open in new tab": [
-    "features/channels-view/components/rail/ChannelRailItems.tsx",
-    "lib/core/component/LexicalMarkdown/component/decorator/MediaButtons.tsx",
-    "lib/core/component/LexicalMarkdown/component/menu/FloatingLinkMenu.tsx"
-  ],
   "Notifications are muted@@chat": [
     "features/channels-view/components/rail/ChannelRailItems.tsx"
   ],
@@ -9476,10 +9831,14 @@
     "features/channels-view/components/rail/ChannelRailItems.tsx"
   ],
   "You@@chat": [
-    "features/channels-view/components/rail/ChannelRailItems.tsx"
+    "features/channels-view/components/rail/ChannelRailItems.tsx",
+    "features/channel/Call/CallOverlay.tsx",
+    "features/channel/Call/InCallPanel/InCallParticipantsListPopover.tsx"
   ],
   "Someone@@chat": [
-    "features/channels-view/components/rail/ChannelRailItems.tsx"
+    "features/channels-view/components/rail/ChannelRailItems.tsx",
+    "features/channel/Call/CallStartedNotifier.tsx",
+    "features/channel/Call/ChannelCallTab.tsx"
   ],
   "Reply in thread@@chat": [
     "features/channels-view/components/rail/ChannelRailItems.tsx"
@@ -9513,7 +9872,8 @@
   ],
   "Try again@@chat": [
     "features/channels-view/components/rail/ChannelsRailSection.tsx",
-    "features/channels-view/components/ChannelsMobileView.tsx"
+    "features/channels-view/components/ChannelsMobileView.tsx",
+    "features/channel/Call/ChannelCallTab.tsx"
   ],
   "notification": [
     "features/channels-view/components/rail/hooks/useChannelRailActivity.ts",
@@ -9525,7 +9885,8 @@
     "lib/queries/notification/user-notifications.ts",
     "lib/service-clients/service-notification/client.ts",
     "features/next-soup/utils.test.ts",
-    "features/notifications/tests/notification-source.test.ts"
+    "features/notifications/tests/notification-source.test.ts",
+    "components/app/sidebar-next/queries/use-sidebar-unread.test.ts"
   ],
   "Next channel section@@chat": [
     "features/channels-view/components/rail/ChannelsRail.tsx"
@@ -9644,12 +10005,16 @@
   "Choose a model": [
     "features/block-agent/ui/AgentModelSelector.tsx"
   ],
-  "Models": [
-    "features/block-agent/ui/AgentModelSelector.tsx"
-  ],
   "Search models": [
     "features/block-agent/ui/AgentModelSelector.tsx",
     "lib/core/component/AI/component/input/ModelCatalogPicker.tsx"
+  ],
+  "No models match that search.": [
+    "features/block-agent/ui/AgentModelSelector.tsx",
+    "lib/core/component/AI/component/input/ModelCatalogPicker.tsx"
+  ],
+  "Models": [
+    "features/block-agent/ui/AgentModelSelector.tsx"
   ],
   "by {name}": [
     "features/block-agent/ui/QueuedPrompts.tsx"
@@ -9705,8 +10070,7 @@
   ],
   "Ready": [
     "features/block-agent/ui/SessionStatusPill.tsx",
-    "features/email-compose/primitives/send-schedule.test.ts",
-    "components/ui/components/Badge.test.tsx"
+    "features/email-compose/primitives/send-schedule.test.ts"
   ],
   "View an agent session": [
     "features/block-agent/definition.ts"
@@ -9782,6 +10146,7 @@
     "features/block-agent/state/session-summary.ts",
     "lib/core/component/LexicalMarkdown/component/decorator/MagicChip/presentation.ts",
     "lib/service-clients/orval.config.ts",
+    "features/block-call/component/CallRecording/CallRecordingVideo.test.tsx",
     "lib/service-clients/service-storage/graphql-soup.test.ts"
   ],
   "Answered": [
@@ -9928,6 +10293,7 @@
   "Auto": [
     "features/block-agent/debug/Gallery.tsx",
     "lib/core/component/AI/component/input/modelCatalog.ts",
+    "features/block-agent/ui/model-groups.test.ts",
     "features/block-agent/component/compose-agent-session-options.test.ts"
   ],
   "Select any of the message text, then click Reply to this.": [
@@ -10701,6 +11067,12 @@
   "Find in channel@@chat": [
     "features/channel/Channel/create-channel-hotkeys.ts"
   ],
+  "A call is active in this channel": [
+    "features/channel/Channel/ActiveCallMessage.tsx"
+  ],
+  "Active for": [
+    "features/channel/Channel/ActiveCallMessage.tsx"
+  ],
   "Editing message@@chat": [
     "features/channel/Channel/UnifiedEditInput.tsx"
   ],
@@ -10717,17 +11089,9 @@
   "Attachments@@chat": [
     "features/channel/Channel/channel-tabs.ts"
   ],
-  "Participants": [
-    "features/channel/Channel/channel-tabs.ts"
-  ],
   "Call@@chat": [
-    "features/channel/Channel/channel-tabs.ts"
-  ],
-  "Call": [
     "features/channel/Channel/channel-tabs.ts",
-    "features/notifications/notification-event-catalog.ts",
-    "lib/core/component/EntityIcon.tsx",
-    "../../../packages/i18n/context.test.ts"
+    "features/block-channel/component/NewChannelBlockAdapter.tsx"
   ],
   "Link copied to clipboard@@chat": [
     "features/channel/Channel/create-channel-message-actions.ts"
@@ -10737,6 +11101,119 @@
   ],
   "Scroll to bottom@@chat": [
     "features/channel/Channel/ScrollToBottomOverlay.tsx"
+  ],
+  "You are muted@@chat": [
+    "features/channel/Call/CallOverlay.tsx"
+  ],
+  "Connecting...@@chat": [
+    "features/channel/Call/CallOverlay.tsx"
+  ],
+  "'s screen@@chat": [
+    "features/channel/Call/CallOverlay.tsx"
+  ],
+  "Your screen@@chat": [
+    "features/channel/Call/CallOverlay.tsx"
+  ],
+  "Share with team@@chat": [
+    "features/channel/Call/CallOverlay.tsx",
+    "features/channel/Call/CallControls/CallControlsPanelSmallRow.tsx"
+  ],
+  "Start call@@chat": [
+    "features/channel/Call/ChannelCallButton.tsx"
+  ],
+  "Background@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx"
+  ],
+  "None@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx"
+  ],
+  "Blur@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx"
+  ],
+  "Image@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx"
+  ],
+  "Toggle microphone@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx"
+  ],
+  "Toggle video@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx"
+  ],
+  "Screen share@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx"
+  ],
+  "Settings@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx"
+  ],
+  "Call settings@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx"
+  ],
+  "Microphone@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx",
+    "features/channel/Call/CallControls/CallControlsPanelSmallRow.tsx"
+  ],
+  "Speaker@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx",
+    "features/channel/Call/CallControls/CallControlsPanelSmallRow.tsx"
+  ],
+  "Camera@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx",
+    "features/channel/Call/CallControls/CallControlsPanelSmallRow.tsx"
+  ],
+  "Audio processing@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx",
+    "features/channel/Call/CallControls/CallControlsPanelSmallRow.tsx"
+  ],
+  "Noise suppression@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx",
+    "features/channel/Call/CallControls/CallControlsPanelSmallRow.tsx"
+  ],
+  "Leave call@@chat": [
+    "features/channel/Call/CallControls/CallControlsDefaultAndPanelRow.tsx",
+    "features/channel/Call/InCallPanel/InCallPanelView.tsx"
+  ],
+  "Call options@@chat": [
+    "features/channel/Call/CallControls/CallControlsPanelSmallRow.tsx"
+  ],
+  "Incoming call{target}@@chat": [
+    "features/channel/Call/CallStartedNotifier.tsx"
+  ],
+  "In this call@@chat": [
+    "features/channel/Call/InCallPanel/InCallParticipantsListPopover.tsx"
+  ],
+  "Connecting…@@chat": [
+    "features/channel/Call/InCallPanel/InCallParticipantsListPopover.tsx",
+    "features/channel/Call/ChannelCallTab.tsx"
+  ],
+  "Everyone in call@@chat": [
+    "features/channel/Call/InCallPanel/InCallParticipantsListPopover.tsx"
+  ],
+  "In call@@chat": [
+    "features/channel/Call/InCallPanel/InCallPanelView.tsx"
+  ],
+  "Open full call view@@chat": [
+    "features/channel/Call/InCallPanel/InCallPanelView.tsx"
+  ],
+  "is in this call.@@chat": [
+    "features/channel/Call/ChannelCallTab.tsx"
+  ],
+  "and@@chat": [
+    "features/channel/Call/ChannelCallTab.tsx"
+  ],
+  "are in this call.@@chat": [
+    "features/channel/Call/ChannelCallTab.tsx"
+  ],
+  ", and@@chat": [
+    "features/channel/Call/ChannelCallTab.tsx"
+  ],
+  "other@@chat": [
+    "features/channel/Call/ChannelCallTab.tsx"
+  ],
+  "Call in progress@@chat": [
+    "features/channel/Call/ChannelCallTab.tsx"
+  ],
+  "Joining call...@@chat": [
+    "features/channel/Call/ChannelCallTab.tsx"
   ],
   "Copy message text@@chat": [
     "features/channel/Mobile/ActionDrawer.tsx"
@@ -10772,10 +11249,6 @@
     "features/channel/CreateChannelModal.tsx"
   ],
   "To: Macro users or email addresses@@chat": [
-    "features/channel/CreateChannelModal.tsx",
-    "features/block-channel/component/Compose.tsx"
-  ],
-  "To: Macro users or email addresses": [
     "features/channel/CreateChannelModal.tsx",
     "features/block-channel/component/Compose.tsx"
   ],
@@ -10917,7 +11390,8 @@
     "features/integrations/import-linear/ImportLinear.tsx"
   ],
   "Row": [
-    "features/integrations/import-linear/ImportLinear.tsx"
+    "features/integrations/import-linear/ImportLinear.tsx",
+    "components/ui/components/Panel.docs.tsx"
   ],
   "Warnings": [
     "features/integrations/import-linear/ImportLinear.tsx"
@@ -11061,7 +11535,9 @@
     "features/block-canvas/util/renderQueue.ts",
     "features/block-canvas/component/FloatingMenu.tsx",
     "features/block-canvas/component/CanvasRenderer.tsx",
-    "features/block-canvas/store/canvasData.ts"
+    "features/block-canvas/store/canvasData.ts",
+    "components/ui/foundations/colors.docs.tsx",
+    "components/ui/components/Avatar.docs.tsx"
   ],
   "accent color": [
     "features/theme/signals/themeReactive.ts"
@@ -11123,7 +11599,8 @@
   ],
   "Surface": [
     "features/theme/components/ThemeTokenEditor.tsx",
-    "components/ui/components/Surface.test.tsx"
+    "components/ui/foundations/surfaces.docs.tsx",
+    "components/ui/components/Panel.docs.tsx"
   ],
   "Content": [
     "features/theme/components/ThemeTokenEditor.tsx"
@@ -11132,13 +11609,15 @@
     "features/theme/components/ThemeTokenEditor.tsx"
   ],
   "Accent": [
-    "features/theme/components/ThemeTokenEditor.tsx"
+    "features/theme/components/ThemeTokenEditor.tsx",
+    "components/ui/foundations/surfaces.docs.tsx"
   ],
   "Semantic surfaces": [
     "features/theme/components/ThemeTokenEditor.tsx"
   ],
   "Ink": [
     "features/theme/components/ThemeTokenEditor.tsx",
+    "components/ui/foundations/colors.docs.tsx",
     "lib/core/internal/IconGallery.tsx"
   ],
   "Interaction": [
@@ -11253,6 +11732,74 @@
   "No preview available for": [
     "features/block-unknown/component/Block.tsx"
   ],
+  "Search components": [
+    "features/ui-gallery/components/GallerySidebar.tsx"
+  ],
+  "No components match “": [
+    "features/ui-gallery/components/GallerySidebar.tsx"
+  ],
+  "Meta": [
+    "features/ui-gallery/components/GallerySidebar.tsx"
+  ],
+  "Coverage": [
+    "features/ui-gallery/components/GallerySidebar.tsx",
+    "features/ui-gallery/components/CoveragePage.tsx"
+  ],
+  "components in": [
+    "features/ui-gallery/components/CoveragePage.tsx"
+  ],
+  "have a page (": [
+    "features/ui-gallery/components/CoveragePage.tsx"
+  ],
+  "%). Add one by dropping a": [
+    "features/ui-gallery/components/CoveragePage.tsx"
+  ],
+  "file beside the component — the sidebar picks it up automatically.": [
+    "features/ui-gallery/components/CoveragePage.tsx"
+  ],
+  "For how much each component is actually used, and where call sites have to reskin one, run": [
+    "features/ui-gallery/components/CoveragePage.tsx"
+  ],
+  "Documentation coverage": [
+    "features/ui-gallery/components/CoveragePage.tsx"
+  ],
+  "Undocumented": [
+    "features/ui-gallery/components/CoveragePage.tsx"
+  ],
+  "Internal": [
+    "features/ui-gallery/components/DocPage.tsx",
+    "lib/core/component/LexicalMarkdown/component/debug/MarkdownParseTestPage.tsx"
+  ],
+  "No source found. Wrap this demo in": [
+    "features/ui-gallery/components/DocPage.tsx"
+  ],
+  "to show its code here.": [
+    "features/ui-gallery/components/DocPage.tsx"
+  ],
+  "Props": [
+    "features/ui-gallery/components/DocPage.tsx"
+  ],
+  "Read straight from the component, so it cannot drift.": [
+    "features/ui-gallery/components/DocPage.tsx"
+  ],
+  "Guidelines": [
+    "features/ui-gallery/components/DocPage.tsx"
+  ],
+  "Do": [
+    "features/ui-gallery/components/DocPage.tsx"
+  ],
+  "Don't": [
+    "features/ui-gallery/components/DocPage.tsx"
+  ],
+  "Edit this page at": [
+    "features/ui-gallery/components/DocPage.tsx"
+  ],
+  "UI Components": [
+    "features/ui-gallery/UiGallery.tsx"
+  ],
+  "Show code": [
+    "features/ui-gallery/UiGallery.tsx"
+  ],
   "Invalid Invite Link@@chat": [
     "features/channel-invitations/ChannelInviteAcceptance.tsx"
   ],
@@ -11343,7 +11890,8 @@
     "components/ui/components/CollapsedInput.tsx",
     "lib/core/component/DocumentPreview.tsx",
     "lib/core/component/AI/component/debug/HttpStream.tsx",
-    "features/entity/tests/filter.test.ts"
+    "features/entity/tests/filter.test.ts",
+    "features/channel/Input/tests/create-input-state.test.ts"
   ],
   "Create message": [
     "features/command/Launcher.tsx"
@@ -11904,6 +12452,61 @@
     "features/soup/createSoupEntityActions.ts",
     "features/notifications/components/BrowserNotificationModal.tsx"
   ],
+  "Loading tasks": [
+    "features/tasks-view/tasks-view.tsx"
+  ],
+  "Task list controls": [
+    "features/tasks-view/components/TasksFilterDrawer.tsx"
+  ],
+  "Tasks couldn’t be loaded.": [
+    "features/tasks-view/components/task-list/TaskList.tsx"
+  ],
+  "Search more results": [
+    "features/tasks-view/components/task-list/TaskList.tsx"
+  ],
+  "Searching": [
+    "features/tasks-view/components/task-list/TaskList.tsx"
+  ],
+  "My Tasks": [
+    "features/tasks-view/components/TasksSidebar.tsx"
+  ],
+  "All Tasks": [
+    "features/tasks-view/components/TasksSidebar.tsx"
+  ],
+  "Created by me": [
+    "features/tasks-view/components/TasksSidebar.tsx",
+    "features/tasks-view/constants.ts"
+  ],
+  "Task views": [
+    "features/tasks-view/components/TasksSidebar.tsx"
+  ],
+  "Favorite tasks": [
+    "features/tasks-view/components/TasksSidebar.tsx"
+  ],
+  "No favorites yet": [
+    "features/tasks-view/components/TasksSidebar.tsx"
+  ],
+  "Tasks navigation": [
+    "features/tasks-view/components/TasksSidebar.tsx"
+  ],
+  "Search tasks": [
+    "features/tasks-view/components/TasksHeader.tsx"
+  ],
+  "Filter tasks": [
+    "features/tasks-view/components/TasksControls.tsx"
+  ],
+  "Sort tasks": [
+    "features/tasks-view/components/TasksControls.tsx"
+  ],
+  "Group tasks": [
+    "features/tasks-view/components/TasksControls.tsx"
+  ],
+  "Team tasks": [
+    "features/tasks-view/constants.ts"
+  ],
+  "Viewed": [
+    "features/tasks-view/constants.ts"
+  ],
   "Your plan has been activated!": [
     "features/paywall/use-checkout-completion-listener.ts"
   ],
@@ -12202,6 +12805,7 @@
   ],
   "Aa": [
     "features/block-code/component/CodeSearchPanel.tsx",
+    "components/ui/foundations/typography.docs.tsx",
     "lib/core/internal/ThemeDebug.tsx"
   ],
   "Match case": [
@@ -12330,9 +12934,8 @@
     "features/email-view/components/EmailHeader.tsx",
     "features/email-view/components/EmailList.tsx"
   ],
-  "New@@email": [
-    "features/email-view/components/EmailSidebar.tsx",
-    "features/email-view/components/EmailHeader.tsx"
+  "Compose@@email": [
+    "features/email-view/components/EmailSidebar.tsx"
   ],
   "Filter email@@email": [
     "features/email-view/components/EmailControls.tsx",
@@ -12342,6 +12945,9 @@
     "features/email-view/components/EmailHeader.tsx"
   ],
   "Open Email navigation@@email": [
+    "features/email-view/components/EmailHeader.tsx"
+  ],
+  "New@@email": [
     "features/email-view/components/EmailHeader.tsx"
   ],
   "Loading email@@email": [
@@ -12354,10 +12960,16 @@
   "Try again@@email": [
     "features/email-view/components/EmailList.tsx"
   ],
-  "Search inboxes...@@email": [
+  "Inboxes@@email": [
+    "features/email-view/components/EmailInboxSelector.tsx"
+  ],
+  "All inboxes@@email": [
     "features/email-view/components/EmailInboxSelector.tsx"
   ],
   "Connect another account@@email": [
+    "features/email-view/components/EmailInboxSelector.tsx"
+  ],
+  "Inbox@@email": [
     "features/email-view/components/EmailInboxSelector.tsx"
   ],
   "Signal@@email": [
@@ -12418,7 +13030,8 @@
     "features/onboarding/MobileWebWelcome.tsx"
   ],
   "Email address": [
-    "features/onboarding/MobileWebWelcome.tsx"
+    "features/onboarding/MobileWebWelcome.tsx",
+    "components/ui/components/Input.docs.tsx"
   ],
   "Sign Up": [
     "features/onboarding/MobileWebWelcome.tsx",
@@ -12612,6 +13225,9 @@
     "features/block-channel/component/NewChannelBlockAdapter.tsx",
     "lib/core/component/TopBar/ShareButton.tsx"
   ],
+  "Ask Macro@@chat": [
+    "features/block-channel/component/NewChannelBlockAdapter.tsx"
+  ],
   "Rename@@chat": [
     "features/block-channel/component/NewChannelBlockAdapter.tsx"
   ],
@@ -12623,6 +13239,249 @@
   ],
   "Copy channel webhook URL@@chat": [
     "features/block-channel/component/useChannelBotManagement.ts"
+  ],
+  "Size / Ink": [
+    "components/ui/foundations/typography.docs.tsx",
+    "lib/core/internal/ThemeDebug.tsx"
+  ],
+  "Size sets scale, ink sets hierarchy. Between them they cover nearly every text decision in the app — reach for a different weight only when both are already right.": [
+    "components/ui/foundations/typography.docs.tsx"
+  ],
+  "Sizes": [
+    "components/ui/foundations/typography.docs.tsx",
+    "components/ui/components/Button.docs.tsx",
+    "components/ui/components/Badge.docs.tsx",
+    "components/ui/components/ToggleSwitch.docs.tsx",
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "`text-sm` is the default for UI chrome; `text-base` is for reading surfaces such as documents and messages.": [
+    "components/ui/foundations/typography.docs.tsx"
+  ],
+  "Hierarchy": [
+    "components/ui/foundations/typography.docs.tsx"
+  ],
+  "Establish rank with ink before reaching for size or weight. Two ink steps read as a clear hierarchy at the same size.": [
+    "components/ui/foundations/typography.docs.tsx"
+  ],
+  "Size × ink": [
+    "components/ui/foundations/typography.docs.tsx"
+  ],
+  "Every combination at a glance. Check the lower-contrast inks stay legible when you change a theme with the toolbar above.": [
+    "components/ui/foundations/typography.docs.tsx"
+  ],
+  "depth={depth}": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "depth=": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "Hello!": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "depth 0": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "depth 1": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "depth 2": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "depth 3": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "Layer offset=": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "Ghost": [
+    "components/ui/foundations/surfaces.docs.tsx",
+    "lib/core/internal/ThemeDebug.tsx"
+  ],
+  "Outline": [
+    "components/ui/foundations/surfaces.docs.tsx",
+    "components/ui/components/Input.docs.tsx"
+  ],
+  "Danger": [
+    "components/ui/foundations/surfaces.docs.tsx",
+    "lib/core/internal/ThemeDebug.tsx"
+  ],
+  "Depth, not a chosen color, is how backgrounds are set. A container declares its depth and everything inside reads `bg-surface` and `bg-inset` relative to it — so the same component looks right wherever it is nested.": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "The depth scale": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "Depth 0 sits furthest back and 4 closest to the viewer. `Panel` and `Surface` take a `depth` prop; `Layer` marks a subtree without rendering a box.": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "Nesting": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "Each level steps forward, which is what makes nested containers legible without borders doing all the work.": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "Layer-relative tokens": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "`bg-inset` sits one step back and `bg-surface` is the layer itself. To move content forward, wrap it in `Layer offset={1}` and continue using `bg-surface`.": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "Controls across depths": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "Check any new component here. Contrast that only works at one depth is the most common design-system regression in the app.": [
+    "components/ui/foundations/surfaces.docs.tsx"
+  ],
+  "Every color in the app comes from a semantic token, never a raw Tailwind color. Themes redefine the tokens; components never change.": [
+    "components/ui/foundations/colors.docs.tsx"
+  ],
+  "Surfaces": [
+    "components/ui/foundations/colors.docs.tsx"
+  ],
+  "The background ramp. Components read these through the layer system rather than naming a step directly — see Surfaces & Depth.": [
+    "components/ui/foundations/colors.docs.tsx"
+  ],
+  "Text colors, from primary down to placeholder. `ink-extra-muted` is a deprecated alias for `ink-subtle`; use `ink-subtle` in new code.": [
+    "components/ui/foundations/colors.docs.tsx"
+  ],
+  "Semantic": [
+    "components/ui/foundations/colors.docs.tsx"
+  ],
+  "Meaning-carrying colors. Reach for these before the raw palette so intent survives a theme change.": [
+    "components/ui/foundations/colors.docs.tsx"
+  ],
+  "Named hues for content that needs a color of its own — labels, calendars, avatars. Not for conveying state.": [
+    "components/ui/foundations/colors.docs.tsx"
+  ],
+  "Search documents": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "Team email": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "macro.com": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "Website": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "Open website": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "Search query": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "Submit search": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "Composes an Input with decorative addons, standard Buttons, and a reactive clear action inside one shared frame.": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "Search and clear": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "The clear slot follows the input value, dispatches the normal input event, and restores focus without a tooltip.": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "Addons and actions": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "Addon alignment controls visual placement independently of DOM order. Use InputGroup.Button for an interactive action.": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "Button group composition": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "When nested in ButtonGroup, InputGroup inherits its size and lets the outer group own the shared frame.": [
+    "components/ui/components/InputGroup.docs.tsx"
+  ],
+  "Button": [
+    "components/ui/components/Button.docs.tsx",
+    "lib/core/internal/ThemeDebug.tsx",
+    "features/ui-gallery/UiGallery.test.tsx",
+    "features/ui-gallery/registry.test.tsx"
+  ],
+  "With icon": [
+    "components/ui/components/Button.docs.tsx",
+    "components/ui/components/Badge.docs.tsx"
+  ],
+  "Add item": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "Next": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "Create document": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "Permanently deletes the selection": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "The standard way to trigger an action. Variant carries emphasis, size carries density, and both are shared with Badge so button-like elements line up.": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "Variants": [
+    "components/ui/components/Button.docs.tsx",
+    "components/ui/components/Input.docs.tsx",
+    "components/ui/components/Badge.docs.tsx"
+  ],
+  "`ghost` for low-emphasis actions in dense chrome, `outline` for standard actions, `accent` for the primary action in a group, `cta` for the single most important action on a screen. `danger` is reserved for destructive work.": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "`md` is the default. `sm` suits toolbars and inline chrome; `lg` and `xl` are for marketing and empty-state surfaces.": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "Icon-only": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "Use an `icon-*` size for square buttons. `label` is required — it names the button for screen readers and becomes its tooltip.": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "Button group": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "`ButtonGroup` joins related actions into a single segmented control. Add `ButtonGroup.Divider` between segments; the group owns the shared border and corner radius.": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "Tooltips and shortcuts": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "`label` doubles as the tooltip; `tooltip` overrides it when the accessible name and the hint should differ. `hotkey` renders a registered shortcut, `shortcut` a raw string.": [
+    "components/ui/components/Button.docs.tsx"
+  ],
+  "Clear input": [
+    "components/ui/components/InputGroup.tsx"
+  ],
+  "name@example.com": [
+    "components/ui/components/Input.docs.tsx"
+  ],
+  "{size} input": [
+    "components/ui/components/Input.docs.tsx"
+  ],
+  "Bare": [
+    "components/ui/components/Input.docs.tsx"
+  ],
+  "A thin shadcn-style native input with semantic tokens and Button-compatible visual sizes. Compose icons and actions with InputGroup.": [
+    "components/ui/components/Input.docs.tsx"
+  ],
+  "Basic": [
+    "components/ui/components/Input.docs.tsx",
+    "components/ui/components/Checkbox.docs.tsx",
+    "components/ui/components/TextField.docs.tsx",
+    "components/ui/components/Select.docs.tsx",
+    "components/ui/components/ToggleSwitch.docs.tsx"
+  ],
+  "All normal native input props are forwarded. The default visual size is `md` and the default variant is `outline`.": [
+    "components/ui/components/Input.docs.tsx"
+  ],
+  "Button sizes": [
+    "components/ui/components/Input.docs.tsx"
+  ],
+  "String sizes share heights, padding, and typography with text Buttons. A numeric `size` remains the native HTML attribute.": [
+    "components/ui/components/Input.docs.tsx"
+  ],
+  "`bare` stays transparent without hover or focus chrome. It is intended for a composed parent such as InputGroup.": [
+    "components/ui/components/Input.docs.tsx"
   ],
   "Documentation": [
     "components/ui/components/EmptyStatePanel.tsx"
@@ -12636,14 +13495,280 @@
   "Go To Today": [
     "components/ui/components/Calendar.tsx"
   ],
+  "Notify me about replies": [
+    "components/ui/components/Checkbox.docs.tsx"
+  ],
+  "Unchecked": [
+    "components/ui/components/Checkbox.docs.tsx"
+  ],
+  "Indeterminate": [
+    "components/ui/components/Checkbox.docs.tsx"
+  ],
+  "Disabled, checked": [
+    "components/ui/components/Checkbox.docs.tsx"
+  ],
+  "SingleSelectCheck": [
+    "components/ui/components/Checkbox.docs.tsx"
+  ],
+  "InlineCheckbox": [
+    "components/ui/components/Checkbox.docs.tsx"
+  ],
+  "A Kobalte checkbox with the app’s control styling. Composed from slots, so the label, description, and error message are yours to place.": [
+    "components/ui/components/Checkbox.docs.tsx"
+  ],
+  "Pass `checked` and `onChange` for a controlled checkbox, or `defaultChecked` to let it manage itself. `Checkbox.Control` renders the hidden input as well as the box.": [
+    "components/ui/components/Checkbox.docs.tsx"
+  ],
+  "States": [
+    "components/ui/components/Checkbox.docs.tsx"
+  ],
+  "`indeterminate` shows a dash instead of a check — use it for a parent whose children are partially selected.": [
+    "components/ui/components/Checkbox.docs.tsx"
+  ],
+  "List affordances": [
+    "components/ui/components/Checkbox.docs.tsx"
+  ],
+  "Two visual-only helpers for rows that are themselves the hit target: `SingleSelectCheck` for pick-one menus, `InlineCheckbox` for multi-select lists. Neither handles input — the row does.": [
+    "components/ui/components/Checkbox.docs.tsx"
+  ],
   "Some items are hidden by filters": [
     "components/ui/components/FilteredHiddenBanner.tsx"
   ],
   "Clear Filters": [
     "components/ui/components/FilteredHiddenBanner.tsx"
   ],
+  "Project name": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "Quarterly planning": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "A short name teammates will recognize.": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "Notes": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "Add context for your teammates…": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "This field grows as you type.": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "Account email": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "Managed by your workspace administrator.": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "Workspace URL": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "Enter the full workspace URL.": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "An accessible, slot-based text input and textarea. Kobalte connects labels, descriptions, and errors while the controls use the app’s layer-aware tokens.": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "The root owns value state and automatically connects the label and description to the input.": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "Textarea": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "`TextField.TextArea` shares the same root API. `autoResize` lets Kobalte grow it with its content.": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "Disabled and invalid": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "Root state flows to every slot. Invalid controls receive `aria-invalid`, and the error message is included in `aria-describedby`.": [
+    "components/ui/components/TextField.docs.tsx"
+  ],
+  "Badge": [
+    "components/ui/components/Badge.docs.tsx",
+    "lib/core/internal/ThemeDebug.tsx"
+  ],
+  "design": [
+    "components/ui/components/Badge.docs.tsx"
+  ],
+  "tags-ux": [
+    "components/ui/components/Badge.docs.tsx",
+    "lib/core/internal/ThemeDebug.tsx"
+  ],
+  "A small, non-interactive label for status, counts, and tags. Shares Button’s size scale so a badge and a button of the same size sit on the same line cleanly.": [
+    "components/ui/components/Badge.docs.tsx"
+  ],
+  "`ghost` when the surrounding container already provides separation, `outline` when the badge needs its own edge.": [
+    "components/ui/components/Badge.docs.tsx"
+  ],
+  "Matches the Button `sm` / `md` / `lg` control sizes.": [
+    "components/ui/components/Badge.docs.tsx"
+  ],
+  "Composed content": [
+    "components/ui/components/Badge.docs.tsx"
+  ],
+  "Badges take arbitrary children — a color dot for a tag, a status glyph, a caret when the badge is the visible half of a menu trigger.": [
+    "components/ui/components/Badge.docs.tsx"
+  ],
+  "Full access, including billing": [
+    "components/ui/components/Select.docs.tsx"
+  ],
+  "Manage members and settings": [
+    "components/ui/components/Select.docs.tsx"
+  ],
+  "Create and edit content": [
+    "components/ui/components/Select.docs.tsx"
+  ],
+  "Guest": [
+    "components/ui/components/Select.docs.tsx"
+  ],
+  "View shared items only": [
+    "components/ui/components/Select.docs.tsx"
+  ],
+  "A Kobalte select, styled for the app. It is slot-based: you supply the trigger and the item renderer, while `Select.Content` handles portalling, popper sizing, menu chrome, and its own layer depth.": [
+    "components/ui/components/Select.docs.tsx"
+  ],
+  "`optionValue` and `optionTextValue` tell the collection which fields identify and label each option. `Select.Value` receives the selected option, so the trigger renders whatever you want.": [
+    "components/ui/components/Select.docs.tsx"
+  ],
+  "Rich items": [
+    "components/ui/components/Select.docs.tsx"
+  ],
+  "`itemComponent` renders arbitrary content. Keep `Select.ItemLabel` around the primary text so typeahead and the accessible name still work.": [
+    "components/ui/components/Select.docs.tsx"
+  ],
+  "A disabled select keeps its value visible but will not open.": [
+    "components/ui/components/Select.docs.tsx"
+  ],
+  "Panel.Header": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "Toolbar": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "Action": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "Panel.Body takes the remaining height and is the only slot that shrinks.": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "Scrolling body": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "Row {row}": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "active": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "A depth-aware container with fixed header, toolbar, and footer slots around a body that absorbs the remaining height. The layout is a CSS grid, so the body scrolls without the chrome moving.": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "Slots": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "Every slot is optional and renders nothing when empty, so a body-only Panel has no stray borders.": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "`Panel.Body scroll` wraps the content in `Scroll`, keeping the header and footer pinned. Give the Panel a bounded height for this to take effect.": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "Active state": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "`active` draws the focus ring used for the panel holding keyboard focus in a split layout.": [
+    "components/ui/components/Panel.docs.tsx"
+  ],
+  "Read receipts": [
+    "components/ui/components/ToggleSwitch.docs.tsx"
+  ],
+  "Let others see when you read a message.": [
+    "components/ui/components/ToggleSwitch.docs.tsx"
+  ],
+  "Typing indicators": [
+    "components/ui/components/ToggleSwitch.docs.tsx"
+  ],
+  "Show when you are composing.": [
+    "components/ui/components/ToggleSwitch.docs.tsx"
+  ],
+  "An on/off switch for a setting that applies immediately. If the change needs a save step, use a Checkbox instead.": [
+    "components/ui/components/ToggleSwitch.docs.tsx"
+  ],
+  "Controlled via `checked` and `onChange`, or uncontrolled via `defaultChecked`. The whole component — including the gap between control and label — is one hit target.": [
+    "components/ui/components/ToggleSwitch.docs.tsx"
+  ],
+  "`sm` is the default toolbar size; `md` is for settings rows; `xs` is for dense inline chrome.": [
+    "components/ui/components/ToggleSwitch.docs.tsx"
+  ],
+  "Settings row": [
+    "components/ui/components/ToggleSwitch.docs.tsx"
+  ],
+  "The standard settings pattern: label and description on the left, switch on the right.": [
+    "components/ui/components/ToggleSwitch.docs.tsx"
+  ],
   "x{count}": [
     "components/ui/components/ScreencastHotkeys.tsx"
+  ],
+  "TC": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "fill": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "Teo": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "Image loads": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "No image": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "Image 404s": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "With hairline": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "Without": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "A circular representation of a person. Takes an image, initials, or an icon, and carries a 1px inset hairline so a photo edge reads cleanly against any surface.": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "`sm` (16px) is the list and inline default, `md` (24px) suits rows with more room, `lg` (40px) is for profile headers. `fill` takes the size of its container — give that container the dimensions.": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "Image and fallback": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "Render both children together. `Avatar.Image` covers the fallback while it loads cleanly, and hides itself if the source 404s so the fallback shows through instead of the browser’s broken-image glyph. Fallback text scales with the avatar size automatically.": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "Edge hairline": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "A 1px inset ring — black on dark surfaces, white on light ones — so the avatar settles into the page rather than being outlined against it. It is inset, so it never changes the avatar’s footprint. Switch themes in the toolbar to see it follow the surface, and it is off by default — pass `highlightEdge` to draw it.": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "Shape": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "`rounded` is the default circle. `square` steps its corner radius with the size — `rounded-sm` at `sm` through `rounded-lg` at `lg` — so the corner stays proportional instead of looking sharp when small and soft when large.": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "Avatar group": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "`AvatarGroup` overlaps its children and adds a separator ring sized to match. `AvatarGroup.Count` closes out the overflow. Pass the same `size` to the group and to every child.": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "Groups on a changing background": [
+    "components/ui/components/Avatar.docs.tsx"
+  ],
+  "The separator ring defaults to `--color-surface`. When the row behind it changes color, point `--avatar-group-separator` at the new background so the ring keeps disappearing into it.": [
+    "components/ui/components/Avatar.docs.tsx"
   ],
   "Clear filters": [
     "components/view-shell/ListDropdowns.tsx"
@@ -12729,7 +13854,9 @@
   ],
   "Later": [
     "components/app/app-sidebar/sidebar.tsx",
-    "lib/core/mobile/IosPushNotificationModal.tsx"
+    "lib/core/mobile/IosPushNotificationModal.tsx",
+    "features/property/tags/tag-options.test.ts",
+    "features/property/tags/SidebarTagsSection.test.tsx"
   ],
   "Maybe later": [
     "components/app/app-sidebar/sidebar.tsx"
@@ -13289,9 +14416,6 @@
   "All combinations of text sizes and ink variants.": [
     "lib/core/internal/ThemeDebug.tsx"
   ],
-  "Size / Ink": [
-    "lib/core/internal/ThemeDebug.tsx"
-  ],
   "Button Variants": [
     "lib/core/internal/ThemeDebug.tsx"
   ],
@@ -13325,10 +14449,6 @@
   "Text only": [
     "lib/core/internal/ThemeDebug.tsx"
   ],
-  "Button": [
-    "lib/core/internal/ThemeDebug.tsx",
-    "components/ui/components/Button.test.tsx"
-  ],
   "Icon + text": [
     "lib/core/internal/ThemeDebug.tsx"
   ],
@@ -13341,13 +14461,6 @@
   "Content samples · size=\"sm\"": [
     "lib/core/internal/ThemeDebug.tsx"
   ],
-  "tags-ux": [
-    "lib/core/internal/ThemeDebug.tsx"
-  ],
-  "Badge": [
-    "lib/core/internal/ThemeDebug.tsx",
-    "components/ui/components/Badge.test.tsx"
-  ],
   "Buttons at Panel Depths": [
     "lib/core/internal/ThemeDebug.tsx"
   ],
@@ -13358,12 +14471,6 @@
     "lib/core/internal/ThemeDebug.tsx"
   ],
   "Panel Depth": [
-    "lib/core/internal/ThemeDebug.tsx"
-  ],
-  "Ghost": [
-    "lib/core/internal/ThemeDebug.tsx"
-  ],
-  "Danger": [
     "lib/core/internal/ThemeDebug.tsx"
   ],
   "Complete Card Example": [
@@ -13620,9 +14727,6 @@
   "AI Chat sends your messages to Anthropic for processing and may access your files in Macro to provide relevant responses. Your data is not retained or used for training.": [
     "lib/core/component/AI/component/input/useAiDataConsent.tsx"
   ],
-  "No models match that search.": [
-    "lib/core/component/AI/component/input/ModelCatalogPicker.tsx"
-  ],
   "Search Attachments": [
     "lib/core/component/AI/component/input/ChatAttachMenu.tsx"
   ],
@@ -13840,9 +14944,6 @@
   ],
   "Uploaded code": [
     "lib/core/component/AI/component/tool/TextEditorCodeExecution.tsx"
-  ],
-  "seen": [
-    "lib/core/component/AI/component/tool/Notifications.tsx"
   ],
   "Read notifications": [
     "lib/core/component/AI/component/tool/Notifications.tsx"
@@ -14233,6 +15334,10 @@
   "View full screen": [
     "lib/core/component/LexicalMarkdown/component/decorator/MediaButtons.tsx"
   ],
+  "Open in new tab": [
+    "lib/core/component/LexicalMarkdown/component/decorator/MediaButtons.tsx",
+    "lib/core/component/LexicalMarkdown/component/menu/FloatingLinkMenu.tsx"
+  ],
   "{name} connected": [
     "lib/core/component/LexicalMarkdown/component/decorator/ConnectApp.tsx"
   ],
@@ -14438,9 +15543,6 @@
     "lib/core/component/LexicalMarkdown/component/debug/MarkdownParseTestPage.tsx"
   ],
   "Target": [
-    "lib/core/component/LexicalMarkdown/component/debug/MarkdownParseTestPage.tsx"
-  ],
-  "Internal": [
     "lib/core/component/LexicalMarkdown/component/debug/MarkdownParseTestPage.tsx"
   ],
   "External": [
@@ -14697,9 +15799,6 @@
   ],
   "Open folder": [
     "lib/utils/handleFileUpload.ts"
-  ],
-  "Started": [
-    "lib/document-processing-types/jobTypes/jobStatus.ts"
   ],
   "Unable to connect. Please check your network.": [
     "routes/BasePath.tsx"
