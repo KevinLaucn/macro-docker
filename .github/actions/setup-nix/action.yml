@@ -276,9 +276,23 @@ runs:
           echo "No Nix store found on cache volume; performing a full install."
           init_flag="none"
           if $have_systemd; then init_flag="systemd"; fi
-          curl --http1.1 --retry 5 --retry-delay 5 --retry-all-errors \
-            --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | \
-            sh -s -- install linux --no-confirm --init "$init_flag" \
+          installer="$(mktemp)"
+          trap 'rm -f "$installer"' EXIT
+          installer_url="https://install.determinate.systems/nix"
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl --http1.1 --retry 3 --retry-delay 5 --retry-all-errors \
+              --connect-timeout 20 --max-time 300 \
+              --proto '=https' --tlsv1.2 -sSf -L "$installer_url" -o "$installer"; then
+              break
+            fi
+            if [ "$attempt" -eq 8 ]; then
+              echo "::error::Unable to download Determinate Nix installer after $attempt attempts"
+              exit 1
+            fi
+            echo "Installer download failed (attempt $attempt/8); retrying in 10s..."
+            sleep 10
+          done
+          sh "$installer" install linux --no-confirm --init "$init_flag" \
             --extra-conf "experimental-features = nix-command flakes" \
             --extra-conf "trusted-users = root runner"
           # Rewrite the config so the substituter block above applies on fresh
