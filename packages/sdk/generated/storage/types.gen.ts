@@ -13179,7 +13179,16 @@ export type GetEntityPermissionResponse = GetEntityPermissionResponses[keyof Get
 export type ListFavoritesData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Restrict to favorites whose entity is one of these types.
+         */
+        entityType?: Array<'user' | 'chat' | 'channel' | 'channel_message' | 'document' | 'project' | 'email_thread' | 'calendar_event' | 'team' | 'call' | 'foreign_entity' | 'static_file' | 'crm_company' | 'crm_contact' | 'reminder' | 'skill' | 'agent_session'>;
+        /**
+         * Restrict to favorites whose entity is one of these ids.
+         */
+        entityId?: Array<string>;
+    };
     url: '/favorites';
 };
 
@@ -14302,13 +14311,13 @@ export type ListRemindersData = {
     path?: never;
     query?: {
         /**
-         * The type of an entity in Macro
+         * Restrict to reminders attached to an entity of these types.
          */
-        entityType?: 'user' | 'chat' | 'channel' | 'channel_message' | 'document' | 'project' | 'email_thread' | 'calendar_event' | 'team' | 'call' | 'foreign_entity' | 'static_file' | 'crm_company' | 'crm_contact' | 'reminder' | 'skill' | 'agent_session';
+        entityType?: Array<'user' | 'chat' | 'channel' | 'channel_message' | 'document' | 'project' | 'email_thread' | 'calendar_event' | 'team' | 'call' | 'foreign_entity' | 'static_file' | 'crm_company' | 'crm_contact' | 'reminder' | 'skill' | 'agent_session'>;
         /**
-         * Restrict to reminders attached to this entity id. Requires `entityType`.
+         * Restrict to reminders attached to these entity ids.
          */
-        entityId?: string;
+        entityId?: Array<string>;
         /**
          * Include reminders that have already fired.
          */
