@@ -91,7 +91,8 @@ const [accessTokenData, setAccessTokenData] = makePersisted(
 function getExpiresAt(token: string) {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.exp;
+    const exp = Number(payload.exp) * 1000;
+    return Number.isFinite(exp) ? exp : 0;
   } catch {
     return 0;
   }
@@ -663,8 +664,8 @@ export const authServiceClient = {
   },
 
   /**
-   * Initializes the github account link for the user.
-   * Returns the url you need to redirect user to to start the link.
+   * Initializes the github account link for the user
+   * Returns the url you need to redirect user to to start the link
    */
   async initGithubLink(originalUrl?: string) {
     const url = originalUrl
@@ -709,10 +710,6 @@ export const authServiceClient = {
         'PAYMENT_REQUIRED' | 'TOO_MANY_PENDING_LINKS'
       >(url, {
         method: 'POST',
-        // The backend returns 402 when the user isn't entitled to additional
-        // inboxes, and 429 when they have too many incomplete link attempts in
-        // flight. Surface each as a distinct code so the add-inbox flow can open
-        // the paywall or explain the wait instead of a generic failure.
         errorResponseHandler: async (response) => {
           if (response.status === 402) {
             return { code: 'PAYMENT_REQUIRED', message: 'Payment required' };
@@ -732,10 +729,6 @@ export const authServiceClient = {
     ).map((result) => result);
   },
 
-  /**
-   * Deletes a github link for a user
-   * NOTE: this does not delete the github application from being installed on a teams repository
-   */
   async deleteGithubLink() {
     return (
       await fetchWithAuth<{}>(`${authHost}/link/github`, {
@@ -863,12 +856,6 @@ export const authServiceClient = {
     ).map(() => undefined);
   },
 
-  /**
-   * Toggles automatic domain joining for the caller's team: sets the
-   * auto-join domain from the team owner's email domain when unset,
-   * removes it when set. Returns the domain after the toggle (null when
-   * it was just disabled). Admin/Owner only.
-   */
   async toggleTeamAutoJoinDomain() {
     return (
       await fetchWithAuth<
@@ -876,10 +863,6 @@ export const authServiceClient = {
         ToggleAutoJoinDomainErrorCode
       >(`${authHost}/team/auto-join-domain/toggle`, {
         method: 'POST',
-        // The backend rejects enabling auto-join for generic email
-        // provider domains (e.g. gmail.com) with a 400 whose message
-        // names the domain — keep that message so the UI can toast it
-        // verbatim.
         errorResponseHandler: async (response) => {
           if (response.status === 400) {
             const message = await response
@@ -903,11 +886,6 @@ export const authServiceClient = {
     ).map((result) => result);
   },
 
-  /**
-   * Toggles whether non-admin members may invite users to the caller's
-   * team. Teams start with this on (any member can invite); turning it
-   * off restricts inviting to team admins and owners. Admin/Owner only.
-   */
   async toggleTeamNonAdminInvites() {
     return (
       await fetchWithAuth<ToggleNonAdminInvitesResponse>(
