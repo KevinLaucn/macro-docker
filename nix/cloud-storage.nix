@@ -173,6 +173,7 @@
             && !(pkgs.lib.hasInfix "/" rel)
             && rel != "Cargo.toml"
             && rel != "Cargo.lock"
+            && !(pkgs.lib.hasSuffix ".md" rel)
             && ((assetFilter path type) || (binFilter path type))
           );
       };
@@ -670,7 +671,7 @@
       # Isolated dependency closure: selfHostEmailCargoArtifacts compiles
       # dependencies strictly needed by these 11 services (12 binaries),
       # without compiling unneeded crates (Daytona, ACP, turso, AI libs).
-      selfHostEmailBinaryDefinitions = [
+      selfHostEmailCoreBinaryDefinitions = [
         {
           serviceName = "authentication-service";
           packageName = "authentication_service";
@@ -690,11 +691,6 @@
           serviceName = "document-storage-service";
           packageName = "document_storage_service";
           binaries = [ "document_storage_service" ];
-        }
-        {
-          serviceName = "document-cognition-service";
-          packageName = "document_cognition_service";
-          binaries = [ "document_cognition_service" ];
         }
         {
           serviceName = "email-service";
@@ -749,13 +745,25 @@
         }
       ];
 
+      selfHostEmailCognitionBinaryDefinitions = [
+        {
+          serviceName = "document-cognition-service";
+          packageName = "document_cognition_service";
+          binaries = [ "document_cognition_service" ];
+        }
+      ];
+
+      selfHostEmailBinaryDefinitions =
+        selfHostEmailCoreBinaryDefinitions ++ selfHostEmailCognitionBinaryDefinitions;
+
       # Strip --no-default-features from per-package featureArgs when building
       # the aggregate deps-only command: cargo rejects the flag when it appears
       # more than once, and multiple packages in selfHostEmailBinaryDefinitions
-      # specify it.  The individual per-service builds (deployServiceBinaryPackage)
+      # specify it. The individual per-service builds (deployServiceBinaryPackage)
       # invoke cargo once per package and correctly apply the full featureArgs.
       # Compiling deps with default features is a harmless superset.
-      selfHostEmailBinaryCargoExtraArgs =
+      mkSelfHostBinaryCargoExtraArgs =
+        defs:
         "--offline "
         + pkgs.lib.concatMapStringsSep " " (
           def:
@@ -767,18 +775,37 @@
           "--package ${def.packageName} "
           + pkgs.lib.concatMapStringsSep " " (binary: "--bin ${binary}") def.binaries
           + pkgs.lib.optionalString (trimmed != "") " ${trimmed}"
-        ) selfHostEmailBinaryDefinitions;
+        ) defs;
 
-      selfHostEmailCargoArtifacts = craneLib.buildDepsOnly (
+      selfHostEmailBinaryCargoExtraArgs = mkSelfHostBinaryCargoExtraArgs selfHostEmailBinaryDefinitions;
+
+      # Split shared deps into core and cognition closures:
+      # core-deps builds only dependencies needed by the 13 core email services.
+      # cognition-deps builds dependencies specifically needed by document-cognition-service.
+      # When cognition changes, core-deps derivation hash stays intact and substitutes from cache.
+      selfHostEmailCoreCargoArtifacts = craneLib.buildDepsOnly (
         selfHostEmailCommonArgs
         // {
-          pname = "cloud-storage-self-host-email-deps";
+          pname = "cloud-storage-self-host-email-core-deps";
           doCheck = false;
           cargoCheckCommand = "true";
-          cargoExtraArgs = selfHostEmailBinaryCargoExtraArgs;
+          cargoExtraArgs = mkSelfHostBinaryCargoExtraArgs selfHostEmailCoreBinaryDefinitions;
           CARGO_PROFILE = "release";
         }
       );
+
+      selfHostEmailCognitionCargoArtifacts = craneLib.buildDepsOnly (
+        selfHostEmailCommonArgs
+        // {
+          pname = "cloud-storage-self-host-email-cognition-deps";
+          doCheck = false;
+          cargoCheckCommand = "true";
+          cargoExtraArgs = mkSelfHostBinaryCargoExtraArgs selfHostEmailCognitionBinaryDefinitions;
+          CARGO_PROFILE = "release";
+        }
+      );
+
+      selfHostEmailCargoArtifacts = selfHostEmailCoreCargoArtifacts;
 
       # Aggregate single derivation for Self-host Email Production:
       # Restores selfHostEmailCargoArtifacts once, shares a single target/release directory,
@@ -853,26 +880,32 @@
         }
       );
 
-      # Build each service as its own derivation while sharing the single
-      # deps-only Cargo artifact cache. A source change now invalidates only
-      # the affected service closure instead of all Email binaries.
+      # Build each service as its own derivation while sharing the
+      # split deps-only Cargo artifact cache (core-deps for core, cognition-deps for cognition).
+      # A source change now invalidates only the affected service closure instead of all Email binaries.
       selfHostEmailBinaryPackages = pkgs.lib.listToAttrs (
-        map (def: {
-          name = "self-host-email-${def.serviceName}";
-          value = deployServiceBinaryPackage {
-            inherit (def) serviceName packageName binaries;
-            featureArgs = def.featureArgs or "";
-            cargoArtifacts = selfHostEmailCargoArtifacts;
-            buildArgs = selfHostEmailCommonArgs;
-            sourceForPackage = selfHostEmailPrunedDeploySrc;
-            # Each leaf overlays one real service closure onto mkDummySrc's
-            # reduced workspace. Cargo may need to normalize that temporary
-            # lockfile after the overlay, so use the same offline policy as
-            # the former monolithic Email build. Dependencies still come
-            # exclusively from the Nix-vendored source configuration.
-            lockArg = "--offline";
-          };
-        }) selfHostEmailBinaryDefinitions
+        map (def:
+          let
+            isCognition = def.serviceName == "document-cognition-service";
+            cargoArtifacts = if isCognition then selfHostEmailCognitionCargoArtifacts else selfHostEmailCoreCargoArtifacts;
+          in
+          {
+            name = "self-host-email-${def.serviceName}";
+            value = deployServiceBinaryPackage {
+              inherit (def) serviceName packageName binaries;
+              inherit cargoArtifacts;
+              featureArgs = def.featureArgs or "";
+              buildArgs = selfHostEmailCommonArgs;
+              sourceForPackage = selfHostEmailPrunedDeploySrc;
+              # Each leaf overlays one real service closure onto mkDummySrc's
+              # reduced workspace. Cargo may need to normalize that temporary
+              # lockfile after the overlay, so use the same offline policy as
+              # the former monolithic Email build. Dependencies still come
+              # exclusively from the Nix-vendored source configuration.
+              lockArg = "--offline";
+            };
+          }
+        ) selfHostEmailBinaryDefinitions
       );
 
       # Cheap preflight for file dependencies that Cargo metadata cannot see.
@@ -1305,6 +1338,8 @@
           dopplerConfigBins
           nextestArchive
           selfHostEmailSourceCheck
+          selfHostEmailCoreCargoArtifacts
+          selfHostEmailCognitionCargoArtifacts
           ;
         default = cargoArtifacts;
       }

@@ -1,10 +1,62 @@
-import { formatTime } from '@core/util/date';
-import { t } from '@macro/i18n';
+import { locale, t } from '@macro/i18n';
+import { differenceInMinutes } from 'date-fns';
 import type { ReadReceiptStatusData } from './client';
 
 export function statusSeenAt(status?: ReadReceiptStatusData): Date | undefined {
   if (!status?.open_count || !status.last_opened_at) return undefined;
   return new Date(status.last_opened_at);
+}
+
+const CHINA_TIMEZONE = 'Asia/Shanghai';
+
+/**
+ * Formats a read-receipt timestamp:
+ * - Within 1 hour (< 60 minutes): "刚刚" or "X 分钟前" / "X minutes ago"
+ * - 1 hour or older: 24-hour format with year, month, day hardcoded in China timezone (Asia/Shanghai), e.g. "2026年9月11日 13:47"
+ */
+export function formatReadReceiptTime(date: Date): string {
+  const isZh = locale() === 'zh-CN';
+  const now = new Date();
+  const minutesAgo = differenceInMinutes(now, date);
+
+  if (minutesAgo < 1) {
+    return isZh ? '刚刚' : 'just now';
+  }
+
+  if (minutesAgo < 60) {
+    if (isZh) {
+      return `${minutesAgo} 分钟前`;
+    }
+    return minutesAgo === 1 ? '1 minute ago' : `${minutesAgo} minutes ago`;
+  }
+
+  const formatter = new Intl.DateTimeFormat('zh-CN', {
+    timeZone: CHINA_TIMEZONE,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+
+  const parts = formatter.formatToParts(date);
+  const partMap: Record<string, string> = {};
+  for (const part of parts) {
+    partMap[part.type] = part.value;
+  }
+
+  const year = partMap.year ?? '';
+  const month = partMap.month ?? '';
+  const day = partMap.day ?? '';
+  const hour = partMap.hour ?? '';
+  const minute = partMap.minute ?? '';
+
+  if (isZh) {
+    return `${year}年${month}月${day}日 ${hour}:${minute}`;
+  }
+
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${hour}:${minute}`;
 }
 
 /**
@@ -26,7 +78,7 @@ export function formatReadReceiptStatus(status?: ReadReceiptStatusData): {
   }
 
   const openDate = new Date(status.last_opened_at);
-  const timeStr = formatTime(openDate);
+  const timeStr = formatReadReceiptTime(openDate);
 
   if (status.open_count === 1) {
     const text = t('Opened {time}', { time: timeStr });
@@ -104,14 +156,20 @@ const OPEN_TRACKING_PATH = '/t/o/';
 function isMacroTrackingPixelUrl(src: string): boolean {
   if (!src.includes(OPEN_TRACKING_PATH)) return false;
   try {
-    const url = new URL(src, typeof window !== 'undefined' ? window.location.origin : undefined);
+    const url = new URL(
+      src,
+      typeof window !== 'undefined' ? window.location.origin : undefined
+    );
     if (!url.pathname.includes(OPEN_TRACKING_PATH)) return false;
 
     if (/^email-service[a-z0-9.-]*\.macro\.com$/.test(url.hostname)) {
       return true;
     }
 
-    if (typeof window !== 'undefined' && url.origin === window.location.origin) {
+    if (
+      typeof window !== 'undefined' &&
+      url.origin === window.location.origin
+    ) {
       return true;
     }
 
@@ -140,4 +198,3 @@ export function stripOwnTrackingPixelsFromHtml(html: string): string {
   removeOwnTrackingPixels(template.content);
   return template.innerHTML;
 }
-

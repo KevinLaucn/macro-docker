@@ -1,3 +1,4 @@
+import type { EmailMessage } from '@app/features/email-message/core/email-message';
 import { ReadReceiptStatus } from '@app/features/email-read-receipts';
 import {
   EmailTranslateButton,
@@ -9,7 +10,6 @@ import {
   setMessageOverride,
   translateSingleMessage,
 } from '@app/features/email-translation';
-import type { EmailMessage } from '@app/features/email-message/core/email-message';
 import { t } from '@macro/i18n';
 import CaretRight from '@phosphor/caret-right.svg';
 import { Button, cn, Tooltip } from '@ui';
@@ -202,7 +202,7 @@ function HeaderTopRow(props: {
           </Tooltip>
         </div>
       </div>
-      <div class="flex flex-row items-center shrink-0">
+      <div class="flex flex-row items-center shrink-0 gap-1">
         {/* PRIVATE-HOOK: email_translation:message */}
         <Show when={emailTranslationEnabled() && isTranslationSupported()}>
           {(() => {

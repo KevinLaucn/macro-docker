@@ -1,4 +1,5 @@
 import type { EmailMessage } from '@app/features/email-message/core/email-message';
+import { t } from '@macro/i18n';
 import ArrowBendUpLeft from '@phosphor/arrow-bend-up-left.svg';
 import ArrowBendUpRight from '@phosphor/arrow-bend-up-right.svg';
 import { Button } from '@ui';
@@ -24,7 +25,7 @@ export function MessageActions(props: {
 
   return (
     <div
-      class="flex flex-row items-center gap-0.5"
+      class="flex flex-row items-center gap-1"
       classList={{
         'opacity-0 pointer-events-none': !canShowActions(),
         'opacity-100': canShowActions(),
@@ -32,20 +33,22 @@ export function MessageActions(props: {
     >
       <Show when={!props.hiddenActions?.includes('reply')}>
         <Button
-          class="size-6 p-0 border-0 bg-transparent rounded text-ink-muted hover:text-ink hover:bg-ink-muted/8"
+          variant="ghost"
+          size="icon-sm"
           noTouchResize
           onClick={onChangeReplyType('reply-all')}
-          tooltip="Reply"
+          tooltip={t('Reply', { context: 'email' })}
         >
           <ArrowBendUpLeft class="size-3.5" />
         </Button>
       </Show>
       <Show when={!props.hiddenActions?.includes('forward')}>
         <Button
-          class="size-6 p-0 border-0 bg-transparent rounded text-ink-muted hover:text-ink hover:bg-ink-muted/8"
+          variant="ghost"
+          size="icon-sm"
           noTouchResize
           onClick={onChangeReplyType('forward')}
-          tooltip="Forward"
+          tooltip={t('Forward', { context: 'email' })}
         >
           <ArrowBendUpRight class="size-3.5" />
         </Button>

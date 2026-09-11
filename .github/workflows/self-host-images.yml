@@ -36,6 +36,11 @@ on:
         type: boolean
         required: false
         default: false
+      force_rebuild:
+        description: Force rebuild all images regardless of changed paths
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: self-host-images-${{ github.ref }}
@@ -85,139 +90,20 @@ jobs:
             fi
           fi
           python3 self-host/scripts/check-sqlx-drift.py --base "$base" --head "$head"
-      - name: Filter changed paths
+      - name: Configure build targets
         id: filter
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.sha }}
-          REF_NAME: ${{ github.ref_name }}
-          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-
-          # 1. Manual trigger or commit message containing [build all] forces full rebuild
-          commit_msg="$(git log -1 --pretty=%B || true)"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] || \
-             echo "$commit_msg" | grep -qiE '\[(build[- ]all|rebuild[- ]all|full[- ]build)\]'; then
-            echo "run_services=true" >> "$GITHUB_OUTPUT"
-            echo "run_init=true" >> "$GITHUB_OUTPUT"
-            echo "run_web=true" >> "$GITHUB_OUTPUT"
-            echo "run_workers=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # 2. Evaluate targets against the last truly successful build of each image
-          python3 - << 'PYEOF'
-          import json, os, re, subprocess, sys
-
-          targets = {
-              "macro-services": "run_services",
-              "macro-init": "run_init",
-              "macro-web": "run_web",
-              "macro-workers": "run_workers",
-          }
-
-          patterns = {
-              "run_services": [
-                  r"^Cargo\.toml$",
-                  r"^Cargo\.lock$",
-                  r"^crates/",
-                  r"^services/",
-                  r"^\.sqlx/",
-                  r"^nix/cloud-storage\.nix$",
-                  r"^self-host/scripts/",
-                  r"^\.github/actions/setup-nix/",
-              ],
-              "run_init": [
-                  r"^self-host/init/",
-                  r"^infra/stacks/opensearch/helpers/",
-                  r"^\.github/kafka-cluster-topics\.json$",
-                  r"^self-host/kickstart/",
-              ],
-              "run_web": [
-                  r"^apps/web/",
-                  r"^packages/",
-                  r"^self-host/images/Dockerfile\.web$",
-              ],
-              "run_workers": [
-                  r"^docker/websocket-service\.Dockerfile$",
-                  r"^services/websocket_service/",
-                  r"^crates/.*/websocket",
-              ],
-          }
-
-          head = os.environ.get("HEAD_SHA", "HEAD")
-          repo = os.environ.get("REPO", "")
-          ref_name = os.environ.get("REF_NAME", "main")
-
-          # If the workflow definition or nix setup changed, trigger all
-          diff_head_cmd = ["git", "diff", "--name-only", f"{head}~1", head]
-          dhead = subprocess.run(diff_head_cmd, capture_output=True, text=True)
-          changed_in_commit = dhead.stdout.splitlines() if dhead.returncode == 0 else []
-          if any(re.search(r"^\.github/workflows/self-host-images\.yml$", f) or
-                 re.search(r"^\.github/actions/setup-nix/", f) for f in changed_in_commit):
-              print("Workflow or setup-nix modified; triggering full build")
-              results = {k: True for k in targets.values()}
-          else:
-              # Query last successful run for each job from GitHub API
-              last_success_sha = {}
-              try:
-                  cmd = ["gh", "api", f"repos/{repo}/actions/workflows/self-host-images.yml/runs?branch={ref_name}&per_page=15", "--jq", "[.workflow_runs[] | {id: .id, sha: .head_sha}]"]
-                  res = subprocess.run(cmd, capture_output=True, text=True)
-                  if res.returncode == 0:
-                      runs = json.loads(res.stdout)
-                      for r in runs:
-                          if len(last_success_sha) == len(targets):
-                              break
-                          run_id = r["id"]
-                          jobs_cmd = ["gh", "api", f"repos/{repo}/actions/runs/{run_id}/jobs?per_page=10", "--jq", "[.jobs[] | {name: .name, conclusion: .conclusion}]"]
-                          jres = subprocess.run(jobs_cmd, capture_output=True, text=True)
-                          if jres.returncode != 0:
-                              continue
-                          for job in json.loads(jres.stdout):
-                              name = job.get("name")
-                              if name in targets and name not in last_success_sha and job.get("conclusion") == "success":
-                                  last_success_sha[targets[name]] = r["sha"]
-              except Exception as e:
-                  print(f"Warning: could not fetch last successful runs ({e}); falling back to triggering all")
-
-              results = {}
-              for output_key, pat_list in patterns.items():
-                  base_sha = last_success_sha.get(output_key)
-                  if not base_sha:
-                      print(f"{output_key}: no previous successful build found; triggering")
-                      results[output_key] = True
-                      continue
-                  diff_cmd = ["git", "diff", "--name-only", base_sha, head]
-                  dres = subprocess.run(diff_cmd, capture_output=True, text=True)
-                  if dres.returncode != 0:
-                      print(f"{output_key}: git diff failed; triggering")
-                      results[output_key] = True
-                      continue
-                  changed = dres.stdout.splitlines()
-                  matched = any(re.search(p, f) for f in changed for p in pat_list)
-                  print(f"{output_key}: base={base_sha[:8]}, changed={matched}")
-                  results[output_key] = matched
-
-              # init is also triggered if services is triggered
-              if results.get("run_services"):
-                  results["run_init"] = True
-
-          github_output = os.environ.get("GITHUB_OUTPUT")
-          if github_output:
-              with open(github_output, "a") as f:
-                  for k, v in results.items():
-                      f.write(f"{k}={'true' if v else 'false'}\n")
-          else:
-              for k, v in results.items():
-                  print(f"{k}={'true' if v else 'false'}")
-          PYEOF
+          echo "Automated full build enabled: triggering all self-host images on push"
+          echo "run_services=true" >> "$GITHUB_OUTPUT"
+          echo "run_init=true" >> "$GITHUB_OUTPUT"
+          echo "run_web=true" >> "$GITHUB_OUTPUT"
+          echo "run_workers=true" >> "$GITHUB_OUTPUT"
 
   services:
     name: macro-services
     needs: check-drift
-    if: needs.check-drift.outputs.run_services == 'true'
     runs-on: ${{ (inputs.services_runner == 'self-hosted') && fromJSON('["self-hosted", "linux", "x64", "macro-builder"]') || 'ubuntu-latest' }}
     outputs:
       version: ${{ steps.version.outputs.value }}
@@ -347,7 +233,22 @@ jobs:
 
           KEY_PATTERNS = [
               'self-host-email-binaries',
+              'self-host-email-core-deps',
+              'self-host-email-cognition-deps',
               'self-host-email-deps',
+              'authentication-service',
+              'connection-gateway',
+              'contacts-service',
+              'document-storage-service',
+              'document-cognition-service',
+              'email-service',
+              'image-proxy-service',
+              'notification-service',
+              'static-file-service',
+              'unfurl-service',
+              'search-processing-service',
+              'upload-finalizer',
+              'macro-db-migrator',
               'cargo-vendor-dir',
               'crane-utils',
               'rustc',
@@ -635,27 +536,38 @@ jobs:
                   rm -rf "$batch_dir"
                   TOTAL_UPLOADED=$(( TOTAL_UPLOADED + unique_count ))
                 else
-                  # REQUEUE: Handle failures by inspecting retry counts in filename
-                  echo "[STREAMING CACHE WARNING] Failed to upload batch of $unique_count paths; evaluating requeue..." >&2
+                  # Fallback: attempt uploading individually so one faulty path does not fail the whole batch
+                  echo "[STREAMING CACHE WARNING] Failed to upload batch of $unique_count paths; isolating individual paths..." >&2
                   for cf in "$batch_dir"/*.path; do
                     [ -f "$cf" ] || continue
-                    base=$(basename "$cf" .path)
-                    retries=0
-                    if [[ "$base" =~ \.retry([0-9]+)$ ]]; then
-                      retries="${BASH_REMATCH[1]}"
-                      base="${base%.retry*}"
+                    p=$(cat "$cf" 2>/dev/null || true)
+                    single_ok=false
+                    if [ -n "$p" ] && [[ "$p" == /nix/store/* ]]; then
+                      if nix copy $NO_RECURSIVE_FLAG --to "$dest" "$p" 2>/dev/null; then
+                        single_ok=true
+                        TOTAL_UPLOADED=$(( TOTAL_UPLOADED + 1 ))
+                        rm -f "$cf"
+                      fi
                     fi
-                    retries=$(( retries + 1 ))
+                    if [ "$single_ok" = false ]; then
+                      base=$(basename "$cf" .path)
+                      retries=0
+                      if [[ "$base" =~ \.retry([0-9]+)$ ]]; then
+                        retries="${BASH_REMATCH[1]}"
+                        base="${base%.retry*}"
+                      fi
+                      retries=$(( retries + 1 ))
 
-                    if [ "$retries" -ge "$MAX_REQUEUES" ]; then
-                      mv "$cf" "$FAILED_DIR/${base}.failed" 2>/dev/null || rm -f "$cf"
-                      TOTAL_FAILED=$(( TOTAL_FAILED + 1 ))
-                    else
-                      mv "$cf" "$SPOOL_DIR/${base}.retry${retries}.path" 2>/dev/null || rm -f "$cf"
+                      if [ "$retries" -ge "$MAX_REQUEUES" ]; then
+                        mv "$cf" "$FAILED_DIR/${base}.failed" 2>/dev/null || rm -f "$cf"
+                        TOTAL_FAILED=$(( TOTAL_FAILED + 1 ))
+                      else
+                        mv "$cf" "$SPOOL_DIR/${base}.retry${retries}.path" 2>/dev/null || rm -f "$cf"
+                      fi
                     fi
                   done
                   rmdir "$batch_dir" 2>/dev/null || true
-                  sleep 5
+                  sleep 2
                 fi
               else
                 # Empty/invalid paths in claimed batch, cleanup
@@ -789,7 +701,22 @@ jobs:
 
           KEY_PATTERNS = [
               'self-host-email-binaries',
+              'self-host-email-core-deps',
+              'self-host-email-cognition-deps',
               'self-host-email-deps',
+              'authentication-service',
+              'connection-gateway',
+              'contacts-service',
+              'document-storage-service',
+              'document-cognition-service',
+              'email-service',
+              'image-proxy-service',
+              'notification-service',
+              'static-file-service',
+              'unfurl-service',
+              'search-processing-service',
+              'upload-finalizer',
+              'macro-db-migrator',
               'cargo-vendor-dir',
               'crane-utils',
               'rustc',
@@ -867,6 +794,7 @@ jobs:
               if is_key(n):
                   key_names.add(n)
 
+          summary_rows = []
           for k in sorted(key_names):
               if any(k in b for b in builds):
                   status = "[BUILD]"
@@ -878,17 +806,47 @@ jobs:
                   status = "[LOCAL]"
 
               dur_display = durations.get(k, "-")
-              # If single aggregate build took up the step, display total duration if not captured
               if status == "[BUILD]" and dur_display == "-" and len(builds) <= 2:
                   dur_display = fmt_duration(total_sec)
 
               print(f"  {status:<16} | {dur_display:<10} | {k}")
+              summary_rows.append((status, dur_display, k))
 
           if not key_names:
               print("  (No key derivations recorded)")
           print("=======================================\n")
+
+          # Write readable markdown report to GitHub Step Summary
+          summary_env = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_env:
+              try:
+                  with open(summary_env, "a") as sf:
+                      sf.write("### 📦 Nix Build & Cache Summary\n\n")
+                      sf.write(f"- **Total S3 cache hits**: `{len(s3_copies)}`\n")
+                      sf.write(f"- **Total public cache hits**: `{len(pub_copies)}`\n")
+                      sf.write(f"- **Total derivations built**: `{len(builds)}`\n")
+                      sf.write(f"- **Total build step duration**: `{fmt_duration(total_sec)}`\n\n")
+                      sf.write("| Status | Duration | Derivation |\n")
+                      sf.write("| :--- | :--- | :--- |\n")
+                      for status, dur, name in summary_rows:
+                          sf.write(f"| `{status}` | {dur} | `{name}` |\n")
+                      sf.write("\n")
+              except Exception as e:
+                  print(f"Failed to append to GITHUB_STEP_SUMMARY: {e}")
           EOF
           python3 /tmp/summarize_nix_build.py "$BUILD_DURATION_SEC"
+
+          # 5. Post-build cache sync: ensure the root binaries package is securely cached in S3
+          if [ -n "${NIX_CACHE_URL:-}" ] && [ -n "${NIX_CACHE_SIGNING_KEY:-}" ]; then
+            key="$RUNNER_TEMP/nix-cache-signing-key"
+            if [ -f "$key" ]; then
+              key_arg="secret-key=$key"
+              sep='?'; [[ "$NIX_CACHE_URL" == *\?* ]] && sep='&'
+              dest_url="${NIX_CACHE_URL}${sep}${key_arg}"
+              echo "[CACHE] Syncing .#self-host-email-binaries root package to S3..."
+              nix copy $NO_RECURSIVE_FLAG --to "$dest_url" ".#self-host-email-binaries" 2>/dev/null || true
+            fi
+          fi
 
           cp -L result-bins/bin/* self-host/build/bin/ 2>/dev/null \
             || cp -RL result-bins/* self-host/build/bin/
@@ -1002,10 +960,9 @@ jobs:
           echo "Signaling background streaming cache uploader to finalize and flush remaining queue..."
           touch "$STOP_FILE"
 
-          # Wait briefly on successful builds only. Failed builds skip this step
-          # and use the cleanup step below so CI does not spend minutes flushing
-          # partial cache uploads after a broken production artifact.
-          TIMEOUT=30
+          # Wait up to 5 minutes to flush remaining cache uploads so large core artifacts complete.
+          # Failed builds skip this step and use the cleanup step below.
+          TIMEOUT=300
           waited=0
           while [ ! -f "$DONE_FILE" ] && [ "$waited" -lt "$TIMEOUT" ]; do
             if ! pgrep -f "run_cache_uploader.sh" >/dev/null 2>&1 && [ ! -f "$DONE_FILE" ]; then
@@ -1128,7 +1085,6 @@ jobs:
   web:
     name: macro-web
     needs: check-drift
-    if: needs.check-drift.outputs.run_web == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -1209,11 +1165,6 @@ jobs:
   init:
     name: macro-init
     needs: [check-drift, services]
-    if: |
-      always() &&
-      needs.check-drift.result == 'success' &&
-      (needs.services.result == 'success' || needs.services.result == 'skipped') &&
-      needs.check-drift.outputs.run_init == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -1257,7 +1208,6 @@ jobs:
   workers:
     name: ${{ matrix.image }}
     needs: check-drift
-    if: needs.check-drift.outputs.run_workers == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

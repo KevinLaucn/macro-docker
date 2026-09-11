@@ -59,6 +59,7 @@ services:
           # its own object has to use that host or the signature won't verify.
           - ${MACRO_DOMAIN}
           - ${S3_DOMAIN}
+          - otel-collector
       databases:
       auth:
 
