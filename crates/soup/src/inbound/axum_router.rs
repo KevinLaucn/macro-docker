@@ -35,6 +35,7 @@ use item_filters::{
     EntityFilters,
     ast::{
         EntityFilterAst, ExpandErr, LiteralTree,
+        agent_session::AgentSessionLiteral,
         calendar_event::CalendarEventLiteral,
         call::CallLiteral,
         channel::{ChannelLiteral, ChannelThreadLiteral},
@@ -1239,6 +1240,12 @@ pub struct ApiEntityFilterAst {
     #[serde(default, rename = "remf")]
     #[schema(value_type = serde_json::Value)]
     pub reminder_filter: LiteralTree<ReminderLiteral>,
+    /// Filters applied to agent sessions (wire key `asf`). Like reminders,
+    /// empty/omitted returns **no** agent sessions: they are opt-in, so the
+    /// caller must send `inc`, an id, or an owner to get any.
+    #[serde(default, rename = "asf")]
+    #[schema(value_type = serde_json::Value)]
+    pub agent_session_filter: LiteralTree<AgentSessionLiteral>,
     /// the filters that should be applied based on entity properties
     #[serde(default, rename = "propf")]
     #[schema(value_type = serde_json::Value)]
@@ -1340,6 +1347,7 @@ impl ApiEntityFilterAst {
             call_filter,
             crm_company_filter,
             reminder_filter,
+            agent_session_filter,
             properties_filter,
             email_crm_domains,
             email_crm_addresses,
@@ -1408,6 +1416,7 @@ impl ApiEntityFilterAst {
             crm_company_filter,
             foreign_entity_filter,
             reminder_filter,
+            agent_session_filter,
             properties_filter,
         })
     }

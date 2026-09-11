@@ -204,8 +204,7 @@ export const FavoritesSection = (props: {
     for (const notification of notificationSource.notifications()) {
       if (
         !isChannelNotification(notification) ||
-        notification.viewed_at ||
-        notification.done
+        notification.state !== 'unseen'
       ) {
         continue;
       }

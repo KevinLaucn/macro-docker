@@ -15,13 +15,14 @@ import {
   MenuItem,
   MenuSeparator,
 } from '@core/component/ContextMenu';
+import { SoupEntityContextMenu } from '@app/features/soup/SoupEntityContextMenu';
+import { joinChannelCall } from '@channel/Call/join-channel-call';
 import { StaticMarkdown } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { useUserId } from '@core/context/user';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { getDisplayName, tryMacroId } from '@core/user';
 import type { MacroId } from '@core/user/macroId';
 import { type ChannelEntity, Entity } from '@entity';
-import { ContextMenu } from '@kobalte/core/context-menu';
 import ReplyIcon from '@phosphor/arrow-bend-up-left.svg';
 import AtIcon from '@phosphor/at.svg';
 import BellSlashIcon from '@phosphor/bell-slash.svg';
@@ -47,7 +48,7 @@ export type ChannelRailItemProps = {
   onActivate: () => void;
 };
 
-const CHANNEL_RAIL_ACTION_VIEW_CONTEXT: EntityActionViewContext = {
+export const CHANNEL_ACTION_VIEW_CONTEXT: EntityActionViewContext = {
   supportsMarkDone: false,
   senderBucket: undefined,
 };
@@ -68,19 +69,18 @@ export function ChannelRailItemContextMenu(
   }>
 ) {
   const rail = useChannelsRail();
-  const notificationSource = useGlobalNotificationSource();
   const actionList = toEntityActionListState({
     controller: rail.list,
     getEntity: (row) => (row.kind === 'conversation' ? row.channel : undefined),
   });
 
-  const openInNewTab = () => {
-    markChannelNotificationsSeenOnOpen(props.channel, notificationSource);
-    openEntityInNewTab({ entity: props.channel });
-  };
-
   return (
-    <ContextMenu
+    <SoupEntityContextMenu
+      entity={props.channel}
+      list={actionList}
+      selectedEntities={() => []}
+      viewContext={CHANNEL_ACTION_VIEW_CONTEXT}
+      class={props.class}
       onOpenChange={(open) => {
         if (!open) return;
 
@@ -90,23 +90,8 @@ export function ChannelRailItemContextMenu(
         });
       }}
     >
-      <ContextMenu.Trigger class={props.class}>
-        {props.children}
-      </ContextMenu.Trigger>
-      <ContextMenu.Portal>
-        <ContextMenuContent class="w-64 text-xs text-ink-muted">
-          <MenuGroup>
-            <MenuItem text="Open in new tab" onClick={openInNewTab} />
-          </MenuGroup>
-          <MenuSeparator />
-          <SoupEntityActionsMenu
-            entities={[props.channel]}
-            list={actionList}
-            viewContext={CHANNEL_RAIL_ACTION_VIEW_CONTEXT}
-          />
-        </ContextMenuContent>
-      </ContextMenu.Portal>
-    </ContextMenu>
+      {props.children}
+    </SoupEntityContextMenu>
   );
 }
 

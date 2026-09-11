@@ -1,0 +1,99 @@
+import { SERVER_HOSTS } from '@core/constant/servers';
+import { fetchWithToken } from '@core/util/fetchWithToken';
+
+import type { ActiveCallsResponse } from '@service-storage/generated/schemas/activeCallsResponse';
+import type { CallActiveResponse } from '@service-storage/generated/schemas/callActiveResponse';
+import type { CallRecord } from '@service-storage/generated/schemas/callRecord';
+import type { CallTokenResponse } from '@service-storage/generated/schemas/callTokenResponse';
+import type { LeaveCallResponse } from '@service-storage/generated/schemas/leaveCallResponse';
+
+export type { CallRecord, CallTokenResponse };
+
+const host: string = SERVER_HOSTS['document-storage-service'];
+
+export const callServiceClient = {
+  async getOrCreateCall(channelId: string) {
+    return (
+      await fetchWithToken<CallTokenResponse>(`${host}/call/${channelId}`, {
+        method: 'GET',
+      })
+    ).map((result) => result);
+  },
+
+  async leaveCall(channelId: string) {
+    return (
+      await fetchWithToken<LeaveCallResponse>(`${host}/call/${channelId}`, {
+        method: 'DELETE',
+      })
+    ).map((result) => result);
+  },
+
+  async checkActiveCall(channelId: string) {
+    return (
+      await fetchWithToken<CallActiveResponse>(
+        `${host}/call/${channelId}/active`,
+        { method: 'GET' }
+      )
+    ).map(
+      // safeFetch returns {} for 204 (no Content-Type header)
+      (data) => ('callId' in data ? (data as CallActiveResponse) : null)
+    );
+  },
+
+  async getActiveCalls() {
+    return (
+      await fetchWithToken<ActiveCallsResponse>(`${host}/call/active`, {
+        method: 'GET',
+      })
+    ).map((response) => response.calls ?? []);
+  },
+
+  async getCallRecord(callId: string) {
+    return (
+      await fetchWithToken<CallRecord>(`${host}/call/record/${callId}`, {
+        method: 'GET',
+      })
+    ).map((result) => result);
+  },
+
+  async deleteCallRecord(callId: string) {
+    return (
+      await fetchWithToken<Record<string, never>>(
+        `${host}/call/record/${callId}`,
+        { method: 'DELETE' }
+      )
+    ).map(() => undefined);
+  },
+
+  async toggleShareWithTeam(callId: string) {
+    // fetchWithToken requires T extends ObjectLike, but this endpoint returns a
+    // primitive JSON boolean. response.json() parses it correctly at runtime;
+    // we only need to satisfy the generic constraint.
+    const result = await fetchWithToken<Record<string, never>>(
+      `${host}/call/record/${callId}/share-with-team/toggle`,
+      { method: 'POST' }
+    );
+    return result.map((r) => r as unknown as boolean);
+  },
+
+  async editCallRecord(params: {
+    callId: string;
+    customName?: string;
+    shareWithTeam?: boolean;
+  }) {
+    const body: { customName?: string; shareWithTeam?: boolean } = {};
+    if (params.customName !== undefined) body.customName = params.customName;
+    if (params.shareWithTeam !== undefined)
+      body.shareWithTeam = params.shareWithTeam;
+
+    return (
+      await fetchWithToken<Record<string, never>>(
+        `${host}/call/record/${params.callId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(body),
+        }
+      )
+    ).map(() => undefined);
+  },
+};

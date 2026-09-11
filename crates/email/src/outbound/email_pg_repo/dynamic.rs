@@ -26,6 +26,7 @@ use uuid::Uuid;
 
 enum SqlSegment {
     Raw(String),
+    BindViewer,
     BindString(String),
     BindUuid(Uuid),
     BindUuidArray(Vec<Uuid>),
@@ -43,6 +44,12 @@ impl SqlFragment {
     fn raw(s: impl Into<String>) -> Self {
         Self {
             segments: vec![SqlSegment::Raw(s.into())],
+        }
+    }
+
+    fn bind_viewer() -> Self {
+        Self {
+            segments: vec![SqlSegment::BindViewer],
         }
     }
 
@@ -110,11 +117,14 @@ impl SqlFragment {
         f
     }
 
-    fn push_into(self, builder: &mut QueryBuilder<'_, Postgres>) {
+    fn push_into(self, builder: &mut QueryBuilder<'_, Postgres>, viewer: &str) {
         for segment in self.segments {
             match segment {
                 SqlSegment::Raw(s) => {
                     builder.push(s);
+                }
+                SqlSegment::BindViewer => {
+                    builder.push_bind(viewer.to_owned());
                 }
                 SqlSegment::BindString(s) => {
                     builder.push_bind(s);
@@ -138,6 +148,10 @@ impl SqlFragment {
         for segment in &self.segments {
             match segment {
                 SqlSegment::Raw(s) => result.push_str(s),
+                SqlSegment::BindViewer => {
+                    bind_idx += 1;
+                    result.push_str(&format!("${bind_idx}[viewer]"));
+                }
                 SqlSegment::BindString(s) => {
                     bind_idx += 1;
                     result.push_str(&format!("${bind_idx}[str={s}]"));

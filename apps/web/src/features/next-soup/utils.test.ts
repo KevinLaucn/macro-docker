@@ -127,6 +127,7 @@ const sendNotification = (id: string, messageId: string): UnifiedNotification =>
     id,
     entity_type: 'channel',
     entity_id: 'channel-1',
+    state: 'unseen',
     notification_event_type: 'channel_message_send',
     notification_metadata: {
       tag: 'channel_message_send',
@@ -143,6 +144,7 @@ const replyNotification = (
     id,
     entity_type: 'channel',
     entity_id: 'channel-1',
+    state: 'unseen',
     notification_event_type: 'channel_message_reply',
     notification_metadata: {
       tag: 'channel_message_reply',
@@ -153,6 +155,7 @@ const replyNotification = (
 const asRead = (notification: UnifiedNotification): UnifiedNotification =>
   ({
     ...notification,
+    state: 'seen',
     viewed_at: '2026-07-14T00:00:00.000Z',
   }) as unknown as UnifiedNotification;
 

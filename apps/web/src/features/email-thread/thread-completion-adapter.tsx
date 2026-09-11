@@ -26,7 +26,10 @@ import {
   invalidateAllSoup,
   refetchSoupEntity,
 } from '@queries/soup/cache';
-import { mapApiSoupItemToEntity } from '@queries/soup/transform-utils';
+import {
+  isDisplayableSoupItem,
+  mapApiSoupItemToEntity,
+} from '@queries/soup/transform-utils';
 import type { Accessor } from 'solid-js';
 
 import type {
@@ -187,6 +190,7 @@ export function createThreadCompletionAdapter(
     const entity =
       selectedRow?.original ??
       (cachedItem &&
+      isDisplayableSoupItem(cachedItem) &&
       cachedItem.tag !== 'channelThread' &&
       cachedItem.tag !== 'calendarEvent'
         ? mapApiSoupItemToEntity(cachedItem)
@@ -276,9 +280,14 @@ export function createThreadCompletionAdapter(
         markAsDoneAction.executeWithSoup(
           [selectedRow.original],
           soup,
-          (nextEntity) => {
+          ({ entity: nextEntity }) => {
             const splitHandle = splitPanel?.handle;
             if (!splitHandle) return;
+            if (!nextEntity) {
+              splitHandle.resetPreview();
+              return;
+            }
+
             void openEntityInSplitFromUnifiedList(nextEntity, {
               splitHandle,
               mergeHistory: true,
@@ -290,6 +299,7 @@ export function createThreadCompletionAdapter(
       );
     } else if (
       cachedItem &&
+      isDisplayableSoupItem(cachedItem) &&
       cachedItem.tag !== 'channelThread' &&
       cachedItem.tag !== 'calendarEvent'
     ) {

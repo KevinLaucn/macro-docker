@@ -122,8 +122,9 @@ export function stripBlockedTrackingPixelsFromHtml(html: string): string {
       continue;
     }
 
-    // Block Macro tracking pixels
-    if (src.includes('/t/o/')) {
+    // Block Macro tracking pixels (official domains, same-origin, or configured email-service)
+    // or URLs containing a standard 36-char tracking token.
+    if (isMacroTrackingPixelUrl(src) || /\/t\/o\/[0-9a-fA-F-]{36}/.test(src)) {
       img.remove();
       continue;
     }
@@ -151,26 +152,37 @@ export function stripBlockedTrackingPixelsFromHtml(html: string): string {
   return template.innerHTML;
 }
 
-const OPEN_TRACKING_PATH = '/t/o/';
+export const OPEN_TRACKING_PATH = '/t/o/';
 
-function isMacroTrackingPixelUrl(src: string): boolean {
-  if (!src.includes(OPEN_TRACKING_PATH)) return false;
+export function isMacroTrackingPixelUrl(
+  src: string,
+  configuredEmailServiceUrl?: string
+): boolean {
+  if (!src || !src.includes(OPEN_TRACKING_PATH)) return false;
   try {
-    const url = new URL(
-      src,
-      typeof window !== 'undefined' ? window.location.origin : undefined
-    );
+    const baseOrigin =
+      typeof window !== 'undefined' ? window.location.origin : undefined;
+    const url = new URL(src, baseOrigin);
     if (!url.pathname.includes(OPEN_TRACKING_PATH)) return false;
 
+    // 1. Official Macro hosts
     if (/^email-service[a-z0-9.-]*\.macro\.com$/.test(url.hostname)) {
       return true;
     }
 
-    if (
-      typeof window !== 'undefined' &&
-      url.origin === window.location.origin
-    ) {
+    // 2. Same-origin self-host
+    if (baseOrigin && url.origin === baseOrigin) {
       return true;
+    }
+
+    // 3. Configured email-service origin (cross-origin self-host)
+    const configuredHost =
+      configuredEmailServiceUrl ?? SERVER_HOSTS['email-service'];
+    if (configuredHost) {
+      const configuredOrigin = new URL(configuredHost, baseOrigin).origin;
+      if (url.origin === configuredOrigin) {
+        return true;
+      }
     }
 
     return false;

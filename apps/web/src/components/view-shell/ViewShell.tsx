@@ -58,8 +58,6 @@ export type ViewShellLayout = {
 
 type ViewShellInternal = ViewShellLayout & { id: string };
 
-const RESIZE_GUTTER = 8;
-
 const ViewShellContext = createContext<ViewShellInternal>();
 
 function useViewShellInternal(): ViewShellInternal {
@@ -195,12 +193,7 @@ function Root(props: ViewShellRootProps) {
     if (currentWidth === undefined) return false;
 
     const asideMin = asideMode() === 'docked' ? asideLayout().min : 0;
-    const panelCount = asideMode() === 'docked' ? 3 : 2;
-    const minimumWidth =
-      asideMin +
-      mainLayout().min +
-      detailLayout().min +
-      (panelCount - 1) * RESIZE_GUTTER;
+    const minimumWidth = asideMin + mainLayout().min + detailLayout().min;
     return currentWidth >= minimumWidth;
   };
 
@@ -252,11 +245,7 @@ function Root(props: ViewShellRootProps) {
         data-view-shell=""
         data-view-shell-layout={atLayoutBreakpoint() ? layoutKey() : undefined}
       >
-        <Resize.Zone
-          direction="horizontal"
-          gutter={RESIZE_GUTTER}
-          resizable={resizable()}
-        >
+        <Resize.Zone direction="horizontal" resizable={resizable()}>
           {local.children}
         </Resize.Zone>
       </div>
@@ -295,9 +284,7 @@ function Aside(props: ViewShellAsideProps) {
     }
 
     const availableForAside =
-      shellWidth -
-      RESIZE_GUTTER -
-      Math.max(mainLayout.preferredWidth, mainLayout.min);
+      shellWidth - Math.max(mainLayout.preferredWidth, mainLayout.min);
 
     return Math.min(layout.width, Math.max(layout.min, availableForAside));
   };
@@ -355,13 +342,31 @@ function Main(props: JSX.HTMLAttributes<HTMLElement>) {
   );
 }
 
+function TopBar(props: JSX.HTMLAttributes<HTMLDivElement>) {
+  const [local, rest] = splitProps(props, ['children', 'class']);
+  return (
+    <div
+      {...rest}
+      class={cn(
+        'flex h-12 min-w-0 shrink-0 items-center border-b border-edge px-4 py-3 touch:hidden',
+        local.class
+      )}
+      data-view-shell-top-bar=""
+    >
+      <h1 class="min-w-0 truncate text-sm font-semibold tracking-[-0.03em] text-ink">
+        {local.children}
+      </h1>
+    </div>
+  );
+}
+
 function Header(props: JSX.HTMLAttributes<HTMLElement>) {
   const [local, rest] = splitProps(props, ['children', 'class']);
   return (
     <header
       {...rest}
       class={cn(
-        'shrink-0 px-4 pb-3 pt-2 touch:px-(--mobile-chrome-gutter) touch:pt-[calc(var(--safe-top,0px)+0.5rem)]',
+        'shrink-0 px-4 py-4 touch:px-(--mobile-chrome-gutter) touch:pt-[calc(var(--safe-top,0px)+0.5rem)]',
         local.class
       )}
       data-view-shell-header=""
@@ -456,6 +461,7 @@ export const ViewShell = Object.assign(Root, {
   Root,
   Aside,
   Main,
+  TopBar,
   Header,
   Content,
   Detail,

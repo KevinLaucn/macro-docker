@@ -1,5 +1,6 @@
 import { t } from '@macro/i18n';
 import { ViewShell } from '@app/components/view-shell';
+import { MaybeSoupEntityActionDrawerManager } from '@app/features/soup';
 import { createSizeBreakpoints } from '@app/util/create-size-breakpoints';
 import { useGlobalBlockOrchestrator } from '@components/app/GlobalAppState';
 import { PreviewPanel } from '@components/app/PreviewPanel';
@@ -169,22 +170,24 @@ function ChannelsViewRoot() {
                 </div>
               }
             >
-              <Suspense
-                fallback={
-                  <div class="grid size-full place-items-center text-ink-muted">
-                    <SpinnerIcon
-                      aria-label={t("Loading channels@@chat")}
-                      class="size-5 animate-spin"
-                    />
-                  </div>
-                }
-              >
-                <ChannelsMobileView
-                  source={sources[state.mobileTab]}
-                  tab={state.mobileTab}
-                  onTabChange={setMobileTab}
-                />
-              </Suspense>
+              <MaybeSoupEntityActionDrawerManager>
+                <Suspense
+                  fallback={
+                    <div class="grid size-full place-items-center text-ink-muted">
+                      <SpinnerIcon
+                        aria-label={t("Loading channels@@chat")}
+                        class="size-5 animate-spin"
+                      />
+                    </div>
+                  }
+                >
+                  <ChannelsMobileView
+                    source={sources[state.mobileTab]}
+                    tab={state.mobileTab}
+                    onTabChange={setMobileTab}
+                  />
+                </Suspense>
+              </MaybeSoupEntityActionDrawerManager>
             </Show>
           </SplitPanel.Body>
         </SplitPanel.Root>

@@ -24,6 +24,7 @@ import PlusCircleIcon from '@phosphor/plus-circle.svg';
 import UploadIcon from '@phosphor/upload-simple.svg';
 import { Button, cn, Dropdown } from '@ui';
 import { createMemo, For, Show } from 'solid-js';
+import { NewCallButton } from './NewCallButton';
 import { useMaybeSoupView } from './soup-view-context';
 
 // Which blocks to show as create options per view, in order
@@ -44,17 +45,17 @@ type CreateOption = {
 
 const IMPORT_FILE_OPTION: CreateOption = {
   id: 'import-file',
-  label: 'Import file',
+  label: t('Import file'),
 };
 const IMPORT_FOLDER_OPTION: CreateOption = {
   id: 'import-folder',
-  label: 'Import folder',
+  label: t('Import folder'),
 };
 // Companies aren't blocks, so the Customers view gets a bespoke option
 // that opens the create-company modal instead of a create action.
 const CREATE_COMPANY_OPTION: CreateOption = {
   id: 'create-company',
-  label: 'Company',
+  label: t('Company'),
 };
 
 /**
@@ -243,17 +244,22 @@ export const SoupViewCreateButton = () => {
   );
 
   return (
-    <Show when={options().length > 0}>
-      <CollapsibleHeaderItem id="create-button" priority={2}>
-        {(isCollapsed) => (
-          <Show
-            when={options().length > 1}
-            fallback={<SingleOptionButton hideLabel={isCollapsed()} />}
-          >
-            <MultiOptionButton hideLabel={isCollapsed()} />
-          </Show>
-        )}
-      </CollapsibleHeaderItem>
-    </Show>
+    <>
+      <Show when={currentView() === 'calls'}>
+        <NewCallButton />
+      </Show>
+      <Show when={options().length > 0}>
+        <CollapsibleHeaderItem id="create-button" priority={2}>
+          {(isCollapsed) => (
+            <Show
+              when={options().length > 1}
+              fallback={<SingleOptionButton hideLabel={isCollapsed()} />}
+            >
+              <MultiOptionButton hideLabel={isCollapsed()} />
+            </Show>
+          )}
+        </CollapsibleHeaderItem>
+      </Show>
+    </>
   );
 };

@@ -1,5 +1,10 @@
 import { throwOnErr } from '@core/util/result';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/solid-query';
+import {
+  type QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/solid-query';
 import type { Accessor } from 'solid-js';
 import {
   type GlobalExtensionSettingsResponse,
@@ -7,38 +12,121 @@ import {
   readReceiptsClient,
 } from './client';
 
+interface PendingBatchRequest {
+  resolve: (data: ReadReceiptStatusData) => void;
+  reject: (err: unknown) => void;
+}
+
+let pendingBatch: Map<string, PendingBatchRequest[]> = new Map();
+let batchScheduled = false;
+
+export const MAX_STATUS_BATCH_CHUNK = 100;
+
+export function flushReadReceiptStatusBatch(queryClient?: QueryClient): void {
+  const currentBatch = pendingBatch;
+  pendingBatch = new Map();
+  batchScheduled = false;
+
+  const ids = Array.from(currentBatch.keys());
+  if (ids.length === 0) return;
+
+  for (let i = 0; i < ids.length; i += MAX_STATUS_BATCH_CHUNK) {
+    const chunkIds = ids.slice(i, i + MAX_STATUS_BATCH_CHUNK);
+    readReceiptsClient
+      .getStatuses(chunkIds)
+      .then((res) => {
+        const statuses = res.statuses || [];
+        const statusMap = new Map<string, ReadReceiptStatusData>();
+        for (const s of statuses) {
+          statusMap.set(s.message_id, s);
+        }
+
+        for (const id of chunkIds) {
+          const status = statusMap.get(id) ?? {
+            message_id: id,
+            first_opened_at: null,
+            last_opened_at: null,
+            open_count: 0,
+          };
+          if (queryClient) {
+            queryClient.setQueryData(['email', 'read-receipt', id], status);
+          }
+          const callbacks = currentBatch.get(id) ?? [];
+          for (const cb of callbacks) {
+            cb.resolve(status);
+          }
+        }
+      })
+      .catch((err) => {
+        for (const id of chunkIds) {
+          const callbacks = currentBatch.get(id) ?? [];
+          for (const cb of callbacks) {
+            cb.reject(err);
+          }
+        }
+      });
+  }
+}
+
+export function fetchReadReceiptStatusBatched(
+  messageId: string,
+  queryClient?: QueryClient
+): Promise<ReadReceiptStatusData> {
+  return new Promise((resolve, reject) => {
+    const existing = pendingBatch.get(messageId);
+    if (existing) {
+      existing.push({ resolve, reject });
+    } else {
+      pendingBatch.set(messageId, [{ resolve, reject }]);
+    }
+
+    if (!batchScheduled) {
+      batchScheduled = true;
+      queueMicrotask(() => {
+        flushReadReceiptStatusBatch(queryClient);
+      });
+    }
+  });
+}
+
 export function useReadReceiptStatusQuery(
   messageId: Accessor<string | undefined | null>,
   enabled: Accessor<boolean>
 ) {
-  return useQuery(() => ({
-    queryKey: ['email', 'read-receipt', messageId()],
-    enabled: enabled() && Boolean(messageId()),
-    queryFn: async (): Promise<ReadReceiptStatusData> => {
-      const id = messageId();
-      if (!id) {
-        return {
-          message_id: '',
-          first_opened_at: null,
-          last_opened_at: null,
-          open_count: 0,
-        };
-      }
-      const response = await throwOnErr(() =>
-        readReceiptsClient.getStatuses([id])
-      );
-      return (
-        response.statuses[0] ?? {
-          message_id: id,
-          first_opened_at: null,
-          last_opened_at: null,
-          open_count: 0,
+  const queryClient = useQueryClient();
+
+  return useQuery(() => {
+    const id = messageId();
+    return {
+      queryKey: ['email', 'read-receipt', id],
+      enabled: enabled() && Boolean(id),
+      queryFn: async (): Promise<ReadReceiptStatusData> => {
+        if (!id) {
+          return {
+            message_id: '',
+            first_opened_at: null,
+            last_opened_at: null,
+            open_count: 0,
+          };
         }
-      );
-    },
-    staleTime: 10_000,
-    refetchInterval: 30_000,
-  }));
+        return fetchReadReceiptStatusBatched(id, queryClient);
+      },
+      staleTime: 10_000,
+      refetchInterval: (query) => {
+        if (typeof document !== 'undefined' && document.hidden) {
+          return false;
+        }
+        const data = query.state.data;
+        if (data && data.open_count > 0) {
+          // Once opened, refresh less frequently (2 minutes) for open count updates
+          return 120_000;
+        }
+        // Unopened sent messages refresh every 30s to catch the first open in a timely manner
+        return 30_000;
+      },
+      refetchIntervalInBackground: false,
+    };
+  });
 }
 
 export function useReadReceiptsPreferenceQuery(

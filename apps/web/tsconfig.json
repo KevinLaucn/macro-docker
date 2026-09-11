@@ -107,6 +107,9 @@
       "@service-static-files/*": [
         "./src/lib/service-clients/service-static-files/*"
       ],
+      "@service-call/*": [
+        "./src/lib/service-clients/service-call/*"
+      ],
       "@service-cognition/*": [
         "./src/lib/service-clients/service-cognition/*"
       ],
@@ -145,6 +148,9 @@
       ],
       "@block-code/*": [
         "./src/features/block-code/*"
+      ],
+      "@block-call/*": [
+        "./src/features/block-call/*"
       ],
       "@block-channel/*": [
         "./src/features/block-channel/*"

@@ -1,0 +1,67 @@
+# DO NOT EDIT — regenerate with `cargo x workflows` (from the repository root).
+# Source: tooling/xtask/crates/xtask_workflows/src/workflows/release.rs
+name: Release
+'on':
+  push:
+    branches:
+    - main
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  release:
+    name: Tag and publish release
+    runs-on: namespace-profile-linux-tiny-no-cache
+    steps:
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      with:
+        clean: 'false'
+        fetch-depth: '0'
+    - name: Create release tag
+      run: |
+        set -euo pipefail
+
+        mkdir -p release-artifacts
+        tag="v$(date -u +%Y).$(date -u +%-m).$(date -u +%-d).${GITHUB_RUN_NUMBER}"
+        if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+          :
+        else
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" -m "Automated release $tag"
+          git push origin "$tag"
+        fi
+
+        printf '%s\n' "$tag" > release-artifacts/tag.txt
+    - name: Package source archive
+      run: |
+        set -euo pipefail
+
+        tag="$(cat release-artifacts/tag.txt)"
+        if [ -z "$tag" ]; then
+          tag="v$(date -u +%Y).$(date -u +%-m).$(date -u +%-d).${GITHUB_RUN_NUMBER}"
+        fi
+
+        archive="release-artifacts/macro-source-${tag}.tar.gz"
+        git archive --format=tar.gz --prefix="macro-${tag}/" -o "$archive" "$tag"
+
+        printf 'Automated release for `%s`.\n\n- Commit: `%s`\n- Workflow run: `%s`\n- Source archive: `%s`\n' \
+          "$tag" \
+          "${GITHUB_SHA}" \
+          "${GITHUB_RUN_ID}" \
+          "$(basename "$archive")" > release-artifacts/release-notes.md
+    - name: Publish GitHub Release
+      run: |
+        set -euo pipefail
+
+        tag="$(cat release-artifacts/tag.txt)"
+        archive="release-artifacts/macro-source-${tag}.tar.gz"
+        if gh release view "$tag" >/dev/null 2>&1; then
+          gh release upload "$tag" "$archive" --clobber
+          gh release edit "$tag" --title "$tag" --notes-file release-artifacts/release-notes.md
+        else
+          gh release create "$tag" "$archive" --title "$tag" --notes-file release-artifacts/release-notes.md --verify-tag
+        fi
+      env:
+        GH_TOKEN: ${{ github.token }}

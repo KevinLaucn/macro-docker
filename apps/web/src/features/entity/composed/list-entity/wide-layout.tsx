@@ -1,18 +1,24 @@
 import { useMaybeSoupView } from '@app/features/next-soup/soup-view/soup-view-context';
 import { globalSplitManager } from '@app/signal/splitLayout';
+import { formatCallDuration } from '@block-call/utils';
 import { useSplitPanel } from '@components/app/split-layout/layoutUtils';
 import { AwaitingReplyTag, EntityRowTags } from '@property/tags';
 import { EntityType } from '@service-properties/generated/schemas/entityType';
 import type { SoupProperty } from '@service-storage/generated/schemas/soupProperty';
 import { cn } from '@ui';
 import { Match, Show, Switch } from 'solid-js';
-import { SharedBadge } from '../../components/Badges';
+import {
+  CallDurationBadge,
+  CallStatusBadge,
+  SharedBadge,
+} from '../../components/Badges';
 import { MultiSelectCheckbox } from '../../components/MultiSelectCheckbox';
 import { ProjectBreadCrumb } from '../../components/ProjectBreadCrumb';
 import { UnreadIndicator } from '../../components/UnreadIndicator';
 import { Entity } from '../../entity';
 import {
   isAutomationEntity,
+  isCallEntity,
   isChannelEntity,
   isChannelMessageEntity,
   isChatEntity,
@@ -27,6 +33,7 @@ import {
 import { isSearchEntity } from '../../types/search';
 import { AutomationWideContent } from './automation';
 import { CalendarStamp, CalendarWideContent } from './calendar';
+import { CallParticipants, CallWideContent } from './call';
 import {
   ChannelActiveCallBadge,
   ChannelJoinButton,
@@ -162,6 +169,15 @@ export function WideLayout(props: LayoutProps) {
               />
             )}
           </Match>
+          <Match when={isCallEntity(props.entity) && props.entity}>
+            {(entity) => (
+              <CallWideContent
+                entity={entity()}
+                setContainerRef={props.setSnippetContainerRef}
+                chars={props.chars}
+              />
+            )}
+          </Match>
           <Match when={isAutomationEntity(props.entity) && props.entity}>
             {(entity) => <AutomationWideContent entity={entity()} />}
           </Match>
@@ -242,6 +258,16 @@ export function WideLayout(props: LayoutProps) {
             />
           )}
         </Show>
+        <Show when={isCallEntity(props.entity) && props.entity}>
+          {(entity) => (
+            <RowTags
+              entityId={entity().id}
+              entityType={EntityType.CALL_RECORD}
+              properties={entity().properties}
+              onFilterByTag={soupView?.filterByTag}
+            />
+          )}
+        </Show>
         <Show
           when={
             props.isShared && !owningInbox() && !isGithubPrEntity(props.entity)
@@ -251,6 +277,32 @@ export function WideLayout(props: LayoutProps) {
         </Show>
         <Show when={isGithubPrEntity(props.entity) && props.entity}>
           {(entity) => <GithubPullRequestPills entity={entity()} />}
+        </Show>
+        <Show when={isCallEntity(props.entity) && props.entity}>
+          {(entity) => (
+            <>
+              <Show when={(soupView?.activeTab() ?? 'all') === 'all'}>
+                <CallStatusBadge status={entity().status} />
+              </Show>
+              <Show
+                when={entity().durationMs}
+                fallback={
+                  <Show when={entity().isActive}>
+                    <CallDurationBadge duration="In progress" />
+                  </Show>
+                }
+              >
+                {(durationMs) => (
+                  <CallDurationBadge
+                    duration={formatCallDuration(durationMs())}
+                  />
+                )}
+              </Show>
+              <span class="flex w-10 shrink-0 justify-end">
+                <CallParticipants participantIds={entity().participantIds} />
+              </span>
+            </>
+          )}
         </Show>
         <Show when={isTaskEntity(props.entity) && props.entity}>
           {(entity) => <Entity.Properties entity={entity()} />}
