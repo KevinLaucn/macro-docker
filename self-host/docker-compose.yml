@@ -458,7 +458,7 @@ services:
       postgres:
         condition: service_healthy
       document_storage_service:
-        condition: service_started
+        condition: service_healthy
       sync_service:
         condition: service_started
       lexical_service:
@@ -469,8 +469,11 @@ services:
         aliases:
           - document-cognition-service
     healthcheck:
-      <<: *healthcheck
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   document_storage_service:
     <<: *service

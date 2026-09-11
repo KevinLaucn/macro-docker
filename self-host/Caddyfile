@@ -52,7 +52,10 @@ http://{$MACRO_DOMAIN} {
 		reverse_proxy contacts-service:8080
 	}
 	handle_path /cognition/* {
-		reverse_proxy document-cognition-service:8080
+		reverse_proxy document-cognition-service:8080 {
+			lb_try_duration 4s
+			lb_try_interval 250ms
+		}
 	}
 	handle_path /dss/* {
 		reverse_proxy document-storage-service:8080
@@ -138,6 +141,13 @@ http://{$MACRO_DOMAIN} {
 
 		try_files {path} /index.html
 		file_server
+	}
+
+	handle_errors {
+		@cognition `{err.status_code} in [502, 503] && {http.request.orig_uri}.startsWith('/cognition')`
+		header @cognition Content-Type "application/json; charset=utf-8"
+		header @cognition Retry-After "3"
+		respond @cognition `{"code":"COGNITION_WARMING_UP","message":"AI 认知微服务正在启动初始化中，请稍候重试..."}` 503
 	}
 
 	respond "macro" 200
