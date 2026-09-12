@@ -55,6 +55,33 @@ inv_by_compose = {s["compose_name"]: s for s in services}
 compose = (SELF_HOST / "docker-compose.yml").read_text()
 caddy = (SELF_HOST / "Caddyfile").read_text()
 env_example = (SELF_HOST / ".env.example").read_text()
+macroctl = (SELF_HOST / "macroctl").read_text()
+
+# A release must not carry host-specific application configuration paths. They
+# make an old checkout silently override image-owned or release-owned config.
+release_owned_texts = {
+    "docker-compose.yml": compose,
+    "Caddyfile": caddy,
+    "macroctl": macroctl,
+}
+for path in sorted((SELF_HOST / "scripts").glob("*.py")):
+    if path.name == "check-drift.py":
+        continue
+    release_owned_texts[str(path.relative_to(SELF_HOST))] = path.read_text()
+for path in sorted((SELF_HOST / "init").glob("*.sh")):
+    release_owned_texts[str(path.relative_to(SELF_HOST))] = path.read_text()
+for name, text in release_owned_texts.items():
+    if "/home/ubuntu/marco" in text:
+        fail(f"{name} must not reference legacy host path /home/ubuntu/marco")
+
+# The production health probe is compiled into authentication_service and DSS
+# must use its declared contract key, never the generic internal API key.
+probes = (ROOT / "services/authentication_service/src/features/self_host_health/probes.rs").read_text()
+auth_match = re.search(r"^  authentication-service:\n(.*?)(?=^  \w|^volumes:)", compose, re.M | re.S)
+if not auth_match or "DOCUMENT_STORAGE_SERVICE_AUTH_KEY" not in auth_match.group(1):
+    fail("authentication-service must receive DOCUMENT_STORAGE_SERVICE_AUTH_KEY")
+if "context.internal_api_key" in probes:
+    fail("self-host health DSS probe must not fall back to context.internal_api_key")
 
 # Extract binaries actually executed in self-host/docker-compose.yml
 compose_bins = set(re.findall(r'/app/out/([a-zA-Z0-9_-]+)', compose))
@@ -136,6 +163,26 @@ if "localstack-ready.sh" in compose or "10-reconcile-queues.sh" in compose:
     fail("obsolete localstack-ready.sh / 10-reconcile-queues.sh must not be mounted in docker-compose.yml")
 if "resources.json" in compose:
     fail("resources.json must not be mounted in docker-compose.yml; upstream resources.rs is the sole source of truth")
+if "localstack_data:/persisted-data" not in compose:
+    fail("LocalStack persistence must use the named localstack_data volume, not a release-directory bind mount")
+
+required_persistent_volumes = {
+    "postgres_data",
+    "redis_data",
+    "kafka_data",
+    "opensearch_data",
+    "fusionauth_db_data",
+    "fusionauth_config",
+    "localstack_data",
+    "caddy_data",
+    "caddy_config",
+    "web_assets",
+    "sync_state",
+}
+volumes_section = compose.split("\nvolumes:\n", 1)[-1]
+for volume in sorted(required_persistent_volumes):
+    if not re.search(rf"^  {re.escape(volume)}:\s*$", volumes_section, re.M):
+        fail(f"persistent Compose volume declaration missing: {volume}")
 
 
 # --- image and profile invariants ------------------------------------------

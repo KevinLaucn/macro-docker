@@ -82,7 +82,7 @@ nix build --print-build-logs ".#local-stack-binaries" --out-link result-bins
 ### 4.3 支持持久化 Linux Builder (Self-Hosted Runner)
 - 支持注册带标签 `[self-hosted, linux, x64, macro-builder]` 的专用独立 Linux 编译机。
 - 专用 Builder 拥有持久的 `/nix/store` 和 Docker 缓存层，第二次构建即可享受极高的 Nix closure 缓存命中率。
-- 生产 VPS（`/app/macro`）坚决不承担任何编译任务，仅负责 pull 镜像与启动容器。
+- 生产 VPS（`/opt/macro/current`）坚决不承担任何编译任务，仅负责 pull 镜像与启动容器。
 
 ### 4.4 工作流（Workflow）支持双 Runner 与双 Profile
 - 在 `.github/workflows/self-host-images.yml` 中新增 `services_runner` (`github` / `self-hosted`，默认 `github`)。

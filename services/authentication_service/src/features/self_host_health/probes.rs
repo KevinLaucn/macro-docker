@@ -924,7 +924,7 @@ fn dead_letter_queue_name(redrive_policy: &str) -> Option<String> {
     arn.rsplit(':').next().map(str::to_string)
 }
 
-async fn probe_dss_service(context: &ApiContext) -> HealthCheckItem {
+async fn probe_dss_service(_context: &ApiContext) -> HealthCheckItem {
     let start = Instant::now();
     let dss_url = match self_host_service_url(
         DocumentStorageServiceUrl::new().map(|u| u.as_str().to_string()),
@@ -965,16 +965,11 @@ async fn probe_dss_service(context: &ApiContext) -> HealthCheckItem {
             return Err(format!("DSS public /health 返回 {}", public_resp.status()));
         }
 
-        let dss_auth_key = macro_env_var::maybe_read_env("DOCUMENT_STORAGE_SERVICE_AUTH_KEY")
-            .filter(|k| !k.trim().is_empty())
-            .unwrap_or_else(|| context.internal_api_key.to_string());
+        let dss_auth_key = document_storage_service_auth_key()?;
 
         let internal_resp = client
             .get(&internal_health_url)
-            .header(
-                "x-document-storage-service-auth-key",
-                dss_auth_key,
-            )
+            .header("x-document-storage-service-auth-key", dss_auth_key)
             .send()
             .await
             .map_err(|err| format!("DSS internal /health 不可达: {err}"))?;
@@ -1032,6 +1027,18 @@ async fn probe_dss_service(context: &ApiContext) -> HealthCheckItem {
             duration_ms,
         },
     }
+}
+
+fn document_storage_service_auth_key() -> Result<String, String> {
+    resolve_document_storage_service_auth_key(macro_env_var::maybe_read_env(
+        "DOCUMENT_STORAGE_SERVICE_AUTH_KEY",
+    ))
+}
+
+fn resolve_document_storage_service_auth_key(value: Option<String>) -> Result<String, String> {
+    value
+        .filter(|key| !key.trim().is_empty())
+        .ok_or_else(|| "DOCUMENT_STORAGE_SERVICE_AUTH_KEY 未配置".to_string())
 }
 
 fn self_host_public_email_url() -> Result<String, String> {
@@ -1104,25 +1111,11 @@ mod tests {
 
     #[test]
     fn test_dss_auth_key_resolution() {
-        temp_env::with_vars(
-            [("DOCUMENT_STORAGE_SERVICE_AUTH_KEY", Some("dss-secret-123"))],
-            || {
-                let resolved = macro_env_var::maybe_read_env("DOCUMENT_STORAGE_SERVICE_AUTH_KEY")
-                    .filter(|k| !k.trim().is_empty())
-                    .unwrap_or_else(|| "fallback".to_string());
-                assert_eq!(resolved, "dss-secret-123");
-            },
-        );
-
-        temp_env::with_vars(
-            [("DOCUMENT_STORAGE_SERVICE_AUTH_KEY", None::<&str>)],
-            || {
-                let resolved = macro_env_var::maybe_read_env("DOCUMENT_STORAGE_SERVICE_AUTH_KEY")
-                    .filter(|k| !k.trim().is_empty())
-                    .unwrap_or_else(|| "fallback".to_string());
-                assert_eq!(resolved, "fallback");
-            },
-        );
+        let resolved = resolve_document_storage_service_auth_key(Some("dss-secret-123".into()))
+            .expect("DSS key should resolve");
+        assert_eq!(resolved, "dss-secret-123");
+        assert!(resolve_document_storage_service_auth_key(None).is_err());
+        assert!(resolve_document_storage_service_auth_key(Some(" ".into())).is_err());
     }
 
     #[test]

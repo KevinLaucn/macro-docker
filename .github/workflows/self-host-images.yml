@@ -1403,25 +1403,34 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: 'false'
+      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate release manifest and bundle
         run: |
           set -euo pipefail
           v="${{ inputs.version || (github.ref_type == 'branch' && 'latest') || github.ref_name }}"
           ns="$(echo "$NAMESPACE" | tr '[:upper:]' '[:lower:]')"
           sha="${{ github.sha }}"
+          release_id="${v}+${sha:0:12}"
           built_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
           mkdir -p release-bundle
 
-          # Resolve image digests from local docker or registry
+          # Pull the exact images produced by the upstream jobs. The bundle job
+          # is intentionally a fresh runner, so inspecting local build state
+          # would silently produce unknown digests.
           get_digest() {
             local img="$1"
-            local dig=""
-            dig=$(docker inspect --format='{{index .RepoDigests 0}}' "$img" 2>/dev/null | cut -d'@' -f2 || true)
-            if [ -z "$dig" ]; then
-              dig=$(docker inspect --format='{{.Id}}' "$img" 2>/dev/null || true)
-            fi
-            echo "${dig:-sha256:unknown}"
+            docker pull --quiet "$img" >/dev/null
+            local dig revision
+            dig=$(docker inspect --format='{{index .RepoDigests 0}}' "$img" | cut -d'@' -f2)
+            revision=$(docker inspect --format='{{index .Config.Labels "org.opencontainers.image.revision"}}' "$img")
+            test "$revision" = "$sha"
+            [[ "$dig" =~ ^sha256:[0-9a-f]{64}$ ]]
+            echo "$dig"
           }
 
           services_img="$REGISTRY/$ns/macro-services-email:$v"
@@ -1434,7 +1443,8 @@ jobs:
 
           cat << EOF > release-bundle/release.json
           {
-            "version": "$v",
+            "version": "$release_id",
+            "registry_tag": "$v",
             "git_sha": "$sha",
             "built_at": "$built_at",
             "images": {
@@ -1474,7 +1484,26 @@ jobs:
           cp -a self-host/Caddyfile release-bundle/
           cp -a self-host/macroctl release-bundle/
           cp -a self-host/scripts release-bundle/
+          cp -a self-host/init release-bundle/
+          cp -a self-host/kickstart release-bundle/
           cp -a self-host/.env.example release-bundle/
+          cargo_lock_sha=$(sha256sum Cargo.lock | cut -d' ' -f1)
+          flake_lock_sha=$(sha256sum flake.lock | cut -d' ' -f1)
+          rustc_version=$(rustc --version 2>/dev/null || echo unavailable)
+          cargo_version=$(cargo --version 2>/dev/null || echo unavailable)
+          cat > release-bundle/build-info.json << EOF
+          {
+            "git_sha": "$sha",
+            "version": "$release_id",
+            "build_time": "$built_at",
+            "rustc_version": "$rustc_version",
+            "cargo_version": "$cargo_version",
+            "cargo_lock_sha256": "$cargo_lock_sha",
+            "flake_lock_sha256": "$flake_lock_sha",
+            "build_target": "x86_64-unknown-linux-gnu",
+            "cargo_features": ["self-host-email"]
+          }
+          EOF
           chmod +x release-bundle/macroctl release-bundle/scripts/*.py 2>/dev/null || true
 
           python3 release-bundle/scripts/verify-release.py --bundle-dir release-bundle

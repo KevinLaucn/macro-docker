@@ -12,7 +12,7 @@
 #   ./macroctl logs [service]     follow logs
 #   ./macroctl backup [dir]       dump database + object storage + config
 #   ./macroctl restore <dir>      restore a backup taken by this script
-#   ./macroctl upgrade [version]  pull a new version and restart in place
+#   ./macroctl upgrade <bundle-dir> install and activate one immutable release
 #   ./macroctl destroy            remove containers AND all data
 #
 # The only host dependency is Docker with the Compose plugin.
@@ -21,8 +21,18 @@ set -euo pipefail
 # Resolve the script's own name before changing directory: `$0` is relative to
 # the caller's cwd, so `--help` (which reads this file) breaks after the cd.
 SELF=$(basename "$0")
-cd "$(dirname "$0")"
-ENV_FILE=.env
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+cd "$SCRIPT_DIR"
+RELEASE_DIR=$PWD
+RELEASE_ROOT=${MACRO_RELEASE_ROOT:-/opt/macro}
+SHARED_ENV_FILE=${MACRO_SHARED_ENV_FILE:-/etc/macro/macro.env}
+# A checked-out release may still use its local .env for development. An
+# installed release uses one shared env file so secrets never drift per SHA.
+if [[ "$RELEASE_DIR" == "$RELEASE_ROOT/"* ]] || [ -f "$SHARED_ENV_FILE" ]; then
+  ENV_FILE="$SHARED_ENV_FILE"
+else
+  ENV_FILE=.env
+fi
 COMPOSE=(docker compose --env-file "$ENV_FILE" -f docker-compose.yml)
 
 red()  { printf '\033[31m%s\033[0m\n' "$*"; }
@@ -117,6 +127,7 @@ cmd_generate_secrets() {
 
   local s3_domain="s3.${domain}" fa_domain="auth.${domain}"
 
+  mkdir -p "$(dirname "$ENV_FILE")"
   MACRO_DOMAIN="$domain" S3_DOMAIN="$s3_domain" FUSIONAUTH_DOMAIN="$fa_domain" \
   ACME_EMAIL="$acme" SMTP_HOST="$smtp_host" SMTP_PORT="$smtp_port" \
   SMTP_USERNAME="$smtp_user" SMTP_PASSWORD="$smtp_pass" ADMIN_EMAIL="$admin" \
@@ -321,23 +332,41 @@ cmd_verify_release() {
 
 cmd_upgrade() {
   need_env
-  local version="${1:-}"
-  local bundle_dir="${2:-.}"
-  if [ -n "$version" ]; then
-    if grep -qE '^MACRO_VERSION=' "$ENV_FILE"; then
-      sed -i.bak -E "s|^MACRO_VERSION=.*|MACRO_VERSION=${version}|" "$ENV_FILE" && rm -f "$ENV_FILE.bak"
-    else
-      printf 'MACRO_VERSION=%s\n' "$version" >> "$ENV_FILE"
-    fi
-    bold "Pinned MACRO_VERSION=$version"
-  fi
+  local bundle_dir="${1:-}"
+  [ -n "$bundle_dir" ] && [ -f "$bundle_dir/release.json" ] || die "usage: ./macroctl upgrade <release-bundle-dir>"
   cmd_verify_release "$bundle_dir"
-  bold "Backing up first"
+  local new_sha target tmp current_link
+  new_sha=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["git_sha"])' "$bundle_dir/release.json")
+  [[ "$new_sha" =~ ^[0-9a-fA-F]{7,64}$ ]] || die "release.json has invalid git_sha: $new_sha"
+  target="$RELEASE_ROOT/releases/$new_sha"
+  current_link="$RELEASE_ROOT/current"
+  mkdir -p "$RELEASE_ROOT/releases"
+  tmp=$(mktemp -d "$RELEASE_ROOT/releases/.install-$new_sha.XXXXXX")
+  trap 'rm -rf "$tmp"' EXIT
+  cp -a "$bundle_dir"/. "$tmp"/
+  chmod +x "$tmp/macroctl" "$tmp/scripts"/*.py "$tmp/init"/*.sh 2>/dev/null || true
+  python3 "$tmp/scripts/verify-release.py" --bundle-dir "$tmp"
+  if [ ! -e "$target" ]; then
+    mv "$tmp" "$target"
+  else
+    rm -rf "$tmp"
+  fi
+  trap - EXIT
+
+  bold "Backing up before activating $new_sha"
   cmd_backup
+  ln -sfn "$target" "$current_link.new"
+  mv -Tf "$current_link.new" "$current_link"
+  exec "$target/macroctl" activate
+}
+
+cmd_activate() {
+  need_env
+  cmd_verify_release "$RELEASE_DIR"
   bold "Pulling release images"
   "${COMPOSE[@]}" pull --quiet
   bold "Verifying pulled image digests and OCI revision against release.json"
-  python3 ./scripts/verify-release.py --bundle-dir "$bundle_dir" || die "Pulled images failed release verification. Aborting upgrade to protect production."
+  python3 ./scripts/verify-release.py --bundle-dir "$RELEASE_DIR" || die "Pulled images failed release verification. Aborting upgrade to protect production."
   cmd_init
   # Both provisioners, not just migrations: a release that adds an event topic
   # or a queue needs them created on an existing deployment too, or the
@@ -439,6 +468,7 @@ case "${1:-}" in
   backup)   shift; cmd_backup "$@" ;;
   restore)  shift; cmd_restore "$@" ;;
   upgrade)  shift; cmd_upgrade "$@" ;;
+  activate) shift; cmd_activate "$@" ;;
   verify-release) shift; cmd_verify_release "$@" ;;
   destroy)  shift; cmd_destroy "$@" ;;
   ""|-h|--help|help)

@@ -320,7 +320,9 @@ services:
       retries: 20
       start_period: 30s
     volumes:
-      - ./localstack-data:/persisted-data
+      # Persistent application data belongs to the named deployment volume;
+      # a release directory must never carry a second, path-dependent copy.
+      - localstack_data:/persisted-data
     networks:
       databases:
         aliases:

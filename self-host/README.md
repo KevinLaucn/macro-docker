@@ -55,6 +55,11 @@ Three hostnames, all pointing at the same machine:
 
 ## Install
 
+For production, install a CI-generated release bundle under
+`/opt/macro/releases/<git-sha>` and point `/opt/macro/current` at it. Keep the
+single shared environment at `/etc/macro/macro.env`; release directories must
+not contain production secrets.
+
 ```bash
 git clone https://github.com/KevinLaucn/macro.git
 cd macro/self-host
@@ -93,7 +98,7 @@ signup step and no invite gate.
 ./macroctl logs email_service  # follow one service, or all of them
 ./macroctl backup              # database + object storage + config
 ./macroctl restore <dir>       # put it back
-./macroctl upgrade v1.2.3      # backup, pull, migrate, restart
+./macroctl upgrade /path/to/macro-release-bundle  # verify, install, switch, migrate, restart
 ./macroctl down                # stop; data survives
 ./macroctl destroy             # stop and delete all data
 ```
@@ -102,8 +107,9 @@ Back up before every upgrade — `upgrade` does it for you, but an off-box copy
 is yours to arrange. A backup contains `.env`, so it contains every secret:
 store it like a password database.
 
-Pin `MACRO_VERSION` in `.env` to a release tag for anything you care about.
-`latest` follows `main`.
+`release.json` pins the exact image digests. `MACRO_VERSION` is only the image
+selection tag; the verifier rejects a pulled image whose digest or OCI
+revision differs from the bundle.
 
 ## Optional integrations
 
@@ -165,9 +171,10 @@ they are absent rather than broken: the PDF service, and scheduled actions
 
 ## How this stays in sync with the product
 
-`docker-compose.yml`, `Caddyfile` and `.env.example` are checked in so you need
-no toolchain to deploy. That means they can fall behind the code they were
-derived from, so a check enforces it:
+`docker-compose.yml`, `Caddyfile`, `init/`, `kickstart/`, and the verification
+scripts ship together in every CI release bundle. The host activates the whole
+bundle atomically; it must never copy individual files into an older release.
+The drift check still enforces the source closure:
 
 ```bash
 python3 scripts/check-drift.py

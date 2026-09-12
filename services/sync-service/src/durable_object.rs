@@ -1389,9 +1389,12 @@ pub static ALLOWED_ORIGINS: &[&str] = &[
 ];
 
 pub fn is_origin_allowed(origin: &str, env: Option<&Env>) -> bool {
-    let domain_from_env_binding = env.and_then(|e| e.var("MACRO_DOMAIN").ok().map(|v| v.to_string()));
+    let domain_from_env_binding =
+        env.and_then(|e| e.var("MACRO_DOMAIN").ok().map(|v| v.to_string()));
     let process_domain = std::env::var("MACRO_DOMAIN").ok();
-    let domain = domain_from_env_binding.as_deref().or(process_domain.as_deref());
+    let domain = domain_from_env_binding
+        .as_deref()
+        .or(process_domain.as_deref());
     is_origin_allowed_with_env(origin, domain)
 }
 
@@ -1492,14 +1495,23 @@ mod origin_tests {
     fn test_official_macro_origins() {
         assert!(is_origin_allowed_with_env("https://macro.com", None));
         assert!(is_origin_allowed_with_env("https://dev.macro.com", None));
-        assert!(is_origin_allowed_with_env("https://staging.macro.com", None));
-        assert!(is_origin_allowed_with_env("https://pr-123.preview.macro.com", None));
+        assert!(is_origin_allowed_with_env(
+            "https://staging.macro.com",
+            None
+        ));
+        assert!(is_origin_allowed_with_env(
+            "https://pr-123.preview.macro.com",
+            None
+        ));
     }
 
     #[test]
     fn test_localhost_origins() {
         assert!(is_origin_allowed_with_env("http://localhost:3000", None));
-        assert!(is_origin_allowed_with_env("http://user1.localhost:3000", None));
+        assert!(is_origin_allowed_with_env(
+            "http://user1.localhost:3000",
+            None
+        ));
         assert!(is_origin_allowed_with_env("http://localhost:5173", None));
         assert!(!is_origin_allowed_with_env("http://localhost:80", None));
     }
@@ -1507,17 +1519,38 @@ mod origin_tests {
     #[test]
     fn test_self_host_domain() {
         let domain = "chat.chnprints.com";
-        assert!(is_origin_allowed_with_env("https://chat.chnprints.com", Some(domain)));
-        assert!(is_origin_allowed_with_env("http://chat.chnprints.com", Some(domain)));
+        assert!(is_origin_allowed_with_env(
+            "https://chat.chnprints.com",
+            Some(domain)
+        ));
+        assert!(is_origin_allowed_with_env(
+            "http://chat.chnprints.com",
+            Some(domain)
+        ));
 
         // Domain provided with scheme
         let domain_with_scheme = "https://chat.chnprints.com/";
-        assert!(is_origin_allowed_with_env("https://chat.chnprints.com", Some(domain_with_scheme)));
+        assert!(is_origin_allowed_with_env(
+            "https://chat.chnprints.com",
+            Some(domain_with_scheme)
+        ));
 
         // Security check: attacker subdomains and suffixes must be strictly rejected
-        assert!(!is_origin_allowed_with_env("https://chat.chnprints.com.evil.com", Some(domain)));
-        assert!(!is_origin_allowed_with_env("https://evilchat.chnprints.com", Some(domain)));
-        assert!(!is_origin_allowed_with_env("https://evil.com", Some(domain)));
-        assert!(!is_origin_allowed_with_env("https://other.domain.com", Some(domain)));
+        assert!(!is_origin_allowed_with_env(
+            "https://chat.chnprints.com.evil.com",
+            Some(domain)
+        ));
+        assert!(!is_origin_allowed_with_env(
+            "https://evilchat.chnprints.com",
+            Some(domain)
+        ));
+        assert!(!is_origin_allowed_with_env(
+            "https://evil.com",
+            Some(domain)
+        ));
+        assert!(!is_origin_allowed_with_env(
+            "https://other.domain.com",
+            Some(domain)
+        ));
     }
 }

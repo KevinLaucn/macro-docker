@@ -65,21 +65,16 @@ GOOGLE_CLIENT_SECRET_KEY=your-google-client-secret
 
 ## 5. VPS 部署操作步骤
 
-生产环境默认部署在 VPS 的 `/app/macro` 目录下。
+生产环境默认使用 `/opt/macro/current`，其目标是完整的 CI release bundle：
+`/opt/macro/releases/<git-sha>/`。`/etc/macro/macro.env` 是跨 Release 唯一复用的
+运行时环境文件；生产机不执行 Git pull、cargo build，也不维护散落的应用配置。
 
 ### 第一步：准备部署目录与文件
 ```bash
-# 在 VPS 上建立运行时根目录
-sudo mkdir -p /app/macro
-sudo chown -R $USER:$USER /app/macro
-cd /app/macro
-
-# 将 self-host/ 目录中的编排文件与脚本同步到 /app/macro：
-# - docker-compose.yml
-# - Caddyfile
-# - macroctl
-# - init/
-# - kickstart/
+sudo mkdir -p /opt/macro/releases /etc/macro
+# 解压 CI 生成的完整 bundle 到 /opt/macro/releases/<git-sha>/
+sudo ln -sfn /opt/macro/releases/<git-sha> /opt/macro/current
+cd /opt/macro/current
 ```
 
 ### 第二步：生成强密钥与环境配置
@@ -120,8 +115,8 @@ echo $GHCR_TOKEN | docker login ghcr.io -u kevinlaucn --password-stdin
 在后端微服务或数据库尚未就绪，或者仅需要快速测试 Caddy、SSL 证书与前端静态页面加载性能时，可使用独立的 UI 验证模式：
 
 ```bash
-cd /app/macro
-docker compose --env-file .env -f docker-compose.yml up -d caddy
+cd /opt/macro/current
+docker compose --env-file /etc/macro/macro.env -f docker-compose.yml up -d caddy
 ```
 > **原理**：Caddy 服务自身已声明依赖 `web_assets`（`condition: service_completed_successfully`），Compose 会自动先执行 `web_assets` 容器将前端静态资源解包到共享卷，然后再拉起 Caddy。
 
@@ -151,7 +146,7 @@ docker compose --env-file .env -f docker-compose.yml up -d caddy
   ```
 - **版本平滑升级**（自动备份、拉取新版本、执行数据迁移并重建容器）：
   ```bash
-  ./macroctl upgrade v2.5.1
+./macroctl upgrade /path/to/macro-release-bundle
   ```
 - **完整备份数据**（含 PostgreSQL、FusionAuth 库及 LocalStack 对象存储快照）：
   ```bash

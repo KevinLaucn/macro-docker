@@ -1,11 +1,12 @@
 import os, sys, json, time, requests, subprocess, random, uuid
 
-# Load environment configuration
+# Load the shared runtime environment first. A release directory is immutable
+# application code, not a second long-lived copy of production configuration.
 env_paths = [
-    "/home/ubuntu/marco/.env",
+    os.environ.get("MACRO_SHARED_ENV_FILE", "/etc/macro/macro.env"),
     os.path.join(os.path.dirname(__file__), "..", ".env"),
     "self-host/.env",
-    ".env"
+    ".env",
 ]
 env = {}
 for p in env_paths:
@@ -18,7 +19,9 @@ for p in env_paths:
                     env[k.strip()] = v.strip().strip('"').strip("'")
         break
 
-fa_api_key = env.get("FUSIONAUTH_API_KEY", "cfBVt8zgcEBlptFBrtY6FyflTyOknljGXnz3LLkKlRo")
+fa_api_key = env.get("FUSIONAUTH_API_KEY")
+if not fa_api_key:
+    raise SystemExit("FUSIONAUTH_API_KEY is required for FusionAuth reconciliation")
 app_id = env.get("FUSIONAUTH_CLIENT_ID", "8d0635c8-6553-4c2e-94b0-522a35069634")
 google_idp_id = env.get("GOOGLE_IDP_ID", "44444444-4444-4444-8444-444444444444")
 gmail_idp_id = env.get("GOOGLE_GMAIL_IDP_ID", "55555555-5555-4555-8555-555555555555")

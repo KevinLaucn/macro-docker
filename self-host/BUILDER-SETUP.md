@@ -7,7 +7,7 @@
 ## 1. 架构定位原则
 
 - **Builder ≠ 生产 VPS**：
-  - 生产 VPS（运行路径 `/app/macro`）**绝对禁止**运行构建、编译或承载 GitHub Runner。生产机器只负责拉取已经构建好的 GHCR 镜像并启动容器。
+  - 生产 VPS（运行路径 `/opt/macro/current`）**绝对禁止**运行构建、编译或承载 GitHub Runner。生产机器只负责拉取已经构建好的 GHCR 镜像并启动容器。
   - Builder 是一台**独立的 Linux 编译机器**（例如单独的 Linux 开发机、本地物理机、专用云编译机或独立 VM）。
 
 ---

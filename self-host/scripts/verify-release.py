@@ -26,6 +26,18 @@ REQUIRED_IMAGES = [
     "macro-sync-service",
 ]
 
+REQUIRED_BUNDLE_PATHS = [
+    "docker-compose.yml",
+    "macroctl",
+    "scripts/check-drift.py",
+    "scripts/verify-release.py",
+    "scripts/doctor.py",
+    "init/provision.sh",
+    "init/reconcile-localstack.sh",
+    "init/kafka-topics.json",
+    "kickstart/kickstart.json.template",
+]
+
 def verify_caddyfile(caddy_text: str) -> list[str]:
     errors = []
     # Check for fake 200 mocks on API routes
@@ -132,12 +144,13 @@ def verify_bundle_manifest(manifest_path: pathlib.Path) -> list[str]:
         errors.append(f"Failed to parse release.json: {e}")
         return errors
 
-    for field in ("version", "git_sha", "built_at", "images"):
+    for field in ("version", "registry_tag", "git_sha", "built_at", "images"):
         if field not in data:
             errors.append(f"release.json missing required field '{field}'")
 
     images = data.get("images", {})
     expected_version = data.get("version")
+    expected_registry_tag = data.get("registry_tag")
     expected_git_sha = data.get("git_sha")
 
     if not expected_git_sha or len(expected_git_sha) < 7:
@@ -164,7 +177,9 @@ def verify_bundle_manifest(manifest_path: pathlib.Path) -> list[str]:
             continue
 
         tag = img_ref.split(":")[-1] if ":" in img_ref else ""
-        if expected_version and tag != expected_version:
+        if expected_registry_tag and tag != expected_registry_tag:
+            errors.append(f"Image '{req_img}' tag '{tag}' does not match registry_tag '{expected_registry_tag}'")
+        elif not expected_registry_tag and expected_version and tag != expected_version:
             errors.append(f"Image '{req_img}' tag '{tag}' does not match release version '{expected_version}'")
 
         if not digest or not digest.startswith("sha256:"):
@@ -173,6 +188,33 @@ def verify_bundle_manifest(manifest_path: pathlib.Path) -> list[str]:
         if expected_git_sha:
             errors.extend(verify_image_revision_and_digest(img_ref, expected_git_sha, digest))
 
+    return errors
+
+def verify_bundle_layout(bundle_dir: pathlib.Path) -> list[str]:
+    errors = [
+        f"Release bundle missing required path '{relative}'"
+        for relative in REQUIRED_BUNDLE_PATHS
+        if not (bundle_dir / relative).exists()
+    ]
+    build_info = bundle_dir / "build-info.json"
+    if not build_info.exists():
+        errors.append("Release bundle missing build-info.json")
+    else:
+        try:
+            info = json.loads(build_info.read_text())
+            manifest = json.loads((bundle_dir / "release.json").read_text())
+            for field in (
+                "git_sha", "version", "build_time", "rustc_version", "cargo_version",
+                "cargo_lock_sha256", "flake_lock_sha256", "build_target", "cargo_features",
+            ):
+                if field not in info:
+                    errors.append(f"build-info.json missing required field '{field}'")
+            if info.get("git_sha") != manifest.get("git_sha"):
+                errors.append("build-info.json git_sha does not match release.json")
+            if info.get("version") != manifest.get("version"):
+                errors.append("build-info.json version does not match release.json")
+        except Exception as exc:
+            errors.append(f"Failed to parse build-info.json: {exc}")
     return errors
 
 def verify_image_revision_and_digest(image_ref: str, expected_sha: str, expected_digest: str | None = None) -> list[str]:
@@ -242,6 +284,7 @@ def main():
     errors.extend(verify_compose(compose_text, caddy_text))
 
     if args.bundle_dir:
+        errors.extend(verify_bundle_layout(args.bundle_dir))
         manifest_path = args.bundle_dir / "release.json"
         errors.extend(verify_bundle_manifest(manifest_path))
 
