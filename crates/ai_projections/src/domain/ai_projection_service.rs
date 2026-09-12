@@ -24,7 +24,10 @@ pub const READ_PROFESSIONAL_FEATURES: &str = "read:professional_features";
 /// `provider/model` ids that any user may request, without professional
 /// features. Everything else — including an absent model, which resolves to
 /// the server default (the smart tier) — requires the permission.
-pub const FREE_TIER_MODELS: &[&str] = &["anthropic/claude-haiku-4-5"];
+pub const FREE_TIER_MODELS: &[&str] = &[
+    "anthropic/claude-haiku-4-5",
+    "openai/gpt-5-mini",
+];
 
 /// Whether a requested projection model requires the
 /// [`READ_PROFESSIONAL_FEATURES`] permission.

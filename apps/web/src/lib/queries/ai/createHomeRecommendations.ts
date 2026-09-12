@@ -1,3 +1,4 @@
+import { Model } from '@core/component/AI/constant/model';
 import { PERMISSION_IDS } from '@core/constant/permissions';
 import { useHasPermission } from '@core/context/user';
 import type { Accessor } from 'solid-js';
@@ -11,7 +12,7 @@ import { createAIProjection } from './projection';
 // `provider/model` id routed by the projection generator. Must stay in the
 // backend's free-tier allowlist (ai_projections FREE_TIER_MODELS). The smart
 // projection omits the model and uses the server default (the smart tier).
-const FAST_MODEL = 'anthropic/claude-haiku-4-5';
+const FAST_MODEL = Model.gpt56Mini;
 
 /**
  * Fast + smart recommendation projections. The static prompt instructs the
@@ -19,7 +20,7 @@ const FAST_MODEL = 'anthropic/claude-haiku-4-5';
  * ListEntities, which preserves each entity type's canonical inbox semantics.
  *
  * Two projections share one prompt and schema and differ only in model: the
- * fast one (Haiku, free tier) generates inline for immediate paint; the smart
+ * fast one (GPT-5 mini, free tier) generates inline for immediate paint; the smart
  * one (server default, premium-gated) replaces it when it lands, and is
  * skipped entirely for users without professional features.
  *

@@ -94,6 +94,232 @@ function CategoryLabel(props: { category: CheckCategory }) {
   );
 }
 
+type DetailField = {
+  label: string;
+  value: string;
+};
+
+const QUEUE_LABELS: Record<string, string> = {
+  gmail_inbox_sync: 'Gmail 收件箱同步',
+  gmail_inbox_sync_retry: 'Gmail 收件箱重试',
+  gmail_ops: 'Gmail 操作队列',
+  gmail_ops_retry: 'Gmail 操作重试',
+  email_link_manager: '邮箱连接管理',
+  email_backfill: '邮件历史回填',
+};
+
+function displayDetailValue(value: string) {
+  return value
+    .replaceAll('Some("', '')
+    .replaceAll('")', '')
+    .replaceAll('None', '未设置')
+    .replaceAll('null', '未设置');
+}
+
+function parseKeyValueFields(value: string): DetailField[] {
+  return value.split(/,\s*/).flatMap((part) => {
+    const separator = part.indexOf('=');
+    if (separator < 1) return [];
+    return [
+      {
+        label: part.slice(0, separator).trim(),
+        value: displayDetailValue(part.slice(separator + 1).trim()),
+      },
+    ];
+  });
+}
+
+function parseQueueDetails(details: string) {
+  const rows = new Map<
+    string,
+    { name: string; fields: DetailField[]; dlqFields?: DetailField[] }
+  >();
+
+  for (const line of details.split('\n')) {
+    const match = line.trim().match(/^([^:]+):\s*(.*)$/);
+    if (!match) continue;
+    const [, rawName, rawValue] = match;
+    const baseName = rawName.replace(/_dlq(?:\([^)]*\))?$/, '');
+    const row = rows.get(baseName) ?? {
+      name: QUEUE_LABELS[baseName] ?? baseName,
+      fields: [],
+    };
+
+    if (rawName.endsWith('_dlq') || rawName.includes('_dlq(')) {
+      row.dlqFields = parseKeyValueFields(rawValue);
+    } else if (!rawValue.startsWith('DLQ 未配置')) {
+      row.fields = parseKeyValueFields(rawValue);
+    }
+    rows.set(baseName, row);
+  }
+
+  return [...rows.values()];
+}
+
+function parseGmailDetails(details: string) {
+  return details.split('\n').flatMap((line) => {
+    const separator = line.indexOf(':');
+    if (separator < 1) return [];
+    const email = line.slice(0, separator).trim();
+    const fields = line.slice(separator + 1);
+    const official = fields.match(
+      /official messages=(\d+), threads=(\d+), history_id=([^;]+);/
+    );
+    const local = fields.match(
+      /local messages=(\d+), threads=(\d+), history_id=([^;]+);/
+    );
+    const backfill = fields.match(/backfill status=([^,]+),\s*([^;]+);/);
+    const watch = fields.match(/(watch_history_id|watch_error)=([^;]+)/);
+    if (!official || !local) return [];
+    return [
+      {
+        email,
+        fields: {
+          officialMessages: official[1],
+          officialThreads: official[2],
+          officialHistory: displayDetailValue(official[3]),
+          localMessages: local[1],
+          localThreads: local[2],
+          localHistory: displayDetailValue(local[3]),
+          backfill: backfill
+            ? `${displayDetailValue(backfill[1])} · ${backfill[2]}`
+            : '—',
+          watch: watch ? displayDetailValue(watch[2]) : '—',
+        },
+      },
+    ];
+  });
+}
+
+function DetailTable(props: {
+  headers: string[];
+  rows: string[][];
+  note?: string;
+}) {
+  return (
+    <div class="flex flex-col gap-2">
+      <div class="overflow-x-auto rounded-lg border border-edge-muted/60 bg-surface">
+        <table class="w-full min-w-max border-collapse text-xs">
+          <thead class="bg-hover text-left text-ink-muted">
+            <tr>
+              <For each={props.headers}>
+                {(header) => (
+                  <th class="whitespace-nowrap border-b border-edge-muted/60 px-3 py-2 font-medium">
+                    {t(header)}
+                  </th>
+                )}
+              </For>
+            </tr>
+          </thead>
+          <tbody>
+            <For each={props.rows}>
+              {(row) => (
+                <tr class="border-b border-edge-muted/40 last:border-b-0">
+                  <For each={row}>
+                    {(cell, index) => (
+                      <td
+                        class={cn(
+                          'whitespace-nowrap px-3 py-2 text-ink-muted',
+                          index() === 0 && 'font-medium text-ink'
+                        )}
+                      >
+                        {cell}
+                      </td>
+                    )}
+                  </For>
+                </tr>
+              )}
+            </For>
+          </tbody>
+        </table>
+      </div>
+      <Show when={props.note}>
+        <p class="text-xs leading-relaxed text-ink-subtle">{props.note}</p>
+      </Show>
+    </div>
+  );
+}
+
+function DiagnosticDetails(props: { item: HealthCheckItem }) {
+  const details = () => props.item.details ?? '';
+
+  if (props.item.id === 'sqs_queue_backlog') {
+    const rows = parseQueueDetails(details());
+    if (rows.length > 0) {
+      const hasDlq = rows.some((row) => row.dlqFields);
+      return (
+        <DetailTable
+          headers={[
+            '队列',
+            '可见',
+            '延迟',
+            '处理中',
+            '总数',
+            ...(hasDlq ? ['DLQ 状态'] : []),
+          ]}
+          rows={rows.map((row) => [
+            ...[
+              row.name,
+              row.fields.find((field) => field.label === 'visible')?.value ??
+                '—',
+              row.fields.find((field) => field.label === 'delayed')?.value ??
+                '—',
+              row.fields.find((field) => field.label === 'in_flight')?.value ??
+                '—',
+              row.fields.find((field) => field.label === 'total')?.value ?? '—',
+            ],
+            ...(hasDlq
+              ? [
+                  row.dlqFields
+                    ? `可见 ${row.dlqFields.find((field) => field.label === 'visible')?.value ?? '0'} · 延迟 ${row.dlqFields.find((field) => field.label === 'delayed')?.value ?? '0'} · 处理中 ${row.dlqFields.find((field) => field.label === 'in_flight')?.value ?? '0'} · 总数 ${row.dlqFields.find((field) => field.label === 'total')?.value ?? '0'}`
+                    : '—',
+                ]
+              : []),
+          ])}
+        />
+      );
+    }
+  }
+
+  if (props.item.id === 'gmail_official_sync') {
+    const rows = parseGmailDetails(details());
+    if (rows.length > 0) {
+      return (
+        <DetailTable
+          headers={[
+            '邮箱',
+            '官方邮件',
+            '本地邮件',
+            '官方线程',
+            '本地线程',
+            '官方 History ID',
+            '本地 History ID',
+            '回填',
+            'Watch',
+          ]}
+          rows={rows.map((row) => [
+            row.email,
+            row.fields.officialMessages,
+            row.fields.localMessages,
+            row.fields.officialThreads,
+            row.fields.localThreads,
+            row.fields.officialHistory,
+            row.fields.localHistory,
+            row.fields.backfill,
+            row.fields.watch,
+          ])}
+        />
+      );
+    }
+  }
+
+  return (
+    <p class="whitespace-pre-wrap break-all rounded-lg border border-edge-muted/40 bg-surface p-3 font-mono text-xs text-ink-muted">
+      {details()}
+    </p>
+  );
+}
+
 function HealthItemRow(props: { item: HealthCheckItem }) {
   const [expanded, setExpanded] = createSignal(false);
   const hasExtra = () =>
@@ -141,9 +367,7 @@ function HealthItemRow(props: { item: HealthCheckItem }) {
           <Show when={props.item.details}>
             <div class="flex flex-col gap-0.5">
               <span class="font-medium text-ink-subtle">{t('诊断细节')}</span>
-              <p class="font-mono text-[11px] text-ink-muted bg-surface p-2 rounded border border-edge-muted/40 whitespace-pre-wrap break-all">
-                {props.item.details}
-              </p>
+              <DiagnosticDetails item={props.item} />
             </div>
           </Show>
           <Show when={props.item.remediation_hint}>

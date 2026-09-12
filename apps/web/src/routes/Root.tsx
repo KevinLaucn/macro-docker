@@ -24,6 +24,7 @@ import { useInvalidateQueriesOnReconnect } from '@app/lib/queries/invalidate-on-
 import { useSoupBackfills } from '@app/lib/queries/soup/backfill';
 import { setHotkeyRoot } from '@app/signal/hotkeyRoot';
 import { globalSplitManager } from '@app/signal/splitLayout';
+import { CallProvider } from '@channel/Call/CallContext';
 import { GlobalAppStateProvider } from '@components/app/GlobalAppState';
 import { Layout } from '@components/app/Layout';
 import { ReactiveFavicon } from '@components/app/ReactiveFavicon';
@@ -582,29 +583,31 @@ export function Root() {
                     <ConfiguredGlobalAppStateProvider>
                       <MutationUndoProvider>
                         <ChannelsContextProvider>
-                          <QuickAccessProvider>
-                            <SearchProvider>
-                              <ChatAttachmentsInit />
-                              <ReactiveFavicon />
-                              <Title>{tabTitle()}</Title>
-                              <Suspense>
-                                <IsomorphicRouter
-                                  transformUrl={transformShortIdInUrlPathname}
-                                  root={Layout}
-                                  rootPreload={rootPreload}
-                                  base={ROUTER_BASE}
-                                >
-                                  {{
-                                    path: '/',
-                                    component: TauriRouteListener,
-                                    children: ROUTES,
-                                  }}
-                                </IsomorphicRouter>
-                              </Suspense>
-                              <InitialInteractiveOnboardingModal />
-                              <ToastRegion />
-                            </SearchProvider>
-                          </QuickAccessProvider>
+                          <CallProvider>
+                            <QuickAccessProvider>
+                              <SearchProvider>
+                                <ChatAttachmentsInit />
+                                <ReactiveFavicon />
+                                <Title>{tabTitle()}</Title>
+                                <Suspense>
+                                  <IsomorphicRouter
+                                    transformUrl={transformShortIdInUrlPathname}
+                                    root={Layout}
+                                    rootPreload={rootPreload}
+                                    base={ROUTER_BASE}
+                                  >
+                                    {{
+                                      path: '/',
+                                      component: TauriRouteListener,
+                                      children: ROUTES,
+                                    }}
+                                  </IsomorphicRouter>
+                                </Suspense>
+                                <InitialInteractiveOnboardingModal />
+                                <ToastRegion />
+                              </SearchProvider>
+                            </QuickAccessProvider>
+                          </CallProvider>
                         </ChannelsContextProvider>
                       </MutationUndoProvider>
                     </ConfiguredGlobalAppStateProvider>
