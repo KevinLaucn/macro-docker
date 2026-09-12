@@ -135,21 +135,21 @@ services:
             enableNewAppViews: $${ENABLE_NEW_APP_VIEWS:-false},
             enableCrm: $${ENABLE_CRM:-true}
           },
-          # ============================================================================
-          # 【全权限与特权开关组】（自动同步至前端 window.__MACRO_ENV__.PERMISSIONS）
-          # 修改此配置或在宿主机 .env 中指定环境变量后，执行:
-          #   ./macroctl up -d caddy (或重跑 web_assets) 即可毫秒级动态生效，无需重新打包镜像
-          # ============================================================================
+          // ============================================================================
+          // 【全权限与特权开关组】（自动同步至前端 window.__MACRO_ENV__.PERMISSIONS）
+          // 修改此配置或在宿主机 .env 中指定环境变量后，执行:
+          //   ./macroctl up -d caddy (或重跑 web_assets) 即可毫秒级动态生效，无需重新打包镜像
+          // ============================================================================
           PERMISSIONS: {
-            allAccess: $${PERM_ALL_ACCESS:-true},           # 全特权总开关（开启后默认点亮所有特性与权限）
-            superAdmin: $${PERM_SUPER_ADMIN:-true},         # 超级管理员特权（解锁 Admin Debug 调试面板等）
-            corporate: $${PERM_CORPORATE:-true},           # 企业组织版特权（去除邮件 -- Sent with Macro 水印）
-            proLicense: $${PERM_PRO_LICENSE:-true},         # 专业版付费许可证（解锁所有专业版专属能力）
-            subOpus: $${PERM_SUB_OPUS:-true},               # 最高阶 Claude Opus 顶级 AI 模型调用支持
-            aiSubscriber: $${PERM_AI_SUBSCRIBER:-true},     # AI 助手全功能订阅（解锁全部 Agent 与 AI 特性）
-            editorUser: $${PERM_EDITOR_USER:-true},         # 完整编辑器高级特性（双向文档协同编辑等）
-            organizationIt: $${PERM_ORGANIZATION_IT:-true}, # 组织 IT 与成员权限管理控制
-            emailTool: $${PERM_EMAIL_TOOL:-true}            # 邮件高级工具与系统级发布权限
+            allAccess: $${PERM_ALL_ACCESS:-true},           // 全特权总开关（开启后默认点亮所有特性与权限）
+            superAdmin: $${PERM_SUPER_ADMIN:-true},         // 超级管理员特权（解锁 Admin Debug 调试面板等）
+            corporate: $${PERM_CORPORATE:-true},           // 企业组织版特权（去除邮件 -- Sent with Macro 水印）
+            proLicense: $${PERM_PRO_LICENSE:-true},         // 专业版付费许可证（解锁所有专业版专属能力）
+            subOpus: $${PERM_SUB_OPUS:-true},               // 最高阶 Claude Opus 顶级 AI 模型调用支持
+            aiSubscriber: $${PERM_AI_SUBSCRIBER:-true},     // AI 助手全功能订阅（解锁全部 Agent 与 AI 特性）
+            editorUser: $${PERM_EDITOR_USER:-true},         // 完整编辑器高级特性（双向文档协同编辑等）
+            organizationIt: $${PERM_ORGANIZATION_IT:-true}, // 组织 IT 与成员权限管理控制
+            emailTool: $${PERM_EMAIL_TOOL:-true}            // 邮件高级工具与系统级发布权限
           }
         };
         EOF
@@ -404,6 +404,8 @@ services:
   authentication-service:
     <<: *service
     command: ["/app/out/authentication_service"]
+    environment:
+      DOCUMENT_STORAGE_SERVICE_AUTH_KEY: ${DOCUMENT_STORAGE_SERVICE_AUTH_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -696,6 +698,7 @@ services:
     image: ${MACRO_IMAGE_SYNC:-ghcr.io/kevinlaucn/macro-sync-service}:${MACRO_VERSION:?set MACRO_VERSION in .env}
     restart: unless-stopped
     environment:
+      MACRO_DOMAIN: ${MACRO_DOMAIN}
       INTERNAL_API_SECRET_KEY: ${INTERNAL_API_SECRET_KEY}
       DOCUMENT_PERMISSIONS_SECRET: ${DOCUMENT_PERMISSION_JWT}
       DSS_INTERNAL_AUTH_KEY: ${DOCUMENT_STORAGE_SERVICE_AUTH_KEY}

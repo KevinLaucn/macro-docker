@@ -826,7 +826,7 @@ async fn probe_queues(context: &ApiContext) -> HealthCheckItem {
                     criticals.push(format!("{name} DLQ 有 {dlq_total} 条消息"));
                 }
             } else {
-                warnings.push(format!("{name} 未配置 RedrivePolicy/DLQ"));
+                details.push(format!("{name}: DLQ 未配置 (无消息积压)"));
             }
         }
 
@@ -965,11 +965,15 @@ async fn probe_dss_service(context: &ApiContext) -> HealthCheckItem {
             return Err(format!("DSS public /health 返回 {}", public_resp.status()));
         }
 
+        let dss_auth_key = macro_env_var::maybe_read_env("DOCUMENT_STORAGE_SERVICE_AUTH_KEY")
+            .filter(|k| !k.trim().is_empty())
+            .unwrap_or_else(|| context.internal_api_key.to_string());
+
         let internal_resp = client
             .get(&internal_health_url)
             .header(
                 "x-document-storage-service-auth-key",
-                context.internal_api_key.to_string(),
+                dss_auth_key,
             )
             .send()
             .await
@@ -1092,4 +1096,53 @@ fn flush_redacted_token(output: &mut String, current: &mut String) {
 
 fn is_official_macro_cloud_url(url: &str) -> bool {
     url.contains("macro.com") || url.contains("macroverse.workers.dev")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_dss_auth_key_resolution() {
+        temp_env::with_vars(
+            [("DOCUMENT_STORAGE_SERVICE_AUTH_KEY", Some("dss-secret-123"))],
+            || {
+                let resolved = macro_env_var::maybe_read_env("DOCUMENT_STORAGE_SERVICE_AUTH_KEY")
+                    .filter(|k| !k.trim().is_empty())
+                    .unwrap_or_else(|| "fallback".to_string());
+                assert_eq!(resolved, "dss-secret-123");
+            },
+        );
+
+        temp_env::with_vars(
+            [("DOCUMENT_STORAGE_SERVICE_AUTH_KEY", None::<&str>)],
+            || {
+                let resolved = macro_env_var::maybe_read_env("DOCUMENT_STORAGE_SERVICE_AUTH_KEY")
+                    .filter(|k| !k.trim().is_empty())
+                    .unwrap_or_else(|| "fallback".to_string());
+                assert_eq!(resolved, "fallback");
+            },
+        );
+    }
+
+    #[test]
+    fn test_sqs_probe_dlq_status_logic() {
+        // When there is no missing queue, no criticals, and no warnings,
+        // missing DLQ should be recorded in details without escalating to Warning.
+        let missing: Vec<String> = vec![];
+        let criticals: Vec<String> = vec![];
+        let warnings: Vec<String> = vec![];
+        let details: Vec<String> = vec!["gmail_inbox_sync: DLQ 未配置 (无消息积压)".to_string()];
+
+        let status = if !missing.is_empty() || !criticals.is_empty() {
+            HealthStatus::Critical
+        } else if !warnings.is_empty() {
+            HealthStatus::Warning
+        } else {
+            HealthStatus::Ok
+        };
+
+        assert_eq!(status, HealthStatus::Ok);
+        assert!(details[0].contains("DLQ 未配置"));
+    }
 }

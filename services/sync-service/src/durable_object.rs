@@ -1094,7 +1094,7 @@ impl DurableObject for DocumentSyncSession {
             .get("Origin")
             .context("No `Origin` header found in header")?
         {
-            if is_origin_allowed(&origin) {
+            if is_origin_allowed(&origin, Some(&self.env)) {
                 Some(origin)
             } else {
                 return Ok(response(status_codes::FORBIDDEN));
@@ -1106,7 +1106,7 @@ impl DurableObject for DocumentSyncSession {
         if req.method() == Method::Options {
             return Ok(Response::builder()
                 .with_status(status_codes::OK)
-                .with_cors(&cors(set_allow_origin.as_deref()))?
+                .with_cors(&cors(set_allow_origin.as_deref(), Some(&self.env)))?
                 .empty());
         }
         let traceparent = worker_rs_otel::traceparent_from_request(&req);
@@ -1128,7 +1128,7 @@ impl DurableObject for DocumentSyncSession {
         )
         .await;
         res.context("DurableObject::fetch error")?
-            .with_cors(&cors(set_allow_origin.as_deref()))
+            .with_cors(&cors(set_allow_origin.as_deref(), Some(&self.env)))
     }
 
     async fn websocket_message(&self, ws: WebSocket, msg: WebSocketIncomingMessage) -> Result<()> {
@@ -1388,7 +1388,14 @@ pub static ALLOWED_ORIGINS: &[&str] = &[
     "https://apollo-testing.macro.com",
 ];
 
-pub fn is_origin_allowed(origin: &str) -> bool {
+pub fn is_origin_allowed(origin: &str, env: Option<&Env>) -> bool {
+    let domain_from_env_binding = env.and_then(|e| e.var("MACRO_DOMAIN").ok().map(|v| v.to_string()));
+    let process_domain = std::env::var("MACRO_DOMAIN").ok();
+    let domain = domain_from_env_binding.as_deref().or(process_domain.as_deref());
+    is_origin_allowed_with_env(origin, domain)
+}
+
+pub fn is_origin_allowed_with_env(origin: &str, self_host_domain: Option<&str>) -> bool {
     if ALLOWED_ORIGINS.contains(&origin) {
         return true;
     }
@@ -1407,15 +1414,45 @@ pub fn is_origin_allowed(origin: &str) -> bool {
     {
         return !subdomain.is_empty() && !subdomain.contains('/');
     }
+
+    // Exact match against self-host MACRO_DOMAIN (e.g. chat.chnprints.com or https://chat.chnprints.com)
+    if let Some(domain) = self_host_domain {
+        let clean_domain = domain
+            .trim()
+            .trim_start_matches("https://")
+            .trim_start_matches("http://")
+            .trim_end_matches('/');
+
+        if !clean_domain.is_empty() {
+            if let Some(origin_host) = origin.strip_prefix("https://") {
+                let (h, p) = match origin_host.rsplit_once(':') {
+                    Some((h, p)) => (h, Some(p)),
+                    None => (origin_host, None),
+                };
+                if h == clean_domain && p.is_none_or(|port| port == "443") {
+                    return true;
+                }
+            } else if let Some(origin_host) = origin.strip_prefix("http://") {
+                let (h, p) = match origin_host.rsplit_once(':') {
+                    Some((h, p)) => (h, Some(p)),
+                    None => (origin_host, None),
+                };
+                if h == clean_domain && p.is_none_or(|port| port == "80") {
+                    return true;
+                }
+            }
+        }
+    }
+
     false
 }
 
 /// Workaround for this bug: <https://github.com/cloudflare/workers-rs/issues/554>
-pub fn cors(request_origin: Option<&str>) -> Cors {
+pub fn cors(request_origin: Option<&str>, env: Option<&Env>) -> Cors {
     use worker::Method;
     let cors_origins = request_origin
         .map(|o| {
-            if is_origin_allowed(o) {
+            if is_origin_allowed(o, env) {
                 vec![o.to_string()]
             } else {
                 vec![]
@@ -1445,4 +1482,42 @@ pub fn cors(request_origin: Option<&str>) -> Cors {
             Method::Options,
         ])
         .with_origins(cors_origins)
+}
+
+#[cfg(test)]
+mod origin_tests {
+    use super::*;
+
+    #[test]
+    fn test_official_macro_origins() {
+        assert!(is_origin_allowed_with_env("https://macro.com", None));
+        assert!(is_origin_allowed_with_env("https://dev.macro.com", None));
+        assert!(is_origin_allowed_with_env("https://staging.macro.com", None));
+        assert!(is_origin_allowed_with_env("https://pr-123.preview.macro.com", None));
+    }
+
+    #[test]
+    fn test_localhost_origins() {
+        assert!(is_origin_allowed_with_env("http://localhost:3000", None));
+        assert!(is_origin_allowed_with_env("http://user1.localhost:3000", None));
+        assert!(is_origin_allowed_with_env("http://localhost:5173", None));
+        assert!(!is_origin_allowed_with_env("http://localhost:80", None));
+    }
+
+    #[test]
+    fn test_self_host_domain() {
+        let domain = "chat.chnprints.com";
+        assert!(is_origin_allowed_with_env("https://chat.chnprints.com", Some(domain)));
+        assert!(is_origin_allowed_with_env("http://chat.chnprints.com", Some(domain)));
+
+        // Domain provided with scheme
+        let domain_with_scheme = "https://chat.chnprints.com/";
+        assert!(is_origin_allowed_with_env("https://chat.chnprints.com", Some(domain_with_scheme)));
+
+        // Security check: attacker subdomains and suffixes must be strictly rejected
+        assert!(!is_origin_allowed_with_env("https://chat.chnprints.com.evil.com", Some(domain)));
+        assert!(!is_origin_allowed_with_env("https://evilchat.chnprints.com", Some(domain)));
+        assert!(!is_origin_allowed_with_env("https://evil.com", Some(domain)));
+        assert!(!is_origin_allowed_with_env("https://other.domain.com", Some(domain)));
+    }
 }

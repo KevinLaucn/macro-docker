@@ -55,6 +55,15 @@ RUN --mount=type=cache,id=macro-sync-cargo-registry,target=/usr/local/cargo/regi
 # worker, the wrangler config, and the D1 migrations — nothing else.
 FROM node:22-bookworm-slim
 
+ARG MACRO_VERSION=dev
+ARG GIT_SHA=unknown
+
+LABEL org.opencontainers.image.title="Macro sync service" \
+      org.opencontainers.image.source="https://github.com/KevinLaucn/macro-docker" \
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.version="${MACRO_VERSION}" \
+      org.opencontainers.image.revision="${GIT_SHA}"
+
 WORKDIR /app
 
 COPY services/sync-service/package.json services/sync-service/package-lock.json ./
@@ -68,4 +77,4 @@ EXPOSE 8787
 
 # Generate .dev.vars from environment variables so wrangler can resolve secret bindings,
 # apply local D1 migrations, then start.
-CMD ["sh", "-c", "printf \"LOCAL_API_KEY=%s\\nDOCUMENT_PERMISSIONS_SECRET=%s\\nSPS_API_SECRET_KEY=%s\\nDSS_INTERNAL_AUTH_KEY=%s\\n\" \"$INTERNAL_API_SECRET_KEY\" \"$DOCUMENT_PERMISSIONS_SECRET\" \"$INTERNAL_API_SECRET_KEY\" \"$DSS_INTERNAL_AUTH_KEY\" > .dev.vars && CI=true npx wrangler d1 migrations apply USER_PEER_MAPPING --local --config wrangler.docker.toml && exec npx wrangler dev --local --ip 0.0.0.0 --port 8787 --config wrangler.docker.toml"]
+CMD ["sh", "-c", "printf \"LOCAL_API_KEY=%s\\nDOCUMENT_PERMISSIONS_SECRET=%s\\nSPS_API_SECRET_KEY=%s\\nDSS_INTERNAL_AUTH_KEY=%s\\nMACRO_DOMAIN=%s\\n\" \"$INTERNAL_API_SECRET_KEY\" \"$DOCUMENT_PERMISSIONS_SECRET\" \"$INTERNAL_API_SECRET_KEY\" \"$DSS_INTERNAL_AUTH_KEY\" \"$MACRO_DOMAIN\" > .dev.vars && CI=true npx wrangler d1 migrations apply USER_PEER_MAPPING --local --config wrangler.docker.toml && exec npx wrangler dev --local --ip 0.0.0.0 --port 8787 --config wrangler.docker.toml"]

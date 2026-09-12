@@ -23,6 +23,7 @@ REQUIRED_IMAGES = [
     "macro-web",
     "macro-caddy",
     "macro-websocket-service",
+    "macro-sync-service",
 ]
 
 def verify_caddyfile(caddy_text: str) -> list[str]:
@@ -70,6 +71,52 @@ def verify_compose(compose_text: str, caddy_text: str) -> list[str]:
         caddy_body = caddy_match.group(1)
         if "./Caddyfile:/etc/caddy/Caddyfile" in caddy_body:
             errors.append("caddy service must not bind-mount host ./Caddyfile; use immutable macro-caddy image")
+
+    # Verify web_assets env-config.js generation template syntax and evaluation
+    errors.extend(verify_env_config_template(compose_text))
+
+    return errors
+
+def verify_env_config_template(compose_text: str) -> list[str]:
+    errors = []
+    # Extract heredoc between cat <<EOF > /out/env-config.js and EOF
+    match = re.search(r'cat\s+<<\s*[\'"]?EOF[\'"]?\s*>\s*/out/env-config\.js\n(.*?)\n\s*EOF', compose_text, re.S)
+    if not match:
+        errors.append("docker-compose.yml web_assets missing 'cat <<EOF > /out/env-config.js' heredoc")
+        return errors
+
+    raw_js = match.group(1)
+    # Simulate shell substitution for $${VAR:-default} and $${VAR}
+    simulated_js = re.sub(r'\$\$\{(\w+):-([^}]*)\}', r'\2', raw_js)
+    simulated_js = re.sub(r'\$\$\{(\w+)\}', r'', simulated_js)
+
+    # Permanent regression test: run node --check and evaluate object assignment
+    import subprocess, tempfile
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False) as tf:
+        tf.write("const window = {};\n" + simulated_js + "\n" + """
+if (!window.__MACRO_ENV__) throw new Error("window.__MACRO_ENV__ not assigned");
+const env = window.__MACRO_ENV__;
+if (!env.FEATURES || typeof env.FEATURES !== 'object') throw new Error("FEATURES missing");
+if (typeof env.ENABLE_SCHEDULED_ACTIONS !== 'string') throw new Error("ENABLE_SCHEDULED_ACTIONS missing");
+if (typeof env.ENABLE_COGNITION !== 'string') throw new Error("ENABLE_COGNITION missing");
+if (!env.PERMISSIONS || typeof env.PERMISSIONS !== 'object') throw new Error("PERMISSIONS missing");
+""")
+        temp_path = tf.name
+
+    try:
+        res = subprocess.run(["node", "--check", temp_path], capture_output=True, text=True)
+        if res.returncode != 0:
+            errors.append(f"env-config.js syntax check (node --check) failed: {res.stderr.strip()}")
+        else:
+            eval_res = subprocess.run(["node", temp_path], capture_output=True, text=True)
+            if eval_res.returncode != 0:
+                errors.append(f"env-config.js evaluation check failed: {eval_res.stderr.strip()}")
+    except FileNotFoundError:
+        # If node is not installed in the current environment, fallback to regex check
+        if re.search(r'^\s*#', raw_js, re.M):
+            errors.append("env-config.js template contains illegal '#' comments in JS object literal")
+    finally:
+        pathlib.Path(temp_path).unlink(missing_ok=True)
 
     return errors
 
