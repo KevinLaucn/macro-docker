@@ -4,6 +4,7 @@ import traverseModule from "@babel/traverse";
 import MagicString from "magic-string";
 import {
   TRANSLATABLE_ATTRIBUTES,
+  TRANSLATABLE_OBJECT_KEYS,
   IGNORED_TAGS,
   isIgnoredPath,
   normalizeText,
