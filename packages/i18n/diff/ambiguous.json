@@ -4,16 +4,49 @@
     "features/block-md/component/ComposeSkill.tsx",
     "lib/core/component/LexicalMarkdown/component/menu/SkillsMenu/SkillsMenu.tsx"
   ],
+  "Team": [
+    "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
+    "features/settings/Harness.tsx",
+    "features/contacts/Contact/ContactEmailsSection.tsx"
+  ],
+  "Save": [
+    "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
+    "features/settings/Team.tsx",
+    "features/settings/Harness.tsx"
+  ],
   "Copied": [
     "features/settings/Team.tsx",
     "features/block-agent/ui/ToolErrorCard.tsx",
     "features/channel/Bots/CredentialField.tsx",
     "lib/core/component/AI/component/McpSetupCards.tsx"
   ],
+  "Harness": [
+    "features/settings/Harness.tsx",
+    "features/settings/Agents.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx"
+  ],
+  "Loading…": [
+    "features/settings/Harness.tsx",
+    "features/activity/views/my-activity-view.tsx",
+    "features/contacts/Contact/ContactSharingSection.tsx",
+    "features/contacts/Contact/ContactEmailsSection.tsx",
+    "features/contacts/Contact/ContactMetadataSection.tsx",
+    "features/companies/Company/CompanyContactsSection.tsx"
+  ],
   "Loading models…": [
     "features/settings/Harness.tsx",
     "features/settings/Agents.tsx",
     "features/block-agent/component/ComposeAgentSession.tsx"
+  ],
+  "Retry": [
+    "features/settings/Harness.tsx",
+    "features/settings/Integrations.tsx",
+    "features/activity/views/my-activity-view.tsx"
+  ],
+  "Cancel": [
+    "features/settings/Harness.tsx",
+    "features/settings/ApiKeys.tsx",
+    "features/entity/bulk-edit/BulkDeleteView.tsx"
   ],
   "Close": [
     "features/settings/ApiKeys.tsx",
@@ -39,19 +72,37 @@
     "features/settings/HarnessPairingDialog.tsx",
     "features/block-agent/component/parts/UserToolCall.tsx"
   ],
+  "Reconnect": [
+    "features/settings/GitHub.tsx",
+    "features/auth/GithubReauthenticationPrompt.tsx",
+    "features/auth/GmailReauthenticationPrompt.tsx"
+  ],
+  "From": [
+    "features/email-message/components/email-message-top-bar.tsx",
+    "features/email-compose/views/reply-envelope.tsx",
+    "features/email-compose/views/compose-layout.tsx"
+  ],
   "To": [
     "features/email-message/components/email-message-top-bar.tsx",
+    "features/email-compose/views/reply-envelope.tsx",
     "features/email-compose/views/compose-recipients.tsx",
     "features/block-agent/component/parts/UserToolCall.tsx"
   ],
   "Cc": [
     "features/email-message/components/email-message-top-bar.tsx",
+    "features/email-compose/views/reply-envelope.tsx",
     "features/email-compose/views/compose-recipients.tsx",
     "features/block-agent/component/parts/UserToolCall.tsx"
   ],
   "Bcc": [
     "features/email-message/components/email-message-top-bar.tsx",
+    "features/email-compose/views/reply-envelope.tsx",
     "features/email-compose/views/compose-recipients.tsx",
+    "features/block-agent/component/parts/UserToolCall.tsx"
+  ],
+  "Subject": [
+    "features/email-compose/views/compose-subject.tsx",
+    "features/email-compose/views/reply-envelope.tsx",
     "features/block-agent/component/parts/UserToolCall.tsx"
   ],
   "Bold": [
@@ -94,11 +145,10 @@
     "features/block-md/component/FormatTools.tsx",
     "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
   ],
-  "Loading…": [
-    "features/contacts/Contact/ContactSharingSection.tsx",
-    "features/contacts/Contact/ContactEmailsSection.tsx",
-    "features/contacts/Contact/ContactMetadataSection.tsx",
-    "features/companies/Company/CompanyContactsSection.tsx"
+  "Activity": [
+    "features/activity/views/my-activity-view.tsx",
+    "features/activity/views/entity-activity-section.tsx",
+    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx"
   ],
   "Details": [
     "features/contacts/Contact/Contact.tsx",

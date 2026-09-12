@@ -3,7 +3,7 @@ import { isEmailEntity } from '@entity';
 import { t } from '@macro/i18n';
 import CircleNotch from '@phosphor/circle-notch.svg';
 import TranslateIcon from '@phosphor/translate.svg';
-import { Button, cn } from '@ui';
+import { Button, cn, Tooltip } from '@ui';
 import { Show } from 'solid-js';
 import {
   clearAllRowTranslations,
@@ -47,36 +47,40 @@ export function SoupListTranslateButton(props: {
   const label = () => (isTranslated() ? t('Show original') : t('Translate'));
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      depth={2}
-      disabled={!hasEmailRows() || isTranslating()}
+    <Tooltip
+      shortcut={hasEmailRows() && !isTranslating() ? 'q' : undefined}
       label={label()}
-      onClick={handleClick}
-      class={cn(
-        'bg-surface transition-colors',
-        isTranslated() && 'text-accent border-accent/40',
-        props.class
-      )}
-      aria-label={label()}
     >
-      <Show
-        when={isTranslating()}
-        fallback={
-          <TranslateIcon
-            class={cn(
-              'size-3.5',
-              isTranslated() ? 'text-accent' : 'text-ink-muted'
-            )}
-          />
-        }
+      <Button
+        variant="outline"
+        size="sm"
+        depth={2}
+        disabled={!hasEmailRows() || isTranslating()}
+        onClick={handleClick}
+        class={cn(
+          'bg-surface transition-colors',
+          isTranslated() && 'text-accent border-accent/40',
+          props.class
+        )}
+        aria-label={label()}
       >
-        <CircleNotch class="size-3.5 animate-spin text-ink-placeholder" />
-      </Show>
-      <Show when={!props.hideLabel}>
-        <span>{isTranslated() ? t('Original') : t('Translate')}</span>
-      </Show>
-    </Button>
+        <Show
+          when={isTranslating()}
+          fallback={
+            <TranslateIcon
+              class={cn(
+                'size-3.5',
+                isTranslated() ? 'text-accent' : 'text-ink-muted'
+              )}
+            />
+          }
+        >
+          <CircleNotch class="size-3.5 animate-spin text-ink-placeholder" />
+        </Show>
+        <Show when={!props.hideLabel}>
+          <span>{isTranslated() ? t('Original') : t('Translate')}</span>
+        </Show>
+      </Button>
+    </Tooltip>
   );
 }

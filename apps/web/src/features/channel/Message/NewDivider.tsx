@@ -1,4 +1,5 @@
 import { formatRelativeDate } from '@core/util/time';
+import { t } from '@macro/i18n';
 import { Show } from 'solid-js';
 import { isDateDividerVisible } from './DateDivider';
 import type { ChannelMessageListMeta } from './list-meta';
@@ -16,15 +17,15 @@ export function NewDivider(props: NewDividerProps) {
     !props.isReply && props.listMeta?.isFirstNewMessage === true;
   const text = () =>
     isDateDividerVisible(props.createdAt, props.listMeta, props.isReply)
-      ? `${formatRelativeDate(props.createdAt)} - New`
-      : 'New';
+      ? `${formatRelativeDate(props.createdAt)} - ${t('New')}`
+      : t('New');
 
   return (
     <Show when={isVisible()}>
       <button
         type="button"
         class="w-full text-left"
-        title="Mark as read"
+        title={t('Mark as read')}
         onClick={props.onDismiss}
       >
         <MessageFlag text={text()} highlight />

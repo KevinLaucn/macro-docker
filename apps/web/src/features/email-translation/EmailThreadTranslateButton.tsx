@@ -1,7 +1,7 @@
 import { t } from '@macro/i18n';
 import CircleNotch from '@phosphor/circle-notch.svg';
 import TranslateIcon from '@phosphor/translate.svg';
-import { Button, cn } from '@ui';
+import { Button, cn, Tooltip } from '@ui';
 import { Show } from 'solid-js';
 import {
   clearThreadTranslation,
@@ -60,43 +60,49 @@ export function EmailThreadTranslateButton(
 
   return (
     <Show when={isAvailable() && props.threadId}>
-      <Button
-        variant="outline"
-        size="sm"
-        depth={2}
-        disabled={!hasMessages() || isTranslating()}
+      <Tooltip
+        shortcut={
+          props.threadId && hasMessages() && !isTranslating() ? 'q' : undefined
+        }
         label={label()}
-        onClick={handleClick}
-        class={cn(
-          'bg-surface transition-colors shrink-0',
-          isTranslated() && 'text-accent border-accent/40',
-          props.class
-        )}
-        aria-label={label()}
       >
-        <Show
-          when={isTranslating()}
-          fallback={
-            <TranslateIcon
-              class={cn(
-                'size-3.5',
-                isTranslated() ? 'text-accent' : 'text-ink-muted'
-              )}
-            />
-          }
+        <Button
+          variant="outline"
+          size="sm"
+          depth={2}
+          disabled={!hasMessages() || isTranslating()}
+          onClick={handleClick}
+          class={cn(
+            'bg-surface transition-colors shrink-0',
+            isTranslated() && 'text-accent border-accent/40',
+            props.class
+          )}
+          aria-label={label()}
         >
-          <CircleNotch class="size-3.5 animate-spin text-ink-placeholder" />
-        </Show>
-        <Show when={!props.hideLabel}>
-          <span>
-            {isPartial()
-              ? t('Partial')
-              : isTranslated()
-                ? t('Original')
-                : t('Translate')}
-          </span>
-        </Show>
-      </Button>
+          <Show
+            when={isTranslating()}
+            fallback={
+              <TranslateIcon
+                class={cn(
+                  'size-3.5',
+                  isTranslated() ? 'text-accent' : 'text-ink-muted'
+                )}
+              />
+            }
+          >
+            <CircleNotch class="size-3.5 animate-spin text-ink-placeholder" />
+          </Show>
+          <Show when={!props.hideLabel}>
+            <span>
+              {isPartial()
+                ? t('Partial')
+                : isTranslated()
+                  ? t('Original')
+                  : t('Translate')}
+            </span>
+          </Show>
+        </Button>
+      </Tooltip>
     </Show>
   );
 }

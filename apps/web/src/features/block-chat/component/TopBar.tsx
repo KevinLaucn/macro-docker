@@ -54,8 +54,8 @@ export function TopBar(props: {
       ? [
           {
             label: props.showStreamDebug?.()
-              ? 'Hide Stream Debug'
-              : 'Show Stream Debug',
+              ? t('Hide Stream Debug')
+              : t('Show Stream Debug'),
             icon: ChatDebugIcon,
             action: props.toggleStreamDebug,
           } satisfies FileOperation,

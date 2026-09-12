@@ -1,30 +1,31 @@
-import { EmailAttachmentPill } from '@app/features/email-message/components/attachment-pill';
-import { FileDropOverlay } from '@core/component/FileDropOverlay';
-import { buildConfig } from '@core/component/LexicalMarkdown/builder/MarkdownConfigBuilder';
-import { MarkdownShell } from '@core/component/LexicalMarkdown/builder/MarkdownShell';
-import { iosCursorScrollPlugin } from '@core/component/LexicalMarkdown/plugins/ios-cursor-scroll';
-import { fileFolderDrop } from '@core/directive/fileFolderDrop';
-import { fileSelector } from '@core/directive/fileSelector';
-import { registerHotkey, useHotkeyDOMScope } from '@core/hotkey/hotkeys';
-import { TOKENS } from '@core/hotkey/tokens';
-import { isNativeMobilePlatform } from '@core/mobile/isNativeMobilePlatform';
-import { useTouchOutsideToDismissKeyboard } from '@core/mobile/useTouchOutsideToDismissKeyboard';
-import { ToggleButton as KToggleButton } from '@kobalte/core/toggle-button';
-import DotsThree from '@phosphor/dots-three.svg';
-import Paperclip from '@phosphor/paperclip.svg';
-import Trash from '@phosphor/trash.svg';
-import { isIOS } from '@solid-primitives/platform';
-import { Button, cn, Layer, SendButton, Surface, Tooltip } from '@ui';
-import type { LexicalEditor } from 'lexical';
-import { $getRoot } from 'lexical';
-import { createSignal, For, onMount, Show } from 'solid-js';
-import { EmailDateSelector } from '../components/email-date-selector';
-import { MacroSignatureButton } from '../components/macro-signature-button';
-import { SignaturePreview } from '../components/signature-preview';
-import type { EmailComposeContext } from '../context/compose-capabilities';
-import { getOrInitEmailFormContext } from '../context/email-form-context';
-import { registerToggleAppendedThread } from '../primitives/prepare-email-body';
-import { ReplyEnvelope } from './reply-envelope';
+import { EmailAttachmentPill } from "@app/features/email-message/components/attachment-pill";
+import { FileDropOverlay } from "@core/component/FileDropOverlay";
+import { buildConfig } from "@core/component/LexicalMarkdown/builder/MarkdownConfigBuilder";
+import { MarkdownShell } from "@core/component/LexicalMarkdown/builder/MarkdownShell";
+import { iosCursorScrollPlugin } from "@core/component/LexicalMarkdown/plugins/ios-cursor-scroll";
+import { fileFolderDrop } from "@core/directive/fileFolderDrop";
+import { fileSelector } from "@core/directive/fileSelector";
+import { registerHotkey, useHotkeyDOMScope } from "@core/hotkey/hotkeys";
+import { TOKENS } from "@core/hotkey/tokens";
+import { isNativeMobilePlatform } from "@core/mobile/isNativeMobilePlatform";
+import { useTouchOutsideToDismissKeyboard } from "@core/mobile/useTouchOutsideToDismissKeyboard";
+import { ToggleButton as KToggleButton } from "@kobalte/core/toggle-button";
+import DotsThree from "@phosphor/dots-three.svg";
+import Paperclip from "@phosphor/paperclip.svg";
+import Trash from "@phosphor/trash.svg";
+import { isIOS } from "@solid-primitives/platform";
+import { Button, cn, Layer, SendButton, Surface, Tooltip } from "@ui";
+import { t } from "@macro/i18n";
+import type { LexicalEditor } from "lexical";
+import { $getRoot } from "lexical";
+import { createSignal, For, onMount, Show } from "solid-js";
+import { EmailDateSelector } from "../components/email-date-selector";
+import { MacroSignatureButton } from "../components/macro-signature-button";
+import { SignaturePreview } from "../components/signature-preview";
+import type { EmailComposeContext } from "../context/compose-capabilities";
+import { getOrInitEmailFormContext } from "../context/email-form-context";
+import { registerToggleAppendedThread } from "../primitives/prepare-email-body";
+import { ReplyEnvelope } from "./reply-envelope";
 
 false && fileFolderDrop;
 false && fileSelector;
@@ -32,19 +33,19 @@ false && fileSelector;
 import {
   createReplyComposer,
   type ReplyComposerOptions,
-} from '../primitives/reply-composer';
+} from "../primitives/reply-composer";
 
 type ReplyInputViewProps = Omit<
   ReplyComposerOptions,
-  | 'drafts'
-  | 'attachmentStorage'
-  | 'delivery'
-  | 'notices'
-  | 'accounts'
-  | 'viewerEmail'
-  | 'hasPaidAccess'
-  | 'recordMention'
-  | 'focusAfterReplyRequest'
+  | "drafts"
+  | "attachmentStorage"
+  | "delivery"
+  | "notices"
+  | "accounts"
+  | "viewerEmail"
+  | "hasPaidAccess"
+  | "recordMention"
+  | "focusAfterReplyRequest"
 > & {
   context: EmailComposeContext;
   markdownDomRef?: (ref: HTMLDivElement) => void | HTMLDivElement;
@@ -83,7 +84,7 @@ export function ReplyInputView(props: ReplyInputViewProps) {
     },
     editor,
     { container: () => composeContainerRef, footer: () => bottomBarRef },
-    getOrInitEmailFormContext
+    getOrInitEmailFormContext,
   );
   const {
     form,
@@ -114,22 +115,22 @@ export function ReplyInputView(props: ReplyInputViewProps) {
   const sendActionHidden = () =>
     composeContext.presentation.isTouch() &&
     !state.hasBodyText() &&
-    state.replyType() !== 'forward';
+    state.replyType() !== "forward";
   const signatureHtml = () =>
     composeContext.presentation.signaturesEnabled()
       ? state.signatureHtml()
       : undefined;
   const isMobileDrawer = () => props.mobileDrawer !== undefined;
   const composePortalScope = () =>
-    isMobileDrawer() ? ('local' as const) : undefined;
+    isMobileDrawer() ? ("local" as const) : undefined;
   const scrollAreaSignatureHtml = () =>
     isMobileDrawer() ? signatureHtml() : undefined;
   const footerSignatureHtml = () =>
     isMobileDrawer() ? undefined : signatureHtml();
   // File sharing and editor plugin wiring belong to this view. The controller only
   // needs to know when editor content has changed and requires another save.
-  const editorConfig = buildConfig('markdown')
-    .namespace('email-base-input-markdown')
+  const editorConfig = buildConfig("markdown")
+    .namespace("email-base-input-markdown")
     .withMentions({
       onUserMention: state.handleUserMention,
       onDocumentMention: (item) => {
@@ -138,7 +139,7 @@ export function ReplyInputView(props: ReplyInputViewProps) {
       },
     })
     .withEmojis()
-    .withLinks({ floatingMenu: true, autoLinkMatchMode: 'common-tlds' })
+    .withLinks({ floatingMenu: true, autoLinkMatchMode: "common-tlds" })
     .withHistory({ timeGap: 400 })
     .withMedia()
     .withCode()
@@ -164,14 +165,14 @@ export function ReplyInputView(props: ReplyInputViewProps) {
     });
   if (isIOS || isNativeMobilePlatform()) {
     editorConfig.use(
-      iosCursorScrollPlugin({ scrollContainer: state.scrollContainer })
+      iosCursorScrollPlugin({ scrollContainer: state.scrollContainer }),
     );
   }
   const markdownHandle = editorConfig.buildHandle();
   setEditor(markdownHandle.lexical);
   // Set up hotkey scope for the compose message component
   const [attachComposeHotkeys, composeHotkeyScope] =
-    useHotkeyDOMScope('compose-message');
+    useHotkeyDOMScope("compose-message");
   useTouchOutsideToDismissKeyboard(() => composeContainerRef);
 
   onMount(() => {
@@ -179,9 +180,9 @@ export function ReplyInputView(props: ReplyInputViewProps) {
       attachComposeHotkeys(composeContainerRef);
 
       registerHotkey({
-        hotkey: 'cmd+enter',
+        hotkey: "cmd+enter",
         scopeId: composeHotkeyScope,
-        description: 'Send email',
+        description: "Send email",
         keyDownHandler: () => {
           if (form.sendTime()) return false;
           sendEmail();
@@ -193,9 +194,9 @@ export function ReplyInputView(props: ReplyInputViewProps) {
       });
 
       registerHotkey({
-        hotkey: 'shift+cmd+enter',
+        hotkey: "shift+cmd+enter",
         scopeId: composeHotkeyScope,
-        description: 'Send and mark done',
+        description: "Send and mark done",
         keyDownHandler: () => {
           if (form.sendTime()) return false;
           sendEmail(true);
@@ -207,9 +208,9 @@ export function ReplyInputView(props: ReplyInputViewProps) {
       });
 
       registerHotkey({
-        hotkey: 'arrowup',
+        hotkey: "arrowup",
         scopeId: composeHotkeyScope,
-        description: 'Select last message',
+        description: "Select last message",
         runWithInputFocused: true,
         condition: () => {
           const ed = editor();
@@ -222,15 +223,15 @@ export function ReplyInputView(props: ReplyInputViewProps) {
           });
         },
         keyDownHandler: () => {
-          return ctx.exitToThread('last');
+          return ctx.exitToThread("last");
         },
         hotkeyToken: TOKENS.email.previousMessage,
       });
 
       registerHotkey({
-        hotkey: 'escape',
+        hotkey: "escape",
         scopeId: composeHotkeyScope,
-        description: 'Close reply',
+        description: "Close reply",
         keyDownHandler: () => {
           const draft = collectDraft();
           const isEmpty = draft === null;
@@ -240,7 +241,7 @@ export function ReplyInputView(props: ReplyInputViewProps) {
             deleteDraftAndReset();
           } else {
             // Move focus back to the message
-            ctx.exitToThread('selected');
+            ctx.exitToThread("selected");
           }
           return true;
         },
@@ -256,8 +257,8 @@ export function ReplyInputView(props: ReplyInputViewProps) {
     <Show when={form.attachments.list().length > 0}>
       <div
         class={cn(
-          'ph-no-capture shrink-0 flex gap-1 flex-wrap w-full py-2',
-          rowProps?.class
+          "ph-no-capture shrink-0 flex gap-1 flex-wrap w-full py-2",
+          rowProps?.class,
         )}
       >
         <For each={form.attachments.list()}>
@@ -265,13 +266,13 @@ export function ReplyInputView(props: ReplyInputViewProps) {
             <EmailAttachmentPill
               attachment={{
                 fileName:
-                  attachment.type === 'local'
+                  attachment.type === "local"
                     ? attachment.file.name
                     : attachment.fileName,
                 mimeType:
-                  attachment.type === 'local'
+                  attachment.type === "local"
                     ? attachment.file.type
-                    : attachment.type === 'remote'
+                    : attachment.type === "remote"
                       ? attachment.contentType
                       : attachment.mimeType,
               }}
@@ -285,7 +286,7 @@ export function ReplyInputView(props: ReplyInputViewProps) {
   );
 
   const AttachButton = (buttonProps?: {
-    variant?: 'ghost' | 'outline';
+    variant?: "ghost" | "outline";
     class?: string;
   }) => (
     <Button
@@ -298,7 +299,7 @@ export function ReplyInputView(props: ReplyInputViewProps) {
       size="icon-sm"
       variant={buttonProps?.variant}
       class={buttonProps?.class}
-      tooltip="Attach"
+      tooltip={t("Attach")}
     >
       <Paperclip />
     </Button>
@@ -307,11 +308,11 @@ export function ReplyInputView(props: ReplyInputViewProps) {
   return (
     <Surface
       class={cn(
-        'relative flex flex-col flex-1 max-w-full min-h-0',
-        isMobileDrawer() && 'min-h-full overflow-y-scroll overscroll-y-none',
-        props.unframed ? 'rounded-lg' : 'rounded-xl'
+        "relative flex flex-col flex-1 max-w-full min-h-0",
+        isMobileDrawer() && "min-h-full overflow-y-scroll overscroll-y-none",
+        props.unframed ? "rounded-lg" : "rounded-xl",
       )}
-      style={props.unframed ? { 'background-color': 'transparent' } : undefined}
+      style={props.unframed ? { "background-color": "transparent" } : undefined}
       hideBorder={props.unframed}
       ref={(el) => {
         composeContainerRef = el;
@@ -330,7 +331,9 @@ export function ReplyInputView(props: ReplyInputViewProps) {
                 variant="ghost"
                 size="icon-sm"
                 class="rounded-full border border-edge-muted/70 bg-transparent"
-                tooltip={savedDraftId() ? 'Delete draft' : 'Discard draft'}
+                tooltip={
+                  savedDraftId() ? t("Delete draft") : t("Discard draft")
+                }
                 onClick={deleteDraftAndReset}
               >
                 <Trash class="size-4" />
@@ -371,32 +374,32 @@ export function ReplyInputView(props: ReplyInputViewProps) {
       <div
         class={cn(
           isMobileDrawer()
-            ? 'relative flex-1 flex flex-col'
-            : 'size-full flex flex-col min-h-0',
-          state.recipients.showExpandedRecipients() && 'mt-4'
+            ? "relative flex-1 flex flex-col"
+            : "size-full flex flex-col min-h-0",
+          state.recipients.showExpandedRecipients() && "mt-4",
         )}
       >
         <div
           ref={setScrollContainer}
           class={cn(
-            'relative min-h-8 w-full flex flex-col placeholder:text-ink-placeholder placeholder:opacity-50 px-0 py-1',
+            "relative min-h-8 w-full flex flex-col placeholder:text-ink-placeholder placeholder:opacity-50 px-0 py-1",
             isMobileDrawer()
-              ? 'max-h-none flex-1 overflow-visible px-5 pt-6 pb-4'
+              ? "max-h-none flex-1 overflow-visible px-5 pt-6 pb-4"
               : cn(
-                  'overflow-y-auto mobile:max-h-[calc(32*var(--dvh,1dvh))]',
+                  "overflow-y-auto mobile:max-h-[calc(32*var(--dvh,1dvh))]",
                   composerExpanded()
                     ? // Cap to the thread viewport (minus composer chrome) so the
                       // recipients row and send bar stay on screen together
-                      'max-h-[min(calc(60*var(--dvh,1dvh)),calc(var(--thread-height,9999px)-14rem))]'
-                    : 'max-h-56'
-                )
+                      "max-h-[min(calc(60*var(--dvh,1dvh)),calc(var(--thread-height,9999px)-14rem))]"
+                    : "max-h-56",
+                ),
           )}
           onScroll={(e) => {
             if (composerExpanded() || e.currentTarget.scrollTop <= 0) return;
             setComposerExpanded(true);
             // Keep the send bar pinned while the box grows
             requestAnimationFrame(() => {
-              bottomBarRef?.scrollIntoView({ block: 'nearest' });
+              bottomBarRef?.scrollIntoView({ block: "nearest" });
             });
           }}
           onclick={() => {
@@ -424,28 +427,30 @@ export function ReplyInputView(props: ReplyInputViewProps) {
           }}
         >
           <div
-            class={cn('absolute size-full inset-0', !isDragging() && 'hidden')}
+            class={cn("absolute size-full inset-0", !isDragging() && "hidden")}
           >
-            <FileDropOverlay>Drop file(s) to attach</FileDropOverlay>
+            <FileDropOverlay>
+              {t("Drop file(s) to attach", { context: "email" })}
+            </FileDropOverlay>
           </div>
           <MarkdownShell
             config={editorConfig}
             class={cn(
-              'ph-no-capture cursor-text wrap-break-word text-ink h-auto overflow-visible',
-              isMobileDrawer() ? 'text-[17px] leading-6' : 'text-sm',
+              "ph-no-capture cursor-text wrap-break-word text-ink h-auto overflow-visible",
+              isMobileDrawer() ? "text-[17px] leading-6" : "text-sm",
               // Quoted thread collapses behind the "⋯" pill below
               // (rule lives in LexicalMarkdown/styles.css — Tailwind arbitrary
               // variants turn the underscore in .macro_quote into a space)
-              quoteCollapsed() && 'quote-collapsed',
-              isDragging() && 'blur'
+              quoteCollapsed() && "quote-collapsed",
+              isDragging() && "blur",
             )}
             disabled={isSending()}
             placeholder={
               isMobileDrawer()
-                ? 'Use `@` to reference files'
-                : 'Reply — @mention to share or cc people'
+                ? t("Use `@` to reference files")
+                : t("Reply — @mention to share or cc people")
             }
-            portalScope={isMobileDrawer() ? 'local' : 'split'}
+            portalScope={isMobileDrawer() ? "local" : "split"}
             refFn={(el) => props.markdownDomRef?.(el)}
             onConnect={handleEditorConnect}
           />
@@ -488,7 +493,7 @@ export function ReplyInputView(props: ReplyInputViewProps) {
               variant="ghost"
               size="icon-sm"
               class="rounded-md text-ink-extra-muted hover:text-ink-muted hover:bg-active"
-              tooltip="Show quoted text"
+              tooltip={t("Show quoted text")}
               onclick={(e: MouseEvent) => {
                 e.stopPropagation();
                 setQuoteCollapsed(false);
@@ -513,7 +518,9 @@ export function ReplyInputView(props: ReplyInputViewProps) {
           >
             <Tooltip
               label={
-                form.replyAppended() ? 'Hide quoted text' : 'Show quoted text'
+                form.replyAppended()
+                  ? t("Hide quoted text")
+                  : t("Show quoted text")
               }
             >
               <KToggleButton
@@ -561,7 +568,7 @@ export function ReplyInputView(props: ReplyInputViewProps) {
 
               <Button
                 onclick={deleteDraftAndReset}
-                tooltip={savedDraftId() ? 'Delete draft' : 'Discard'}
+                tooltip={savedDraftId() ? t("Delete draft") : t("Discard")}
                 size="icon-sm"
               >
                 <Trash />

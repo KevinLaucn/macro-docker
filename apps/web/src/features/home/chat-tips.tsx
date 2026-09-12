@@ -34,16 +34,12 @@ export function ChatTipsSection() {
         <SetupRow
           icon={<PaperPlaneTiltIcon class="size-4" />}
           title={t('Send in the background')}
-          desc={
-            <>
-              {t(
-                'Press {hotkey} to send and get notified when the AI responds',
-                {
-                  hotkey: <Hotkey shortcut="meta+enter" theme="subtle" />,
-                }
-              )}
-            </>
-          }
+          desc={t(
+            'Press {hotkey} to send and get notified when the AI responds',
+            {
+              hotkey: <Hotkey shortcut="meta+enter" theme="subtle" />,
+            }
+          )}
         />
         <SetupRow
           icon={<PlugsConnectedIcon class="size-4" />}

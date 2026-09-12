@@ -1,6 +1,14 @@
 import { GO_TO_COMMAND_SCOPE, GO_TO_LEADER_KEY } from '@app/constants/hotkeys';
 import { isListViewID, type ListView } from '@app/constants/list-views';
 import { CommandState } from '@app/features/command/state';
+import {
+  clearAllRowTranslations,
+  emailTranslationEnabled,
+  isEmailListTranslated,
+  isEmailListTranslating,
+  isTranslationSupported,
+  toggleGlobalListTranslation,
+} from '@app/features/email-translation';
 import { VIEW_TAB_PRESETS } from '@app/features/next-soup/sidebar/soup-filter-presets';
 import {
   markChannelNotificationsSeenOnOpen,
@@ -17,6 +25,7 @@ import { isScopeInActiveBranch } from '@core/hotkey/utils';
 import {
   filterNotDoneNotifications,
   filterValidNotifications,
+  isEmailEntity,
   isSearchEntity,
   isWithNotification,
 } from '@entity';
@@ -55,8 +64,41 @@ export const useSoupViewHotkeys = (options: UseSoupViewHotkeysOptions) => {
 
   const analytics = useAnalytics();
   const notificationSource = useGlobalNotificationSource();
+  const group = createHotkeyGroup();
 
   const splitIsUnifiedList = () => isListViewID(splitHandle.content().id);
+
+  const emailItems = () =>
+    soup.items
+      .rows()
+      .map((row) => row.original)
+      .filter(isEmailEntity)
+      .map((email) => ({
+        id: email.id,
+        name: email.name,
+        snippet: email.snippet,
+      }));
+
+  registerHotkey({
+    hotkey: 'q',
+    scopeId,
+    hotkeyToken: TOKENS.email.translateList,
+    description: 'Translate email list',
+    condition: () =>
+      currentView() === 'mail' &&
+      emailTranslationEnabled() &&
+      isTranslationSupported() &&
+      emailItems().length > 0 &&
+      !isEmailListTranslating(),
+    keyDownHandler: () => {
+      if (isEmailListTranslated()) {
+        clearAllRowTranslations();
+      } else {
+        void toggleGlobalListTranslation(emailItems());
+      }
+      return true;
+    },
+  }).withGroup(group);
 
   // escape - Multi-purpose: Clear selection / Close spotlight
   const clearMultiCondition = () =>
@@ -72,8 +114,6 @@ export const useSoupViewHotkeys = (options: UseSoupViewHotkeysOptions) => {
     }
     return '';
   };
-
-  const group = createHotkeyGroup();
 
   // home - Jump to top of list
   registerHotkey({

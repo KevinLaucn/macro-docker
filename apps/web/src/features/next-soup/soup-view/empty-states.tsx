@@ -58,16 +58,18 @@ const FALLBACK_CONTENT: Partial<Record<ListView, FallbackContent>> = {
   documents: {
     plural: 'documents',
     graphic: EmptyStateDocGraphic,
-    description:
-      'Write, collaborate, and share documents right inside Macro. Create notes, specs, or any long-form content and keep it alongside your conversations.',
+    description: t(
+      'Write, collaborate, and share documents right inside Macro. Create notes, specs, or any long-form content and keep it alongside your conversations.'
+    ),
     create: { label: 'New document', blockName: 'md' },
     documentationUrl: `${DOCS_BASE}/product/docs`,
   },
   channels: {
     plural: 'channels',
     graphic: EmptyStateChannelsGraphic,
-    description:
-      'Channels are shared spaces for team conversations organized by topic, project, or team. Create a channel to start collaborating with your team.',
+    description: t(
+      'Channels are shared spaces for team conversations organized by topic, project, or team. Create a channel to start collaborating with your team.'
+    ),
     create: { label: 'New channel', blockName: 'channel' },
     documentationUrl: `${DOCS_BASE}/product/channels`,
   },
@@ -176,22 +178,16 @@ export function EmptyState(props: {
         <EmptyStatePanel
           graphic={EmptyStateInboxTrayGraphic}
           title={t('No scheduled reminders')}
-          description={
-            <>
-              {t(
-                'Reminders you schedule wait here until they fire into Signal. Set one on anything in Macro by selecting it and pressing {key}, or write one about nothing in particular.',
-                { key: '__KEY__' }
-              )
-                .split('__KEY__')
-                .reduce<JSXElement[]>(
-                  (acc, part, idx) =>
-                    idx === 0
-                      ? [part]
-                      : [...acc, <HotkeyCap>h</HotkeyCap>, part],
-                  []
-                )}
-            </>
-          }
+          description={t(
+            'Reminders you schedule wait here until they fire into Signal. Set one on anything in Macro by selecting it and pressing {key}, or write one about nothing in particular.',
+            { key: '__KEY__' }
+          )
+            .split('__KEY__')
+            .reduce<JSXElement[]>(
+              (acc, part, idx) =>
+                idx === 0 ? [part] : [...acc, <HotkeyCap>h</HotkeyCap>, part],
+              []
+            )}
           // Gated like every other reminder affordance. The tab itself is
           // already hidden when the flag is off, so this is belt and braces
           // rather than the only thing standing in the way.

@@ -4,7 +4,9 @@ import { createWebTracingProvider } from '@macro-inc/observability/web';
 // This static import loads the zone.js Promise patch before application modules run.
 import { ZoneContextManager } from '@macro-inc/observability/zone';
 
-async function browserTelemetryEnabled(hasExporter: boolean): Promise<boolean> {
+async function browserTelemetryEnabled(
+  _hasExporter: boolean
+): Promise<boolean> {
   const override = import.meta.env.VITE_ENABLE_BROWSER_OTEL;
 
   if (override === 'false') return false;

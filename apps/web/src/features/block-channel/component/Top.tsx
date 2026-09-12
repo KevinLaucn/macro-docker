@@ -13,6 +13,7 @@ import { useUserId } from '@core/context/user';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import PhoneIcon from '@icon/wide-call.svg';
 import ChannelIcon from '@icon/wide-channel.svg';
+import { t } from '@macro/i18n';
 import ChatTextIcon from '@phosphor/chat-text.svg';
 import PaperclipIcon from '@phosphor/paperclip.svg';
 import UsersIcon from '@phosphor/users.svg';
@@ -83,7 +84,16 @@ export function ChannelTopLeft(props: ChannelTopLeftProps) {
       const Icon = CHANNEL_TAB_ICONS[tab.value];
       return {
         value: tab.value,
-        label: Icon ? <Icon class="size-4 touch:size-6" /> : tab.label,
+        label:
+          Icon || typeof tab.label !== 'string' ? (
+            Icon ? (
+              <Icon class="size-4 touch:size-6" />
+            ) : (
+              tab.label
+            )
+          ) : (
+            t(tab.label)
+          ),
       };
     });
 
@@ -119,7 +129,17 @@ export function ChannelTopLeft(props: ChannelTopLeftProps) {
         >
           {(isCollapsed) => (
             <TabsInset
-              list={isCollapsed() ? iconTabList() : [...(props.tabs ?? [])]}
+              list={
+                isCollapsed()
+                  ? iconTabList()
+                  : (props.tabs ?? []).map((tab) => ({
+                      ...tab,
+                      label:
+                        typeof tab.label === 'string'
+                          ? t(tab.label)
+                          : tab.label,
+                    }))
+              }
               value={props.activeTab}
               onChange={(value) => props.onTabChange?.(value as ChannelTabId)}
             />

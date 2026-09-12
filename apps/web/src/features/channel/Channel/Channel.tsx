@@ -31,6 +31,7 @@ import {
 import { FindBar } from '@core/component/FindBar';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { toast } from '@core/component/Toast/Toast';
+import { t } from '@macro/i18n';
 import {
   useChannelActivity,
   useChannelName,
@@ -230,8 +231,8 @@ export function Channel(props: ChannelProps) {
         if (!loadAroundMessageId || !isMissingChannelMessageError(error))
           return;
 
-        toast.alert('Message no longer available', {
-          subtext: 'Showing the latest messages instead.',
+        toast.alert(t('Message no longer available'), {
+          subtext: t('Showing the latest messages instead.'),
         });
         clearStaleRestoredChannelData(props.channelId);
         targetMessageController.reset();
@@ -362,7 +363,9 @@ export function Channel(props: ChannelProps) {
 
   const inputPlaceholder = () => {
     const name = inputPlaceholderName();
-    return name ? `Type @ to share with ${name}` : 'Type @ to share';
+    return name
+      ? t('Type @ to share with {name}', { name })
+      : t('Type @ to share');
   };
 
   const buildChannelMessageMention = (message: {

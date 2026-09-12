@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Reject unknown test group
         if: ${{ !contains(fromJSON('["conventions","workflow-lint","selfhost-config","email-rust","auth-rust","i18n"]'), inputs.group) }}
@@ -90,3 +90,7 @@ jobs:
               process.exit(1);
             }
           '
+
+      - name: Run untranslated UI audit
+        if: inputs.group == 'i18n'
+        run: bun packages/i18n/audit.ts

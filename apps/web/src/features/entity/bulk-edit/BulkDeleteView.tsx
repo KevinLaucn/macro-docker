@@ -5,6 +5,7 @@ import {
 } from '@entity';
 import { Dialog } from '@kobalte/core/dialog';
 import CloseIcon from '@phosphor-icons/core/regular/x.svg?component-solid';
+import { t } from '@macro/i18n';
 import { Button, cn } from '@ui';
 import { For, onMount, Show } from 'solid-js';
 
@@ -46,10 +47,9 @@ export const BulkDeleteView = (props: {
           <CloseIcon />
         </Dialog.CloseButton>
         <Dialog.Title as="span" class="text-sm font-medium p-0 m-0">
-          Delete{' '}
           {props.entities.length === 1
-            ? 'Item'
-            : `${props.entities.length} Items`}
+            ? t('Delete Item')
+            : t('Delete {count} Items', { count: props.entities.length })}
         </Dialog.Title>
       </div>
 
@@ -71,7 +71,7 @@ export const BulkDeleteView = (props: {
           </For>
           <Show when={props.entities.length > 2}>
             <div class="text-ink-muted text-xs px-2 py-1">
-              +{props.entities.length - 2} more
+              {t('+{length} more', { length: props.entities.length - 2 })}
             </div>
           </Show>
         </div>
@@ -80,13 +80,16 @@ export const BulkDeleteView = (props: {
       <div class="p-3 flex flex-col gap-3">
         <p class="text-sm text-ink-muted">
           {props.entities.length === 1
-            ? 'You are about to delete this item. This action cannot be undone.'
-            : `You are about to delete ${props.entities.length} items. This action cannot be undone.`}
+            ? t('You are about to delete this item. This action cannot be undone.')
+            : t(
+                'You are about to delete {count} items. This action cannot be undone.',
+                { count: props.entities.length }
+              )}
         </p>
 
         <div class="flex justify-end gap-2">
           <Button variant="ghost" onClick={handleCancel}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             ref={(el: HTMLButtonElement) => {
@@ -97,7 +100,7 @@ export const BulkDeleteView = (props: {
             variant="danger"
             onClick={handleDelete}
           >
-            Delete
+            {t('Delete')}
           </Button>
         </div>
       </div>

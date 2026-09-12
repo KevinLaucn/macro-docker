@@ -6,7 +6,9 @@ on:
     paths:
       - ".github/workflows/i18n-check.yml"
       - "apps/web/**"
+      - "apps/web/vite.base.ts"
       - "packages/i18n/**"
+      - ".github/workflows/upstream-sync-test-group.yml"
       - "bun.lock"
       - "package.json"
   push:
@@ -15,7 +17,9 @@ on:
     paths:
       - ".github/workflows/i18n-check.yml"
       - "apps/web/**"
+      - "apps/web/vite.base.ts"
       - "packages/i18n/**"
+      - ".github/workflows/upstream-sync-test-group.yml"
       - "bun.lock"
       - "package.json"
 
@@ -26,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -79,7 +83,7 @@ jobs:
         run: bun packages/i18n/audit.ts
 
       - name: Upload i18n diff artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: i18n-diff-reports

@@ -1,23 +1,24 @@
-import { MAX_ATTACHMENTS_BYTES_SIZE } from '@app/features/email-compose/core/constants';
-import { FormatButtons } from '@channel/Input/FormatButtons';
-import { HeaderIsland } from '@components/app/split-layout/components/HeaderIsland';
-import { SplitHeaderRight } from '@components/app/split-layout/components/SplitHeader';
-import { defaultSelectionData } from '@core/component/LexicalMarkdown/plugins';
+import { MAX_ATTACHMENTS_BYTES_SIZE } from "@app/features/email-compose/core/constants";
+import { FormatButtons } from "@channel/Input/FormatButtons";
+import { HeaderIsland } from "@components/app/split-layout/components/HeaderIsland";
+import { SplitHeaderRight } from "@components/app/split-layout/components/SplitHeader";
+import { defaultSelectionData } from "@core/component/LexicalMarkdown/plugins";
 import {
   NODE_TRANSFORM,
   type NodeTransformType,
-} from '@core/component/LexicalMarkdown/plugins/node-transform/nodeTransformPlugin';
-import { fileSelector } from '@core/directive/fileSelector';
+} from "@core/component/LexicalMarkdown/plugins/node-transform/nodeTransformPlugin";
+import { fileSelector } from "@core/directive/fileSelector";
 
-import { plural } from '@core/util/string';
-import PaperclipIcon from '@phosphor/paperclip.svg?component-solid';
-import TextAa from '@phosphor/text-aa.svg';
-import Trash from '@phosphor/trash.svg';
-import { Button, SendButton, Tooltip } from '@ui';
-import { FORMAT_TEXT_COMMAND, type LexicalEditor } from 'lexical';
-import { createSignal, Show } from 'solid-js';
-import { EmailDateSelector } from '../components/email-date-selector';
-import { useCompose } from '../context/compose-context';
+import { plural } from "@core/util/string";
+import PaperclipIcon from "@phosphor/paperclip.svg?component-solid";
+import TextAa from "@phosphor/text-aa.svg";
+import Trash from "@phosphor/trash.svg";
+import { Button, SendButton, Tooltip } from "@ui";
+import { t } from "@macro/i18n";
+import { FORMAT_TEXT_COMMAND, type LexicalEditor } from "lexical";
+import { createSignal, Show } from "solid-js";
+import { EmailDateSelector } from "../components/email-date-selector";
+import { useCompose } from "../context/compose-context";
 
 export function EmailComposeToolbar(props: {
   editor?: () => LexicalEditor | undefined;
@@ -33,14 +34,14 @@ export function EmailComposeToolbar(props: {
 
     if (attachmentsToAddByteSize >= MAX_ATTACHMENTS_BYTES_SIZE) {
       ctx.attachmentFailure(
-        `${plural('Attachment', files.length)} exceed 18MB`
+        `${plural("Attachment", files.length)} exceed 18MB`,
       );
       return;
     }
 
     const currentAttachmentsByteSize = currentAttachments.reduce(
-      (sum, a) => sum + (a.type === 'local' ? a.file.size : a.fileSize),
-      0
+      (sum, a) => sum + (a.type === "local" ? a.file.size : a.fileSize),
+      0,
     );
 
     if (
@@ -48,16 +49,16 @@ export function EmailComposeToolbar(props: {
       MAX_ATTACHMENTS_BYTES_SIZE
     ) {
       ctx.attachmentFailure("Can't add more attachments", {
-        subtext: 'Total attachments exceed 18MB limit',
+        subtext: "Total attachments exceed 18MB limit",
       });
       return;
     }
 
     ctx.onAddAttachments(
       files.map((file) => ({
-        type: 'local',
+        type: "local",
         file,
-      }))
+      })),
     );
   };
 
@@ -96,7 +97,7 @@ export function EmailComposeToolbar(props: {
                       onSelect: handleAddAttachments,
                     }))
                   }
-                  tooltip="Attach"
+                  tooltip={t("Attach")}
                   size="icon-sm"
                   disabled={ctx.disabled()}
                 >
@@ -105,7 +106,7 @@ export function EmailComposeToolbar(props: {
               </div>
             </Show>
             <Button
-              tooltip="Format"
+              tooltip={t("Format")}
               size="icon-sm"
               disabled={ctx.disabled()}
               onClick={() => {
@@ -118,7 +119,7 @@ export function EmailComposeToolbar(props: {
               <div aria-hidden="true" class="mx-1 h-4 w-px bg-edge-muted/70" />
               <Button
                 onclick={ctx.onDelete}
-                tooltip="Delete draft"
+                tooltip={t("Delete draft")}
                 size="icon-sm"
               >
                 <Trash />
@@ -135,7 +136,7 @@ export function EmailComposeToolbar(props: {
                 disabled={ctx.scheduleSendDisabled?.()}
               />
             </Show>
-            <Tooltip label={ctx.sendTime() ? 'Send time is scheduled' : ''}>
+            <Tooltip label={ctx.sendTime() ? t("Send time is scheduled") : ""}>
               <SendButton
                 onClick={() => ctx.onSend()}
                 disabled={
@@ -145,7 +146,7 @@ export function EmailComposeToolbar(props: {
                   ctx.disabled()
                 }
                 pending={ctx.isSending()}
-                tooltip="Send email"
+                tooltip={t("Send email")}
                 shortcut="cmd+enter"
               />
             </Tooltip>

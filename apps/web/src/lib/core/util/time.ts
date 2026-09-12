@@ -1,4 +1,5 @@
 import type { DateValue } from './date';
+import { locale } from '@macro/i18n';
 
 /**
  * Formats a date string according to relative time rules, eg:
@@ -13,26 +14,33 @@ import type { DateValue } from './date';
 export function formatRelativeDate(value: DateValue): string {
   const date = value instanceof Date ? value : new Date(value);
   const now = new Date();
+  const isZh = locale() === 'zh-CN';
 
   // Same day
   if (isSameDay(date, now)) {
-    return 'Today';
+    return isZh ? '今天' : 'Today';
   }
 
   // Within last week
   const weekAgo = new Date(now);
   weekAgo.setDate(weekAgo.getDate() - 7);
   if (date > weekAgo) {
-    return `${date.toLocaleDateString('en-US', { weekday: 'long' })}`;
+    return date.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', {
+      weekday: 'long',
+    });
   }
 
   // Same year
   if (date.getFullYear() === now.getFullYear()) {
-    return `${date.toLocaleDateString('en-US', { month: 'short' })} ${date.getDate()}`;
+    return isZh
+      ? `${date.getMonth() + 1}月${date.getDate()}日`
+      : `${date.toLocaleDateString('en-US', { month: 'short' })} ${date.getDate()}`;
   }
 
   // Different year
-  return `${date.toLocaleDateString('en-US', { month: 'short' })} ${date.getDate()}, ${date.getFullYear().toString()}`;
+  return isZh
+    ? `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
+    : `${date.toLocaleDateString('en-US', { month: 'short' })} ${date.getDate()}, ${date.getFullYear().toString()}`;
 }
 
 /**

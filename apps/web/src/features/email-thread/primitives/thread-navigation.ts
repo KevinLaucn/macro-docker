@@ -1,5 +1,12 @@
 import type { ReplyType } from '@app/features/email-compose/core/reply-type';
 import type { EmailMessage } from '@app/features/email-message/core/email-message';
+import {
+  clearThreadTranslation,
+  emailTranslationEnabled,
+  getThreadTranslationStatus,
+  isTranslationSupported,
+  translateThread,
+} from '@app/features/email-translation';
 import { createCallback } from '@solid-primitives/rootless';
 import {
   type Accessor,
@@ -49,7 +56,7 @@ const SCROLL_ANIMATION_MS = 250;
 const KEYBOARD_SCROLL_MS = 250;
 
 export function createThreadNavigation(
-  props: { threadId: Accessor<string> },
+  props: { title?: string; threadId: Accessor<string> },
   context: EmailThreadState,
   threadContext: EmailThreadContext,
   host: EmailThreadHost = {}
@@ -608,6 +615,27 @@ export function createThreadNavigation(
       replyToFocusedMessage: () => openHotkeyTarget('reply-all'),
       replyAllToFocusedMessage: () => openHotkeyTarget('reply-all'),
       forwardFocusedMessage: () => openHotkeyTarget('forward'),
+      translateThread: () => {
+        const threadId = props.threadId();
+        const messages = context.messages.unfiltered();
+        if (
+          !emailTranslationEnabled() ||
+          !isTranslationSupported() ||
+          !messages.length ||
+          getThreadTranslationStatus(threadId) === 'loading'
+        ) {
+          return false;
+        }
+        const ids = messages
+          .map((message) => message.db_id)
+          .filter((id): id is string => Boolean(id));
+        if (getThreadTranslationStatus(threadId) === 'translated') {
+          clearThreadTranslation(threadId, ids);
+        } else {
+          void translateThread(threadId, messages, props.title);
+        }
+        return true;
+      },
       blockSender: context.blockSender,
       markDone: context.archiveThread,
       markNotDone: context.markThreadNotDone,

@@ -1,4 +1,5 @@
 import { tz } from '@date-fns/tz';
+import { locale } from '@macro/i18n';
 import {
   compareAsc,
   compareDesc,
@@ -32,8 +33,9 @@ export const formatTime = (
   timeZone?: string
 ): string => {
   if (!date) return '';
+  const language = locale();
   const d = date instanceof Date ? date : toDate(date);
-  return d.toLocaleTimeString('en-US', {
+  return d.toLocaleTimeString(language === 'zh-CN' ? 'zh-CN' : 'en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
@@ -54,6 +56,7 @@ export const formatDate = (
 ) => {
   if (!date) return '';
   const d = date instanceof Date ? date : toDate(date);
+  const isZh = locale() === 'zh-CN';
   const { timeZone, showTime, shortWeekday } = options ?? {};
   const timeZoneOpts = timeZone ? { in: tz(timeZone) } : {};
   const now = new Date();
@@ -65,24 +68,30 @@ export const formatDate = (
   }
 
   if (isYesterday(date, timeZoneOpts)) {
-    return `${shortWeekday ? 'Yest' : 'Yesterday'} at ${time}`;
+    return isZh
+      ? `昨天${showTime ? ` ${time}` : ''}`
+      : `${shortWeekday ? 'Yest' : 'Yesterday'} at ${time}`;
   }
 
   if (differenceInWeeks(now, date) < 1) {
-    const weekday = d.toLocaleDateString(undefined, {
+    const weekday = d.toLocaleDateString(isZh ? 'zh-CN' : undefined, {
       weekday: shortWeekday ? 'short' : 'long',
       timeZone,
     });
-    return showTime ? `${weekday} at ${time}` : weekday;
+    return showTime ? (isZh ? `${weekday} ${time}` : `${weekday} at ${time}`) : weekday;
   }
 
-  const displayDate = d.toLocaleDateString(undefined, {
+  const displayDate = d.toLocaleDateString(isZh ? 'zh-CN' : undefined, {
     month: '2-digit',
     day: '2-digit',
     year: '2-digit',
     timeZone,
   });
-  return showTime ? `${displayDate} at ${time}` : displayDate;
+  return showTime
+    ? isZh
+      ? `${displayDate} ${time}`
+      : `${displayDate} at ${time}`
+    : displayDate;
 };
 
 /**

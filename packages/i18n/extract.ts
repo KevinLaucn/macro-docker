@@ -35,6 +35,7 @@ import {
   getObjectPropertyName,
   IGNORED_TAGS,
   isIgnoredPath,
+  isUiFallbackStringLiteral,
   parseMixedChildren,
   parseSimpleTemplateLiteral,
   shouldTranslateText,
@@ -179,6 +180,8 @@ async function run() {
                 'info',
                 'warning',
                 'loading',
+                'failure',
+                'alert',
                 'message',
               ].includes(callee.property?.name)) ||
             (callee.type === 'Identifier' && callee.name === 'toast');
@@ -203,6 +206,48 @@ async function run() {
                   ? `toast.${callee.property.name}`
                   : 'toast';
                 recordCall(dictKey, rel, fileContext, false, line, toastProp);
+              }
+            } else if (firstArg.type === 'TemplateLiteral') {
+              const unit = parseSimpleTemplateLiteral(firstArg);
+              if (unit) {
+                const norm = normalizeKey(unit.template);
+                if (shouldTranslateText(norm) || existingZh[norm]) {
+                  const dictKey = fileContext ? `${norm}@@${fileContext}` : norm;
+                  const toastProp = callee.property?.name
+                    ? `toast.${callee.property.name}`
+                    : 'toast';
+                  recordCall(
+                    dictKey,
+                    rel,
+                    fileContext,
+                    false,
+                    p.node.loc?.start?.line ?? 0,
+                    toastProp
+                  );
+                }
+              }
+            }
+          }
+
+          const calleeName = callee.type === 'Identifier' ? callee.name : '';
+          const isErrorSetter = /^set(?:Error|.*Error)$/.test(calleeName);
+          if (isErrorSetter && p.node.arguments.length > 0) {
+            const firstArg = p.node.arguments[0];
+            let rawErrorText: string | undefined;
+            if (firstArg.type === 'StringLiteral') rawErrorText = firstArg.value;
+            else if (firstArg.type === 'TemplateLiteral' && firstArg.quasis.length === 1) {
+              rawErrorText = firstArg.quasis[0].value.raw;
+            }
+            if (rawErrorText && shouldTranslateText(rawErrorText)) {
+              const norm = normalizeKey(rawErrorText);
+              const dictKey = fileContext ? `${norm}@@${fileContext}` : norm;
+              recordCall(dictKey, rel, fileContext, false, p.node.loc?.start?.line ?? 0, 'ErrorState');
+            } else if (firstArg.type === 'TemplateLiteral') {
+              const unit = parseSimpleTemplateLiteral(firstArg);
+              if (unit && shouldTranslateText(unit.template)) {
+                const norm = normalizeKey(unit.template);
+                const dictKey = fileContext ? `${norm}@@${fileContext}` : norm;
+                recordCall(dictKey, rel, fileContext, false, p.node.loc?.start?.line ?? 0, 'ErrorState');
               }
             }
           }
@@ -317,7 +362,18 @@ async function run() {
         ObjectProperty(p: any) {
           if (rel.includes('lib/service-clients/')) return;
           const propName = getObjectPropertyName(p.node.key);
-          if (!propName || !TRANSLATABLE_OBJECT_KEYS.has(propName)) return;
+          const parentCall = p.parentPath?.parentPath?.node;
+          const isToastPromiseOption =
+            parentCall?.type === 'CallExpression' &&
+            parentCall.callee?.type === 'MemberExpression' &&
+            parentCall.callee.object?.name === 'toast' &&
+            parentCall.callee.property?.name === 'promise';
+          if (
+            !propName ||
+            (!TRANSLATABLE_OBJECT_KEYS.has(propName) &&
+              !(isToastPromiseOption && ['loading', 'success', 'error'].includes(propName)))
+          )
+            return;
 
           const line = p.node.loc?.start?.line ?? 0;
           const value = p.node.value;
@@ -375,6 +431,19 @@ async function run() {
         StringLiteral(p: any) {
           const val = normalizeKey(p.node.value);
           const line = p.node.loc?.start?.line ?? 0;
+
+          if (isUiFallbackStringLiteral(p) && shouldTranslateText(val)) {
+            const dictKey = fileContext ? `${val}@@${fileContext}` : val;
+            recordCall(
+              dictKey,
+              rel,
+              fileContext,
+              false,
+              line,
+              'JSXFallback'
+            );
+          }
+
           if (existingZh[val]) {
             recordCall(val, rel, undefined, false, line, 'StringLiteral');
           }

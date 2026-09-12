@@ -9,12 +9,14 @@ export const TRANSLATABLE_ATTRIBUTES = new Set([
 	"heading",
 	"subheading",
 	"description",
+	"documentationLabel",
 	"fallback",
 	"allDayText",
 	"confirmText",
 	"cancelText",
 	"buttonText",
 	"message",
+	"subtext",
 	"error",
 	"success",
 	"helperText",
@@ -40,6 +42,7 @@ export const TRANSLATABLE_ATTRIBUTES = new Set([
 	"hint",
 	"prompt",
 	"summary",
+	"subtext",
 ]);
 
 export const TRANSLATABLE_OBJECT_KEYS = new Set([
@@ -90,6 +93,11 @@ export const IGNORED_TAGS = new Set([
 export const IGNORED_PATH_PATTERNS = [
 	/playground/i,
 	/debugger/i,
+	/\/features\/ui-gallery\//i,
+	/\/components\/ui\/.*\.docs\.[tj]sx?$/i,
+	/\/collab-surface\/debug\//i,
+	/\/linked-conversation\/debug\//i,
+	/\/internal\/UserIconDemo\.tsx$/i,
 	/\.d\.ts$/,
 	/\.stories\.[tj]sx?$/,
 	/\.test\.[tj]sx?$/,
@@ -113,6 +121,7 @@ export function shouldTranslateText(text: string): boolean {
 	if (!normalized || normalized.length < 2) return false;
 	// Must contain at least one ASCII letter
 	if (!/[a-zA-Z]/.test(normalized)) return false;
+	if (/^[A-Z][A-Z0-9_ -]*$/.test(normalized)) return false; // error/status codes
 	// Ignore HTML entities like &nbsp; &amp; &times;
 	if (/^&(?:nbsp|amp|quot|lt|gt|middot|times);?$/i.test(normalized))
 		return false;
@@ -127,6 +136,7 @@ export function shouldTranslateText(text: string): boolean {
 		return false;
 	if (/^[a-z0-9-_]+:[a-z0-9-_]+$/i.test(normalized)) return false;
 	if (/^[a-z0-9_-]+\/[a-z0-9_.-]+$/i.test(normalized)) return false; // e.g. application/json
+	if (/^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/i.test(normalized)) return false; // technical snake_case identifiers
 	if (/^(--|\$|\.)[a-z0-9_-]+/i.test(normalized)) return false; // css variables or classes
 	if (/^\[data-/.test(normalized)) return false; // css attribute selectors
 	if (/^(property|header|category|loadmore):/i.test(normalized)) return false;
@@ -192,6 +202,48 @@ export function getObjectPropertyName(node: any): string | undefined {
 	if (node.type === "Identifier") return node.name;
 	if (node.type === "StringLiteral") return node.value;
 	return undefined;
+}
+
+/**
+ * Detect string literals used as inline UI fallbacks, such as:
+ *   <EmptyState documentationLabel={label ?? 'Documentation'} />
+ *
+ * These literals are not JSXText or a literal JSX attribute value, so they
+ * need an explicit AST path in the i18n audit/extractor.
+ */
+export function isUiFallbackStringLiteral(path: any): boolean {
+	if (!path?.node || path.node.type !== "StringLiteral") return false;
+
+	const parent = path.parentPath?.node;
+	const isFallbackBranch =
+		(parent?.type === "LogicalExpression" &&
+			(parent.operator === "??" || parent.operator === "||") &&
+			parent.right === path.node) ||
+		(parent?.type === "ConditionalExpression" &&
+			(parent.consequent === path.node || parent.alternate === path.node));
+	if (!isFallbackBranch) return false;
+
+	// Limit this rule to values that are directly rendered/passed through JSX.
+	// This avoids treating data defaults, route identifiers, and config values
+	// as user-facing copy.
+	let current = path.parentPath;
+	while (current) {
+		if (current.node?.type === "JSXExpressionContainer") {
+			const containerParent = current.parentPath?.node;
+			if (containerParent?.type === "JSXAttribute")
+				return TRANSLATABLE_ATTRIBUTES.has(containerParent.name?.name);
+			return true;
+		}
+		if (
+			current.node?.type === "FunctionDeclaration" ||
+			current.node?.type === "FunctionExpression" ||
+			current.node?.type === "ArrowFunctionExpression"
+		)
+			break;
+		current = current.parentPath;
+	}
+
+	return false;
 }
 
 export function parseMixedChildren(

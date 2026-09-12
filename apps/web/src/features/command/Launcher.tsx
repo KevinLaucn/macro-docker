@@ -32,6 +32,7 @@ import { pressedKeys } from '@core/hotkey/state';
 import { TOKENS } from '@core/hotkey/tokens';
 import type { ValidHotkey } from '@core/hotkey/types';
 import { isMobile } from '@core/mobile/isMobile';
+import { t } from '@macro/i18n';
 import {
   createCanvasFileFromJsonString,
   createChat,
@@ -751,7 +752,10 @@ const LauncherMenuItem = (props: LauncherMenuItemProps) => {
   const AnimatedIcon = props.creatableBlock.animatedIcon;
   const selectedIconColor = () =>
     getIconConfig(props.creatableBlock.blockName).foreground;
-  const launcherHint = () => props.creatableBlock.launcherHint;
+  const launcherHint = () => {
+    const hint = props.creatableBlock.launcherHint;
+    return hint ? t(hint) : undefined;
+  };
 
   return (
     <>
@@ -773,7 +777,7 @@ const LauncherMenuItem = (props: LauncherMenuItemProps) => {
 
       <div class="min-w-0 flex-1 flex items-baseline gap-2">
         <span class="truncate text-sm font-medium text-ink">
-          {props.creatableBlock.label}
+          {t(props.creatableBlock.label)}
         </span>
         <Show when={launcherHint()}>
           {(hint) => (
@@ -1022,7 +1026,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
             fallback={
               <div class="min-w-0 flex flex-1 items-center gap-2 text-ink-muted">
                 <PlusIcon class="size-4 shrink-0 text-ink-extra-muted" />
-                <h1 class="truncate text-base font-normal">Create New</h1>
+                <h1 class="truncate text-base font-normal">{t('Create New')}</h1>
               </div>
             }
           >
@@ -1031,7 +1035,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
               <CommandMenuSearchInput
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search create options"
+                placeholder={t('Search create options')}
                 value={searchQuery()}
                 onInput={(event) => setSearchQuery(event.currentTarget.value)}
               />
@@ -1043,7 +1047,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
             size="xs"
             label={
               <span class="flex items-center gap-1 text-[11px] font-medium leading-none text-ink-extra-muted/70">
-                Search mode{' '}
+                {t('Search mode')}{' '}
                 <Hotkey
                   shortcut={searchModeHotkey.hotkey()}
                   theme="subtle"
@@ -1096,14 +1100,14 @@ export const LauncherInner = (props: LauncherInnerProps) => {
                 <Hotkey shortcut={navDownHotkey.hotkey()} class="space-x-1" />
               </div>
             </div>
-            Navigate
+            {t('Navigate')}
           </span>
           <CommandMenuHotkeyHint
             hotkey={<Hotkey shortcut={confirmHotkey.hotkey()} />}
-            label="Create"
+            label={t('Create')}
           />
           <span class="hidden touch:hidden md:flex items-center gap-1">
-            Hold
+            {t('Hold')}
             <span class="relative inline-flex place-items-center">
               <span
                 ref={shiftRippleRef}
@@ -1120,7 +1124,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
                 {getNormalizedKeyString({ shortcut: 'shift' })}
               </span>
             </span>
-            New split
+            {t('New split')}
           </span>
         </CommandMenuShell.Footer>
       </CommandMenuShell>

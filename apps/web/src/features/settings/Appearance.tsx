@@ -653,7 +653,7 @@ const LANGUAGE_OPTIONS: { label: string; value: SupportedLocale }[] = [
   { label: '简体中文', value: 'zh-CN' },
 ];
 
-function LanguageSelect() {
+function _LanguageSelect() {
   const [open, setOpen] = createSignal(false);
 
   const currentLabel = () =>

@@ -6,11 +6,14 @@ import traverseModule from '@babel/traverse';
 const traverse = (traverseModule as any).default || traverseModule;
 
 const webSrcDir = path.resolve(__dirname, '../../apps/web/src');
+const zhDictPath = path.resolve(__dirname, './locales/zh-CN.json');
 const diffDir = path.resolve(__dirname, './diff');
 
 import {
   getObjectPropertyName,
+  getContextKey,
   isIgnoredPath,
+  isUiFallbackStringLiteral,
   parseSimpleTemplateLiteral,
   shouldTranslateText as shouldAuditText,
   TRANSLATABLE_ATTRIBUTES,
@@ -63,6 +66,23 @@ async function audit() {
   }
 
   console.log(`🔎 Auditing untranslated literals in: ${arg || targetDir}`);
+  const existingZh: Record<string, string> = fs.existsSync(zhDictPath)
+    ? JSON.parse(fs.readFileSync(zhDictPath, 'utf-8'))
+    : {};
+
+  function isMissingTranslation(value: string, file: string): boolean {
+    const normalized = value.trim().replace(/\s+/g, ' ');
+    if (!shouldAuditText(normalized)) return false;
+    const context = getContextKey(file);
+    const key = context ? `${normalized}@@${context}` : normalized;
+    // The runtime checks the contextual key first, then falls back to the
+    // base key. Match that lookup order so shared translations are not
+    // reported as missing merely because a file has a context.
+    return (
+      !Object.prototype.hasOwnProperty.call(existingZh, key) &&
+      !Object.prototype.hasOwnProperty.call(existingZh, normalized)
+    );
+  }
   const untranslated: {
     file: string;
     line: number;
@@ -92,7 +112,7 @@ async function audit() {
       traverse(ast, {
         JSXText(p: any) {
           const raw = p.node.value;
-          if (shouldAuditText(raw)) {
+          if (isMissingTranslation(raw, file)) {
             untranslated.push({
               file: rel,
               line: p.node.loc?.start?.line ?? 0,
@@ -106,7 +126,7 @@ async function audit() {
           if (!TRANSLATABLE_ATTRIBUTES.has(attr)) return;
           const line = p.node.loc?.start?.line ?? 0;
           const value = p.node.value;
-          if (value?.type === 'StringLiteral' && shouldAuditText(value.value)) {
+          if (value?.type === 'StringLiteral' && isMissingTranslation(value.value, file)) {
             untranslated.push({
               file: rel,
               line,
@@ -115,7 +135,7 @@ async function audit() {
             });
           } else if (value?.type === 'JSXExpressionContainer') {
             const exp = value.expression;
-            if (exp.type === 'StringLiteral' && shouldAuditText(exp.value)) {
+            if (exp.type === 'StringLiteral' && isMissingTranslation(exp.value, file)) {
               untranslated.push({
                 file: rel,
                 line,
@@ -124,7 +144,7 @@ async function audit() {
               });
             } else if (exp.type === 'TemplateLiteral') {
               const unit = parseSimpleTemplateLiteral(exp);
-              if (unit && shouldAuditText(unit.template)) {
+              if (unit && isMissingTranslation(unit.template, file)) {
                 untranslated.push({
                   file: rel,
                   line,
@@ -138,11 +158,22 @@ async function audit() {
         ObjectProperty(p: any) {
           if (rel.includes('lib/service-clients/')) return;
           const propName = getObjectPropertyName(p.node.key);
-          if (!propName || !TRANSLATABLE_OBJECT_KEYS.has(propName)) return;
+          const parentCall = p.parentPath?.parentPath?.node;
+          const isToastPromiseOption =
+            parentCall?.type === 'CallExpression' &&
+            parentCall.callee?.type === 'MemberExpression' &&
+            parentCall.callee.object?.name === 'toast' &&
+            parentCall.callee.property?.name === 'promise';
+          if (
+            !propName ||
+            (!TRANSLATABLE_OBJECT_KEYS.has(propName) &&
+              !(isToastPromiseOption && ['loading', 'success', 'error'].includes(propName)))
+          )
+            return;
 
           const line = p.node.loc?.start?.line ?? 0;
           const value = p.node.value;
-          if (value.type === 'StringLiteral' && shouldAuditText(value.value)) {
+          if (value.type === 'StringLiteral' && isMissingTranslation(value.value, file)) {
             untranslated.push({
               file: rel,
               line,
@@ -151,7 +182,7 @@ async function audit() {
             });
           } else if (value.type === 'TemplateLiteral') {
             const unit = parseSimpleTemplateLiteral(value);
-            if (unit && shouldAuditText(unit.template)) {
+            if (unit && isMissingTranslation(unit.template, file)) {
               untranslated.push({
                 file: rel,
                 line,
@@ -163,6 +194,8 @@ async function audit() {
         },
         CallExpression(p: any) {
           const callee = p.node.callee;
+          const calleeName = callee.type === 'Identifier' ? callee.name : '';
+          const isErrorSetter = /^set(?:Error|.*Error)$/.test(calleeName);
           const isToast =
             (callee.type === 'MemberExpression' &&
               callee.object?.name === 'toast' &&
@@ -172,9 +205,12 @@ async function audit() {
                 'info',
                 'warning',
                 'loading',
+                'failure',
+                'alert',
                 'message',
               ].includes(callee.property?.name)) ||
-            (callee.type === 'Identifier' && callee.name === 'toast');
+            (callee.type === 'Identifier' && callee.name === 'toast') ||
+            isErrorSetter;
 
           if (!isToast || p.node.arguments.length === 0) return;
 
@@ -182,7 +218,7 @@ async function audit() {
           const line = p.node.loc?.start?.line ?? 0;
           if (
             firstArg.type === 'StringLiteral' &&
-            shouldAuditText(firstArg.value)
+            isMissingTranslation(firstArg.value, file)
           ) {
             untranslated.push({
               file: rel,
@@ -192,7 +228,7 @@ async function audit() {
             });
           } else if (firstArg.type === 'TemplateLiteral') {
             const unit = parseSimpleTemplateLiteral(firstArg);
-            if (unit && shouldAuditText(unit.template)) {
+            if (unit && isMissingTranslation(unit.template, file)) {
               untranslated.push({
                 file: rel,
                 line,
@@ -200,6 +236,18 @@ async function audit() {
                 snippet: unit.template.slice(0, 60),
               });
             }
+          }
+        },
+        StringLiteral(p: any) {
+          if (!isUiFallbackStringLiteral(p)) return;
+          const value = p.node.value;
+          if (isMissingTranslation(value, file)) {
+            untranslated.push({
+              file: rel,
+              line: p.node.loc?.start?.line ?? 0,
+              type: 'JSXFallback',
+              snippet: value.slice(0, 60),
+            });
           }
         },
       });

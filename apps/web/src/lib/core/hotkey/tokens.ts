@@ -137,6 +137,8 @@ export const TOKENS = {
   email: {
     nextThread: 'email.nextThread',
     previousThread: 'email.previousThread',
+    translateList: 'email.translateList',
+    translateThread: 'email.translateThread',
     send: 'email.send',
     sendAndMarkDone: 'email.sendAndMarkDone',
     archive: 'email.archive',

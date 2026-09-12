@@ -36,6 +36,14 @@ export function registerEmailHotkeys(
     displayPriority: 7,
   });
   registerHotkey({
+    hotkey: 'q',
+    scopeId,
+    description: t('Translate email thread'),
+    keyDownHandler: handlers.translateThread,
+    hotkeyToken: TOKENS.email.translateThread,
+    displayPriority: 8,
+  });
+  registerHotkey({
     hotkey: 'e',
     scopeId,
     description: t('Mark done'),

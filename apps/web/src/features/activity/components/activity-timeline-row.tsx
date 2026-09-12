@@ -2,12 +2,14 @@ import {
   formatCompactRelativeTimestamp,
   formatDateAndTime,
 } from '@entity/utils/timestamp';
+import { t } from '@macro/i18n';
 import type { PropertyDefinitionDomain } from '@property/types';
 import { cn } from '@ui';
 import { type JSX, Show } from 'solid-js';
 import type { EntityDisplay } from '../context/activity-context';
 import { entryHead, entrySize, type FeedEntry } from '../core/collapse-runs';
 import { describeActionForEntity, describeRun } from '../core/describe-action';
+import type { ActivityAction } from '../core/event';
 import type { RailEnds } from '../core/feed-rows';
 import { ActionGlyph } from './action-glyph';
 import { ActionPhrase } from './action-phrase';
@@ -19,6 +21,45 @@ const NO_RAIL: RailEnds = { above: false, below: false };
 
 function capitalize(value: string): string {
   return value.length === 0 ? value : value[0].toUpperCase() + value.slice(1);
+}
+
+function localizeEntityVerb(
+  action: ActivityAction,
+  shouldCapitalize: boolean
+): string {
+  const keyByKind = {
+    created: 'created',
+    edited: 'edited',
+    opened: 'opened',
+    deleted: 'deleted',
+    messaged: 'sent a message',
+    'email-sent': 'sent an email',
+    'property-changed': 'changed a property',
+    'participant-added': 'added a participant',
+    'participant-removed': 'removed a participant',
+    'call-started': 'started a call',
+  } as const;
+  const translated =
+    action.kind === 'unknown'
+      ? action.tag.replaceAll('_', ' ')
+      : t(keyByKind[action.kind]);
+  return shouldCapitalize ? capitalize(translated) : translated;
+}
+
+function localizeEntityConnector(action: ActivityAction): string | undefined {
+  const keyByKind = {
+    messaged: 'in',
+    'email-sent': 'in',
+    'property-changed': 'on',
+    'participant-added': 'to',
+    'participant-removed': 'from',
+    'call-started': 'in',
+  } as const;
+  const key =
+    action.kind in keyByKind
+      ? keyByKind[action.kind as keyof typeof keyByKind]
+      : undefined;
+  return key ? t(key) : undefined;
 }
 
 function Separator() {
@@ -148,9 +189,7 @@ export function ActivityTimelineRow(props: {
                 <span class="shrink-0 text-ink-muted">
                   <Show
                     when={propertyChange()}
-                    fallback={
-                      showActor() ? parts().verb : capitalize(parts().verb)
-                    }
+                    fallback={localizeEntityVerb(action(), !showActor())}
                   >
                     {(change) => (
                       <PropertyChangeText
@@ -163,7 +202,9 @@ export function ActivityTimelineRow(props: {
                 </span>
                 <Show when={parts().connector}>
                   {(connector) => (
-                    <span class="shrink-0 text-ink-muted">{connector()}</span>
+                    <span class="shrink-0 text-ink-muted">
+                      {localizeEntityConnector(action()) ?? t(connector())}
+                    </span>
                   )}
                 </Show>
                 {/* Zero basis grown to its own content: the mention takes
@@ -184,7 +225,16 @@ export function ActivityTimelineRow(props: {
               <Show when={propertyChange()}>
                 <Separator />
               </Show>
-              <span class="shrink-0 text-ink-muted">{label()}</span>
+              <span class="shrink-0 text-ink-muted">
+                {t(
+                  label().includes('changes')
+                    ? '{count} changes'
+                    : '{count} times',
+                  {
+                    count: Number.parseInt(label(), 10),
+                  }
+                )}
+              </span>
             </>
           )}
         </Show>

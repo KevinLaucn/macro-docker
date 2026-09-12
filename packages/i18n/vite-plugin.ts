@@ -9,6 +9,7 @@ import {
   normalizeText,
   shouldTranslateText,
   getContextKey,
+  isUiFallbackStringLiteral,
   parseMixedChildren,
   parseSimpleTemplateLiteral,
 } from "./ast-utils";
@@ -178,7 +179,7 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
           const isToast =
             (callee.type === "MemberExpression" &&
               callee.object?.name === "toast" &&
-              ["success", "error", "info", "warning", "loading", "message"].includes(
+              ["success", "error", "info", "warning", "loading", "failure", "alert", "message"].includes(
                 callee.property?.name
               )) ||
             (callee.type === "Identifier" && callee.name === "toast");
@@ -192,7 +193,63 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
                 s.overwrite(firstArg.start, firstArg.end, `__t(${escaped}${ctxArg})`);
                 transformed = true;
               }
+            } else if (firstArg.type === "TemplateLiteral") {
+              const unit = parseSimpleTemplateLiteral(firstArg);
+              if (unit) {
+                const varObj = `{ ${unit.variables
+                  .map((v) => `${v.name}: ${code.slice(v.start, v.end)}`)
+                  .join(", ")} }`;
+                s.overwrite(
+                  firstArg.start,
+                  firstArg.end,
+                  `__t(${JSON.stringify(unit.template)}, ${varObj}${ctxArg})`
+                );
+                transformed = true;
+              }
             }
+          }
+
+          const calleeName = callee.type === "Identifier" ? callee.name : "";
+          if (/^set(?:Error|.*Error)$/.test(calleeName) && path.node.arguments.length > 0) {
+            const firstArg = path.node.arguments[0];
+            if (firstArg.type === "StringLiteral") {
+              const text = normalizeText(firstArg.value);
+              if (shouldTranslateText(text)) {
+                s.overwrite(firstArg.start, firstArg.end, `__t(${JSON.stringify(text)}${ctxArg})`);
+                transformed = true;
+              }
+            }
+          }
+        },
+        ObjectProperty(path: any) {
+          const propName = path.node.key?.name ?? path.node.key?.value;
+          const parentCall = path.parentPath?.parentPath?.node;
+          const isToastPromiseOption =
+            parentCall?.type === "CallExpression" &&
+            parentCall.callee?.type === "MemberExpression" &&
+            parentCall.callee.object?.name === "toast" &&
+            parentCall.callee.property?.name === "promise";
+          if (!TRANSLATABLE_OBJECT_KEYS.has(propName) &&
+              !(isToastPromiseOption && ["loading", "success", "error"].includes(propName))) return;
+          const value = path.node.value;
+          if (value.type === "StringLiteral") {
+            const text = normalizeText(value.value);
+            if (shouldTranslateText(text)) {
+              s.overwrite(value.start, value.end, `__t(${JSON.stringify(text)}${ctxArg})`);
+              transformed = true;
+            }
+          }
+        },
+        StringLiteral(path: any) {
+          if (!isUiFallbackStringLiteral(path)) return;
+          const text = normalizeText(path.node.value);
+          if (shouldTranslateText(text)) {
+            s.overwrite(
+              path.node.start,
+              path.node.end,
+              `__t(${JSON.stringify(text)}${ctxArg})`
+            );
+            transformed = true;
           }
         },
         ReturnStatement(path: any) {
