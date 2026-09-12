@@ -24,6 +24,14 @@ vi.mock('@service-connection/websocket', () => ({
   createConnectionBlockWebsocketEffect: vi.fn(),
   createConnectionWebsocketEffect: vi.fn(),
 }));
+vi.mock('@core/component/Toast/Toast', () => ({
+  toast: {
+    alert: vi.fn(),
+    dismiss: vi.fn(),
+    failure: vi.fn(),
+    success: vi.fn(),
+  },
+}));
 vi.mock('@queries/client', () => ({
   queryClient: {
     cancelQueries: operationMocks.cancelQueries,
