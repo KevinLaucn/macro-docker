@@ -25,14 +25,14 @@ failures = []
 
 # 1. LocalStack Infrastructure & Provisioning Check
 print("\n[1/5] Checking LocalStack Infrastructure & Upstream Provisioning...")
-code, out = run_cmd("docker exec $(docker ps -q -f name=localstack) curl -fsS http://localhost:4566/_localstack/health")
-if code == 0 and "running" in out or "available" in out:
+code, out = run_cmd("docker exec macro-selfhost-localstack-1 curl -fsS http://localhost:4566/_localstack/health")
+if code == 0 and ("running" in out or "available" in out):
     print("  ✅ LocalStack: endpoint healthy and responding")
 else:
     msg = f"  ❌ LocalStack: health endpoint unreachable (raw: {out[:100]})"
     print(msg); failures.append(msg)
 
-code, out = run_cmd("docker exec $(docker ps -q -f name=localstack) awslocal sqs list-queues")
+code, out = run_cmd("docker exec macro-selfhost-localstack-1 awslocal sqs list-queues")
 queue_count = out.count("http")
 if queue_count >= 20:
     print(f"  ✅ SQS Queues: {queue_count} reconciled via upstream catalog")
@@ -40,7 +40,7 @@ else:
     msg = f"  ❌ SQS Queues: only {queue_count} found (raw: {out[:100]})"
     print(msg); failures.append(msg)
 
-code, out = run_cmd("docker exec $(docker ps -q -f name=localstack) awslocal s3api list-buckets --query 'Buckets[*].Name' --output text")
+code, out = run_cmd("docker exec macro-selfhost-localstack-1 awslocal s3api list-buckets --query 'Buckets[*].Name' --output text")
 buckets = out.split()
 if len(buckets) >= 5:
     print(f"  ✅ S3 Buckets: {len(buckets)} complete ({', '.join(buckets)})")
@@ -52,7 +52,7 @@ else:
 # 2. FusionAuth IdP Contract
 print("\n[2/5] Checking FusionAuth Identity Providers (OAuth / Gmail)...")
 sql = "SELECT string_agg(name, ',') FROM identity_providers;"
-code, out = run_cmd(f"docker exec $(docker ps -q -f name=fusionauth_db) psql -U postgres -d fusionauth -tAc \"{sql}\"")
+code, out = run_cmd(f"docker exec macro-selfhost-fusionauth_db-1 psql -U postgres -d fusionauth -tAc \"{sql}\"")
 idp_names = [x.strip() for x in out.split(",") if x.strip()]
 if "google_gmail" in idp_names and "google" in idp_names:
     print(f"  ✅ Identity Providers: Google & google_gmail registered ({', '.join(idp_names)})")
@@ -63,7 +63,7 @@ else:
 # 3. User ID & Foreign Key Parity
 print("\n[3/5] Checking MacroDB User ID Foreign Key Parity...")
 parity_sql = 'SELECT count(*) FROM "User" u LEFT JOIN "macro_user" m ON u.macro_user_id = m.id WHERE m.id IS NULL;'
-code, out = run_cmd(f"docker exec $(docker ps -q -f name=postgres) psql -U macro -d macrodb -tAc '{parity_sql}'")
+code, out = run_cmd(f"docker exec macro-selfhost-postgres-1 psql -U macro -d macrodb -tAc '{parity_sql}'")
 if out.strip() == "0":
     print("  ✅ User ID Parity: all User.macro_user_id records valid in macro_user")
 else:
@@ -73,7 +73,7 @@ else:
 # 4. Gmail Inboxes Sync & Reauth Health
 print("\n[4/5] Checking Gmail Inboxes Sync & Reauth Health...")
 inbox_sql = 'SELECT email_address, is_sync_active, needs_reauth FROM email_links ORDER BY created_at ASC;'
-code, out = run_cmd(f"docker exec $(docker ps -q -f name=postgres) psql -U macro -d macrodb -tAc '{inbox_sql}'")
+code, out = run_cmd(f"docker exec macro-selfhost-postgres-1 psql -U macro -d macrodb -tAc '{inbox_sql}'")
 if out.strip():
     reauth_needed = []
     for line in out.splitlines():
