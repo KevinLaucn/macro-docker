@@ -64,6 +64,16 @@ customizations:
       - conventions
       - i18n
 
+  - id: LAYOUT-ROBUSTNESS-001
+    title: Deferred split navigation during layout remounts
+    rationale: Preserve sidebar navigation when the global split manager is temporarily absent during route cleanup and registration.
+    risk: medium
+    paths:
+      - apps/web/src/components/app/split-layout/layout.ts
+    tests:
+      - conventions
+      - web
+
   - id: FORK-CI-001
     title: Private fork build and release pipelines
     rationale: Preserve private image builds, release gates, and fork-specific CI infrastructure.

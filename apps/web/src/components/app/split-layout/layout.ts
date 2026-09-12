@@ -1,4 +1,7 @@
-import { globalSplitManager } from '@app/signal/splitLayout';
+import {
+  globalSplitManager,
+  whenSplitManagerReady,
+} from '@app/signal/splitLayout';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { useContext } from 'solid-js';
 import { SplitPanelContext } from './context';
@@ -19,8 +22,24 @@ export function useSplitLayout() {
     const splitManager = globalSplitManager();
     const preferNewSplit = isTouchDevice() ? false : options?.preferNewSplit;
 
+    // Sidebar clicks can land in the short window between the old layout
+    // cleanup and the new route's manager registration. Preserve the request
+    // instead of silently dropping navigation while that signal is empty.
+    const requestedHandle = options?.handle ?? splitPanelContext?.handle;
+    const handle = requestedHandle?.isPopover() ? undefined : requestedHandle;
+    const open = (manager: NonNullable<typeof splitManager>) =>
+      manager.openWithSplit(content, {
+        ...options,
+        preferNewSplit,
+        handle,
+      });
+
     if (!splitManager) {
-      console.error('No split manager found');
+      void whenSplitManagerReady()
+        .then(open)
+        .catch((error) => {
+          console.error('Failed to restore deferred split navigation', error);
+        });
       return;
     }
 
@@ -30,14 +49,7 @@ export function useSplitLayout() {
     // for Preview Pair routing. A popover's SplitPanelContext handle is a stub
     // whose replace() is a no-op, so treat popover sources as handle-less too
     // and let same-split navigation fall back to the active split.
-    const requestedHandle = options?.handle ?? splitPanelContext?.handle;
-    const handle = requestedHandle?.isPopover() ? undefined : requestedHandle;
-
-    return splitManager.openWithSplit(content, {
-      ...options,
-      preferNewSplit,
-      handle,
-    });
+    return open(splitManager);
   }
 
   function replaceOrInsertSplit(
