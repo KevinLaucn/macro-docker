@@ -182,8 +182,13 @@ def main():
     parser.add_argument("--bundle-dir", type=pathlib.Path, default=None, help="Path to release bundle directory containing release.json")
     args = parser.parse_args()
 
-    caddy_text = (SELF_HOST / "Caddyfile").read_text()
-    compose_text = (SELF_HOST / "docker-compose.yml").read_text()
+    script_parent = pathlib.Path(__file__).resolve().parent
+    base_dir = args.bundle_dir if args.bundle_dir else (script_parent.parent if (script_parent.parent / "Caddyfile").exists() else SELF_HOST)
+    caddy_path = base_dir / "Caddyfile" if (base_dir / "Caddyfile").exists() else (SELF_HOST / "Caddyfile")
+    compose_path = base_dir / "docker-compose.yml" if (base_dir / "docker-compose.yml").exists() else (SELF_HOST / "docker-compose.yml")
+
+    caddy_text = caddy_path.read_text()
+    compose_text = compose_path.read_text()
 
     errors = []
     errors.extend(verify_caddyfile(caddy_text))
