@@ -8,9 +8,9 @@
 
 ## 结论
 
-邮件翻译功能不放在 `/Volumes/开发/macro/packages`。
+邮件翻译功能归档在 `/Volumes/开发/macro/packages/fork/email-translation/`。
 
-该功能是 `apps/web` 的前端二开能力，不是多个 TS/JS workspace 复用的共享包。按二开规范，应放在独立前端 feature 目录中，并通过设置页和邮件 UI 做最小接入。
+该功能是 `apps/web` 使用的前端二开能力，不是面向上游的共享包。按二开规范，完整实现放在独立 fork package 中，并通过设置页和邮件 UI 做最小接入。
 
 第一版使用 Chrome Built-in Translator API + LanguageDetector API，不接后端 API，不接云端翻译 API，不新增 DB，不新增 migration，不使用整页翻译。
 
@@ -26,7 +26,7 @@
 
 核心功能目录：
 
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/`
+- `/Volumes/开发/macro/packages/fork/email-translation/`
 
 设置页接入点：
 
@@ -44,11 +44,11 @@
 - `/Volumes/开发/macro/apps/web/src/features/block-email/component/EmailMessageBody.tsx`
 - `/Volumes/开发/macro/apps/web/src/features/block-email/component/MessageContainer.tsx`
 
-## 不放 packages 的原因
+## 放入 fork package 的原因
 
-`packages/` 只用于 TS/JS workspace 共享包，例如 i18n、SDK、collaboration、lexical-core 等跨应用或跨模块复用能力。
+`packages/fork/` 是私有二开实现的隔离边界；`packages/` 中的 upstream workspace 包仍用于跨应用或跨模块复用能力。
 
-邮件翻译当前只服务 `apps/web` 的邮件界面，没有跨 workspace 复用边界。强行放入 `packages/` 会增加 workspace 依赖、构建闭包和后续 upstream sync 冲突成本。
+邮件翻译虽然只服务 `apps/web` 的邮件界面，但其完整实现必须与 upstream-owned 邮件文件隔离，以降低后续 upstream sync 冲突成本。package 通过 app 的类型路径和 Vite 构建闭包复用现有 UI/邮件类型。
 
 ## 第一版边界
 
@@ -284,10 +284,10 @@ HTML 邮件不能把完整 HTML 字符串直接交给 `translator.translate()`�
 
 建议新增：
 
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/translateText.ts`
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/translateHtml.ts`
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/translateMessage.ts`
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/translateThread.ts`
+- `/Volumes/开发/macro/packages/fork/email-translation/translateText.ts`
+- `/Volumes/开发/macro/packages/fork/email-translation/translateHtml.ts`
+- `/Volumes/开发/macro/packages/fork/email-translation/translateMessage.ts`
+- `/Volumes/开发/macro/packages/fork/email-translation/translateThread.ts`
 
 正文渲染接入点：
 
@@ -335,7 +335,7 @@ HTML 邮件不能把完整 HTML 字符串直接交给 `translator.translate()`�
 
 翻译按钮使用一个全局复用组件：
 
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/EmailTranslateButton.tsx`
+- `/Volumes/开发/macro/packages/fork/email-translation/EmailTranslateButton.tsx`
 
 该组件用于：
 
@@ -424,7 +424,7 @@ HTML 邮件不能把完整 HTML 字符串直接交给 `translator.translate()`�
 
 遵循“独立文件与最小接入原则”：
 
-- 大量二开逻辑放在 `apps/web/src/features/email-translation/`
+- 大量二开逻辑放在 `packages/fork/email-translation/`
 - 上游原文件只保留最小 import、组件挂载或 props 透传
 - 接入点尽量控制在 1 到 3 行
 - 所有修改 upstream-owned 文件的翻译接入点都必须使用 `PRIVATE-HOOK:` 标记并同步维护 fork 定制清单
@@ -438,20 +438,20 @@ HTML 邮件不能把完整 HTML 字符串直接交给 `translator.translate()`�
 
 ## 建议新增文件
 
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/EmailTranslateButton.tsx`
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/emailTranslationState.ts`
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/translatorClient.ts`
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/languageDetector.ts`
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/translateText.ts`
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/translateHtml.ts`
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/translateMessage.ts`
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/translateThread.ts`
-- `/Volumes/开发/macro/apps/web/src/features/email-translation/index.ts`
+- `/Volumes/开发/macro/packages/fork/email-translation/EmailTranslateButton.tsx`
+- `/Volumes/开发/macro/packages/fork/email-translation/emailTranslationState.ts`
+- `/Volumes/开发/macro/packages/fork/email-translation/translatorClient.ts`
+- `/Volumes/开发/macro/packages/fork/email-translation/languageDetector.ts`
+- `/Volumes/开发/macro/packages/fork/email-translation/translateText.ts`
+- `/Volumes/开发/macro/packages/fork/email-translation/translateHtml.ts`
+- `/Volumes/开发/macro/packages/fork/email-translation/translateMessage.ts`
+- `/Volumes/开发/macro/packages/fork/email-translation/translateThread.ts`
+- `/Volumes/开发/macro/packages/fork/email-translation/index.ts`
 
 ## 已确认决策
 
 - 功能不放 `packages/`
-- 功能放 `apps/web/src/features/email-translation/`
+- 功能放 `packages/fork/email-translation/`
 - 设置页加一个总开关
 - 总开关只控制翻译入口是否显示，不自动翻译
 - 邮件列表预览只翻译当前行 subject + snippet

@@ -36,6 +36,7 @@ export type SettingsTab =
   | 'Email'
   | 'GitHub'
   | 'Admin'
+  // PRIVATE-HOOK: self_host_health:settings_tab_type
   | 'SelfHostHealth'
   | 'Extensions';
 

@@ -3,6 +3,85 @@ version: 1
 # Keep paths narrow enough to identify the fork feature that needs review.
 # Test group names are implemented by .github/workflows/upstream-sync.yml.
 customizations:
+  - id: FORK-PACKAGES-001
+    title: Isolated private fork feature packages
+    rationale: Keep fork-owned feature implementations together and minimize upstream source changes.
+    risk: high
+    paths:
+      - packages/fork/**
+      - .fork/overrides/**
+    tests:
+      - conventions
+
+  - id: READ-RECEIPTS-001
+    title: Isolated read receipts and email tracking
+    rationale: Keep send-side open tracking, status APIs, settings, pixel handling, and compatibility hooks in one fork-owned feature package without changing the public contract.
+    risk: high
+    paths:
+      - packages/fork/read-receipts/**
+      - services/email_service/src/api.rs
+      - services/email_service/src/api/email/messages.rs
+      - services/email_service/src/api/email/settings.rs
+      - services/email_service/src/features/mod.rs
+      - services/email_service/src/main.rs
+      - services/email_service/src/openapi.rs
+      - services/email_service/src/pubsub/scheduled/process.rs
+      - services/email_service/src/util/gmail/send/mod.rs
+      - crates/email_db_client/src/lib.rs
+      - crates/email_db_client/src/settings.rs
+      - crates/email_utils/src/lib.rs
+      - apps/web/src/features/email-compose/primitives/prepare-email-body.ts
+      - apps/web/src/features/email-message/components/collapsed-message.tsx
+      - apps/web/src/features/email-message/components/email-message-top-bar.tsx
+      - apps/web/src/features/extensions/Extensions.tsx
+      - apps/web/src/features/settings/ReadReceiptsSection.tsx
+      - apps/web/src/features/block-email/util/readReceipts.ts
+      - apps/web/src/lib/queries/email/readReceipts.ts
+      - apps/web/src/lib/service-clients/service-email/readReceiptsClient.ts
+      - package.json
+      - apps/web/vitest.config.ts
+      - .github/workflows/upstream-sync-test-group.yml
+      - .github/workflows/self-host-images.yml
+      - .fork/private-hooks.yml
+    tests:
+      - conventions
+      - email-rust
+      - web
+
+  - id: CRM-MULTI-INBOX-001
+    title: CRM backfill multi-inbox compatibility patch
+    rationale: The upstream CRM backfill targets one macro-id email; this small compatibility patch fans out only across the user's accessible inboxes and must be retired when upstream PR #6370 provides the same behavior.
+    risk: medium
+    paths:
+      - services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
+      - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
+      - .fork/private-hooks.yml
+      - .fork/retirements.yml
+    tests:
+      - conventions
+      - email-rust
+
+  - id: SELFHOST-HEALTH-001
+    title: Isolated self-host health diagnostics
+    rationale: Preserve the self-host health report, permission gate, routes, probes, and admin UI while keeping fork implementation code out of upstream-owned directories.
+    risk: high
+    paths:
+      - packages/fork/self-host-health/**
+      - services/authentication_service/src/api.rs
+      - services/authentication_service/src/main.rs
+      - services/authentication_service/src/openapi.rs
+      - apps/web/src/components/app/Layout.tsx
+      - apps/web/src/features/settings/Settings.tsx
+      - apps/web/src/lib/service-clients/service-auth/client.ts
+      - self-host/scripts/check-drift.py
+      - self-host/scripts/affected-services.py
+      - .github/workflows/self-host-images.yml
+    tests:
+      - conventions
+      - auth-rust
+      - web
+      - selfhost-config
+
   - id: SELFHOST-RUNTIME-001
     title: Private self-host runtime and zero-cloud behavior
     rationale: Preserve the private Docker/VPS topology and prevent implicit Macro cloud dependencies.
@@ -13,6 +92,21 @@ customizations:
       - nix/**
       - tooling/xtask/crates/xtask_local/**
       - tooling/just/**
+    tests:
+      - conventions
+      - selfhost-config
+
+  - id: TELEMETRY-PRIVACY-001
+    title: Private telemetry and analytics boundary
+    rationale: Keep analytics and telemetry independently reviewable from deployment/runtime changes; self-host must not silently fall back to official PostHog or other hosted collectors.
+    risk: high
+    paths:
+      - apps/web/src/lib/analytics/**
+      - services/analytics-proxy/**
+      - self-host/docker-compose.yml
+      - self-host/Caddyfile
+      - docker/analytics-proxy.Dockerfile
+      - .github/scripts/check-zero-cloud.rb
     tests:
       - conventions
       - selfhost-config
@@ -36,17 +130,24 @@ customizations:
 
   - id: AUTH-SELFHOST-001
     title: Self-host authentication and identity consistency
-    rationale: Keep FusionAuth and MacroDB identities aligned and preserve the private authentication boundary.
+    rationale: >-
+      Protect only the self-host identity boundary: deployment URL, OAuth callback
+      validation, FusionAuth initialization, and the small client fallback needed
+      when SaaS-only auth endpoints are absent. Health checks, billing, i18n, and
+      general upstream authentication remain outside this customization.
     risk: high
     paths:
-      - services/authentication_service/**
-      - crates/authentication_service_client/**
-      - crates/macro_db_client/**
-      - crates/macro_db_migrator/**
-      - self-host/init/**
-      - apps/web/src/features/auth/EmailForm.tsx
-      - apps/web/src/features/auth/Login.tsx
-      - apps/web/src/routes/Root.tsx
+      - services/authentication_service/src/api/utils.rs
+      - services/authentication_service/src/api/login/sso.rs
+      - services/authentication_service/src/api/oauth2.rs
+      - services/authentication_service/src/main.rs
+      - services/authentication_service/Cargo.toml
+      - self-host/init/Dockerfile
+      - self-host/init/provision.sh
+      - self-host/init/render-kickstart.sh
+      - self-host/kickstart/**
+      - self-host/scripts/reconcile_fusionauth_idp.py
+      - apps/web/src/lib/service-clients/service-auth/client.ts
     tests:
       - conventions
       - auth-rust
@@ -56,13 +157,33 @@ customizations:
     rationale: Preserve the fork's explicit i18n runtime, extraction rules, and zh-CN coverage.
     risk: medium
     paths:
-      - packages/i18n/**
+      - packages/fork/i18n/**
       - apps/web/src/lib/i18n/**
       - rules/ast-grep/**
       - sgconfig.yml
     tests:
       - conventions
       - i18n
+
+  - id: EMAIL-TRANSLATION-001
+    title: Isolated browser email translation
+    rationale: Preserve on-device email translation behavior while keeping upstream email UI files limited to registered hooks.
+    risk: high
+    paths:
+      - packages/fork/email-translation/**
+      - apps/web/src/features/email-message/components/email-message-top-bar.tsx
+      - apps/web/src/features/email-message/primitives/email-message-body.ts
+      - apps/web/src/features/email-message/views/email-message-body.tsx
+      - apps/web/src/features/email-thread/primitives/thread-navigation.ts
+      - apps/web/src/features/email-thread/views/message-list.tsx
+      - apps/web/src/features/entity/composed/list-entity/email.tsx
+      - apps/web/src/features/extensions/Extensions.tsx
+      - apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
+      - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
+      - .fork/private-hooks.yml
+    tests:
+      - conventions
+      - email-translation
 
   - id: LAYOUT-ROBUSTNESS-001
     title: Deferred split navigation during layout remounts

@@ -1,11 +1,6 @@
 import type { EmailMessage } from '@app/features/email-message/core/email-message';
-import { ReadReceiptStatus } from '@app/features/email-read-receipts';
-import {
-  emailTranslationEnabled,
-  getCachedMessageTranslation,
-  isMessageTranslated,
-  isTranslationSupported,
-} from '@app/features/email-translation';
+import { getEmailCollapsedSnippet } from '@macro/email-translation';
+import { ReadReceiptStatus } from '@macro/fork-read-receipts';
 import { Tooltip } from '@ui';
 import { createMemo, type JSX, Show } from 'solid-js';
 import { getSenderDisplayName } from '../core/email-user';
@@ -26,30 +21,9 @@ export function CollapsedMessage(props: CollapsedMessageProps) {
     getSenderDisplayName(props.message, currentUserEmail())
   );
 
-  const isTranslated = () =>
-    emailTranslationEnabled() &&
-    isTranslationSupported() &&
-    isMessageTranslated(props.message.thread_db_id, props.message.db_id);
   const snippet = createMemo(() => {
     // PRIVATE-HOOK: email_translation:collapsed-snippet
-    if (isTranslated()) {
-      const cached = getCachedMessageTranslation(props.message.db_id);
-      if (cached?.translatedSnippet) {
-        return cached.translatedSnippet;
-      }
-    }
-    if (props.message.body_text) {
-      return props.message.body_text.replace(/\s+/g, ' ').trim();
-    }
-    if (props.message.body_html_sanitized) {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(
-        props.message.body_html_sanitized,
-        'text/html'
-      );
-      return doc.body.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-    }
-    return '';
+    return getEmailCollapsedSnippet(props.message);
   });
 
   return (

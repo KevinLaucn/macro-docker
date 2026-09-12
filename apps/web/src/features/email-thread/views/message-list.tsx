@@ -1,10 +1,8 @@
+import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import {
   EmailThreadTranslateButton,
-  emailTranslationEnabled,
-  getThreadTitleTranslation,
-  getThreadTranslationStatus,
-} from '@app/features/email-translation';
-import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
+  getTranslatedThreadTitle,
+} from '@macro/email-translation';
 import { t } from '@macro/i18n';
 import { Key } from '@solid-primitives/keyed';
 import { Button, cn, Layer } from '@ui';
@@ -59,22 +57,6 @@ export function MessageList(props: MessageListProps) {
   const hiddenCount = createMemo(() =>
     truncatedMiddleCount(context.messages.list().length)
   );
-  const displayedTitle = createMemo(() => {
-    const threadId = context.thread()?.db_id;
-    const translationStatus = threadId
-      ? getThreadTranslationStatus(threadId)
-      : 'idle';
-    if (
-      threadId &&
-      emailTranslationEnabled() &&
-      (translationStatus === 'translated' || translationStatus === 'partial')
-    ) {
-      return (
-        getThreadTitleTranslation(threadId)?.translatedTitle ?? props.title
-      );
-    }
-    return props.title;
-  });
   createEffect(() => {
     const list = context.messagesListRef();
     if (!list) return;
@@ -145,7 +127,12 @@ export function MessageList(props: MessageListProps) {
           >
             <EmailThreadTitle
               onCopy={viewContext.copySubject}
-              title={displayedTitle() ?? ''}
+              title={
+                getTranslatedThreadTitle(
+                  context.thread()?.db_id,
+                  props.title
+                ) ?? ''
+              }
               copyReveal={viewContext.thread.isTouch() ? 'always' : 'hover'}
               class={
                 viewContext.thread.isTouch()

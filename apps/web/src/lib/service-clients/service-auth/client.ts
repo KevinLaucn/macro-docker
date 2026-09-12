@@ -1,4 +1,5 @@
-import type { SelfHostHealthReport } from '@app/features/self-host-health/types';
+// PRIVATE-HOOK: self_host_health:client_type_import
+
 import { ENABLE_BEARER_TOKEN_AUTH } from '@core/constant/featureFlags';
 import { SERVER_HOSTS } from '@core/constant/servers';
 import { fetchWithToken } from '@core/util/fetchWithToken';
@@ -9,6 +10,7 @@ import {
   type SafeFetchInit,
   safeFetch,
 } from '@core/util/safeFetch';
+import type { SelfHostHealthReport } from '@macro/self-host-health';
 import { Telemetry } from '@macro-inc/observability';
 
 import { makePersisted } from '@solid-primitives/storage';

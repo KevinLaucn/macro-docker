@@ -1,15 +1,6 @@
 import type { EmailMessage } from '@app/features/email-message/core/email-message';
-import { ReadReceiptStatus } from '@app/features/email-read-receipts';
-import {
-  EmailTranslateButton,
-  emailTranslationEnabled,
-  getCachedMessageTranslation,
-  isMessageTranslated,
-  isTranslationSupported,
-  setCachedMessageTranslation,
-  setMessageOverride,
-  translateSingleMessage,
-} from '@app/features/email-translation';
+import { EmailMessageTranslateButton } from '@macro/email-translation';
+import { ReadReceiptStatus } from '@macro/fork-read-receipts';
 import { t } from '@macro/i18n';
 import CaretRight from '@phosphor/caret-right.svg';
 import { Button, cn, Tooltip } from '@ui';
@@ -204,42 +195,7 @@ function HeaderTopRow(props: {
       </div>
       <div class="flex flex-row items-center shrink-0 gap-1">
         {/* PRIVATE-HOOK: email_translation:message */}
-        <Show when={emailTranslationEnabled() && isTranslationSupported()}>
-          {(() => {
-            const messageId = () => props.message.db_id;
-            const threadId = () => props.message.thread_db_id;
-            const translated = () =>
-              isMessageTranslated(threadId(), messageId());
-            const cached = () => getCachedMessageTranslation(messageId());
-            const btnState = () => {
-              if (cached()?.status === 'loading') return 'loading';
-              if (translated()) return 'translated';
-              return 'idle';
-            };
-
-            const handleToggle = async () => {
-              const mid = messageId();
-              if (translated()) {
-                setMessageOverride(mid, 'original');
-              } else {
-                setMessageOverride(mid, 'translated');
-                if (cached()?.status !== 'translated') {
-                  setCachedMessageTranslation(mid, { status: 'loading' });
-                  const data = await translateSingleMessage(props.message);
-                  setCachedMessageTranslation(mid, data);
-                }
-              }
-            };
-
-            return (
-              <EmailTranslateButton
-                state={btnState()}
-                scope="message"
-                onClick={handleToggle}
-              />
-            );
-          })()}
-        </Show>
+        <EmailMessageTranslateButton message={props.message} />
         {/* PRIVATE-HOOK: read_receipts:sent-status */}
         <ReadReceiptStatus message={props.message} showIconOnly />
         <MessageActions

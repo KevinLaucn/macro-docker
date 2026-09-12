@@ -41,6 +41,14 @@ on:
         type: boolean
         required: false
         default: false
+      build_scope:
+        description: Image scope for manual validation (core builds services, web, and init only)
+        type: choice
+        options:
+          - full
+          - core
+        required: false
+        default: full
 
 concurrency:
   # Keep independent image builds alive so a targeted repair cannot cancel
@@ -113,22 +121,41 @@ jobs:
           run_web=false
           run_caddy=false
           run_workers=false
+          run_bundle=false
 
           if [[ "$force" == "true" ]]; then
-            run_services=true; run_scheduled_action=true; run_init=true
-            run_web=true; run_caddy=true; run_workers=true
+            if [[ "${{ inputs.build_scope || 'full' }}" == "core" ]]; then
+              run_services=true
+              run_init=true
+              run_web=true
+            else
+              run_services=true; run_scheduled_action=true; run_init=true
+              run_web=true; run_caddy=true; run_workers=true
+              run_bundle=true
+            fi
           else
-            if matches '^(services/|crates/|Cargo\.toml$|Cargo\.lock$|flake\.nix$|nix/|\.cargo/|\.config/)'; then
+            if matches '^(services/|crates/|packages/fork/.*/backend/|Cargo\.toml$|Cargo\.lock$|flake\.nix$|nix/|\.cargo/|\.config/)'; then
               run_services=true
               run_workers=true
               run_scheduled_action=true
               run_init=true
             fi
-            matches '^(apps/web/|packages/(i18n|ui|shared)/|bun\.lock$|package\.json$)' && run_web=true
+            # Every workspace package may be imported by apps/web. Keep this
+            # broad so a shared-package change cannot publish a stale Web image.
+            matches '^(apps/web/|packages/|bun\.lock$|package\.json$)' && run_web=true
             matches '^(self-host/init/|self-host/images/Dockerfile\.init)' && run_init=true
             matches '^(self-host/images/Dockerfile\.(scheduled-action|workers)|docker/(sync-service|websocket-service)\.Dockerfile|services/(sync|websocket))' && run_workers=true
             matches '^(services/agent_schedule|self-host/images/Dockerfile\.scheduled-action)' && run_scheduled_action=true
             matches '^(self-host/(Caddyfile|images/Dockerfile\.caddy))' && run_caddy=true
+
+            # A release bundle must contain images built by this run. Do not
+            # combine a targeted image with stale registry tags, and do not
+            # create a bundle for the manual core validation scope.
+            if [[ "$run_services" == "true" && "$run_scheduled_action" == "true" && \
+                  "$run_init" == "true" && "$run_web" == "true" && \
+                  "$run_caddy" == "true" && "$run_workers" == "true" ]]; then
+              run_bundle=true
+            fi
           fi
 
           echo "Changed paths:"
@@ -140,7 +167,7 @@ jobs:
           echo "run_web=$run_web" >> "$GITHUB_OUTPUT"
           echo "run_caddy=$run_caddy" >> "$GITHUB_OUTPUT"
           echo "run_workers=$run_workers" >> "$GITHUB_OUTPUT"
-          echo "run_bundle=true" >> "$GITHUB_OUTPUT"
+          echo "run_bundle=$run_bundle" >> "$GITHUB_OUTPUT"
 
   services:
     name: macro-services

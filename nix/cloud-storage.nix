@@ -132,6 +132,18 @@
           name = "crate-${builtins.replaceStrings [ "/" ] [ "-" ] dir}";
         };
 
+      selfHostHealthBackendSrc = pkgs.lib.cleanSourceWith {
+        src = ../packages/fork/self-host-health/backend;
+        filter = srcFilter;
+        name = "self-host-health-backend";
+      };
+
+      readReceiptsBackendSrc = pkgs.lib.cleanSourceWith {
+        src = ../packages/fork/read-receipts/backend;
+        filter = srcFilter;
+        name = "read-receipts-backend";
+      };
+
       # Cargo's package graph cannot express files read from a sibling crate at
       # compile time. macro_db_migrator embeds macro_db_client's migrations via
       # sqlx::migrate!, so a pruned leaf containing the migrator must also carry
@@ -194,6 +206,10 @@
         cp ${selfHostEmailCargoToml} $out/Cargo.toml
         cp ${../Cargo.lock} $out/Cargo.lock
         cp -rfT ${rootDepsSrc} $out
+        mkdir -p "$out/packages/fork/self-host-health/backend"
+        cp -rT ${selfHostHealthBackendSrc} "$out/packages/fork/self-host-health/backend"
+        mkdir -p "$out/packages/fork/read-receipts/backend"
+        cp -rT ${readReceiptsBackendSrc} "$out/packages/fork/read-receipts/backend"
         chmod -R +w $out
         ${pkgs.lib.concatMapStrings (dir: ''
           mkdir -p "$out/$(dirname '${dir}')"
@@ -216,6 +232,15 @@
           chmod -R +w $out
           cp -rfT ${rootDepsSrc} $out
           chmod -R +w $out
+          # These sibling modules are included through path attributes from
+          # shared workspace crates (not Cargo dependencies). Every pruned
+          # leaf must carry them, including indirect consumers such as
+          # document_cognition_service -> email_utils.
+          mkdir -p "$out/packages/fork/self-host-health/backend"
+          cp -rT ${selfHostHealthBackendSrc} "$out/packages/fork/self-host-health/backend"
+          mkdir -p "$out/packages/fork/read-receipts/backend"
+          cp -rT ${readReceiptsBackendSrc} "$out/packages/fork/read-receipts/backend"
+          chmod -R +w "$out/packages/fork/self-host-health/backend" "$out/packages/fork/read-receipts/backend"
           ${pkgs.lib.concatMapStrings (dir: ''
             rm -rf "$out/${dir}"
             mkdir -p "$out/$(dirname '${dir}')"
@@ -246,6 +271,15 @@
           chmod -R +w $out
           cp -rfT ${rootDepsSrc} $out
           chmod -R +w $out
+          # These private modules are included through Rust path attributes
+          # rather than Cargo dependencies. Keep them in every deploy leaf,
+          # including ordinary deploy-service and local-stack binaries whose
+          # transitive crates may compile email_utils or authentication code.
+          mkdir -p "$out/packages/fork/self-host-health/backend"
+          cp -rT ${selfHostHealthBackendSrc} "$out/packages/fork/self-host-health/backend"
+          mkdir -p "$out/packages/fork/read-receipts/backend"
+          cp -rT ${readReceiptsBackendSrc} "$out/packages/fork/read-receipts/backend"
+          chmod -R +w "$out/packages/fork/self-host-health/backend" "$out/packages/fork/read-receipts/backend"
           ${overlays}
           ${compileTimeResourceOverlays dirs}
         '';
@@ -925,6 +959,11 @@
           test -f ${migratorSrc}/crates/macro_db_client/migrations/0001_baseline.sql
           test -n "$(find ${migratorSrc}/crates/macro_db_client/migrations -maxdepth 1 -type f -name '*.sql' -print -quit)"
           test -f ${authenticationSrc}/services/authentication_service/src/api/email/_verify_email_template.html
+          test -f ${authenticationSrc}/packages/fork/self-host-health/backend/self_host_health/probes.rs
+          test -f ${authenticationSrc}/packages/fork/self-host-health/backend/mod.rs
+          test -f ${selfHostEmailPrunedDeploySrc "source-check-email" "email_service"}/packages/fork/read-receipts/backend/service/mod.rs
+          test -f ${selfHostEmailPrunedDeploySrc "source-check-email-utils" "email_utils"}/packages/fork/read-receipts/backend/utils/mod.rs
+          test -f ${selfHostEmailPrunedDeploySrc "source-check-email-db-client" "email_db_client"}/packages/fork/read-receipts/backend/db/mod.rs
           test -f ${documentStorageSrc}/services/document_storage_service/src/api/documents/template/canvas_template.canvas
           test -f ${documentStorageSrc}/static_assets/markdown-golden.1.bin
           test -f ${syncServiceSrc}/bebop/schema.bop

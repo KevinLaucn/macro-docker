@@ -1,21 +1,9 @@
-import {
-  emailTranslationEnabled,
-  getRowTranslation,
-  isEmailListTranslated,
-  isTranslationSupported,
-  toggleRowTranslation,
-} from '@app/features/email-translation';
 import { inboxIconProps } from '@core/component/inboxIcon';
 import { UserIcon } from '@core/component/UserIcon';
 import { useEmailLinksContext } from '@core/context/emailLinks';
+import { useEmailRowTranslation } from '@macro/email-translation';
 import { cn } from '@ui';
-import {
-  type Accessor,
-  createEffect,
-  createMemo,
-  type JSX,
-  Show,
-} from 'solid-js';
+import { type Accessor, createMemo, type JSX, Show } from 'solid-js';
 import { DraftBadge } from '../../components/Badges';
 import { Entity } from '../../entity';
 import { HitSnippet } from '../../extractors-search/HitSnippet';
@@ -112,18 +100,20 @@ export function EmailNarrowBody(props: {
   showHitSnippet: boolean;
   setContainerRef: (el: HTMLElement) => void;
 }) {
-  const rowTranslation = () => getRowTranslation(props.entity.id);
-  const isTranslated = () =>
-    isEmailListTranslated() && rowTranslation()?.status === 'translated';
+  // PRIVATE-HOOK: email_translation:narrow-row
+  const translation = useEmailRowTranslation(() => props.entity);
 
   return (
     <Entity.Slot placement="body" class="flex flex-col pb-2 min-h-[2lh] pr-4">
       <Show
-        when={isTranslated() && rowTranslation()?.translatedName}
+        when={
+          translation.isTranslated() &&
+          translation.rowTranslation()?.translatedName
+        }
         fallback={<Entity.Title entity={props.entity} />}
       >
         <span class="font-medium truncate">
-          {rowTranslation()!.translatedName}
+          {translation.rowTranslation()!.translatedName}
         </span>
       </Show>
       <span
@@ -131,7 +121,10 @@ export function EmailNarrowBody(props: {
         class="text-ink/50 font-medium truncate"
       >
         <Show
-          when={isTranslated() && rowTranslation()?.translatedSnippet}
+          when={
+            translation.isTranslated() &&
+            translation.rowTranslation()?.translatedSnippet
+          }
           fallback={
             <EmailSnippet
               entity={props.entity}
@@ -140,7 +133,7 @@ export function EmailNarrowBody(props: {
             />
           }
         >
-          <span>{rowTranslation()!.translatedSnippet}</span>
+          <span>{translation.rowTranslation()!.translatedSnippet}</span>
         </Show>
       </span>
     </Entity.Slot>
@@ -157,23 +150,9 @@ export function EmailWideContent(props: {
   setContainerRef: (el: HTMLElement) => void;
   tagsSlot?: JSX.Element;
 }) {
-  const rowTranslation = () => getRowTranslation(props.entity.id);
-  const isTranslated = () =>
-    isEmailListTranslated() && rowTranslation()?.status === 'translated';
-
-  createEffect(() => {
-    if (
-      emailTranslationEnabled() &&
-      isTranslationSupported() &&
-      isEmailListTranslated() &&
-      !rowTranslation()
-    ) {
-      toggleRowTranslation(
-        props.entity.id,
-        props.entity.name,
-        props.entity.snippet
-      );
-    }
+  // PRIVATE-HOOK: email_translation:wide-row
+  const translation = useEmailRowTranslation(() => props.entity, {
+    autoTranslate: true,
   });
 
   return (
@@ -188,10 +167,13 @@ export function EmailWideContent(props: {
       {props.tagsSlot}
       <span class="truncate">
         <Show
-          when={isTranslated() && rowTranslation()?.translatedName}
+          when={
+            translation.isTranslated() &&
+            translation.rowTranslation()?.translatedName
+          }
           fallback={<Entity.Title entity={props.entity} />}
         >
-          <span>{rowTranslation()!.translatedName}</span>
+          <span>{translation.rowTranslation()!.translatedName}</span>
         </Show>
       </span>
       <span
@@ -199,7 +181,10 @@ export function EmailWideContent(props: {
         class="text-ink/50 font-medium truncate flex-1 inline-flex items-center"
       >
         <Show
-          when={isTranslated() && rowTranslation()?.translatedSnippet}
+          when={
+            translation.isTranslated() &&
+            translation.rowTranslation()?.translatedSnippet
+          }
           fallback={
             <EmailSnippet
               entity={props.entity}
@@ -208,7 +193,7 @@ export function EmailWideContent(props: {
             />
           }
         >
-          <span>{rowTranslation()!.translatedSnippet}</span>
+          <span>{translation.rowTranslation()!.translatedSnippet}</span>
         </Show>
       </span>
     </>

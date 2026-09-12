@@ -1,10 +1,10 @@
 import type { EmailMessage } from '@app/features/email-message/core/email-message';
-import { stripOwnTrackingPixelsFromHtml } from '@app/features/email-read-receipts';
 import { convertDocumentMentionsToLinks } from '@core/component/LexicalMarkdown/utils/convertDocumentMentionsToLinks';
 import { formatEmailDate } from '@core/util/date';
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 import { $createQuoteNode } from '@lexical/rich-text';
 import { $dfsIterator } from '@lexical/utils';
+import { stripOwnTrackingPixelsFromHtml } from '@macro/fork-read-receipts';
 import { sanitizeEmailHtml } from '@macro-inc/email-renderer';
 import type { DocumentMentionInfo } from '@macro-inc/lexical-core';
 import {

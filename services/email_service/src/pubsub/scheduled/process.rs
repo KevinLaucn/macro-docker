@@ -149,6 +149,7 @@ async fn process_scheduled_message_inner(
 
     // Read receipts are attached at the last possible moment before the MIME
     // payload is handed to Gmail. Failure is best-effort and never blocks send.
+    // PRIVATE-HOOK: read_receipts:schedule-call
     attach_open_tracking_pixel(&ctx.db, &mut message_to_send).await;
 
     let send_request = SendRequest {

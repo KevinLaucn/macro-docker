@@ -28,7 +28,7 @@ entries = manifest["customizations"]
 abort "customizations must be a non-empty array" unless entries.is_a?(Array) && !entries.empty?
 
 allowed_risks = %w[low medium high].freeze
-allowed_tests = %w[auth-rust conventions email-rust i18n selfhost-config workflow-lint].freeze
+  allowed_tests = %w[auth-rust conventions email-rust email-translation i18n selfhost-config web workflow-lint].freeze
 ids = {}
 entries.each_with_index do |entry, index|
   prefix = "customizations[#{index}]"

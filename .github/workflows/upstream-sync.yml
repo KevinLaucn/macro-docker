@@ -48,6 +48,21 @@ jobs:
       - name: Validate protected private hooks
         run: ruby .github/scripts/check-private-hooks.rb
 
+      - name: Validate fork overrides
+        run: ruby .github/scripts/check-fork-overrides.rb --check
+
+      - name: Validate zero-cloud self-host boundary
+        env:
+          BASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.base || github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.head || github.event.pull_request.head.sha }}
+        run: ruby .github/scripts/check-zero-cloud.rb --base "$BASE_REF" --head "$HEAD_REF"
+
+      - name: Validate telemetry privacy boundary
+        env:
+          BASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.base || github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.head || github.event.pull_request.head.sha }}
+        run: ruby .github/scripts/check-telemetry-privacy.rb --base "$BASE_REF" --head "$HEAD_REF"
+
       - name: Validate manifest and detect overlaps
         id: overlap
         env:

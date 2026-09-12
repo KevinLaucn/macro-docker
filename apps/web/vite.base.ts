@@ -8,7 +8,7 @@ import solid from 'vite-plugin-solid';
 import solidSvg from 'vite-plugin-solid-svg';
 import wasm from 'vite-plugin-wasm';
 import tsconfigpaths from 'vite-tsconfig-paths';
-import { i18nAstPlugin } from '../../packages/i18n/vite-plugin';
+import { i18nAstPlugin } from '../../packages/fork/i18n/vite-plugin';
 // @ts-ignore
 import { version } from './package.json';
 import { keepImportMetaDev } from './scripts/keep-import-meta-dev';
@@ -165,6 +165,12 @@ export const createAppViteConfig = (): UserConfigFn => {
         solidSvg({ defaultAsComponent: true }),
         tsconfigpaths({
           root: './',
+          projects: [
+            './tsconfig.json',
+            '../../packages/fork/email-translation/tsconfig.json',
+            '../../packages/fork/read-receipts/tsconfig.json',
+            '../../packages/fork/self-host-health/tsconfig.json',
+          ],
         }),
         gitBranchHmrPlugin(),
         devRootRedirectPlugin(),
@@ -176,6 +182,12 @@ export const createAppViteConfig = (): UserConfigFn => {
         plugins: () => [
           tsconfigpaths({
             root: './',
+            projects: [
+              './tsconfig.json',
+              '../../packages/fork/email-translation/tsconfig.json',
+              '../../packages/fork/read-receipts/tsconfig.json',
+              '../../packages/fork/self-host-health/tsconfig.json',
+            ],
           }),
         ],
         rollupOptions: {

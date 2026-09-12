@@ -7,7 +7,7 @@ on:
       - ".github/workflows/i18n-check.yml"
       - "apps/web/**"
       - "apps/web/vite.base.ts"
-      - "packages/i18n/**"
+      - "packages/fork/i18n/**"
       - ".github/workflows/upstream-sync-test-group.yml"
       - "bun.lock"
       - "package.json"
@@ -18,7 +18,7 @@ on:
       - ".github/workflows/i18n-check.yml"
       - "apps/web/**"
       - "apps/web/vite.base.ts"
-      - "packages/i18n/**"
+      - "packages/fork/i18n/**"
       - ".github/workflows/upstream-sync-test-group.yml"
       - "bun.lock"
       - "package.json"
@@ -42,22 +42,22 @@ jobs:
 
       - name: Verify zh-CN dictionary JSON syntax
         run: |
-          node -e "JSON.parse(require('fs').readFileSync('packages/i18n/locales/zh-CN.json', 'utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('packages/fork/i18n/locales/zh-CN.json', 'utf8'))"
           echo "✅ zh-CN.json is valid JSON"
 
       - name: Run i18n runtime test suite
-        run: bun test packages/i18n
+        run: bun test packages/fork/i18n
 
       - name: Typecheck i18n package
-        run: bun x tsc -p packages/i18n/tsconfig.json --noEmit
+        run: bun x tsc -p packages/fork/i18n/tsconfig.json --noEmit
 
       - name: Run AST extraction & enforce i18n gate
         run: |
-          bun packages/i18n/extract.ts
+          bun packages/fork/i18n/extract.ts
           node -e '
             const fs = require("fs");
-            const parseFailuresPath = "packages/i18n/diff/parse-failures.json";
-            const missingDetailsPath = "packages/i18n/diff/missing-details.json";
+            const parseFailuresPath = "packages/fork/i18n/diff/parse-failures.json";
+            const missingDetailsPath = "packages/fork/i18n/diff/missing-details.json";
             const failures = fs.existsSync(parseFailuresPath)
               ? JSON.parse(fs.readFileSync(parseFailuresPath, "utf8"))
               : [];
@@ -80,14 +80,14 @@ jobs:
           '
 
       - name: Run untranslated UI audit
-        run: bun packages/i18n/audit.ts
+        run: bun packages/fork/i18n/audit.ts
 
       - name: Upload i18n diff artifacts
         uses: actions/upload-artifact@v7
         if: always()
         with:
           name: i18n-diff-reports
-          path: packages/i18n/diff/
+          path: packages/fork/i18n/diff/
           retention-days: 14
 
       - name: Generate i18n Status Report
@@ -96,11 +96,11 @@ jobs:
           node -e '
             const fs = require("fs");
             try {
-              const missing = fs.existsSync("packages/i18n/diff/missing.json") ? JSON.parse(fs.readFileSync("packages/i18n/diff/missing.json", "utf8")) : {};
-              const details = fs.existsSync("packages/i18n/diff/missing-details.json") ? JSON.parse(fs.readFileSync("packages/i18n/diff/missing-details.json", "utf8")) : {};
-              const obsolete = fs.existsSync("packages/i18n/diff/obsolete.json") ? JSON.parse(fs.readFileSync("packages/i18n/diff/obsolete.json", "utf8")) : {};
-              const ambiguous = fs.existsSync("packages/i18n/diff/ambiguous.json") ? JSON.parse(fs.readFileSync("packages/i18n/diff/ambiguous.json", "utf8")) : {};
-              const dict = fs.existsSync("packages/i18n/locales/zh-CN.json") ? JSON.parse(fs.readFileSync("packages/i18n/locales/zh-CN.json", "utf8")) : {};
+              const missing = fs.existsSync("packages/fork/i18n/diff/missing.json") ? JSON.parse(fs.readFileSync("packages/fork/i18n/diff/missing.json", "utf8")) : {};
+              const details = fs.existsSync("packages/fork/i18n/diff/missing-details.json") ? JSON.parse(fs.readFileSync("packages/fork/i18n/diff/missing-details.json", "utf8")) : {};
+              const obsolete = fs.existsSync("packages/fork/i18n/diff/obsolete.json") ? JSON.parse(fs.readFileSync("packages/fork/i18n/diff/obsolete.json", "utf8")) : {};
+              const ambiguous = fs.existsSync("packages/fork/i18n/diff/ambiguous.json") ? JSON.parse(fs.readFileSync("packages/fork/i18n/diff/ambiguous.json", "utf8")) : {};
+              const dict = fs.existsSync("packages/fork/i18n/locales/zh-CN.json") ? JSON.parse(fs.readFileSync("packages/fork/i18n/locales/zh-CN.json", "utf8")) : {};
 
               const explicitList = [];
               const uiList = [];

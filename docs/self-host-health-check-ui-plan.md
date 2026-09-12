@@ -34,8 +34,8 @@
 
 推荐文件边界：
 
-- 后端二开核心：`services/authentication_service/src/features/self_host_health/`
-- 前端二开核心：`apps/web/src/features/self-host-health/`
+- 后端二开核心：`packages/fork/self-host-health/backend/`
+- 前端二开核心：`packages/fork/self-host-health/`
 - 设置页薄接入：`SettingsState.tsx`、`settingsTabsConfig.tsx`、`Settings.tsx`
 - 全局常驻通知薄接入：`Root.tsx` 或现有全局 prompt 汇总位置
 
@@ -70,7 +70,7 @@
 
 推荐新增 fork 专属模块：
 
-- `services/authentication_service/src/features/self_host_health/`
+- `packages/fork/self-host-health/backend/`
 
 分类：
 
@@ -100,7 +100,7 @@
 - `SettingsState.tsx` 增加 `SelfHostHealth` tab。
 - `settingsTabsConfig.tsx` 在官方 `Admin` 分组增加“健康检查”，与现有 `Debug` 并列，仍复用 `WRITE_ADMIN_PANEL` gate。
 - `Settings.tsx` 增加对应页面渲染。
-- 新增 `apps/web/src/lib/queries/self-host-health/` 或按现有查询分层放入 `src/lib/queries`。
+- 查询实现收口到 `packages/fork/self-host-health/queries.ts`。
 
 UI 内容：
 
@@ -115,7 +115,7 @@ UI 内容：
 
 推荐复用 `useKeyedPersistentToasts`，新增全局挂载组件：
 
-- `apps/web/src/features/self-host-health/SelfHostHealthPrompt.tsx`
+- `packages/fork/self-host-health/SelfHostHealthPrompt.tsx`
 
 规则：
 
@@ -372,9 +372,9 @@ UI 显示：
 ## 建议开发顺序
 
 1. 后端定义 `SelfHostHealthReport` 类型和权限受控 API。
-2. 新增 Rust 二开模块 `features/self_host_health`，实现生产最小探针。
+2. 新增 Rust 二开模块 `packages/fork/self-host-health/backend`，实现生产最小探针。
 3. 新增 MacroDB 最小状态表或 Redis/cache 状态记录。
-4. 前端新增 `features/self-host-health` 和设置页薄接入。
+4. 前端新增 `packages/fork/self-host-health` 和设置页薄接入。
 5. 增加 persistent toast prompt。
 6. 同步 `.fork/customizations.yml` / private hooks manifest，登记所有 `PRIVATE-HOOK:`。
 7. 检查 Nix、Dockerfile、服务镜像清单、OpenAPI/service client 生成路径。

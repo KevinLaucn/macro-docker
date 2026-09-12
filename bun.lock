@@ -217,7 +217,21 @@
         "vitest": "^3.2.4",
       },
     },
-    "packages/i18n": {
+    "packages/fork/email-translation": {
+      "name": "@macro/email-translation",
+      "version": "0.1.0",
+      "dependencies": {
+        "@macro/i18n": "workspace:*",
+        "solid-js": "^1.9.7",
+      },
+      "devDependencies": {
+        "@types/node": "^24.8.0",
+        "typescript": "^5.9.3",
+        "vite": "^6.4.1",
+        "vitest": "^3.2.4",
+      },
+    },
+    "packages/fork/i18n": {
       "name": "@macro/i18n",
       "version": "0.1.0",
       "dependencies": {
@@ -229,6 +243,26 @@
         "@types/babel__traverse": "^7.20.6",
         "magic-string": "^0.30.17",
         "vite": "^6.0.0",
+      },
+    },
+    "packages/fork/read-receipts": {
+      "name": "@macro/fork-read-receipts",
+      "version": "0.1.0",
+      "dependencies": {
+        "@macro/i18n": "workspace:*",
+        "@tanstack/solid-query": "5.90.3",
+        "date-fns": "^4.1.0",
+        "neverthrow": "^8.2.0",
+        "solid-js": "^1.9.7",
+      },
+    },
+    "packages/fork/self-host-health": {
+      "name": "@macro/self-host-health",
+      "version": "0.1.0",
+      "dependencies": {
+        "@macro/i18n": "workspace:*",
+        "@tanstack/solid-query": "5.90.3",
+        "solid-js": "^1.9.7",
       },
     },
     "packages/lexical-core": {
@@ -1146,7 +1180,13 @@
 
     "@macro-inc/observability": ["@macro-inc/observability@workspace:packages/observability"],
 
-    "@macro/i18n": ["@macro/i18n@workspace:packages/i18n"],
+    "@macro/email-translation": ["@macro/email-translation@workspace:packages/fork/email-translation"],
+
+    "@macro/fork-read-receipts": ["@macro/fork-read-receipts@workspace:packages/fork/read-receipts"],
+
+    "@macro/i18n": ["@macro/i18n@workspace:packages/fork/i18n"],
+
+    "@macro/self-host-health": ["@macro/self-host-health@workspace:packages/fork/self-host-health"],
 
     "@marijn/find-cluster-break": ["@marijn/find-cluster-break@1.0.3", "", {}, "sha512-FY+MKLBoTsLNJF/eLWaOsXGdz6uh3Iu1axjPf6TUq92IYumcTcXWHoS747JARLkcdlJ/Waiaxc5wQfFO8jC6NA=="],
 

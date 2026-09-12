@@ -5,6 +5,17 @@ description: Push and release gatekeeper for KevinLaucn/macro. Validates offline
 
 # Macro Pre-push & Release Gate (推送与发布前契约对齐门禁)
 
+## Fork 隔离前置门禁
+
+所有二开实现默认位于 `packages/fork/<feature>/`；upstream-owned 文件中的接入口必须有
+`PRIVATE-HOOK` 并登记到 `.fork/private-hooks.yml`。推送或提交 PR 前，先按以下顺序执行：
+
+```text
+private hooks → overrides --check → customization overlap → targeted tests → build/image gate
+```
+
+Upstream 同步只能在 `sync/upstream-*` 分支进行，禁止直接向 GitHub `main` 推送开发提交。
+
 ## ⚡ 核心目标与防线定位
 
 在向远端仓库推送（`git push origin main`）、提交 PR 或触发生产镜像构建前，**必须执行本门禁审查**。

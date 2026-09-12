@@ -4,6 +4,12 @@ version: 1
 # Keep hooks small: marker + the expected one-line import/call/router/component
 # entry that connects upstream code to private feature modules.
 hooks:
+  - id: layout_deferred_navigation
+    file: apps/web/src/components/app/split-layout/layout.ts
+    marker: "// PRIVATE-HOOK: layout:deferred-navigation"
+    expected: "void whenSplitManagerReady()"
+    context:
+      - "if (!splitManager) {"
   - id: crm_backfill_populate_all_inboxes
     file: services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
     marker: "// PRIVATE-HOOK: crm_backfill:populate_all_inboxes"
@@ -22,6 +28,12 @@ hooks:
     expected: "mod features;"
     context:
       - "mod api;"
+  - id: email_read_receipts_module
+    file: services/email_service/src/features/mod.rs
+    marker: "// PRIVATE-HOOK: read_receipts:module"
+    expected: "#[path = \"../../../../packages/fork/read-receipts/backend/service/mod.rs\"]"
+    context:
+      - "pub mod read_receipts;"
   - id: email_read_receipts_features_openapi
     file: services/email_service/src/openapi.rs
     marker: "// PRIVATE-HOOK: read_receipts:features"
@@ -31,9 +43,21 @@ hooks:
   - id: email_read_receipts_send
     file: services/email_service/src/util/gmail/send/mod.rs
     marker: "// PRIVATE-HOOK: read_receipts:send"
-    expected: "self::open_tracking::attach_open_tracking_pixel(db, message_to_send).await;"
+    expected: "self::read_receipts_send::attach_open_tracking_pixel(db, message_to_send).await;"
     context:
       - "pub async fn attach_open_tracking_pixel"
+  - id: email_read_receipts_send_module
+    file: services/email_service/src/util/gmail/send/mod.rs
+    marker: "// PRIVATE-HOOK: read_receipts:registration"
+    expected: "#[path = \"../../../../../../packages/fork/read-receipts/backend/service/send.rs\"]"
+    context:
+      - "use models_email::service::attachment::{AttachmentDraft, AttachmentToSend};"
+  - id: email_read_receipts_send_call
+    file: services/email_service/src/pubsub/scheduled/process.rs
+    marker: "// PRIVATE-HOOK: read_receipts:schedule-call"
+    expected: "attach_open_tracking_pixel(&ctx.db, &mut message_to_send).await;"
+    context:
+      - "Read receipts are attached at the last possible moment"
   - id: email_read_receipts_public_router
     file: services/email_service/src/api.rs
     marker: "// PRIVATE-HOOK: read_receipts:public_router"
@@ -75,7 +99,25 @@ hooks:
     marker: "// PRIVATE-HOOK: read_receipts:strip-own-pixels"
     expected: "return replyingTo.is_sent ? stripOwnTrackingPixelsFromHtml(html) : html;"
     context:
-      - "function getComposerQuotedBodyHtml(replyingTo: EmailMessage): string | undefined {"
+      - "function getComposerQuotedBodyHtml("
+  - id: email_read_receipts_db_module
+    file: crates/email_db_client/src/lib.rs
+    marker: "// PRIVATE-HOOK: read_receipts:module"
+    expected: "#[path = \"../../../packages/fork/read-receipts/backend/db/mod.rs\"]"
+    context:
+      - "pub mod messages;"
+  - id: email_read_receipts_legacy_settings_api
+    file: crates/email_db_client/src/settings.rs
+    marker: "// PRIVATE-HOOK: read_receipts:legacy-settings-api"
+    expected: "pub use crate::read_receipts::settings::{"
+    context:
+      - "fetch_read_receipts_enabled"
+  - id: email_read_receipts_utils_module
+    file: crates/email_utils/src/lib.rs
+    marker: "// PRIVATE-HOOK: read_receipts:module"
+    expected: "#[path = \"../../../packages/fork/read-receipts/backend/utils/mod.rs\"]"
+    context:
+      - "pub mod sanitizer;"
   - id: email_translation_settings
     file: apps/web/src/features/extensions/Extensions.tsx
     marker: "{/* PRIVATE-HOOK: email_translation:settings */}"
@@ -97,37 +139,87 @@ hooks:
   - id: email_translation_message
     file: apps/web/src/features/email-message/components/email-message-top-bar.tsx
     marker: "{/* PRIVATE-HOOK: email_translation:message */}"
-    expected: "<EmailTranslateButton"
+    expected: "<EmailMessageTranslateButton message={props.message} />"
     context:
-      - "isMessageTranslated(threadId(), messageId())"
+      - "<ReadReceiptStatus message={props.message} showIconOnly />"
+  - id: email_translation_body_state
+    file: apps/web/src/features/email-message/views/email-message-body.tsx
+    marker: "// PRIVATE-HOOK: email_translation:body-state"
+    expected: "const translation = useEmailMessageTranslation(() => props.message);"
+    context:
+      - "createEmailMessageBody("
+  - id: email_translation_body_props
+    file: apps/web/src/features/email-message/primitives/email-message-body.ts
+    marker: "// PRIVATE-HOOK: email_translation:body-props"
+    expected: "translatedHtml?: string;"
+    context:
+      - "message: EmailMessage;"
+  - id: email_translation_body_render_source
+    file: apps/web/src/features/email-message/primitives/email-message-body.ts
+    marker: "// PRIVATE-HOOK: email_translation:body-render-source"
+    expected: "html: props.translatedHtml ?? props.message.body_html_sanitized,"
+    context:
+      - "replylessHtml:"
   - id: email_translation_body_markdown
     file: apps/web/src/features/email-message/views/email-message-body.tsx
     marker: "{/* PRIVATE-HOOK: email_translation:body-markdown */}"
-    expected: "<Match when={isTranslated() && cachedTranslation()?.translatedText}>"
+    expected: "<Match when={translation.translatedText()}>"
     context:
       - "<StaticMarkdown"
+  - id: email_translation_thread_keyboard
+    file: apps/web/src/features/email-thread/primitives/thread-navigation.ts
+    marker: "// PRIVATE-HOOK: email_translation:thread-keyboard"
+    expected: "translateThread: createEmailThreadTranslationHandler({"
+    context:
+      - "forwardFocusedMessage: () => openHotkeyTarget('forward'),"
+  - id: email_translation_list_row
+    file: apps/web/src/features/entity/composed/list-entity/email.tsx
+    marker: "// PRIVATE-HOOK: email_translation:narrow-row"
+    expected: "const translation = useEmailRowTranslation(() => props.entity);"
+    context:
+      - "<Entity.Slot placement=\"body\""
+  - id: email_translation_list_row_auto
+    file: apps/web/src/features/entity/composed/list-entity/email.tsx
+    marker: "// PRIVATE-HOOK: email_translation:wide-row"
+    expected: "const translation = useEmailRowTranslation(() => props.entity, {"
+    context:
+      - "autoTranslate: true,"
+  - id: email_translation_list_keyboard
+    file: apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
+    marker: "// PRIVATE-HOOK: email_translation:list-keyboard"
+    expected: "const emailListTranslationHotkey = createEmailListTranslationHotkey({"
   - id: email_translation_collapsed_snippet
     file: apps/web/src/features/email-message/components/collapsed-message.tsx
     marker: "// PRIVATE-HOOK: email_translation:collapsed-snippet"
-    expected: "if (isTranslated()) {"
+    expected: "return getEmailCollapsedSnippet(props.message);"
     context:
-      - "const cached = getCachedMessageTranslation(props.message.db_id);"
+      - "const snippet = createMemo(() => {"
   - id: self_host_health_admin_route
     file: services/authentication_service/src/api.rs
     marker: "// PRIVATE-HOOK: self_host_health:admin_route"
     expected: "crate::features::self_host_health::router(state.clone())"
     context:
-      - ".nest(\"/admin\","
+      - ".nest(\n            \"/admin\","
   - id: self_host_health_features
     file: services/authentication_service/src/main.rs
     marker: "// PRIVATE-HOOK: self_host_health:features"
-    expected: "mod features;"
+    expected: |-
+      #[path = "../../../packages/fork/self-host-health/backend/mod.rs"]
+      mod features;
+    context:
+      - "mod config;"
+  - id: self_host_health_openapi_features
+    file: services/authentication_service/src/openapi.rs
+    marker: "// PRIVATE-HOOK: self_host_health:openapi_features"
+    expected: |-
+      #[path = "../../../packages/fork/self-host-health/backend/mod.rs"]
+      mod features;
     context:
       - "mod config;"
   - id: self_host_health_gmail_queue_probe_wiring
     file: services/authentication_service/src/main.rs
     marker: "// PRIVATE-HOOK: self_host_health:gmail_queue_probe_wiring"
-    expected: "let gmail_inbox_sync_queue = macro_queues::GmailInboxSyncQueue::new();"
+    expected: ") = crate::features::self_host_health::gmail_probe_queues();"
     context:
       - "let email_backfill_queue = macro_queues::EmailBackfillQueue::new();"
   - id: self_host_health_dss_internal_storage_probe
@@ -142,6 +234,48 @@ hooks:
     expected: "<SelfHostHealth />"
     context:
       - "isCurrentTab('SelfHostHealth')"
+  - id: self_host_health_settings_import
+    file: apps/web/src/features/settings/Settings.tsx
+    marker: "// PRIVATE-HOOK: self_host_health:settings_import"
+    expected: "import { SelfHostHealth } from '@macro/self-host-health';"
+    context:
+      - "import { Billing } from '@app/features/settings/Billing';"
+  - id: self_host_health_prompt_import
+    file: apps/web/src/components/app/Layout.tsx
+    marker: "// PRIVATE-HOOK: self_host_health:prompt_import"
+    expected: "import { SelfHostHealthPrompt } from '@macro/self-host-health';"
+    context:
+      - "import { useOnboardingV4Flag } from '@app/features/setup/flow/useOnboardingV4Flag';"
+  - id: self_host_health_client_type_import
+    file: apps/web/src/lib/service-clients/service-auth/client.ts
+    marker: "// PRIVATE-HOOK: self_host_health:client_type_import"
+    expected: "import type { SelfHostHealthReport } from '@macro/self-host-health';"
+    context:
+      - "import { ENABLE_BEARER_TOKEN_AUTH } from '@core/constant/featureFlags';"
+  - id: self_host_health_settings_tab_type
+    file: apps/web/src/lib/core/constant/SettingsState.tsx
+    marker: "// PRIVATE-HOOK: self_host_health:settings_tab_type"
+    expected: "| 'SelfHostHealth'"
+    context:
+      - "| 'Admin'"
+  - id: self_host_health_settings_icon
+    file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx
+    marker: "// PRIVATE-HOOK: self_host_health:settings_icon"
+    expected: "import HeartbeatIcon from '@phosphor/heartbeat.svg';"
+    context:
+      - "import HardDrivesIcon from '@phosphor/hard-drives.svg';"
+  - id: self_host_health_settings_item
+    file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx
+    marker: "// PRIVATE-HOOK: self_host_health:settings_item"
+    expected: "{ tab: 'SelfHostHealth', label: t('Health Check'), icon: HeartbeatIcon },"
+    context:
+      - "{ tab: 'Admin', label: 'Debug', icon: BugIcon },"
+  - id: self_host_health_settings_slug
+    file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx
+    marker: "// PRIVATE-HOOK: self_host_health:settings_slug"
+    expected: "SelfHostHealth: 'health-check',"
+    context:
+      - "Admin: 'admin',"
   - id: self_host_health_prompt
     file: apps/web/src/components/app/Layout.tsx
     marker: "{/* PRIVATE-HOOK: self_host_health:prompt */}"

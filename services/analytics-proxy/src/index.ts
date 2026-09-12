@@ -19,7 +19,6 @@ declare global {
 }
 
 const POSTHOG_PREFIX = '/i/ph';
-const POSTHOG_ORIGIN = 'https://us.i.posthog.com';
 // Privacy filter lists block the upstream filename; keep the browser-facing
 // alias opaque and restore the real filename only for the upstream request.
 const POSTHOG_RECORDER_SCRIPT_NAME = 'posthog-recorder.js';
@@ -118,13 +117,16 @@ app.all(`${OTLP_PREFIX}/*`, async (c) => {
 });
 
 app.all(`${POSTHOG_PREFIX}/*`, (c) => {
+  const posthogHost = c.env.POSTHOG_HOST;
+  if (!posthogHost) return c.text('PostHog is not configured', 404);
+
   const url = new URL(c.req.url);
   const proxyPath = url.pathname.slice(POSTHOG_PREFIX.length) || '/';
   const path =
     proxyPath === `/static/${POSTHOG_RECORDER_PROXY_SCRIPT_NAME}`
       ? `/static/${POSTHOG_RECORDER_SCRIPT_NAME}`
       : proxyPath;
-  return handleProxy(c.req.raw, POSTHOG_ORIGIN, path + url.search);
+  return handleProxy(c.req.raw, posthogHost, path + url.search);
 });
 
 app.notFound((c) => c.text('Not found', 404));

@@ -13,6 +13,7 @@ import type { EmailMessage } from '../core/email-message';
 
 export interface EmailMessageBodyProps {
   message: EmailMessage;
+  // PRIVATE-HOOK: email_translation:body-props
   translatedHtml?: string;
   translatedReplylessHtml?: string;
   isPersonal: boolean;
@@ -32,6 +33,7 @@ export function createEmailMessageBody(
   const prepared = createMemo(() =>
     prepareEmailBody(
       {
+        // PRIVATE-HOOK: email_translation:body-render-source
         html: props.translatedHtml ?? props.message.body_html_sanitized,
         replylessHtml:
           props.translatedReplylessHtml ?? props.message.body_replyless,

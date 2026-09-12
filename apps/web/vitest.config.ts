@@ -162,6 +162,16 @@ export default defineConfig({
       {
         extends: './src/lib/core/vitest.config.ts',
         test: {
+          environment: 'jsdom',
+          include: [
+            '../../packages/fork/read-receipts/frontend/**/*.{test,spec}.{ts,tsx}',
+          ],
+          name: 'fork-read-receipts',
+        },
+      },
+      {
+        extends: './src/lib/core/vitest.config.ts',
+        test: {
           include: ['src/lib/tauri/**/*.{test,spec}.{ts,tsx}'],
           name: 'tauri',
         },

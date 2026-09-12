@@ -1,14 +1,6 @@
 import { GO_TO_COMMAND_SCOPE, GO_TO_LEADER_KEY } from '@app/constants/hotkeys';
 import { isListViewID, type ListView } from '@app/constants/list-views';
 import { CommandState } from '@app/features/command/state';
-import {
-  clearAllRowTranslations,
-  emailTranslationEnabled,
-  isEmailListTranslated,
-  isEmailListTranslating,
-  isTranslationSupported,
-  toggleGlobalListTranslation,
-} from '@app/features/email-translation';
 import { VIEW_TAB_PRESETS } from '@app/features/next-soup/sidebar/soup-filter-presets';
 import {
   markChannelNotificationsSeenOnOpen,
@@ -29,6 +21,7 @@ import {
   isSearchEntity,
   isWithNotification,
 } from '@entity';
+import { createEmailListTranslationHotkey } from '@macro/email-translation';
 import { openSingleStackNotification } from '@notifications';
 import { type Accessor, onCleanup } from 'solid-js';
 import type { VirtualizerHandle } from 'virtua/solid';
@@ -79,25 +72,19 @@ export const useSoupViewHotkeys = (options: UseSoupViewHotkeysOptions) => {
         snippet: email.snippet,
       }));
 
+  // PRIVATE-HOOK: email_translation:list-keyboard
+  const emailListTranslationHotkey = createEmailListTranslationHotkey({
+    currentView,
+    emailItems,
+  });
+
   registerHotkey({
     hotkey: 'q',
     scopeId,
     hotkeyToken: TOKENS.email.translateList,
     description: 'Translate email list',
-    condition: () =>
-      currentView() === 'mail' &&
-      emailTranslationEnabled() &&
-      isTranslationSupported() &&
-      emailItems().length > 0 &&
-      !isEmailListTranslating(),
-    keyDownHandler: () => {
-      if (isEmailListTranslated()) {
-        clearAllRowTranslations();
-      } else {
-        void toggleGlobalListTranslation(emailItems());
-      }
-      return true;
-    },
+    condition: emailListTranslationHotkey.condition,
+    keyDownHandler: emailListTranslationHotkey.keyDownHandler,
   }).withGroup(group);
 
   // escape - Multi-purpose: Clear selection / Close spotlight

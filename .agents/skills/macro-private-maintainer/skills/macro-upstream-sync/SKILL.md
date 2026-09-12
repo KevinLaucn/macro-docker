@@ -5,6 +5,22 @@ description: Safely synchronize macro-inc/macro upstream releases or mainline ch
 
 # Macro Upstream Sync
 
+## Fork 隔离目录与门禁
+
+Fork-owned production code 默认位于 `packages/fork/<feature>/`；`.fork/` 只保存治理清单、
+Hook 和 Override 定义。upstream-owned 文件只允许最小接入代码，Hook 必须登记到
+`.fork/private-hooks.yml`，功能必须登记到 `.fork/customizations.yml`。
+
+每次同步的固定顺序为：
+
+```text
+sync/upstream-* → merge upstream → Git conflict → private hooks → overrides --check
+→ customization overlap → targeted tests → production build/image gate
+```
+
+`overrides --check` 或任何 Hook/manifest 检查失败都必须阻断；不得静默跳过。新增或移动
+Fork 源码后，还必须验证 Bun/Cargo/TypeScript/Vite/Docker/Nix/CI 的构建闭包。
+
 这是专门用于 **Macro 上游版本更新、Upstream Sync、同步 PR、冲突处理、Fork 定制保护** 的技能。
 
 上游同步不是普通 `git merge`。
