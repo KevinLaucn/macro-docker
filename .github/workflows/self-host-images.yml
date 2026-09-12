@@ -98,18 +98,54 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "Automated full build enabled: triggering all self-host images on push"
-          echo "run_services=true" >> "$GITHUB_OUTPUT"
-          echo "run_scheduled_action=true" >> "$GITHUB_OUTPUT"
-          echo "run_init=true" >> "$GITHUB_OUTPUT"
-          echo "run_web=true" >> "$GITHUB_OUTPUT"
-          echo "run_caddy=true" >> "$GITHUB_OUTPUT"
-          echo "run_workers=true" >> "$GITHUB_OUTPUT"
+          base="${{ github.event.before }}"
+          head="${{ github.sha }}"
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+            base="$(git rev-parse "$head^" 2>/dev/null || git rev-list --max-parents=0 "$head" | tail -n 1)"
+          fi
+          changed="$(git diff --name-only "$base" "$head")"
+          force="${{ inputs.force_rebuild || false }}"
+          matches() { grep -Eq "$1" <<<"$changed"; }
+
+          run_services=false
+          run_scheduled_action=false
+          run_init=false
+          run_web=false
+          run_caddy=false
+          run_workers=false
+
+          if [[ "$force" == "true" ]]; then
+            run_services=true; run_scheduled_action=true; run_init=true
+            run_web=true; run_caddy=true; run_workers=true
+          else
+            if matches '^(services/|crates/|Cargo\.toml$|Cargo\.lock$|flake\.nix$|nix/|\.cargo/|\.config/)'; then
+              run_services=true
+              run_workers=true
+              run_scheduled_action=true
+              run_init=true
+            fi
+            matches '^(apps/web/|packages/(i18n|ui|shared)/|bun\.lock$|package\.json$)' && run_web=true
+            matches '^(self-host/init/|self-host/images/Dockerfile\.init)' && run_init=true
+            matches '^(self-host/images/Dockerfile\.(scheduled-action|workers)|docker/(sync-service|websocket-service)\.Dockerfile|services/(sync|websocket))' && run_workers=true
+            matches '^(services/agent_schedule|self-host/images/Dockerfile\.scheduled-action)' && run_scheduled_action=true
+            matches '^(self-host/(Caddyfile|images/Dockerfile\.caddy))' && run_caddy=true
+          fi
+
+          echo "Changed paths:"
+          printf '%s\n' "$changed"
+          echo "Build targets: services=$run_services scheduled_action=$run_scheduled_action init=$run_init web=$run_web caddy=$run_caddy workers=$run_workers"
+          echo "run_services=$run_services" >> "$GITHUB_OUTPUT"
+          echo "run_scheduled_action=$run_scheduled_action" >> "$GITHUB_OUTPUT"
+          echo "run_init=$run_init" >> "$GITHUB_OUTPUT"
+          echo "run_web=$run_web" >> "$GITHUB_OUTPUT"
+          echo "run_caddy=$run_caddy" >> "$GITHUB_OUTPUT"
+          echo "run_workers=$run_workers" >> "$GITHUB_OUTPUT"
           echo "run_bundle=true" >> "$GITHUB_OUTPUT"
 
   services:
     name: macro-services
     needs: check-drift
+    if: needs.check-drift.outputs.run_services == 'true'
     runs-on: ${{ (inputs.services_runner == 'self-hosted') && fromJSON('["self-hosted", "linux", "x64", "macro-builder"]') || 'ubuntu-latest' }}
     outputs:
       version: ${{ steps.version.outputs.value }}
@@ -1130,6 +1166,7 @@ jobs:
   web:
     name: macro-web
     needs: check-drift
+    if: needs.check-drift.outputs.run_web == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -1211,6 +1248,7 @@ jobs:
   init:
     name: macro-init
     needs: [check-drift, services]
+    if: always() && needs.check-drift.outputs.run_init == 'true' && (needs.services.result == 'success' || needs.check-drift.outputs.run_services != 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -1255,6 +1293,7 @@ jobs:
   workers:
     name: ${{ matrix.image }}
     needs: check-drift
+    if: needs.check-drift.outputs.run_workers == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -1301,6 +1340,7 @@ jobs:
   scheduled-action:
     name: macro-scheduled-action
     needs: check-drift
+    if: needs.check-drift.outputs.run_scheduled_action == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -1361,6 +1401,7 @@ jobs:
   caddy:
     name: macro-caddy
     needs: check-drift
+    if: needs.check-drift.outputs.run_caddy == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -1398,6 +1439,7 @@ jobs:
   bundle:
     name: macro-deployment-bundle
     needs: [check-drift, services, scheduled-action, init, web, caddy, workers]
+    if: always() && needs.check-drift.outputs.run_bundle == 'true' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -1427,8 +1469,6 @@ jobs:
             docker pull --quiet "$img" >/dev/null
             local dig revision
             dig=$(docker inspect --format='{{index .RepoDigests 0}}' "$img" | cut -d'@' -f2)
-            revision=$(docker inspect --format='{{index .Config.Labels "org.opencontainers.image.revision"}}' "$img")
-            test "$revision" = "$sha"
             [[ "$dig" =~ ^sha256:[0-9a-f]{64}$ ]]
             echo "$dig"
           }

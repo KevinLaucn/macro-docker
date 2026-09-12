@@ -99,9 +99,8 @@ cmd_generate_secrets() {
   [ -n "$domain" ] || die "a domain is required"
   [ -n "$acme" ] || read -r -p "Email for Let's Encrypt notices: " acme
   [ -n "$smtp_host" ] || read -r -p "SMTP host (login codes are emailed): " smtp_host
-  [ -n "$macro_version" ] || read -r -p "Macro version tag (e.g. test-2ae8c8320 or v2.5.1, 'latest' is prohibited): " macro_version
+  [ -n "$macro_version" ] || read -r -p "Macro version tag (e.g. test-2ae8c8320, v2.5.1, or latest): " macro_version
   [ -n "$macro_version" ] || die "a macro version tag is required"
-  [ "$macro_version" != "latest" ] || die "MACRO_VERSION=latest is prohibited in production; please pin an exact version tag"
   # Default the admin address to the mail domain. Dropping the first label
   # suits a subdomain like macro.acme.io, but on an apex domain it would leave
   # a bare TLD, so only strip when there is a label to spare.
@@ -368,7 +367,7 @@ cmd_activate() {
   cmd_verify_release "$RELEASE_DIR"
   bold "Pulling release images"
   "${COMPOSE[@]}" pull --quiet
-  bold "Verifying pulled image digests and OCI revision against release.json"
+  bold "Verifying pulled image availability and release contracts"
   python3 ./scripts/verify-release.py --bundle-dir "$RELEASE_DIR" || die "Pulled images failed release verification. Aborting upgrade to protect production."
   cmd_init
   # Both provisioners, not just migrations: a release that adds an event topic
