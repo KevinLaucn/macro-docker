@@ -110,7 +110,9 @@ async fn generate_chat_name(
     let usage_ctx = ai_usage::UsageContext::new(ai_usage::AiFeature::ChatRename, user_id)
         .with_entity(macro_uuid::string_to_uuid(chat_id).ok());
     let response = agent::complete(
-        PredefinedModel::Fast,
+        // Chat Rename must use the same OpenAI provider configured for the
+        // self-hosted production deployment; Fast maps to Anthropic.
+        PredefinedModel::Gpt5Mini,
         CHAT_RENAME_SYSTEM_PROMPT,
         &rename_request,
         recorder,
