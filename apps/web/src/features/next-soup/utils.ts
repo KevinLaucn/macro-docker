@@ -66,6 +66,7 @@ import {
 } from '@notifications';
 import { queryClient } from '@queries/client';
 import { emailKeys } from '@queries/email/keys';
+import { fetchAndCacheThread } from '@queries/email/thread';
 import {
   type NotificationEntityRef,
   updateNotificationsForEntities,
@@ -1140,6 +1141,12 @@ export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
               linkId = threadData.link_id;
             } else if (threadData?.pages?.[0]?.link_id) {
               linkId = threadData.pages[0].link_id;
+            }
+          }
+          if (!linkId && trashLabels.length > 1) {
+            const fetched = await fetchAndCacheThread(id);
+            if (!fetched.isErr()) {
+              linkId = fetched.value.thread.link_id;
             }
           }
 
