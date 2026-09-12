@@ -1,5 +1,6 @@
 import { useKeyedPersistentToasts } from '@core/component/Toast/useKeyedPersistentToasts';
 import { useAddInboxFlow } from '@core/email-link';
+import { t } from '@macro/i18n';
 import {
   useEmailLinksQuery,
   useInboxHealthProbeQuery,
@@ -25,13 +26,16 @@ export function GmailReauthenticationPrompt() {
       (linksQuery.data?.links ?? []).filter((link) => link?.needs_reauth),
     key: (link) => link?.id ?? '',
     toast: (link, dismiss) => ({
-      title: 'Reconnect Gmail',
+      title: t('Reconnect Gmail'),
       content(): string {
-        return `Sync stopped for ${link.email_address}. Reconnect to restore email sync.`;
+        return t(
+          'Sync stopped for {email}. Reconnect to restore email sync.',
+          { email: link.email_address }
+        );
       },
       actions: [
         {
-          label: 'Reconnect',
+          label: t('Reconnect'),
           onClick: () => {
             // Suppress re-prompting until the inbox recovers; on native the page
             // stays mounted while the OAuth flow runs.

@@ -1,5 +1,6 @@
 import { toast } from '@core/component/Toast/Toast';
 import { useKeyedPersistentToasts } from '@core/component/Toast/useKeyedPersistentToasts';
+import { t } from '@macro/i18n';
 import { authServiceClient } from '@service-auth/client';
 import { createSignal, onMount } from 'solid-js';
 
@@ -19,7 +20,7 @@ async function startGithubReauthentication(): Promise<void> {
   );
 
   if (result.isErr()) {
-    toast.failure('Failed to start GitHub reconnect flow');
+    toast.failure(t('Failed to start GitHub reconnect flow'));
     return;
   }
 
@@ -43,13 +44,15 @@ export function GithubReauthenticationPrompt() {
     items: () => (needsReauth() ? ['github'] : []),
     key: (item) => item,
     toast: (_item, dismiss) => ({
-      title: 'Reconnect GitHub',
+      title: t('Reconnect GitHub'),
       content(): string {
-        return 'Your GitHub authorization has expired. Reconnect GitHub to restore pull request details.';
+        return t(
+          'Your GitHub authorization has expired. Reconnect GitHub to restore pull request details.'
+        );
       },
       actions: [
         {
-          label: 'Reconnect',
+          label: t('Reconnect'),
           onClick: () => {
             // Suppress re-prompting while the OAuth flow runs; success
             // navigates the page away entirely.
