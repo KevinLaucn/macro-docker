@@ -21,7 +21,8 @@ describe('block definition discovery', () => {
           ?.replace(/^block-/, '')
       )
       .filter(
-        (name): name is string => Boolean(name) && !virtualBlockNames.has(name)
+        (name): name is string =>
+          typeof name === 'string' && name.length > 0 && !virtualBlockNames.has(name)
       );
 
     expect(discoveredNames.sort()).toEqual([...ConcreteBlockRegistry].sort());
