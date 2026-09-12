@@ -1,0 +1,19 @@
+# syntax=docker/dockerfile:1
+#
+# Immutable Caddy image for self-host deployments.
+# Packages the repository-tested Caddyfile directly into the image
+# to completely eliminate host config drift and mock route interception.
+FROM caddy:2-alpine
+
+ARG MACRO_VERSION=dev
+ARG GIT_SHA=unknown
+
+LABEL org.opencontainers.image.title="Macro Caddy reverse proxy" \
+      org.opencontainers.image.source="https://github.com/KevinLaucn/macro-docker" \
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.version="${MACRO_VERSION}" \
+      org.opencontainers.image.revision="${GIT_SHA}"
+
+COPY Caddyfile /etc/caddy/Caddyfile
+
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

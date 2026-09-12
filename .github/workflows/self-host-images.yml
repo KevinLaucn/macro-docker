@@ -63,9 +63,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       run_services: ${{ steps.filter.outputs.run_services }}
+      run_scheduled_action: ${{ steps.filter.outputs.run_scheduled_action }}
       run_init: ${{ steps.filter.outputs.run_init }}
       run_web: ${{ steps.filter.outputs.run_web }}
+      run_caddy: ${{ steps.filter.outputs.run_caddy }}
       run_workers: ${{ steps.filter.outputs.run_workers }}
+      run_bundle: ${{ steps.filter.outputs.run_bundle }}
       version: ${{ steps.version.outputs.value }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -97,9 +100,12 @@ jobs:
           set -euo pipefail
           echo "Automated full build enabled: triggering all self-host images on push"
           echo "run_services=true" >> "$GITHUB_OUTPUT"
+          echo "run_scheduled_action=true" >> "$GITHUB_OUTPUT"
           echo "run_init=true" >> "$GITHUB_OUTPUT"
           echo "run_web=true" >> "$GITHUB_OUTPUT"
+          echo "run_caddy=true" >> "$GITHUB_OUTPUT"
           echo "run_workers=true" >> "$GITHUB_OUTPUT"
+          echo "run_bundle=true" >> "$GITHUB_OUTPUT"
 
   services:
     name: macro-services
@@ -1089,6 +1095,7 @@ jobs:
           docker build -f self-host/images/Dockerfile.services \
             --build-arg BIN_DIR=build/bin \
             --build-arg MACRO_VERSION="$v" \
+            --build-arg GIT_SHA="${{ github.sha }}" \
             --label "com.kevinlaucn.macro.profile=$profile" \
             -t "$img" self-host
           # Retry docker push up to 3 times to guard against transient ghcr.io blob/network drops
@@ -1184,6 +1191,7 @@ jobs:
           img="$REGISTRY/$ns/macro-web:$v"
           docker build -f self-host/images/Dockerfile.web \
             --build-arg DIST_DIR=build/dist --build-arg MACRO_VERSION="$v" \
+            --build-arg GIT_SHA="${{ github.sha }}" \
             -t "$img" self-host
           # Retry docker push up to 3 times to guard against transient ghcr.io blob/network drops
           for attempt in 1 2 3; do
@@ -1226,6 +1234,7 @@ jobs:
           docker build -f self-host/init/Dockerfile \
             --build-arg MACRO_IMAGE_SERVICES="$REGISTRY/$ns/${service_img_name}" \
             --build-arg MACRO_VERSION="$v" \
+            --build-arg GIT_SHA="${{ github.sha }}" \
             --label "com.kevinlaucn.macro.profile=$profile" \
             -t "$img" .
           # Retry docker push up to 3 times to guard against transient ghcr.io blob/network drops
@@ -1268,7 +1277,10 @@ jobs:
           v="${{ inputs.version || (github.ref_type == 'branch' && 'latest') || github.ref_name }}"
           ns="$(echo "$NAMESPACE" | tr '[:upper:]' '[:lower:]')"
           img="$REGISTRY/$ns/${{ matrix.image }}:$v"
-          docker build -f "${{ matrix.dockerfile }}" -t "$img" .
+          docker build -f "${{ matrix.dockerfile }}" \
+            --build-arg MACRO_VERSION="$v" \
+            --build-arg GIT_SHA="${{ github.sha }}" \
+            -t "$img" .
           # Retry docker push up to 3 times to guard against transient ghcr.io blob/network drops
           for attempt in 1 2 3; do
             echo "Pushing $img (attempt $attempt/3)..."
@@ -1283,3 +1295,188 @@ jobs:
               exit 1
             fi
           done
+
+  scheduled-action:
+    name: macro-scheduled-action
+    needs: check-drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: 'false'
+      - name: Setup Nix
+        id: setup_nix
+        uses: './.github/actions/setup-nix'
+        with:
+          nix-cache-url: ${{ vars.NIX_CACHE_URL }}
+          nix-cache-public-key: ${{ vars.NIX_CACHE_PUBLIC_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      - name: Build scheduled-action service binary with Nix
+        run: |
+          set -euo pipefail
+          BUILD_START=$(date -u +%s)
+          nix build --print-build-logs ".#deploy-service-binaries-agent-schedule-service" --out-link result-scheduled-action
+          mkdir -p self-host/build-scheduled-action/bin
+          cp -L result-scheduled-action/bin/service self-host/build-scheduled-action/bin/service
+          test -x self-host/build-scheduled-action/bin/service
+          BUILD_END=$(date -u +%s)
+          echo "BUILD_DURATION=$(( BUILD_END - BUILD_START ))" >> "$GITHUB_ENV"
+
+      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push scheduled-action image
+        run: |
+          set -euo pipefail
+          v="${{ inputs.version || (github.ref_type == 'branch' && 'latest') || github.ref_name }}"
+          ns="$(echo "$NAMESPACE" | tr '[:upper:]' '[:lower:]')"
+          img="$REGISTRY/$ns/macro-scheduled-action:$v"
+          docker build -f self-host/images/Dockerfile.scheduled-action \
+            --build-arg BIN_DIR=build-scheduled-action/bin \
+            --build-arg MACRO_VERSION="$v" \
+            --build-arg GIT_SHA="${{ github.sha }}" \
+            -t "$img" self-host
+          for attempt in 1 2 3; do
+            echo "Pushing $img (attempt $attempt/3)..."
+            if docker push "$img"; then
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "docker push failed; retrying in 5s..."
+              sleep 5
+            else
+              echo "docker push failed after 3 attempts"
+              exit 1
+            fi
+          done
+
+  caddy:
+    name: macro-caddy
+    needs: check-drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: 'false'
+      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push immutable Caddy image
+        run: |
+          set -euo pipefail
+          v="${{ inputs.version || (github.ref_type == 'branch' && 'latest') || github.ref_name }}"
+          ns="$(echo "$NAMESPACE" | tr '[:upper:]' '[:lower:]')"
+          img="$REGISTRY/$ns/macro-caddy:$v"
+          docker build -f self-host/images/Dockerfile.caddy \
+            --build-arg MACRO_VERSION="$v" \
+            --build-arg GIT_SHA="${{ github.sha }}" \
+            -t "$img" self-host
+          for attempt in 1 2 3; do
+            echo "Pushing $img (attempt $attempt/3)..."
+            if docker push "$img"; then
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "docker push failed; retrying in 5s..."
+              sleep 5
+            else
+              echo "docker push failed after 3 attempts"
+              exit 1
+            fi
+          done
+
+  bundle:
+    name: macro-deployment-bundle
+    needs: [check-drift, services, scheduled-action, init, web, caddy, workers]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: 'false'
+      - name: Generate release manifest and bundle
+        run: |
+          set -euo pipefail
+          v="${{ inputs.version || (github.ref_type == 'branch' && 'latest') || github.ref_name }}"
+          ns="$(echo "$NAMESPACE" | tr '[:upper:]' '[:lower:]')"
+          sha="${{ github.sha }}"
+          built_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          mkdir -p release-bundle
+
+          # Resolve image digests from local docker or registry
+          get_digest() {
+            local img="$1"
+            local dig=""
+            dig=$(docker inspect --format='{{index .RepoDigests 0}}' "$img" 2>/dev/null | cut -d'@' -f2 || true)
+            if [ -z "$dig" ]; then
+              dig=$(docker inspect --format='{{.Id}}' "$img" 2>/dev/null || true)
+            fi
+            echo "${dig:-sha256:unknown}"
+          }
+
+          services_img="$REGISTRY/$ns/macro-services-email:$v"
+          scheduled_img="$REGISTRY/$ns/macro-scheduled-action:$v"
+          init_img="$REGISTRY/$ns/macro-init-email:$v"
+          web_img="$REGISTRY/$ns/macro-web:$v"
+          caddy_img="$REGISTRY/$ns/macro-caddy:$v"
+          ws_img="$REGISTRY/$ns/macro-websocket-service:$v"
+
+          cat << EOF > release-bundle/release.json
+          {
+            "version": "$v",
+            "git_sha": "$sha",
+            "built_at": "$built_at",
+            "images": {
+              "macro-services-email": {
+                "image": "$services_img",
+                "digest": "$(get_digest "$services_img")"
+              },
+              "macro-scheduled-action": {
+                "image": "$scheduled_img",
+                "digest": "$(get_digest "$scheduled_img")"
+              },
+              "macro-init-email": {
+                "image": "$init_img",
+                "digest": "$(get_digest "$init_img")"
+              },
+              "macro-web": {
+                "image": "$web_img",
+                "digest": "$(get_digest "$web_img")"
+              },
+              "macro-caddy": {
+                "image": "$caddy_img",
+                "digest": "$(get_digest "$caddy_img")"
+              },
+              "macro-websocket-service": {
+                "image": "$ws_img",
+                "digest": "$(get_digest "$ws_img")"
+              }
+            }
+          }
+          EOF
+
+          cp -a self-host/docker-compose.yml release-bundle/
+          cp -a self-host/Caddyfile release-bundle/
+          cp -a self-host/macroctl release-bundle/
+          cp -a self-host/scripts release-bundle/
+          cp -a self-host/.env.example release-bundle/
+          chmod +x release-bundle/macroctl release-bundle/scripts/*.py 2>/dev/null || true
+
+          python3 release-bundle/scripts/verify-release.py --bundle-dir release-bundle
+          tar -czf "macro-release-$v.tar.gz" -C release-bundle .
+          echo "Deployment bundle created: macro-release-$v.tar.gz"
+
+      - name: Upload Deployment Bundle Artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: macro-deployment-bundle-${{ inputs.version || (github.ref_type == 'branch' && 'latest') || github.ref_name }}
+          path: release-bundle/
+          retention-days: 14

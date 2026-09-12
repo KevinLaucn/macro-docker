@@ -13,11 +13,13 @@ FROM busybox:1.37-musl
 
 ARG DIST_DIR=dist
 ARG MACRO_VERSION=dev
+ARG GIT_SHA=unknown
 
 LABEL org.opencontainers.image.title="Macro web" \
       org.opencontainers.image.source="https://github.com/KevinLaucn/macro-docker" \
       org.opencontainers.image.licenses="AGPL-3.0-only" \
-      org.opencontainers.image.version="${MACRO_VERSION}"
+      org.opencontainers.image.version="${MACRO_VERSION}" \
+      org.opencontainers.image.revision="${GIT_SHA}"
 
 COPY ${DIST_DIR}/ /srv/frontend/
 

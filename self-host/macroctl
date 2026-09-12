@@ -309,9 +309,20 @@ cmd_destroy() {
   "${COMPOSE[@]}" down -v
 }
 
+cmd_verify_release() {
+  need_env
+  local bundle_dir="${1:-.}"
+  bold "Verifying release contract and container invariants (bundle: $bundle_dir)"
+  if [ ! -f "$bundle_dir/release.json" ]; then
+    die "release.json manifest not found in $bundle_dir. Strict release verification cannot be bypassed."
+  fi
+  python3 ./scripts/verify-release.py --bundle-dir "$bundle_dir"
+}
+
 cmd_upgrade() {
   need_env
   local version="${1:-}"
+  local bundle_dir="${2:-.}"
   if [ -n "$version" ]; then
     if grep -qE '^MACRO_VERSION=' "$ENV_FILE"; then
       sed -i.bak -E "s|^MACRO_VERSION=.*|MACRO_VERSION=${version}|" "$ENV_FILE" && rm -f "$ENV_FILE.bak"
@@ -320,10 +331,13 @@ cmd_upgrade() {
     fi
     bold "Pinned MACRO_VERSION=$version"
   fi
+  cmd_verify_release "$bundle_dir"
   bold "Backing up first"
   cmd_backup
-  bold "Pulling and restarting"
+  bold "Pulling release images"
   "${COMPOSE[@]}" pull --quiet
+  bold "Verifying pulled image digests and OCI revision against release.json"
+  python3 ./scripts/verify-release.py --bundle-dir "$bundle_dir" || die "Pulled images failed release verification. Aborting upgrade to protect production."
   cmd_init
   # Both provisioners, not just migrations: a release that adds an event topic
   # or a queue needs them created on an existing deployment too, or the
@@ -425,6 +439,7 @@ case "${1:-}" in
   backup)   shift; cmd_backup "$@" ;;
   restore)  shift; cmd_restore "$@" ;;
   upgrade)  shift; cmd_upgrade "$@" ;;
+  verify-release) shift; cmd_verify_release "$@" ;;
   destroy)  shift; cmd_destroy "$@" ;;
   ""|-h|--help|help)
     sed -n '2,15p' "$SELF" | sed 's/^# \{0,1\}//' ;;

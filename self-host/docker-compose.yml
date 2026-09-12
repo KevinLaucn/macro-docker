@@ -31,7 +31,7 @@ services:
   # object URLs, which are signed for that exact host).
   # ==========================================================================
   caddy:
-    image: caddy:2-alpine
+    image: ${MACRO_IMAGE_CADDY:-ghcr.io/kevinlaucn/macro-caddy}:${MACRO_VERSION:?set MACRO_VERSION in .env}
     restart: unless-stopped
     ports:
       - "${HTTP_PORT:-80}:80"
@@ -43,7 +43,6 @@ services:
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
       ACME_CA: ${ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - web_assets:/srv/frontend:ro
       - caddy_data:/data
       - caddy_config:/config
@@ -127,10 +126,10 @@ services:
           ENABLE_NEW_PRICING: "$${ENABLE_NEW_PRICING:-true}",
           ENABLE_ONBOARDING_V4: "$${ENABLE_ONBOARDING_V4:-true}",
           ENABLE_COGNITION: "$${ENABLE_COGNITION:-true}",
-          ENABLE_SCHEDULED_ACTIONS: "$${ENABLE_SCHEDULED_ACTIONS:-false}",
+          ENABLE_SCHEDULED_ACTIONS: "$${ENABLE_SCHEDULED_ACTIONS:-true}",
           FEATURES: {
             cognition: $${ENABLE_COGNITION:-true},
-            scheduledActions: $${ENABLE_SCHEDULED_ACTIONS:-false},
+            scheduledActions: $${ENABLE_SCHEDULED_ACTIONS:-true},
             agents: $${ENABLE_AGENTS:-false},
             docsCollab: false,
             enableNewAppViews: $${ENABLE_NEW_APP_VIEWS:-false},
@@ -582,8 +581,9 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
 
   scheduled_action_service:
-    profiles: ["full"]
-    <<: *service
+    <<: *env
+    image: ${MACRO_IMAGE_SCHEDULED_ACTION:-ghcr.io/kevinlaucn/macro-scheduled-action}:${MACRO_VERSION:?set MACRO_VERSION in .env}
+    restart: unless-stopped
     command: ["/app/out/service"]
     environment:
       OVERRIDE_CONNECTION_GATEWAY_URL: http://connection-gateway:8080

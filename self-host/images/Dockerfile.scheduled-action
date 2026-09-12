@@ -1,0 +1,37 @@
+# syntax=docker/dockerfile:1
+#
+# Standalone image for scheduled_action_service.
+# Built independently from .#deploy-service-binaries-agent-schedule-service
+# to avoid coupling with the main services aggregate.
+FROM debian:trixie-slim
+
+ARG BIN_DIR=bin
+ARG MACRO_VERSION=dev
+ARG GIT_SHA=unknown
+
+LABEL org.opencontainers.image.title="Macro scheduled action service" \
+      org.opencontainers.image.source="https://github.com/KevinLaucn/macro-docker" \
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.version="${MACRO_VERSION}" \
+      org.opencontainers.image.revision="${GIT_SHA}"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates dumb-init curl patchelf \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --system --gid 10001 macro \
+    && useradd --system --uid 10001 --gid macro --home-dir /app --shell /usr/sbin/nologin macro
+
+WORKDIR /app
+COPY ${BIN_DIR}/ /app/out/
+
+# Fix dynamic linker for Nix-built binary on Debian glibc
+RUN patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 /app/out/* && chmod 0755 /app/out/*
+
+ENV PORT=8080
+EXPOSE 8080
+
+USER macro
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["/app/out/service"]

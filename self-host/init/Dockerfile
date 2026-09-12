@@ -13,6 +13,15 @@ FROM oven/bun:1.2-slim AS bun
 
 FROM debian:trixie-slim
 
+ARG MACRO_VERSION=dev
+ARG GIT_SHA=unknown
+
+LABEL org.opencontainers.image.title="Macro init" \
+      org.opencontainers.image.source="https://github.com/KevinLaucn/macro-docker" \
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.version="${MACRO_VERSION}" \
+      org.opencontainers.image.revision="${GIT_SHA}"
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl jq awscli postgresql-client \
     && apt-get clean && rm -rf /var/lib/apt/lists/*

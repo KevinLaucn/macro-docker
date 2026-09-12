@@ -177,7 +177,7 @@ for service in (
     "ai_editing_worker",
 ):
     match = re.search(rf"^  {service}:\n(.*?)(?=^  \w|^volumes:)", compose, re.M | re.S)
-    if service == "document_cognition_service":
+    if service in ("document_cognition_service", "scheduled_action_service"):
         if match and 'profiles: ["full"]' in match.group(1):
             fail(f"{service} must be available in the default Email profile")
     elif not match or 'profiles: ["full"]' not in match.group(1):
@@ -189,9 +189,11 @@ if not web_assets_match:
 else:
     web_assets = web_assets_match.group(1)
     for flag in ("cognition", "scheduledActions", "agents", "docsCollab"):
-        expected = "true" if flag == "cognition" else "false"
+        expected = "true" if flag in ("cognition", "scheduledActions") else "false"
         if f"{flag}: {expected}" not in web_assets and not (
             flag == "cognition" and "cognition: $${ENABLE_COGNITION:-true}" in web_assets
+        ) and not (
+            flag == "scheduledActions" and "scheduledActions: $${ENABLE_SCHEDULED_ACTIONS:-true}" in web_assets
         ) and not (
             flag == "scheduledActions" and "scheduledActions: $${ENABLE_SCHEDULED_ACTIONS:-false}" in web_assets
         ) and not (

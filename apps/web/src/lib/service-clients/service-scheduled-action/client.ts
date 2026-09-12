@@ -33,7 +33,8 @@ function scheduledActionFetch<T extends ObjectLike = never>(
   | Promise<Result<void, ResultError<FetchWithTokenErrorCode>[]>> {
   const capabilities = getAppCapabilities();
   if (!capabilities.scheduledActions) {
-    if (url.includes('/scheduled-actions')) {
+    const isGet = !init?.method || init.method.toUpperCase() === 'GET';
+    if (url.includes('/scheduled-actions') && isGet) {
       return Promise.resolve(ok([] as unknown as T));
     }
     return Promise.resolve(
@@ -55,11 +56,32 @@ export const scheduledActionClient = {
       method: 'GET',
     }),
 
-  createSchedule: async (body: CreateScheduledAction) =>
-    scheduledActionFetch<ScheduledAction>('/scheduled-actions', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
+  createSchedule: async (body: CreateScheduledAction) => {
+    const result = await scheduledActionFetch<ScheduledAction>(
+      '/scheduled-actions',
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }
+    );
+    return result.andThen((schedule) => {
+      if (
+        !schedule ||
+        typeof schedule !== 'object' ||
+        Array.isArray(schedule) ||
+        !schedule.id
+      ) {
+        return err([
+          {
+            code: 'HTTP_ERROR',
+            message:
+              'Invalid schedule returned from server: missing schedule.id',
+          },
+        ] as ResultError<FetchWithTokenErrorCode>[]);
+      }
+      return ok(schedule);
+    });
+  },
 
   updateSchedule: async (args: {
     scheduleId: string;
