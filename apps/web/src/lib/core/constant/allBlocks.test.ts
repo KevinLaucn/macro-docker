@@ -22,7 +22,9 @@ describe('block definition discovery', () => {
       )
       .filter(
         (name): name is string =>
-          typeof name === 'string' && name.length > 0 && !virtualBlockNames.has(name)
+          typeof name === 'string' &&
+          name.length > 0 &&
+          !virtualBlockNames.has(name)
       );
 
     expect(discoveredNames.sort()).toEqual([...ConcreteBlockRegistry].sort());

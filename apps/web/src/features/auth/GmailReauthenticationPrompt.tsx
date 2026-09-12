@@ -28,10 +28,9 @@ export function GmailReauthenticationPrompt() {
     toast: (link, dismiss) => ({
       title: t('Reconnect Gmail'),
       content(): string {
-        return t(
-          'Sync stopped for {email}. Reconnect to restore email sync.',
-          { email: link.email_address }
-        );
+        return t('Sync stopped for {email}. Reconnect to restore email sync.', {
+          email: link.email_address,
+        });
       },
       actions: [
         {
