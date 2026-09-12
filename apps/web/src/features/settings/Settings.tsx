@@ -1,4 +1,5 @@
-import { SelfHostHealth } from '@app/features/self-host-health';
+// PRIVATE-HOOK: self_host_health:settings_import
+
 import { Billing } from '@app/features/settings/Billing';
 import { Bots } from '@app/features/settings/Bots';
 import { PillTabs } from '@components/app/mobile/PillTabs';
@@ -22,6 +23,7 @@ import { isMobile } from '@core/mobile/isMobile';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { activeTabId, setActiveTabId } from '@core/signal/settingsTab';
 import { t } from '@macro/i18n';
+import { SelfHostHealth } from '@macro/self-host-health';
 import ArrowsIn from '@phosphor/arrows-in.svg';
 import ArrowsOut from '@phosphor/arrows-out.svg';
 import CaretLeftIcon from '@phosphor/caret-left.svg';

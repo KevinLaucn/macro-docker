@@ -34,6 +34,7 @@ export function useSplitLayout() {
         handle,
       });
 
+    // PRIVATE-HOOK: layout:deferred-navigation
     if (!splitManager) {
       void whenSplitManagerReady()
         .then(open)

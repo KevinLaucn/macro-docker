@@ -34,7 +34,6 @@
         }
       ],
       "vars": {
-        "POSTHOG_HOST": "https://us.i.posthog.com",
         // Host defaults for a bare `bun run dev`; the docker pool overrides
         // both to http://otel-collector:4318 via --var (see docker-compose.yml).
         "OTLP_TRACES_INTAKE_URL": "http://localhost:4318",

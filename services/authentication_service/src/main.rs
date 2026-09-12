@@ -109,6 +109,7 @@ use tokio_util::task::TaskTracker;
 mod api;
 mod config;
 // PRIVATE-HOOK: self_host_health:features
+#[path = "../../../packages/fork/self-host-health/backend/mod.rs"]
 mod features;
 mod generate_password;
 mod microsoft_token_cipher;
@@ -312,10 +313,12 @@ async fn main() -> anyhow::Result<()> {
     let link_manager_queue = macro_queues::LinkManagerQueue::new();
     let email_backfill_queue = macro_queues::EmailBackfillQueue::new();
     // PRIVATE-HOOK: self_host_health:gmail_queue_probe_wiring
-    let gmail_inbox_sync_queue = macro_queues::GmailInboxSyncQueue::new();
-    let gmail_inbox_sync_retry_queue = macro_queues::GmailInboxSyncRetryQueue::new();
-    let gmail_ops_queue = macro_queues::GmailOpsQueue::new();
-    let gmail_ops_retry_queue = macro_queues::GmailOpsRetryQueue::new();
+    let (
+        gmail_inbox_sync_queue,
+        gmail_inbox_sync_retry_queue,
+        gmail_ops_queue,
+        gmail_ops_retry_queue,
+    ) = crate::features::self_host_health::gmail_probe_queues();
     #[cfg(feature = "full-saas")]
     let ingress_queue = SqsQueue::new(
         aws_sdk_sqs::Client::new(&macro_aws_config::get_macro_aws_config().await),

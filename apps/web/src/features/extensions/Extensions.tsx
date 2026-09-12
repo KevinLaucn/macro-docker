@@ -1,15 +1,15 @@
 import {
-  PixelBlockingSection,
-  ReadReceiptsSection,
-} from '@app/features/email-read-receipts';
-import { EmailTranslationSection } from '@app/features/email-translation';
-import {
   SettingsCard,
   SettingsPage,
   SettingsRow,
   SettingsSection,
 } from '@app/features/settings/primitives';
 import { DropdownMenu as KobalteDropdownMenu } from '@kobalte/core/dropdown-menu';
+import { EmailTranslationSection } from '@macro/email-translation';
+import {
+  PixelBlockingSection,
+  ReadReceiptsSection,
+} from '@macro/fork-read-receipts';
 import { locale, type SupportedLocale, setLocale, t } from '@macro/i18n';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import CheckIcon from '@phosphor/check.svg';

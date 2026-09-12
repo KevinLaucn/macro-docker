@@ -1,0 +1,26 @@
+{
+  "name": "@macro/fork-read-receipts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./frontend/index.ts",
+    "./client": "./frontend/client.ts",
+    "./legacy": "./frontend/legacy.ts",
+    "./legacy-queries": "./frontend/legacy-queries.ts",
+    "./legacy-settings": "./frontend/LegacyReadReceiptsSection.tsx",
+    "./utils": "./frontend/utils.ts",
+    "./queries": "./frontend/queries.ts"
+  },
+  "scripts": {
+    "test": "cd ../../../apps/web && bunx vitest run --config vitest.config.ts --project fork-read-receipts",
+    "type-check": "bunx tsc --project tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@macro/i18n": "workspace:*",
+    "@tanstack/solid-query": "5.90.3",
+    "date-fns": "^4.1.0",
+    "neverthrow": "^8.2.0",
+    "solid-js": "^1.9.7"
+  }
+}

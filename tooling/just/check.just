@@ -14,6 +14,14 @@
 private-hook-check:
     ruby .github/scripts/check-private-hooks.rb
 
+fork-gate:
+    ruby .github/scripts/check-private-hooks.rb
+    ruby .github/scripts/check-fork-overrides.rb --check
+    ruby .github/scripts/check-fork-retirements.rb --upstream "${CHECK_BASE:-upstream/main}"
+    ruby .github/scripts/check-zero-cloud.rb --base "${CHECK_BASE:-upstream/main}" --head HEAD
+    ruby .github/scripts/check-telemetry-privacy.rb --base "${CHECK_BASE:-upstream/main}" --head HEAD
+    ruby .github/scripts/check-upstream-overlap.rb --base "${CHECK_BASE:-upstream/main}" --head HEAD
+
 check *ARGS:
     #!/usr/bin/env bash
     set -uo pipefail

@@ -70,7 +70,7 @@
 			"packages/collaboration",
 			"packages/loro-mirror",
 			"packages/lexical-core",
-			"packages/i18n",
+			"packages/fork/*",
 			"services/ai-editing-worker",
 			"services/bots/anthropic-status-bot",
 			"services/bots/stripe-payment-bot",

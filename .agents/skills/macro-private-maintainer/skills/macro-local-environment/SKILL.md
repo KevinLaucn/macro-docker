@@ -5,6 +5,10 @@ description: Local development, macOS Docker runtime, local stack, headless stac
 
 # Macro Local Environment
 
+Fork 二开实现默认放在 `packages/fork/<feature>/`。修改 upstream-owned 文件时只保留最小
+接入层，并同步登记 `.fork/private-hooks.yml` 与 `.fork/customizations.yml`；不要把完整二开
+业务逻辑散落进官方目录。
+
 Use this skill for any task involving local development, macOS Docker runtime, local stack startup, `run_local`, `run_dev`, `doctor-local`, `status_local`, `stack`, local service image builds, port conflicts, or local production/CI parity checks.
 
 ## First Step

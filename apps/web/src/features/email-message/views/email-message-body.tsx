@@ -1,11 +1,9 @@
-import {
-  emailTranslationEnabled,
-  getCachedMessageTranslation,
-  isMessageTranslated,
-  isTranslationSupported,
-} from '@app/features/email-translation';
 import { StaticMarkdown } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { channelTheme } from '@core/component/LexicalMarkdown/theme';
+import {
+  EmailTranslationMarkdown,
+  useEmailMessageTranslation,
+} from '@macro/email-translation';
 import DotsThree from '@phosphor/dots-three.svg';
 import { Button, cn } from '@ui';
 import { Match, Show, Switch } from 'solid-js';
@@ -16,26 +14,17 @@ import {
   type EmailMessageBodyProps,
 } from '../primitives/email-message-body';
 export function EmailMessageBody(props: EmailMessageBodyProps) {
-  const messageId = () => props.message.db_id;
-  const threadId = () => props.message.thread_db_id;
-  const isTranslated = () =>
-    emailTranslationEnabled() &&
-    isTranslationSupported() &&
-    isMessageTranslated(threadId(), messageId());
-  const cachedTranslation = () => getCachedMessageTranslation(messageId());
-  const translatedHtml = () =>
-    isTranslated() ? cachedTranslation()?.translatedHtml : undefined;
-  const translatedReplylessHtml = () =>
-    isTranslated() ? cachedTranslation()?.translatedReplylessHtml : undefined;
+  // PRIVATE-HOOK: email_translation:body-state
+  const translation = useEmailMessageTranslation(() => props.message);
   const { showFullHTML, setShowFullHTML, host, hasHiddenReplyStructure } =
     createEmailMessageBody(
       {
         ...props,
         get translatedHtml() {
-          return translatedHtml();
+          return translation.translatedHtml();
         },
         get translatedReplylessHtml() {
-          return translatedReplylessHtml();
+          return translation.translatedReplylessHtml();
         },
       },
       useEmailRenderingContext()
@@ -62,16 +51,10 @@ export function EmailMessageBody(props: EmailMessageBodyProps) {
       >
         <Switch>
           {/* PRIVATE-HOOK: email_translation:body-markdown */}
-          <Match when={isTranslated() && cachedTranslation()?.translatedText}>
-            {(translatedText) => {
-              return (
-                <StaticMarkdown
-                  markdown={translatedText()}
-                  theme={channelTheme}
-                  target="internal"
-                />
-              );
-            }}
+          <Match when={translation.translatedText()}>
+            {(translatedText) => (
+              <EmailTranslationMarkdown text={translatedText()} />
+            )}
           </Match>
           {/* If available, we use body_macro to render "Macro-fied" email content in static markdown with, e.g. correctly styled document mentions. */}
           <Match when={!showFullHTML() && props.message.body_macro}>

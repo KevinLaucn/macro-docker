@@ -48,6 +48,8 @@ SERVICE_ROOTS: dict[str, str] = {
     "localstack-provisioner": "xtask_local",
 }
 
+FORK_BACKEND_PREFIX = "packages/fork/"
+
 # These inputs change the derivation graph/toolchain or files copied into every
 # pruned Email source. They intentionally invalidate every Email service.
 FULL_SERVICE_EXACT = {
@@ -265,6 +267,28 @@ def compute_service_targets(
         for path in changed
     ):
         return [f"self-host-email-{name}" for name in SERVICE_ROOTS]
+
+    # A private backend module is local to its owning service only after the
+    # global invalidation cases above have been ruled out. Otherwise a commit
+    # that changes both a Fork backend and Cargo/Nix inputs could silently
+    # rebuild only auth/email while leaving other production services stale.
+    fork_targets: set[str] = set()
+    if any(
+        path.startswith(f"{FORK_BACKEND_PREFIX}self-host-health/backend/")
+        for path in changed
+    ):
+        fork_targets.add("self-host-email-authentication-service")
+    if any(
+        path.startswith(f"{FORK_BACKEND_PREFIX}read-receipts/backend/")
+        for path in changed
+    ):
+        fork_targets.add("self-host-email-email-service")
+    if fork_targets:
+        return [
+            f"self-host-email-{service_name}"
+            for service_name in SERVICE_ROOTS
+            if f"self-host-email-{service_name}" in fork_targets
+        ]
 
     affected: list[str] = []
     for service_name, package_name in SERVICE_ROOTS.items():

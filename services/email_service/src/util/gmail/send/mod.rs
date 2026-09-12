@@ -1,7 +1,9 @@
 use crate::outbound::email_api::GmailApi;
 use anyhow::Context;
 
-mod open_tracking;
+// PRIVATE-HOOK: read_receipts:registration
+#[path = "../../../../../../packages/fork/read-receipts/backend/service/send.rs"]
+mod read_receipts_send;
 use models_email::service::attachment::{AttachmentDraft, AttachmentToSend};
 use models_email::service::link::Link;
 use models_email::service::message;
@@ -168,15 +170,9 @@ pub async fn fetch_and_attach_forwarded_attachments(
     Ok(())
 }
 
-/// Embed a read-receipt tracking pixel in the outgoing HTML when the sending
-/// inbox has read receipts enabled.
-///
-/// Existing Macro tracking pixels are stripped first so replies never resend
-/// or retrigger pixels from quoted sent messages. Tracking is deliberately
-/// best-effort: a tracking failure must never block delivery of the email.
 // PRIVATE-HOOK: read_receipts:send
 pub async fn attach_open_tracking_pixel(db: &PgPool, message_to_send: &mut message::MessageToSend) {
-    self::open_tracking::attach_open_tracking_pixel(db, message_to_send).await;
+    self::read_receipts_send::attach_open_tracking_pixel(db, message_to_send).await;
 }
 
 #[tracing::instrument(skip(db, s3_client))]

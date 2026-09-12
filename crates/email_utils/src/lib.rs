@@ -3,6 +3,8 @@ pub mod body_replyless;
 pub mod generic_email;
 pub mod normalize_contact;
 pub mod open_tracking;
+// PRIVATE-HOOK: read_receipts:module
+#[path = "../../../packages/fork/read-receipts/backend/utils/mod.rs"]
 pub mod read_receipts;
 pub mod sanitizer;
 pub mod token_cache_key;

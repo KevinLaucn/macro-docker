@@ -63,10 +63,28 @@
         "./src/lib/core/*"
       ],
       "@macro/i18n": [
-        "../../packages/i18n/context.tsx"
+        "../../packages/fork/i18n/context.tsx"
       ],
       "@macro/i18n/*": [
-        "../../packages/i18n/*"
+        "../../packages/fork/i18n/*"
+      ],
+      "@macro/fork-read-receipts": [
+        "../../packages/fork/read-receipts/frontend/index.ts"
+      ],
+      "@macro/fork-read-receipts/*": [
+        "../../packages/fork/read-receipts/frontend/*"
+      ],
+      "@macro/email-translation": [
+        "../../packages/fork/email-translation/index.ts"
+      ],
+      "@macro/email-translation/*": [
+        "../../packages/fork/email-translation/*"
+      ],
+      "@macro/self-host-health": [
+        "../../packages/fork/self-host-health/index.ts"
+      ],
+      "@macro/self-host-health/*": [
+        "../../packages/fork/self-host-health/*"
       ],
       "@macro/tauri": [
         "./src/lib/tauri"

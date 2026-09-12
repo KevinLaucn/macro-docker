@@ -24,7 +24,6 @@ import { MacroMcpSetupModal } from '@app/features/integrations/mcp-setup/MacroMc
 import { Paywall } from '@app/features/paywall/Paywall';
 import { PropertyEditorModal } from '@app/features/property/editor/PropertyEditorModal';
 import { ReminderComposerModal } from '@app/features/reminders/ReminderComposerModal';
-import { SelfHostHealthPrompt } from '@app/features/self-host-health';
 import { useOnboardingV4Flag } from '@app/features/setup/flow/useOnboardingV4Flag';
 import { GlobalShareModal } from '@app/features/sharing/global-share-modal/GlobalShareModal';
 import { IosShareSheet } from '@app/features/sharing/ios-share-sheet/IosShareSheet';
@@ -55,6 +54,8 @@ import { isNativeMobilePlatform } from '@core/mobile/isNativeMobilePlatform';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { virtualKeyboardVisible } from '@core/mobile/virtualKeyboard';
 import { updateCookie } from '@core/util/cookies';
+// PRIVATE-HOOK: self_host_health:prompt_import
+import { SelfHostHealthPrompt } from '@macro/self-host-health';
 import { useUserInfoQuery } from '@queries/auth/user-info';
 import { makePersisted } from '@solid-primitives/storage';
 import {

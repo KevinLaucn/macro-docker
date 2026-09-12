@@ -54,21 +54,7 @@ pub async fn fetch_settings(
     Ok(service::settings::Settings::from(result))
 }
 
-/// Returns whether read receipts (open tracking on outgoing mail) are enabled
-/// for a link. Links without a settings row use the feature default: enabled.
-#[tracing::instrument(skip(pool), err)]
-pub async fn fetch_read_receipts_enabled(pool: &PgPool, link_id: Uuid) -> anyhow::Result<bool> {
-    crate::read_receipts::settings::fetch_read_receipts_enabled(pool, link_id).await
-}
-
-/// Updates only the read-receipt preference without touching signature
-/// settings. Creates the settings row with the existing signature defaults when
-/// necessary.
-#[tracing::instrument(skip(pool), err)]
-pub async fn set_read_receipts_enabled(
-    pool: &PgPool,
-    link_id: Uuid,
-    enabled: bool,
-) -> anyhow::Result<bool> {
-    crate::read_receipts::settings::set_read_receipts_enabled(pool, link_id, enabled).await
-}
+// PRIVATE-HOOK: read_receipts:legacy-settings-api
+pub use crate::read_receipts::settings::{
+    fetch_read_receipts_enabled, set_read_receipts_enabled,
+};

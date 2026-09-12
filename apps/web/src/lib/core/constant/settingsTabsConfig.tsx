@@ -7,6 +7,7 @@ import BuildingsIcon from '@phosphor/buildings.svg';
 import CpuIcon from '@phosphor/cpu.svg';
 import CreditCardIcon from '@phosphor/credit-card.svg';
 import HardDrivesIcon from '@phosphor/hard-drives.svg';
+// PRIVATE-HOOK: self_host_health:settings_icon
 import HeartbeatIcon from '@phosphor/heartbeat.svg';
 import KeyIcon from '@phosphor/key.svg';
 import KeyboardIcon from '@phosphor/keyboard.svg';
@@ -89,6 +90,7 @@ export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
     label: 'Admin',
     items: [
       { tab: 'Admin', label: 'Debug', icon: BugIcon },
+      // PRIVATE-HOOK: self_host_health:settings_item
       { tab: 'SelfHostHealth', label: t('Health Check'), icon: HeartbeatIcon },
     ],
   },
@@ -126,6 +128,7 @@ const SETTINGS_TAB_SLUGS: Record<SettingsTab, string> = {
   Email: 'email',
   GitHub: 'github',
   Admin: 'admin',
+  // PRIVATE-HOOK: self_host_health:settings_slug
   SelfHostHealth: 'health-check',
   Extensions: 'extensions',
 };
@@ -192,7 +195,7 @@ export const useSettingsTabAvailable = () => {
       case 'Shortcuts':
         return !isTouchDevice();
       case 'Agent':
-        return false;
+        return true;
       // Configurable agents are still rolling out; keep both tabs behind the
       // same enable-chat-v3-agents gate as the channel mention surfaces, so
       // settings never advertises agents to a user who cannot mention one.

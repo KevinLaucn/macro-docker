@@ -76,7 +76,7 @@ for name, text in release_owned_texts.items():
 
 # The production health probe is compiled into authentication_service and DSS
 # must use its declared contract key, never the generic internal API key.
-probes = (ROOT / "services/authentication_service/src/features/self_host_health/probes.rs").read_text()
+probes = (ROOT / "packages/fork/self-host-health/backend/self_host_health/probes.rs").read_text()
 auth_match = re.search(r"^  authentication-service:\n(.*?)(?=^  \w|^volumes:)", compose, re.M | re.S)
 if not auth_match or "DOCUMENT_STORAGE_SERVICE_AUTH_KEY" not in auth_match.group(1):
     fail("authentication-service must receive DOCUMENT_STORAGE_SERVICE_AUTH_KEY")

@@ -8,6 +8,8 @@ pub mod links;
 pub mod links_history;
 pub mod messages;
 pub mod parse;
+// PRIVATE-HOOK: read_receipts:module
+#[path = "../../../packages/fork/read-receipts/backend/db/mod.rs"]
 pub mod read_receipts;
 pub mod settings;
 pub mod sfs_mappings;

@@ -10,8 +10,8 @@
    - 历史架构通过 Babel 插件在构建阶段对所有 JSX 文本自动插入 `__t()`，导致源码不可见、二开容易产生构建副作用、混淆动态模板与静态字面量。
    - 新架构全面采用显式 `t()` 运行时：`import { t } from '@macro/i18n';`。
 2. **保留现有轻量运行时与翻译资产**：
-   - 轻量运行时位于 `packages/i18n/runtime.ts`，支持响应式切换、对象选项（`{ context, fallback }`）、变量插值以及常用日期/数字格式化。
-   - 翻译资产集中于 `packages/i18n/locales/zh-CN.json`，以英文原文作为 fallback key，无需额外拆分为零散的语义 key 文件。
+   - 轻量运行时位于 `packages/fork/i18n/runtime.ts`，支持响应式切换、对象选项（`{ context, fallback }`）、变量插值以及常用日期/数字格式化。
+   - 翻译资产集中于 `packages/fork/i18n/locales/zh-CN.json`，以英文原文作为 fallback key，无需额外拆分为零散的语义 key 文件。
 3. **渐进式排除与物理退役（Exclude & Sunset）**：
    - 在 `apps/web/vite.base.ts` 中通过 `i18nAstPlugin({ excludePatterns: [...] })` 将已改造或自研的二开模块显式排除在 AST 转换之外。
    - 随着二开范围覆盖所有业务模块，最终直接移除 Babel AST 插件与转换逻辑。
@@ -79,21 +79,21 @@ i18nAstPlugin({
 用于只读扫描代码中遗漏未包裹 `t()` 的 JSX 文本或属性：
 ```bash
 # 全局扫描（发布前或大重构使用）
-bun run packages/i18n/audit.ts
+bun run packages/fork/i18n/audit.ts
 
 # 定向单文件检查（按需）
-bun run packages/i18n/audit.ts apps/web/src/features/settings/Settings.tsx
+bun run packages/fork/i18n/audit.ts apps/web/src/features/settings/Settings.tsx
 ```
 
 ### 2. 词条提取与缺失核验 (`extract.ts`)
 用于批量提取全局显式 `t()` 词条并检测 `zh-CN.json` 缺失情况：
 ```bash
-bun run packages/i18n/extract.ts
+bun run packages/fork/i18n/extract.ts
 ```
 
 ### 3. 单元测试校验
 ```bash
-bun test packages/i18n
+bun test packages/fork/i18n
 ```
 
 ---
@@ -101,7 +101,7 @@ bun test packages/i18n
 ## Git 远端推送前门禁 (Pre-push CI & Audit Gate)
 在向 GitHub 远端提交/推送代码前，可按需运行：
 ```bash
-bun run packages/i18n/extract.ts
+bun run packages/fork/i18n/extract.ts
 just check
 ```
 确保全库词条无缺失、格式与语法树门禁全部绿灯。
