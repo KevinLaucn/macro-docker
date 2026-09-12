@@ -52,7 +52,8 @@ RUN --mount=type=cache,id=macro-sync-cargo-registry,target=/usr/local/cargo/regi
 
 # Runtime: wrangler dev serving the prebuilt worker. Needs node + the
 # production npm deps (wrangler brings miniflare/workerd along), the built
-# worker, the wrangler config, and the D1 migrations — nothing else.
+# worker, the wrangler config, and the D1 migrations — nothing else. Keep this
+# image independently publishable for the self-host worker.
 FROM node:22-bookworm-slim
 
 ARG MACRO_VERSION=dev
