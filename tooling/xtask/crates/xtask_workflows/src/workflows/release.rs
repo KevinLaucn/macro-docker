@@ -4,7 +4,7 @@
 
 use gh_workflow::{Event, Job, Level, Permissions, Push, Run, Step, Workflow, WorkflowDispatch};
 
-use crate::workflows::{runners, steps};
+use crate::workflows::steps;
 
 /// Build the workflow.
 pub fn release() -> Workflow {
@@ -22,7 +22,10 @@ pub fn release() -> Workflow {
 fn release_job() -> Job {
     Job::default()
         .name("Tag and publish release")
-        .runs_on(runners::Runner::TinyNoCache.to_string())
+        // GitHub Release publication must use a runner available to this
+        // repository. Namespace profile labels are not guaranteed to exist
+        // on the public GitHub Actions pool and leave the job queued forever.
+        .runs_on("ubuntu-latest")
         .add_step(steps::checkout(true, true))
         .add_step(tag_release())
         .add_step(package_release())
