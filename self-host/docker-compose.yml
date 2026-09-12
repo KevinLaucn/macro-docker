@@ -11,7 +11,7 @@ name: macro-selfhost
 
 x-env: &env
   env_file:
-    - .env
+    - ${MACRO_SHARED_ENV_FILE:-.env}
 
 x-service: &service
   <<: *env

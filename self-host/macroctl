@@ -33,6 +33,9 @@ if [[ "$RELEASE_DIR" == "$RELEASE_ROOT/"* ]] || [ -f "$SHARED_ENV_FILE" ]; then
 else
   ENV_FILE=.env
 fi
+# Compose service-level env_file entries use this exported value as well as
+# interpolation. Installed releases therefore never need a per-release .env.
+export MACRO_SHARED_ENV_FILE="$ENV_FILE"
 COMPOSE=(docker compose --env-file "$ENV_FILE" -f docker-compose.yml)
 
 red()  { printf '\033[31m%s\033[0m\n' "$*"; }
@@ -388,7 +391,7 @@ cmd_backup() {
   bold "Backing up to $dir"
 
   # shellcheck disable=SC1090
-  set -a; . "./$ENV_FILE"; set +a
+  set -a; . "$ENV_FILE"; set +a
 
   echo "  postgres"
   "${COMPOSE[@]}" exec -T postgres \
@@ -427,7 +430,7 @@ cmd_restore() {
   [ "$confirm" = "RESTORE" ] || die "aborted"
 
   # shellcheck disable=SC1090
-  set -a; . "./$ENV_FILE"; set +a
+  set -a; . "$ENV_FILE"; set +a
 
   "${COMPOSE[@]}" up -d postgres fusionauth_db localstack
   sleep 5
