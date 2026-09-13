@@ -5,7 +5,8 @@ import { t } from '@macro/i18n';
 import CircleNotch from '@phosphor/circle-notch.svg';
 import TranslateIcon from '@phosphor/translate.svg';
 import { Button, cn, Tooltip } from '@ui';
-import { Show } from 'solid-js';
+import { type Accessor, Show } from 'solid-js';
+import type { EmailListTranslationItem } from './emailListTranslation';
 import {
   clearAllRowTranslations,
   isEmailListTranslated,
@@ -17,6 +18,8 @@ import { isTranslationSupported } from './translatorClient';
 export function SoupListTranslateButton(props: {
   hideLabel?: boolean;
   class?: string;
+  forceVisible?: boolean;
+  emailItems?: Accessor<EmailListTranslationItem[]>;
 }) {
   const soup = useMaybeSoup();
   const panel = useSplitPanelOrThrow();
@@ -36,6 +39,7 @@ export function SoupListTranslateButton(props: {
   const isSupported = () => isTranslationSupported();
 
   const emailItems = () => {
+    if (props.emailItems) return props.emailItems();
     const rows = soup?.items.rows() ?? [];
     return rows
       .map((r) => r.original)
@@ -66,7 +70,7 @@ export function SoupListTranslateButton(props: {
         : t('Translate');
 
   return (
-    <Show when={isEmailListView()}>
+    <Show when={props.forceVisible || isEmailListView()}>
       <Tooltip
         shortcut={hasEmailRows() && !isTranslating() ? 'q' : undefined}
         label={label()}

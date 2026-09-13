@@ -192,6 +192,9 @@ customizations:
       - apps/web/src/features/extensions/Extensions.tsx
       - apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
       - apps/web/src/features/email-view/components/EmailControls.tsx
+      - apps/web/src/features/email-view/components/EmailList.tsx
+      - apps/web/src/features/email-view/email-list-translation-context.tsx
+      - apps/web/src/features/email-view/email-view.tsx
       - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
       - .fork/private-hooks.yml
     tests:

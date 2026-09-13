@@ -22,6 +22,7 @@ import { EmailList } from './components/EmailList';
 import { EmailSidebar } from './components/EmailSidebar';
 import { EMAIL_TABS } from './constants';
 import { EmailViewProvider, useEmailView } from './email-view-context';
+import { EmailListTranslationProvider } from './email-list-translation-context';
 import type { EmailTab, EmailViewStateOptions } from './types';
 
 export type EmailViewProps = {
@@ -121,9 +122,10 @@ function EmailViewRoot() {
   );
 
   return (
-    <ListEntityMetadataQueryProvider>
-      <StaticMarkdownContext>
-        <SplitPanel.Root>
+    <EmailListTranslationProvider>
+      <ListEntityMetadataQueryProvider>
+        <StaticMarkdownContext>
+          <SplitPanel.Root>
           <SplitPanel.Body>
             <Show
               when={isTouchDevice()}
@@ -138,9 +140,10 @@ function EmailViewRoot() {
               <EmailMobileLayout>{list()}</EmailMobileLayout>
             </Show>
           </SplitPanel.Body>
-        </SplitPanel.Root>
-      </StaticMarkdownContext>
-    </ListEntityMetadataQueryProvider>
+          </SplitPanel.Root>
+        </StaticMarkdownContext>
+      </ListEntityMetadataQueryProvider>
+    </EmailListTranslationProvider>
   );
 }
 

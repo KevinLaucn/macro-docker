@@ -58,6 +58,7 @@ import {
   soupNavigationTouchHighlight,
 } from '../../next-soup/soup-view/soup-navigation-touch-highlight';
 import { openEntityInSplitFromUnifiedList } from '../../next-soup/utils';
+import { useEmailListTranslationContext } from '../email-list-translation-context';
 import { useEmailView } from '../email-view-context';
 import {
   createEmailListEntryStorage,
@@ -89,6 +90,7 @@ export type EmailListProps = {
 
 export function EmailList(props: EmailListProps) {
   const { state, setOpenThreadId } = useEmailView();
+  const translation = useEmailListTranslationContext();
   const panel = useSplitPanelOrThrow();
 
   const tagSets = useTagSets();
@@ -226,6 +228,22 @@ export function EmailList(props: EmailListProps) {
   );
 
   const rows = source.items;
+
+  createEffect(() => {
+    translation.setItems(
+      rows().flatMap((row) =>
+        row.kind === 'entity' && row.entity.type === 'email'
+          ? [
+              {
+                id: row.entity.id,
+                name: row.entity.name,
+                snippet: row.entity.snippet,
+              },
+            ]
+          : []
+      )
+    );
+  });
 
   const swipeRowsByEntityId = createMemo(() => {
     const entities = new Map<string, EmailActionRow>();
