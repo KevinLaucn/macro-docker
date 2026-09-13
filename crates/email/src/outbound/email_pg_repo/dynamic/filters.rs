@@ -228,9 +228,7 @@ fn build_thread_literal_predicate(
             SqlFragment::raw(format!("{thread_alias}.has_calendar_attachment"))
         }
         EmailLiteral::CalendarOnly(false) => SqlFragment::raw("TRUE"),
-        EmailLiteral::Importance(true) => {
-            SqlFragment::raw(build_email_active_important_predicate(thread_alias))
-        }
+        EmailLiteral::Importance(true) => SqlFragment::raw(format!("{thread_alias}.is_signal")),
         EmailLiteral::Importance(false) => {
             SqlFragment::raw(format!("(NOT {thread_alias}.is_signal)"))
         }
@@ -1007,12 +1005,8 @@ pub(super) fn escape_like_pattern(s: &str) -> String {
 /// Builds thread-level WHERE conditions based on the view type
 pub(super) fn build_view_thread_filter(view: &PreviewView) -> SqlFragment {
     match view {
-        // [二开规则 - 统一收件箱自定义待跟进第一优先放行]
-        // 官方原版为: AND t.inbox_visible = TRUE AND t.latest_inbound_message_ts IS NOT NULL
-        // 二开策略: 只要标记了待跟进 (follow_up_required = true)，优先第一位无条件放行入统一收件箱；
-        // 否则按默认逻辑 (inbox_visible 且有来信时间戳) 准入。后续同步上游时以此二开规则为准，禁止覆盖。
         PreviewView::StandardLabel(PreviewViewStandardLabel::Inbox) => SqlFragment::raw(
-            " AND (t.follow_up_required = TRUE OR (t.inbox_visible = TRUE AND t.latest_inbound_message_ts IS NOT NULL))",
+            " AND t.inbox_visible = TRUE AND t.latest_inbound_message_ts IS NOT NULL",
         ),
         PreviewView::StandardLabel(PreviewViewStandardLabel::Sent) => {
             SqlFragment::raw(" AND t.latest_outbound_message_ts IS NOT NULL")
@@ -1116,42 +1110,4 @@ pub(super) fn build_lateral_trash_exclusion(resolved: &ResolvedFilters) -> SqlFr
           )"#,
     );
     f
-}
-
-/// Builds the SQL predicate for checking if an email thread's workflow is active.
-/// Does NOT use updated_at.
-/// Equivalent to:
-/// `(follow_up_completed_at IS NULL OR latest_inbound > follow_up_completed_at OR latest_outbound > follow_up_completed_at)`
-pub fn build_email_workflow_active_predicate(thread_alias: &str) -> String {
-    format!(
-        "({thread_alias}.follow_up_completed_at IS NULL OR ({thread_alias}.latest_inbound_message_ts IS NOT NULL AND {thread_alias}.latest_inbound_message_ts > {thread_alias}.follow_up_completed_at) OR ({thread_alias}.latest_outbound_message_ts IS NOT NULL AND {thread_alias}.latest_outbound_message_ts > {thread_alias}.follow_up_completed_at))"
-    )
-}
-
-/// Builds the SQL predicate for checking if an email thread is active important.
-/// Equivalent to `(is_signal OR follow_up_required) AND workflow_active`.
-pub fn build_email_active_important_predicate(thread_alias: &str) -> String {
-    format!(
-        "(({thread_alias}.is_signal OR {thread_alias}.follow_up_required) AND {})",
-        build_email_workflow_active_predicate(thread_alias)
-    )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_email_active_important_predicate_sql_structure() {
-        let predicate = build_email_active_important_predicate("t");
-        assert!(predicate.contains("(t.is_signal OR t.follow_up_required) AND"));
-        assert!(predicate.contains("t.follow_up_completed_at IS NULL"));
-        assert!(predicate.contains("t.latest_inbound_message_ts > t.follow_up_completed_at"));
-        assert!(predicate.contains("t.latest_outbound_message_ts > t.follow_up_completed_at"));
-        assert!(!predicate.contains("updated_at"));
-
-        let alias_et = build_email_active_important_predicate("et");
-        assert!(alias_et.contains("(et.is_signal OR et.follow_up_required) AND"));
-        assert!(alias_et.contains("et.follow_up_completed_at IS NULL"));
-    }
 }

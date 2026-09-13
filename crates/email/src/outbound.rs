@@ -6,10 +6,7 @@ mod email_service_http;
 mod gmail_token_provider;
 
 #[cfg(feature = "outbound")]
-pub use email_pg_repo::{
-    EmailPgRepo,
-    dynamic::{build_email_active_important_predicate, build_email_workflow_active_predicate},
-};
+pub use email_pg_repo::EmailPgRepo;
 #[cfg(feature = "http_client")]
 pub use email_service_http::EmailServiceHttpClient;
 #[cfg(feature = "gmail_token")]

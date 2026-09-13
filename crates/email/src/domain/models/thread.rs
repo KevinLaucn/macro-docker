@@ -45,28 +45,9 @@ pub struct ThreadRow {
 }
 
 /// Computes authoritative Macro email workflow completion.
-/// An email workflow is done when `follow_up_completed_at` is set,
-/// and is not earlier than the latest real email activity (max of inbound and outbound ts).
-pub fn is_email_workflow_done(
-    follow_up_completed_at: Option<DateTime<Utc>>,
-    latest_inbound_message_ts: Option<DateTime<Utc>>,
-    latest_outbound_message_ts: Option<DateTime<Utc>>,
-) -> bool {
-    match follow_up_completed_at {
-        None => false,
-        Some(completed_at) => {
-            let latest_activity = match (latest_inbound_message_ts, latest_outbound_message_ts) {
-                (Some(a), Some(b)) => Some(std::cmp::max(a, b)),
-                (Some(a), None) => Some(a),
-                (None, Some(b)) => Some(b),
-                (None, None) => None,
-            };
-
-            latest_activity
-                .map(|activity| completed_at >= activity)
-                .unwrap_or(true)
-        }
-    }
+/// An email workflow is done when the thread is not visible in inbox (!inbox_visible).
+pub fn is_email_workflow_done(inbox_visible: bool) -> bool {
+    !inbox_visible
 }
 
 /// A fully assembled email thread with paginated messages.
@@ -81,50 +62,10 @@ pub struct Thread {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{Duration, TimeZone, Utc};
 
     #[test]
-    fn test_workflow_done_cases_a_through_i() {
-        let t1 = Utc.with_ymd_and_hms(2026, 9, 1, 10, 0, 0).unwrap();
-        let t2 = t1 + Duration::hours(1);
-        let t3 = t2 + Duration::hours(1);
-        let t4 = t3 + Duration::hours(1);
-        let t5 = t4 + Duration::hours(1);
-
-        // Case A: 正常 inbound，未完成
-        // completed = None, latest_inbound = T1 => workflow_done = false
-        assert!(!is_email_workflow_done(None, Some(t1), None));
-
-        // Case B: Mark Done
-        // completed = T2 (T2 > T1) => workflow_done = true
-        assert!(is_email_workflow_done(Some(t2), Some(t1), None));
-
-        // Case C: Done 后 outbound
-        // completed = T2, latest_outbound = T3 (T3 > T2) => workflow_done = false
-        assert!(!is_email_workflow_done(Some(t2), Some(t1), Some(t3)));
-
-        // Case D: 再次 Done
-        // completed = T4 (T4 > T3) => workflow_done = true
-        assert!(is_email_workflow_done(Some(t4), Some(t1), Some(t3)));
-
-        // Case E: 新 inbound
-        // latest_inbound = T5 (T5 > T4) => workflow_done = false
-        assert!(!is_email_workflow_done(Some(t4), Some(t5), Some(t3)));
-
-        // Case F: send-only Mark Done
-        // latest_inbound = None, latest_outbound = T1, completed = T2 (T2 > T1) => workflow_done = true
-        assert!(is_email_workflow_done(Some(t2), None, Some(t1)));
-
-        // Case G: send-only Mark Not Done
-        // completed = None => workflow_done = false
-        assert!(!is_email_workflow_done(None, None, Some(t1)));
-
-        // Case H: 无 activity timestamp
-        // latest_inbound = None, latest_outbound = None, completed = T1 => workflow_done = true
-        assert!(is_email_workflow_done(Some(t1), None, None));
-
-        // Case I: updated_at 变化不影响 workflow_done（验证接口设计和时间戳逻辑排除 updated_at）
-        // 只要 completed >= max(inbound, outbound)，无论外部更新时间是多少，workflow_done 恒为 true
-        assert!(is_email_workflow_done(Some(t2), Some(t1), None));
+    fn test_workflow_done() {
+        assert!(!is_email_workflow_done(true));
+        assert!(is_email_workflow_done(false));
     }
 }

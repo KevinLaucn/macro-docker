@@ -7,6 +7,27 @@ import { themeUpdate } from '../theme/signals/themeSignals';
 import type { EmailRenderingContextValue } from './context/email-rendering-context';
 import { fetchImagesViaPlatform, resolveCidImages } from './image-adapter';
 
+function proxyEmailImageUrl(url: string): string {
+  // PRIVATE-HOOK: self_host_media:bypass-proxy
+  if (isSelfHostedStaticFileUrl(url)) return url;
+  return `${SERVER_HOSTS['image-proxy-service']}/proxy?url=${encodeURIComponent(url)}`;
+}
+
+function isSelfHostedStaticFileUrl(url: string): boolean {
+  if (typeof globalThis.location?.origin !== 'string') return false;
+  try {
+    const staticFile = new URL(SERVER_HOSTS['static-file'], globalThis.location.origin);
+    const candidate = new URL(url);
+    return (
+      staticFile.origin === globalThis.location.origin &&
+      candidate.origin === staticFile.origin &&
+      candidate.pathname.startsWith('/static-file/file/')
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function createEmailRenderingContext(): EmailRenderingContextValue {
   const theme = createMemo(() => {
     themeUpdate();
@@ -25,7 +46,7 @@ export function createEmailRenderingContext(): EmailRenderingContextValue {
     images: {
       remote: 'allow',
       proxyUrl: ENABLE_PROXY_EMAIL_IMAGES
-        ? `${SERVER_HOSTS['image-proxy-service']}/proxy`
+        ? proxyEmailImageUrl
         : undefined,
     },
     prepareLinks: interceptMailtoLinks,

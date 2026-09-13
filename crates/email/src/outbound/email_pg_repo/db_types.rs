@@ -120,19 +120,15 @@ impl ThreadPreviewCursorDbRow {
             viewed_at,
             created_at,
             updated_at,
-            follow_up_completed_at,
-            latest_inbound_message_ts,
-            latest_outbound_message_ts,
+            follow_up_completed_at: _,
+            latest_inbound_message_ts: _,
+            latest_outbound_message_ts: _,
             project_id,
             owner_id,
             link_id,
         } = self;
 
-        let workflow_done = crate::domain::models::is_email_workflow_done(
-            follow_up_completed_at,
-            latest_inbound_message_ts,
-            latest_outbound_message_ts,
-        );
+        let workflow_done = crate::domain::models::is_email_workflow_done(inbox_visible);
 
         EmailThreadPreview {
             id,
@@ -199,11 +195,7 @@ pub struct DbThreadRow {
 
 impl From<DbThreadRow> for ThreadRow {
     fn from(row: DbThreadRow) -> Self {
-        let workflow_done = crate::domain::models::is_email_workflow_done(
-            row.follow_up_completed_at,
-            row.latest_inbound_message_ts,
-            row.latest_outbound_message_ts,
-        );
+        let workflow_done = crate::domain::models::is_email_workflow_done(row.inbox_visible);
         Self {
             db_id: row.id,
             provider_id: row.provider_id,

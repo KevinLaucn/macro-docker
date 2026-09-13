@@ -3,7 +3,7 @@ export interface ImagePolicy {
   remote: 'allow' | 'block';
   /** Proxy for img[src], matching native authenticated-image support.
    * CSS/background images retain direct URLs under the remote policy. */
-  proxyUrl?: string;
+  proxyUrl?: string | ((url: string) => string | undefined);
 }
 
 function cleanUrl(value: string): string {
@@ -34,6 +34,8 @@ export function imageUrl(
   if (!/^https?:\/\//i.test(url)) return;
   if (!policy.proxyUrl)
     return url.replace(/^https?:/i, (scheme) => scheme.toLowerCase());
+  if (typeof policy.proxyUrl === 'function')
+    return policy.proxyUrl(url) ?? url;
   if (!/^https?:\/\//i.test(policy.proxyUrl)) return;
   return `${policy.proxyUrl}${policy.proxyUrl.includes('?') ? '&' : '?'}url=${encodeURIComponent(url)}`;
 }

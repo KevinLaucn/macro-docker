@@ -1,0 +1,15 @@
+version: 1
+
+# Keep the private fast recommendation model replacement mechanical and
+# independently checkable across upstream merges.
+overrides:
+  - id: home_recommendations_fast_model_import
+    file: apps/web/src/lib/queries/ai/createHomeRecommendations.ts
+    search: "import { PERMISSION_IDS } from '@core/constant/permissions';\nimport { useHasPermission } from '@core/context/user';"
+    replace: "import { Model } from '@core/component/AI/constant/model';\nimport { useHasPermission } from '@core/context/user';\nimport { PERMISSION_IDS } from '@core/constant/permissions';"
+    expected_count: 1
+  - id: home_recommendations_fast_model
+    file: apps/web/src/lib/queries/ai/createHomeRecommendations.ts
+    search: "const FAST_MODEL = 'anthropic/claude-haiku-4-5';"
+    replace: "const FAST_MODEL = Model.gpt56Mini;"
+    expected_count: 1

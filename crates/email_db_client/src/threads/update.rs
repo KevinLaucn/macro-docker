@@ -84,70 +84,6 @@ pub async fn update_inbox_visible_status(
     Ok(())
 }
 
-/// Updates a thread's Macro workflow completion status:
-/// - When `completed = true` (Mark Done), refreshes `follow_up_completed_at` to `NOW()`.
-/// - When `completed = false` (Mark Not Done), resets `follow_up_completed_at` to `NULL`.
-/// Does NOT touch `inbox_visible`.
-#[tracing::instrument(skip(conn), err)]
-pub async fn set_thread_workflow_completed(
-    conn: &mut sqlx::PgConnection,
-    thread_id: Uuid,
-    link_id: Uuid,
-    completed: bool,
-) -> anyhow::Result<()> {
-    sqlx::query(
-        r#"
-        UPDATE email_threads
-        SET
-            follow_up_completed_at = CASE
-                WHEN $1::boolean THEN NOW()
-                ELSE NULL
-            END,
-            updated_at = NOW()
-        WHERE
-            id = $2 AND
-            link_id = $3
-        "#,
-    )
-    .bind(completed)
-    .bind(thread_id)
-    .bind(link_id)
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
-
-/// [二开规则 - 待跟进收件箱可见性强绑定]
-/// 标记待跟进时必须强制 inbox_visible = true 并同步活动时间戳，
-/// 确保统一收件箱和邮件列表能稳定呈现，后续同步上游以此二开为准，禁止覆盖。
-#[tracing::instrument(skip(conn), err)]
-pub async fn set_thread_follow_up_required(
-    conn: &mut sqlx::PgConnection,
-    thread_id: Uuid,
-    link_id: Uuid,
-) -> anyhow::Result<()> {
-    sqlx::query(
-        r#"
-        UPDATE email_threads
-        SET
-            follow_up_required = true,
-            inbox_visible = true,
-            latest_inbound_message_ts = COALESCE(latest_inbound_message_ts, latest_outbound_message_ts, updated_at),
-            updated_at = NOW()
-        WHERE
-            id = $1 AND
-            link_id = $2
-        "#,
-    )
-    .bind(thread_id)
-    .bind(link_id)
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
-
 #[tracing::instrument(skip(executor), err)]
 pub async fn update_thread_read_status<'e, E>(
     executor: E,
@@ -413,75 +349,17 @@ pub async fn update_thread_metadata(
         .flatten()
         .max();
 
-    let thread_row = sqlx::query(
-        r#"
-        SELECT follow_up_required, follow_up_completed_at
-        FROM email_threads
-        WHERE id = $1
-        "#,
-    )
-    .bind(thread_db_id)
-    .fetch_optional(&mut *tx)
-    .await?;
-
-    let is_follow_up_active = match thread_row {
-        Some(row) => {
-            use sqlx::Row;
-            let follow_up_required: bool = row.try_get("follow_up_required").unwrap_or(false);
-            let follow_up_completed_at: Option<chrono::DateTime<chrono::Utc>> =
-                row.try_get("follow_up_completed_at").ok();
-            if follow_up_required {
-                let latest_activity = [latest_inbound_timestamp_ts, latest_outbound_message_ts]
-                    .into_iter()
-                    .flatten()
-                    .max();
-                match follow_up_completed_at {
-                    None => true,
-                    Some(completed) => latest_activity.map(|act| act > completed).unwrap_or(false),
-                }
-            } else {
-                false
-            }
-        }
-        None => false,
-    };
-
-    // [二开规则 - 回复邮件与待跟进活跃态保护]
-    // 只要处于待跟进活跃中或存在发信回复，强制保持 inbox_visible = true，
-    // 并将最新发信/草稿时间计入有效排序列，防止被上游默认逻辑置为不可见而退出收件箱。
-    // 后续同步上游代码时以此二开逻辑为准，禁止覆盖回原生 inbox_visible。
-    let effective_inbox_visible =
-        inbox_visible || is_follow_up_active || latest_outbound_message_ts.is_some();
-
-    let effective_inbound_or_draft_ts =
-        if is_follow_up_active || latest_outbound_message_ts.is_some() {
-            [
-                latest_inbound_timestamp_ts,
-                latest_draft_ts,
-                latest_outbound_message_ts,
-            ]
-            .into_iter()
-            .flatten()
-            .max()
-        } else {
-            latest_inbound_or_draft_ts
-        };
-
     update_db_thread_metadata(
         &mut *tx,
         thread_db_id,
         link_id,
-        effective_inbox_visible,
+        inbox_visible,
         is_read,
-        effective_inbound_or_draft_ts,
+        latest_inbound_or_draft_ts,
         latest_outbound_message_ts,
         latest_non_spam_message_ts,
     )
     .await?;
-
-    if latest_outbound_message_ts.is_some() {
-        set_thread_follow_up_required(&mut *tx, thread_db_id, link_id).await?;
-    }
 
     sync_thread_signal_flag(&mut *tx, thread_db_id).await?;
 
