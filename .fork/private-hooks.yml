@@ -288,3 +288,9 @@ hooks:
     expected: "async getSelfHostHealthCheck()"
     context:
       - "fetchWithAuth<SelfHostHealthReport>"
+  - id: self_host_health_repair_method
+    file: apps/web/src/lib/service-clients/service-auth/client.ts
+    marker: "// PRIVATE-HOOK: self_host_health:repair_method"
+    expected: "async repairSelfHostBackfillCompletion()"
+    context:
+      - "admin/health-check/repair/backfill-completion"

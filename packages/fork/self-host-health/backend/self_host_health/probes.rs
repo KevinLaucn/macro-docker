@@ -17,6 +17,8 @@ const GMAIL_DEEP_PROBE_CACHE_TTL: Duration = Duration::from_secs(10 * 60);
 const GMAIL_SYNC_STALE_MINUTES: i64 = 10;
 const QUEUE_WARNING_DEPTH: i64 = 100;
 const QUEUE_CRITICAL_DEPTH: i64 = 1000;
+const BACKFILL_COMPLETION_WARNING_MINUTES: i64 = 5;
+const BACKFILL_COMPLETION_CRITICAL_MINUTES: i64 = 30;
 
 static GMAIL_DEEP_PROBE_CACHE: LazyLock<
     tokio::sync::Mutex<HashMap<String, (Instant, HealthCheckItem)>>,
@@ -47,6 +49,10 @@ pub async fn run_all_probes(context: &ApiContext, macro_user_id: &str) -> SelfHo
 
     // 4. SQS queue backlog / DLQ health
     checks.push(probe_queues(context).await);
+
+    // Queue depth alone cannot detect a message that was published once and
+    // then never finalized.
+    checks.push(probe_backfill_completion(context, macro_user_id).await);
 
     // 5. Read Receipts Tracking Pixel Endpoint
     checks.push(probe_read_receipts_pixel(context).await);
@@ -913,6 +919,96 @@ async fn probe_queues(context: &ApiContext) -> HealthCheckItem {
             message: "SQS 队列探测超时 (3s)".to_string(),
             details: None,
             remediation_hint: Some("检查 SQS endpoint 网络或队列服务负载。".to_string()),
+            duration_ms,
+        },
+    }
+}
+
+async fn probe_backfill_completion(context: &ApiContext, macro_user_id: &str) -> HealthCheckItem {
+    let start = Instant::now();
+    let res = tokio::time::timeout(PROBE_TIMEOUT, async {
+        sqlx::query(
+            r#"
+            SELECT COUNT(*) AS stale_count,
+                   COALESCE(MAX(EXTRACT(EPOCH FROM (now() - outbox.published_at))::double precision / 60), 0)
+                       AS oldest_minutes
+            FROM email_backfill_completion_outbox outbox
+            JOIN email_backfill_jobs job ON job.id = outbox.backfill_job_id
+            JOIN email_links link ON link.id = job.link_id
+            WHERE link.macro_id = $1
+              AND job.status = 'Complete'
+              AND outbox.published_at IS NOT NULL
+              AND outbox.completed_at IS NULL
+            "#,
+        )
+        .bind(macro_user_id)
+        .fetch_one(&context.db)
+        .await
+        .map(|row| {
+            let count: i64 = row.try_get("stale_count").unwrap_or_default();
+            let oldest_minutes: i64 =
+                row.try_get::<f64, _>("oldest_minutes").unwrap_or_default() as i64;
+            (count, oldest_minutes)
+        })
+    })
+    .await;
+    let duration_ms = start.elapsed().as_millis() as u64;
+
+    match res {
+        Ok(Ok((0, _))) => HealthCheckItem {
+            id: "email_backfill_completion".to_string(),
+            name: "邮件历史回填完成状态".to_string(),
+            category: CheckCategory::Queues,
+            status: HealthStatus::Ok,
+            message: "没有发现已发布但未完成的邮件回填任务".to_string(),
+            details: None,
+            remediation_hint: None,
+            duration_ms,
+        },
+        Ok(Ok((count, oldest_minutes))) => {
+            let status = if oldest_minutes >= BACKFILL_COMPLETION_CRITICAL_MINUTES {
+                HealthStatus::Critical
+            } else if oldest_minutes >= BACKFILL_COMPLETION_WARNING_MINUTES {
+                HealthStatus::Warning
+            } else {
+                HealthStatus::Ok
+            };
+            HealthCheckItem {
+                id: "email_backfill_completion".to_string(),
+                name: "邮件历史回填完成状态".to_string(),
+                category: CheckCategory::Queues,
+                status,
+                message: format!(
+                    "发现 {count} 个回填完成消息未确认，最早已等待约 {oldest_minutes} 分钟"
+                ),
+                details: Some(format!(
+                    "stale_completion_count={count}, oldest_minutes={oldest_minutes}"
+                )),
+                remediation_hint: Some(
+                    "可点击右侧修复图标安全重投递；系统不会把未完成任务直接标记为成功。"
+                        .to_string(),
+                ),
+                duration_ms,
+            }
+        }
+        Ok(Err(err)) => HealthCheckItem {
+            id: "email_backfill_completion".to_string(),
+            name: "邮件历史回填完成状态".to_string(),
+            category: CheckCategory::Queues,
+            status: HealthStatus::Critical,
+            message: format!("回填完成状态查询失败: {err}"),
+            details: None,
+            remediation_hint: Some("检查 MacroDB 与 email-service outbox worker。".to_string()),
+            duration_ms,
+        },
+        Err(_) => HealthCheckItem {
+            id: "email_backfill_completion".to_string(),
+            name: "邮件历史回填完成状态".to_string(),
+            category: CheckCategory::Queues,
+            status: HealthStatus::Critical,
+            message: "回填完成状态查询超时 (3s)".to_string(),
+            details: None,
+            remediation_hint: Some("检查 MacroDB 负载与连接池。".to_string()),
             duration_ms,
         },
     }

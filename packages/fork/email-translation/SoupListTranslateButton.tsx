@@ -1,4 +1,5 @@
 import { useMaybeSoup } from '@app/features/next-soup/soup-context';
+import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { isEmailEntity } from '@entity';
 import { t } from '@macro/i18n';
 import CircleNotch from '@phosphor/circle-notch.svg';
@@ -17,6 +18,17 @@ export function SoupListTranslateButton(props: {
   class?: string;
 }) {
   const soup = useMaybeSoup();
+  const panel = useSplitPanelOrThrow();
+
+  // Soup is shared by channels, documents, CRM, and other views. This
+  // email-only control is intentionally rendered only for email lists.
+  const isEmailListView = () => {
+    const content = panel.handle.content();
+    return (
+      content.type === 'component' &&
+      (content.id === 'inbox' || content.id === 'mail')
+    );
+  };
 
   const isTranslated = () => isEmailListTranslated();
   const isTranslating = () => isEmailListTranslating();
@@ -47,40 +59,42 @@ export function SoupListTranslateButton(props: {
   const label = () => (isTranslated() ? t('Show original') : t('Translate'));
 
   return (
-    <Tooltip
-      shortcut={hasEmailRows() && !isTranslating() ? 'q' : undefined}
-      label={label()}
-    >
-      <Button
-        variant="outline"
-        size="sm"
-        depth={2}
-        disabled={!hasEmailRows() || isTranslating()}
-        onClick={handleClick}
-        class={cn(
-          'bg-surface transition-colors',
-          isTranslated() && 'text-accent border-accent/40',
-          props.class
-        )}
-        aria-label={label()}
+    <Show when={isEmailListView()}>
+      <Tooltip
+        shortcut={hasEmailRows() && !isTranslating() ? 'q' : undefined}
+        label={label()}
       >
-        <Show
-          when={isTranslating()}
-          fallback={
-            <TranslateIcon
-              class={cn(
-                'size-3.5',
-                isTranslated() ? 'text-accent' : 'text-ink-muted'
-              )}
-            />
-          }
+        <Button
+          variant="outline"
+          size="sm"
+          depth={2}
+          disabled={!hasEmailRows() || isTranslating()}
+          onClick={handleClick}
+          class={cn(
+            'bg-surface transition-colors',
+            isTranslated() && 'text-accent border-accent/40',
+            props.class
+          )}
+          aria-label={label()}
         >
-          <CircleNotch class="size-3.5 animate-spin text-ink-placeholder" />
-        </Show>
-        <Show when={!props.hideLabel}>
-          <span>{isTranslated() ? t('Original') : t('Translate')}</span>
-        </Show>
-      </Button>
-    </Tooltip>
+          <Show
+            when={isTranslating()}
+            fallback={
+              <TranslateIcon
+                class={cn(
+                  'size-3.5',
+                  isTranslated() ? 'text-accent' : 'text-ink-muted'
+                )}
+              />
+            }
+          >
+            <CircleNotch class="size-3.5 animate-spin text-ink-placeholder" />
+          </Show>
+          <Show when={!props.hideLabel}>
+            <span>{isTranslated() ? t('Original') : t('Translate')}</span>
+          </Show>
+        </Button>
+      </Tooltip>
+    </Show>
   );
 }

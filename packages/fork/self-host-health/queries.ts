@@ -31,3 +31,9 @@ export function useSelfHostHealthQuery(options?: {
     };
   });
 }
+
+export async function repairSelfHostBackfillCompletion() {
+  return await throwOnErr(async () => {
+    return await authServiceClient.repairSelfHostBackfillCompletion();
+  });
+}

@@ -1,4 +1,10 @@
-use axum::{Json, Router, extract::State, http::StatusCode, response::IntoResponse, routing::get};
+use axum::{
+    Json, Router,
+    extract::State,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -81,6 +87,36 @@ impl SelfHostHealthService {
         user_state.cached = Some((Instant::now(), report.clone()));
         report
     }
+
+    pub async fn repair_backfill_completion(&self, macro_user_id: &str) -> anyhow::Result<u64> {
+        let result = sqlx::query(
+            r#"
+            UPDATE email_backfill_completion_outbox AS outbox
+            SET published_at = NULL
+            FROM email_backfill_jobs AS job
+            JOIN email_links AS link ON link.id = job.link_id
+            WHERE outbox.backfill_job_id = job.id
+              AND link.macro_id = $1
+              AND job.status = 'Complete'
+              AND outbox.published_at IS NOT NULL
+              AND outbox.completed_at IS NULL
+              AND outbox.published_at < now() - interval '5 minutes'
+              AND (
+                  outbox.effects_lease_token IS NULL
+                  OR (
+                      outbox.effects_lease_expires_at IS NOT NULL
+                      AND outbox.effects_lease_expires_at < now()
+                  )
+              )
+            "#,
+        )
+        .bind(macro_user_id)
+        .execute(&self.context.db)
+        .await?;
+
+        self.state.write().await.by_user.remove(macro_user_id);
+        Ok(result.rows_affected())
+    }
 }
 
 fn disabled_report(environment: macro_env::Environment) -> SelfHostHealthReport {
@@ -107,36 +143,80 @@ fn disabled_report(environment: macro_env::Environment) -> SelfHostHealthReport 
 
 pub fn router(context: ApiContext) -> Router<ApiContext> {
     let service = SelfHostHealthService::new(context);
-    Router::new().route(
-        "/health-check",
-        get(
-            move |State(_): State<ApiContext>, db_permissions: DbPermissionsExtractor| {
-                let service = service.clone();
-                async move {
-                    if !db_permissions
-                        .permissions
-                        .contains(WRITE_ADMIN_PANEL_PERMISSION)
-                    {
-                        return (
-                            StatusCode::FORBIDDEN,
-                            Json(serde_json::json!({
-                                "error": "Insufficient permissions: write:admin_panel required"
-                            })),
-                        )
-                            .into_response();
-                    }
+    let health_service = service.clone();
+    Router::new()
+        .route(
+            "/health-check",
+            get(
+                move |State(_): State<ApiContext>, db_permissions: DbPermissionsExtractor| {
+                    let service = health_service.clone();
+                    async move {
+                        if !db_permissions
+                            .permissions
+                            .contains(WRITE_ADMIN_PANEL_PERMISSION)
+                        {
+                            return (
+                                StatusCode::FORBIDDEN,
+                                Json(serde_json::json!({
+                                    "error": "Insufficient permissions: write:admin_panel required"
+                                })),
+                            )
+                                .into_response();
+                        }
 
-                    let macro_user_id = db_permissions
-                        .authorization
-                        .authorization
-                        .user
-                        .user_context
-                        .user_id
-                        .clone();
-                    let report = service.get_or_run_health_check(&macro_user_id).await;
-                    (StatusCode::OK, Json(report)).into_response()
-                }
-            },
-        ),
-    )
+                        let macro_user_id = db_permissions
+                            .authorization
+                            .authorization
+                            .user
+                            .user_context
+                            .user_id
+                            .clone();
+                        let report = service.get_or_run_health_check(&macro_user_id).await;
+                        (StatusCode::OK, Json(report)).into_response()
+                    }
+                },
+            ),
+        )
+        .route(
+            "/health-check/repair/backfill-completion",
+            post(
+                move |State(_): State<ApiContext>, db_permissions: DbPermissionsExtractor| {
+                    let service = service.clone();
+                    async move {
+                        if !db_permissions
+                            .permissions
+                            .contains(WRITE_ADMIN_PANEL_PERMISSION)
+                        {
+                            return (
+                                StatusCode::FORBIDDEN,
+                                Json(serde_json::json!({
+                                    "error": "Insufficient permissions: write:admin_panel required"
+                                })),
+                            )
+                                .into_response();
+                        }
+
+                        let macro_user_id = db_permissions
+                            .authorization
+                            .authorization
+                            .user
+                            .user_context
+                            .user_id
+                            .clone();
+                        match service.repair_backfill_completion(&macro_user_id).await {
+                            Ok(requeued) => (
+                                StatusCode::OK,
+                                Json(serde_json::json!({ "requeued": requeued })),
+                            )
+                                .into_response(),
+                            Err(err) => (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(serde_json::json!({ "error": err.to_string() })),
+                            )
+                                .into_response(),
+                        }
+                    }
+                },
+            ),
+        )
 }

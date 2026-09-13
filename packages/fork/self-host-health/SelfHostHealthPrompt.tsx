@@ -7,8 +7,8 @@ import { useSelfHostHealthQuery } from './queries';
 import type { HealthCheckItem } from './types';
 
 /**
- * Surfaces a persistent toast for super_admin when critical self-host infrastructure
- * or business contract failures occur. Auto-dismisses when the failure resolves.
+ * Surfaces a persistent toast for super_admin when self-host infrastructure or
+ * business contract failures occur. Auto-dismisses when the failure resolves.
  */
 export function SelfHostHealthPrompt() {
   const hasAdminPanel = useHasPermission(PERMISSION_IDS.WRITE_ADMIN_PANEL);
@@ -21,8 +21,14 @@ export function SelfHostHealthPrompt() {
     items: () => {
       if (!hasAdminPanel()) return [];
       const report = query.isSuccess ? query.data : undefined;
-      if (!report || report.overall_status !== 'critical') return [];
-      return report.checks.filter((c) => c.status === 'critical');
+      if (
+        !report ||
+        (report.overall_status !== 'critical' && report.overall_status !== 'warning')
+      )
+        return [];
+      return report.checks.filter(
+        (c) => c.status === 'critical' || c.status === 'warning'
+      );
     },
     key: (item) => `self-host-health-${item.id}`,
     toast: (item) => ({

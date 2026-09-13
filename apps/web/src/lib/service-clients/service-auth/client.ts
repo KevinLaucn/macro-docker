@@ -1029,6 +1029,13 @@ export const authServiceClient = {
       }
     );
   },
+  // PRIVATE-HOOK: self_host_health:repair_method
+  async repairSelfHostBackfillCompletion() {
+    return await fetchWithAuth<{ requeued: number }>(
+      `${authHost}/admin/health-check/repair/backfill-completion`,
+      { method: 'POST' }
+    );
+  },
 };
 
 registerClient('auth', authServiceClient);

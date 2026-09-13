@@ -13,7 +13,10 @@ import WarningCircleIcon from '@phosphor/warning-circle.svg';
 import XCircleIcon from '@phosphor/x-circle.svg';
 import { Button, cn } from '@ui';
 import { createMemo, createSignal, For, Show } from 'solid-js';
-import { useSelfHostHealthQuery } from './queries';
+import {
+  repairSelfHostBackfillCompletion,
+  useSelfHostHealthQuery,
+} from './queries';
 import type { CheckCategory, HealthCheckItem, HealthStatus } from './types';
 
 function StatusBadge(props: { status: HealthStatus }) {
@@ -320,14 +323,48 @@ function DiagnosticDetails(props: { item: HealthCheckItem }) {
   );
 }
 
-function HealthItemRow(props: { item: HealthCheckItem }) {
+function HealthItemRow(props: {
+  item: HealthCheckItem;
+  onRepair: () => Promise<void>;
+}) {
   const [expanded, setExpanded] = createSignal(false);
+  const [repairing, setRepairing] = createSignal(false);
   const hasExtra = () =>
     Boolean(props.item.details || props.item.remediation_hint);
+  const canRepair = () =>
+    props.item.id === 'email_backfill_completion' &&
+    props.item.status !== 'ok' &&
+    props.item.status !== 'disabled';
+  const toggleExpanded = () => {
+    if (hasExtra()) setExpanded((value) => !value);
+  };
+  const repair = async (event: MouseEvent) => {
+    event.stopPropagation();
+    if (repairing()) return;
+    setRepairing(true);
+    try {
+      await props.onRepair();
+    } finally {
+      setRepairing(false);
+    }
+  };
 
   return (
-    <div class="flex flex-col">
+    <div
+      class="flex flex-col"
+      role={hasExtra() ? 'button' : undefined}
+      tabIndex={hasExtra() ? 0 : undefined}
+      aria-expanded={hasExtra() ? expanded() : undefined}
+      onClick={toggleExpanded}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggleExpanded();
+        }
+      }}
+    >
       <SettingsRow
+        class={hasExtra() ? 'cursor-pointer hover:bg-hover/40' : undefined}
         label={
           <div class="flex items-center gap-2">
             <span class="font-medium text-sm text-ink">{props.item.name}</span>
@@ -349,14 +386,19 @@ function HealthItemRow(props: { item: HealthCheckItem }) {
       >
         <div class="flex items-center gap-2.5">
           <StatusBadge status={props.item.status} />
-          <Show when={hasExtra()}>
+          <Show when={canRepair()}>
             <Button
               variant="ghost"
-              size="xs"
-              onClick={() => setExpanded(!expanded())}
-              class="text-xs text-ink-muted hover:text-ink"
+              size="icon-xs"
+              label={t('修复')}
+              tooltip={t('安全重投递')}
+              disabled={repairing()}
+              onClick={repair}
+              class="text-warning hover:text-ink"
             >
-              {expanded() ? t('收起') : t('详情')}
+              <ArrowsClockwiseIcon
+                class={repairing() ? 'animate-spin' : undefined}
+              />
             </Button>
           </Show>
         </div>
@@ -386,6 +428,10 @@ function HealthItemRow(props: { item: HealthCheckItem }) {
 
 export function SelfHostHealth() {
   const query = useSelfHostHealthQuery();
+  const repair = async () => {
+    await repairSelfHostBackfillCompletion();
+    await query.refetch();
+  };
 
   const isFetching = () => query.isFetching;
   const report = () => (query.isSuccess ? query.data : undefined);
@@ -532,7 +578,7 @@ export function SelfHostHealth() {
             }
           >
             <For each={report()?.checks}>
-              {(check) => <HealthItemRow item={check} />}
+              {(check) => <HealthItemRow item={check} onRepair={repair} />}
             </For>
           </Show>
         </SettingsCard>
