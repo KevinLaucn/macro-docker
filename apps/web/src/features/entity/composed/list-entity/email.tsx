@@ -1,7 +1,12 @@
 import { inboxIconProps } from '@core/component/inboxIcon';
 import { UserIcon } from '@core/component/UserIcon';
 import { useEmailLinksContext } from '@core/context/emailLinks';
-import { useEmailRowTranslation } from '@macro/email-translation';
+import {
+  EmailTranslateButton,
+  emailTranslationEnabled,
+  isTranslationSupported,
+  useEmailRowTranslation,
+} from '@macro/email-translation';
 import { cn } from '@ui';
 import { type Accessor, createMemo, type JSX, Show } from 'solid-js';
 import { DraftBadge } from '../../components/Badges';
@@ -105,17 +110,27 @@ export function EmailNarrowBody(props: {
 
   return (
     <Entity.Slot placement="body" class="flex flex-col pb-2 min-h-[2lh] pr-4">
-      <Show
-        when={
-          translation.isTranslated() &&
-          translation.rowTranslation()?.translatedName
-        }
-        fallback={<Entity.Title entity={props.entity} />}
-      >
-        <span class="font-medium truncate">
-          {translation.rowTranslation()!.translatedName}
-        </span>
-      </Show>
+      <div class="flex min-w-0 items-center">
+        <Show
+          when={
+            translation.isTranslated() &&
+            translation.rowTranslation()?.translatedName
+          }
+          fallback={<Entity.Title entity={props.entity} />}
+        >
+          <span class="font-medium truncate">
+            {translation.rowTranslation()!.translatedName}
+          </span>
+        </Show>
+        <Show when={emailTranslationEnabled() && isTranslationSupported()}>
+          <EmailTranslateButton
+            state={translation.state()}
+            scope="row"
+            onClick={() => void translation.toggle()}
+            class="ml-1 shrink-0"
+          />
+        </Show>
+      </div>
       <span
         ref={props.setContainerRef}
         class="text-ink/50 font-medium truncate"
@@ -196,6 +211,14 @@ export function EmailWideContent(props: {
           <span>{translation.rowTranslation()!.translatedSnippet}</span>
         </Show>
       </span>
+      <Show when={emailTranslationEnabled() && isTranslationSupported()}>
+        <EmailTranslateButton
+          state={translation.state()}
+          scope="row"
+          onClick={() => void translation.toggle()}
+          class="shrink-0"
+        />
+      </Show>
     </>
   );
 }

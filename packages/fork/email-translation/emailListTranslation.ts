@@ -32,7 +32,11 @@ export function useEmailRowTranslation(
     });
   }
 
-  return { rowTranslation, isTranslated };
+  const state = () => rowTranslation()?.status ?? 'idle';
+  const toggle = () =>
+    toggleRowTranslation(entity().id, entity().name, entity().snippet);
+
+  return { rowTranslation, isTranslated, state, toggle };
 }
 
 export type EmailListTranslationItem = Pick<
