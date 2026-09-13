@@ -26,6 +26,8 @@ import {
   useSplitPanelOrThrow,
   withSplitPanelOwner,
 } from '@components/app/split-layout/layoutUtils';
+import { createHotkeyGroup, registerHotkey } from '@core/hotkey/hotkeys';
+import { TOKENS } from '@core/hotkey/tokens';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import {
   type EntityData,
@@ -34,6 +36,7 @@ import {
   ListLayoutProvider,
   type WithNotification,
 } from '@entity';
+import { createEmailListTranslationHotkey } from '@macro/email-translation';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import CheckIcon from '@phosphor/check.svg';
 import SpinnerIcon from '@phosphor/spinner.svg';
@@ -228,6 +231,22 @@ export function EmailList(props: EmailListProps) {
   );
 
   const rows = source.items;
+
+  // PRIVATE-HOOK: email_translation:email-list-keyboard
+  const translationHotkey = createEmailListTranslationHotkey({
+    currentView: () => 'mail',
+    emailItems: translation.items,
+  });
+  const translationHotkeyGroup = createHotkeyGroup();
+  registerHotkey({
+    hotkey: 'q',
+    scopeId: panel.splitHotkeyScope,
+    hotkeyToken: TOKENS.email.translateList,
+    description: 'Translate email list',
+    condition: translationHotkey.condition,
+    keyDownHandler: translationHotkey.keyDownHandler,
+  }).withGroup(translationHotkeyGroup);
+  onCleanup(() => translationHotkeyGroup.dispose());
 
   createEffect(() => {
     translation.setItems(
