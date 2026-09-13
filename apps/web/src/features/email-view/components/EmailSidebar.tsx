@@ -44,7 +44,7 @@ function Tab(props: { item: EmailTabItem; onNavigate?: () => void }) {
       <span aria-hidden="true" class="flex size-4 shrink-0 items-center">
         <Dynamic component={TAB_ICONS[props.item.id]} class="size-4" />
       </span>
-      <span class="truncate">{props.item.label}</span>
+      <span class="truncate">{t(props.item.label)}</span>
     </ViewSidebar.Item>
   );
 }

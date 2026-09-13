@@ -25,7 +25,7 @@ export type EmailHeaderProps = {
 export function EmailTopBar() {
   const { state } = useEmailView();
   const title = () =>
-    EMAIL_TABS.find((tab) => tab.id === state.tab)?.label ?? 'Email';
+    t(EMAIL_TABS.find((tab) => tab.id === state.tab)?.label ?? 'Email');
 
   return <ViewShell.TopBar>{title()}</ViewShell.TopBar>;
 }
