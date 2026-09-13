@@ -18,7 +18,6 @@ import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import {
   emailTranslationEnabled,
-  isTranslationSupported,
   SoupListTranslateButton,
 } from '@macro/email-translation';
 import { createMemo, createSignal, Show } from 'solid-js';
@@ -96,7 +95,7 @@ export function SoupFiltersBar(props: {
       </SplitToolbarLeft>
       <SplitToolbarRight>
         {/* PRIVATE-HOOK: email_translation:list-toolbar */}
-        <Show when={emailTranslationEnabled() && isTranslationSupported()}>
+        <Show when={emailTranslationEnabled()}>
           <CollapsibleToolbarItem id="soup-toolbar-translate" priority={2}>
             {(isCollapsed) => (
               <SoupListTranslateButton hideLabel={isCollapsed()} />

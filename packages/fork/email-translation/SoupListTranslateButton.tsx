@@ -12,6 +12,7 @@ import {
   isEmailListTranslating,
   toggleGlobalListTranslation,
 } from './emailTranslationState';
+import { isTranslationSupported } from './translatorClient';
 
 export function SoupListTranslateButton(props: {
   hideLabel?: boolean;
@@ -32,6 +33,7 @@ export function SoupListTranslateButton(props: {
 
   const isTranslated = () => isEmailListTranslated();
   const isTranslating = () => isEmailListTranslating();
+  const isSupported = () => isTranslationSupported();
 
   const emailItems = () => {
     const rows = soup?.items.rows() ?? [];
@@ -56,7 +58,12 @@ export function SoupListTranslateButton(props: {
     }
   };
 
-  const label = () => (isTranslated() ? t('Show original') : t('Translate'));
+  const label = () =>
+    !isSupported()
+      ? t('Translation unavailable in this browser')
+      : isTranslated()
+        ? t('Show original')
+        : t('Translate');
 
   return (
     <Show when={isEmailListView()}>
@@ -68,7 +75,7 @@ export function SoupListTranslateButton(props: {
           variant="outline"
           size="sm"
           depth={2}
-          disabled={!hasEmailRows() || isTranslating()}
+          disabled={!hasEmailRows() || isTranslating() || !isSupported()}
           onClick={handleClick}
           class={cn(
             'bg-surface transition-colors',
