@@ -178,6 +178,13 @@ function LayoutInner(props: RouteSectionProps) {
   const [sidebarOverlayTriggerHovered, setSidebarOverlayTriggerHovered] =
     createSignal(false);
   const sidebarNextEnabled = useSidebarNextFlag();
+  // The new sidebar is a fixed rail in the three-column layout. Keep the
+  // persisted legacy sidebar state from hiding or collapsing that rail.
+  createEffect(() => {
+    if (sidebarNextEnabled() && sidebarState() !== 'expanded') {
+      setSidebarState('expanded');
+    }
+  });
   // SidebarRail is already narrow and has no slim mode, so nothing should arm
   // the hover-peek overlay strip.
   const sidebarCollapsed = createMemo(
