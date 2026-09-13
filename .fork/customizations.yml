@@ -111,6 +111,18 @@ customizations:
       - conventions
       - selfhost-config
 
+  - id: SELFHOST-MEDIA-001
+    title: Self-hosted static image proxy compatibility
+    rationale: Bypass the image proxy only for first-party self-hosted static files, preserving SSRF protection for external images.
+    risk: medium
+    paths:
+      - apps/web/src/features/email-message/rendering-adapter.ts
+      - packages/email-renderer/src/core/resource-policy.ts
+      - .fork/private-hooks.yml
+    tests:
+      - conventions
+      - web
+
   - id: EMAIL-SELFHOST-001
     title: Self-hosted Gmail and email service behavior
     rationale: Preserve Gmail synchronization, sending, tracking, and local worker behavior without Macro cloud services.
@@ -179,6 +191,7 @@ customizations:
       - apps/web/src/features/entity/composed/list-entity/email.tsx
       - apps/web/src/features/extensions/Extensions.tsx
       - apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
+      - apps/web/src/features/email-view/components/EmailControls.tsx
       - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
       - .fork/private-hooks.yml
     tests:

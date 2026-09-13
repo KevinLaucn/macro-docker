@@ -1,5 +1,9 @@
 import { ListFilterDropdown } from '@app/components/view-shell';
 import { PreviewButton } from '@components/app/split-layout/components/PreviewButton';
+import {
+  emailTranslationEnabled,
+  SoupListTranslateButton,
+} from '@macro/email-translation';
 import { t } from '@macro/i18n';
 import { Show } from 'solid-js';
 import { useEmailView } from '../email-view-context';
@@ -18,6 +22,10 @@ export function EmailControls(props: EmailControlsProps) {
 
   return (
     <div class="flex min-w-0 shrink-0 items-center justify-end gap-2 @max-[720px]/view-shell:gap-1">
+      {/* PRIVATE-HOOK: email_translation:email-list-toolbar */}
+      <Show when={emailTranslationEnabled()}>
+        <SoupListTranslateButton />
+      </Show>
       <div class="relative shrink-0">
         <ListFilterDropdown
           label={t('Filter email@@email')}

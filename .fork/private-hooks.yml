@@ -4,6 +4,12 @@ version: 1
 # Keep hooks small: marker + the expected one-line import/call/router/component
 # entry that connects upstream code to private feature modules.
 hooks:
+  - id: self_host_media_bypass_image_proxy
+    file: apps/web/src/features/email-message/rendering-adapter.ts
+    marker: "// PRIVATE-HOOK: self_host_media:bypass-proxy"
+    expected: "if (isSelfHostedStaticFileUrl(url)) return url;"
+    context:
+      - "function proxyEmailImageUrl(url: string): string {"
   - id: layout_deferred_navigation
     file: apps/web/src/components/app/split-layout/layout.ts
     marker: "// PRIVATE-HOOK: layout:deferred-navigation"
@@ -130,6 +136,12 @@ hooks:
     expected: "<SoupListTranslateButton"
     context:
       - "id=\"soup-toolbar-translate\""
+  - id: email_translation_email_list_toolbar
+    file: apps/web/src/features/email-view/components/EmailControls.tsx
+    marker: "{/* PRIVATE-HOOK: email_translation:email-list-toolbar */}"
+    expected: "<SoupListTranslateButton"
+    context:
+      - "<ListFilterDropdown"
   - id: email_translation_thread
     file: apps/web/src/features/email-thread/views/message-list.tsx
     marker: "{/* PRIVATE-HOOK: email_translation:thread */}"
