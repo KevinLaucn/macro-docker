@@ -72,7 +72,10 @@ impl SelfHostHealthService {
             disabled_report(self.context.environment)
         };
 
-        if report.overall_status == HealthStatus::Critical {
+        if matches!(
+            report.overall_status,
+            HealthStatus::Critical | HealthStatus::Warning
+        ) {
             user_state.consecutive_failures += 1;
             if user_state.failure_since.is_none() {
                 user_state.failure_since = Some(report.last_checked_at.clone());

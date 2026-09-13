@@ -25,7 +25,7 @@ export function useSelfHostHealthQuery(options?: {
         });
       },
       staleTime: 60_000,
-      refetchInterval: options?.refetchInterval ?? 120_000,
+      refetchInterval: options?.refetchInterval ?? 60_000,
       enabled: isEnabled,
       retry: false,
     };

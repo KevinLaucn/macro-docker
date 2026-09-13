@@ -6,6 +6,8 @@ import { t } from '@macro/i18n';
 import { useSelfHostHealthQuery } from './queries';
 import type { HealthCheckItem } from './types';
 
+const ALERT_AFTER_MS = 3 * 60 * 1000;
+
 /**
  * Surfaces a persistent toast for super_admin when self-host infrastructure or
  * business contract failures occur. Auto-dismisses when the failure resolves.
@@ -23,7 +25,15 @@ export function SelfHostHealthPrompt() {
       const report = query.isSuccess ? query.data : undefined;
       if (
         !report ||
-        (report.overall_status !== 'critical' && report.overall_status !== 'warning')
+        (report.overall_status !== 'critical' &&
+          report.overall_status !== 'warning')
+      )
+        return [];
+      if (!report.failure_since) return [];
+      const failureSince = Date.parse(report.failure_since);
+      if (
+        !Number.isFinite(failureSince) ||
+        Date.now() - failureSince < ALERT_AFTER_MS
       )
         return [];
       return report.checks.filter(

@@ -284,6 +284,14 @@ function DiagnosticDetails(props: { item: HealthCheckItem }) {
     }
   }
 
+  if (props.item.id === 'opensearch_email_index') {
+    return (
+      <p class="whitespace-pre-wrap break-all rounded-lg border border-edge-muted/40 bg-surface p-3 font-mono text-xs text-ink-muted">
+        {details()}
+      </p>
+    );
+  }
+
   if (props.item.id === 'gmail_official_sync') {
     const rows = parseGmailDetails(details());
     if (rows.length > 0) {

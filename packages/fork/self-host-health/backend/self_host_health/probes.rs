@@ -13,12 +13,13 @@ use super::types::{CheckCategory, HealthCheckItem, HealthStatus, SelfHostHealthR
 use crate::api::context::ApiContext;
 
 const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
-const GMAIL_DEEP_PROBE_CACHE_TTL: Duration = Duration::from_secs(10 * 60);
-const GMAIL_SYNC_STALE_MINUTES: i64 = 10;
+const GMAIL_DEEP_PROBE_CACHE_TTL: Duration = Duration::from_secs(60);
+const GMAIL_SYNC_STALE_MINUTES: i64 = 3;
 const QUEUE_WARNING_DEPTH: i64 = 100;
 const QUEUE_CRITICAL_DEPTH: i64 = 1000;
 const BACKFILL_COMPLETION_WARNING_MINUTES: i64 = 5;
 const BACKFILL_COMPLETION_CRITICAL_MINUTES: i64 = 30;
+const SEARCH_INDEX_DIFF_LIMIT: i64 = 1;
 
 static GMAIL_DEEP_PROBE_CACHE: LazyLock<
     tokio::sync::Mutex<HashMap<String, (Instant, HealthCheckItem)>>,
@@ -49,6 +50,10 @@ pub async fn run_all_probes(context: &ApiContext, macro_user_id: &str) -> SelfHo
 
     // 4. SQS queue backlog / DLQ health
     checks.push(probe_queues(context).await);
+
+    // Search is a derived view of the email database. A small transient gap is
+    // normal, but a persistent gap means newly synced mail cannot be found.
+    checks.push(probe_search_index(context).await);
 
     // Queue depth alone cannot detect a message that was published once and
     // then never finalized.
@@ -86,6 +91,100 @@ pub async fn run_all_probes(context: &ApiContext, macro_user_id: &str) -> SelfHo
         consecutive_failures: 0,
         duration_ms: overall_start.elapsed().as_millis() as u64,
         checks,
+    }
+}
+
+async fn probe_search_index(context: &ApiContext) -> HealthCheckItem {
+    let start = Instant::now();
+    let result = tokio::time::timeout(PROBE_TIMEOUT, async {
+        let database_count: i64 = sqlx::query_scalar(
+            r#"
+            SELECT count(*)
+            FROM email_messages m
+            WHERE m.is_draft = false
+              AND (m.body_text IS NOT NULL OR m.body_html_sanitized IS NOT NULL)
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM email_message_labels ml
+                  JOIN email_labels l ON l.id = ml.label_id
+                  WHERE ml.message_id = m.id
+                    AND l.provider_label_id IN ('SPAM', 'TRASH')
+              )
+            "#,
+        )
+        .fetch_one(&context.db)
+        .await
+        .map_err(|err| err.to_string())?;
+
+        let url = macro_env_var::maybe_read_env("OPENSEARCH_URL")
+            .ok_or_else(|| "OPENSEARCH_URL 未配置".to_string())?;
+        let username = macro_env_var::maybe_read_env("OPENSEARCH_USERNAME").unwrap_or_default();
+        let password = macro_env_var::maybe_read_env("OPENSEARCH_PASSWORD").unwrap_or_default();
+        let response = reqwest::Client::new()
+            .get(format!("{url}/emails_v2/_count"))
+            .basic_auth(username, Some(password))
+            .send()
+            .await
+            .map_err(|err| err.to_string())?;
+        if !response.status().is_success() {
+            return Err(format!("OpenSearch HTTP {}", response.status()));
+        }
+        let body: serde_json::Value = response.json().await.map_err(|err| err.to_string())?;
+        let index_count = body["count"]
+            .as_i64()
+            .ok_or_else(|| "OpenSearch count 缺失".to_string())?;
+        Ok::<(i64, i64), String>((database_count, index_count))
+    })
+    .await;
+    let duration_ms = start.elapsed().as_millis() as u64;
+    match result {
+        Ok(Ok((database_count, index_count))) => {
+            let diff = database_count - index_count;
+            let status = if diff.abs() <= SEARCH_INDEX_DIFF_LIMIT {
+                HealthStatus::Ok
+            } else {
+                HealthStatus::Warning
+            };
+            HealthCheckItem {
+                id: "opensearch_email_index".to_string(),
+                name: "OpenSearch 邮件索引一致性".to_string(),
+                category: CheckCategory::Services,
+                status,
+                message: if status == HealthStatus::Ok {
+                    format!("邮件数据库与搜索索引差异 {} 条", diff.abs())
+                } else {
+                    format!("邮件搜索索引少 {} 条，可能导致邮件搜索不到", diff.abs())
+                },
+                details: Some(format!(
+                    "database_messages={}, indexed_messages={}, diff={}",
+                    database_count, index_count, diff
+                )),
+                remediation_hint: Some(
+                    "检查 search_processing_service，并执行邮件索引回填。".to_string(),
+                ),
+                duration_ms,
+            }
+        }
+        Ok(Err(error)) => HealthCheckItem {
+            id: "opensearch_email_index".to_string(),
+            name: "OpenSearch 邮件索引一致性".to_string(),
+            category: CheckCategory::Services,
+            status: HealthStatus::Warning,
+            message: format!("OpenSearch 索引检查失败: {error}"),
+            details: None,
+            remediation_hint: Some("检查 OPENSEARCH_URL、认证配置和 OpenSearch 服务。".to_string()),
+            duration_ms,
+        },
+        Err(_) => HealthCheckItem {
+            id: "opensearch_email_index".to_string(),
+            name: "OpenSearch 邮件索引一致性".to_string(),
+            category: CheckCategory::Services,
+            status: HealthStatus::Warning,
+            message: "OpenSearch 索引检查超时 (3s)".to_string(),
+            details: None,
+            remediation_hint: Some("检查 OpenSearch 响应时间与网络连接。".to_string()),
+            duration_ms,
+        },
     }
 }
 
