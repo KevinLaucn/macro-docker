@@ -286,6 +286,10 @@ cmd_up() {
   bold "Starting services"
   "${COMPOSE[@]}" "${profiles[@]}" up -d
 
+  if [ -f "./patch_frontend.py" ]; then
+    sudo python3 ./patch_frontend.py > /dev/null 2>&1 || true
+  fi
+
   # Non-blocking automatic idempotent self-healing in background:
   # Waits for FusionAuth/LocalStack readiness, aligns OAuth/Gmail/GitHub IdPs,
   # and heals user table foreign keys without noisy doctor check interruptions.
@@ -308,6 +312,9 @@ cmd_restart() {
   need_env
   bold "Restarting services"
   "${COMPOSE[@]}" restart "$@"
+  if [ -f "./patch_frontend.py" ]; then
+    sudo python3 ./patch_frontend.py > /dev/null 2>&1 || true
+  fi
   if [ -f "./scripts/reconcile_fusionauth_idp.py" ]; then
     nohup python3 ./scripts/reconcile_fusionauth_idp.py > /tmp/macro_reconcile.log 2>&1 &
   fi

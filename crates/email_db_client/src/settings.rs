@@ -55,6 +55,4 @@ pub async fn fetch_settings(
 }
 
 // PRIVATE-HOOK: read_receipts:legacy-settings-api
-pub use crate::read_receipts::settings::{
-    fetch_read_receipts_enabled, set_read_receipts_enabled,
-};
+pub use crate::read_receipts::settings::{fetch_read_receipts_enabled, set_read_receipts_enabled};

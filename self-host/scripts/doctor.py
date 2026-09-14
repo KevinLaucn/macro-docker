@@ -94,7 +94,7 @@ else:
     print("  ℹ️ Gmail Links: no inboxes linked yet")
 
 # 5. Containers Health Summary
-print("\n[5/5] Checking Microservices Runtime Status...")
+print("\n[5/6] Checking Microservices Runtime Status...")
 code, out = run_cmd("docker ps --format '{{.Names}}: {{.Status}}'")
 unhealthy = [line for line in out.splitlines() if "unhealthy" in line or "Restarting" in line]
 if not unhealthy:
@@ -102,6 +102,24 @@ if not unhealthy:
 else:
     msg = f"  ❌ Microservices: unhealthy containers detected: {unhealthy}"
     print(msg); failures.append(msg)
+
+# 6. Frontend Default Compose Sender Priority
+print("\n[6/6] Checking Frontend Default Compose Sender (etsy@chnprints.com)...")
+web_asset_vol = "/var/lib/docker/volumes/macro-selfhost_web_assets/_data"
+code, out = run_cmd(f"sudo grep -s 'etsy@chnprints.com' {web_asset_vol}/app-*.js")
+if code == 0 and "etsy@chnprints.com" in out:
+    print("  ✅ Frontend Default Sender: etsy@chnprints.com prioritized for new compose")
+else:
+    if os.path.exists("./patch_frontend.py"):
+        p_code, p_out = run_cmd("sudo python3 ./patch_frontend.py")
+        if p_code == 0 and "Verification OK" in p_out:
+            print("  ✅ Frontend Default Sender: auto-patched and verified (etsy@chnprints.com)")
+        else:
+            msg = "  ❌ Frontend Default Sender: patch missing and auto-patch failed"
+            print(msg); failures.append(msg)
+    else:
+        msg = "  ❌ Frontend Default Sender: etsy@chnprints.com not found in web bundle"
+        print(msg); failures.append(msg)
 
 print("\n--------------------------------------------------")
 if not failures:
