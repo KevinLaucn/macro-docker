@@ -20,6 +20,8 @@ export function SoupListTranslateButton(props: {
   class?: string;
   forceVisible?: boolean;
   emailItems?: Accessor<EmailListTranslationItem[]>;
+  size?: 'sm' | 'md' | 'lg';
+  square?: boolean;
 }) {
   const soup = useMaybeSoup();
   const panel = useSplitPanelOrThrow();
@@ -69,6 +71,9 @@ export function SoupListTranslateButton(props: {
         ? t('Show original')
         : t('Translate');
 
+  const isSquare = () => props.square ?? Boolean(props.hideLabel);
+  const buttonSize = () => props.size ?? (props.hideLabel ? 'md' : 'sm');
+
   return (
     <Show when={props.forceVisible || isEmailListView()}>
       <Tooltip
@@ -77,12 +82,14 @@ export function SoupListTranslateButton(props: {
       >
         <Button
           variant="outline"
-          size="sm"
+          size={buttonSize()}
+          square={isSquare()}
           depth={2}
           disabled={!hasEmailRows() || isTranslating() || !isSupported()}
           onClick={handleClick}
           class={cn(
             'bg-surface transition-colors',
+            isSquare() && 'rounded-lg',
             isTranslated() && 'text-accent border-accent/40',
             props.class
           )}
@@ -93,13 +100,18 @@ export function SoupListTranslateButton(props: {
             fallback={
               <TranslateIcon
                 class={cn(
-                  'size-3.5',
+                  isSquare() ? 'size-4' : 'size-3.5',
                   isTranslated() ? 'text-accent' : 'text-ink-muted'
                 )}
               />
             }
           >
-            <CircleNotch class="size-3.5 animate-spin text-ink-placeholder" />
+            <CircleNotch
+              class={cn(
+                isSquare() ? 'size-4' : 'size-3.5',
+                'animate-spin text-ink-placeholder'
+              )}
+            />
           </Show>
           <Show when={!props.hideLabel}>
             <span>{isTranslated() ? t('Original') : t('Translate')}</span>

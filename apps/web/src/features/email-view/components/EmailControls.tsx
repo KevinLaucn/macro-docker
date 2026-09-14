@@ -26,7 +26,11 @@ export function EmailControls(props: EmailControlsProps) {
     <div class="flex min-w-0 shrink-0 items-center justify-end gap-2 @max-[720px]/view-shell:gap-1">
       {/* PRIVATE-HOOK: email_translation:email-list-toolbar */}
       <Show when={emailTranslationEnabled()}>
-        <SoupListTranslateButton forceVisible emailItems={translation.items} />
+        <SoupListTranslateButton
+          forceVisible
+          hideLabel={true}
+          emailItems={translation.items}
+        />
       </Show>
       <div class="relative shrink-0">
         <ListFilterDropdown
