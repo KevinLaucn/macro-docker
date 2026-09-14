@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import CaretRightIcon from '@phosphor/caret-right.svg';
 import CheckIcon from '@phosphor/check.svg';
 import FilterIcon from '@phosphor/funnel-simple.svg';
@@ -192,7 +193,7 @@ export function ListFilterDropdown<
               return (
                 <Dropdown.Sub>
                   <Dropdown.SubTrigger>
-                    <span class="flex-1 text-ink">{group.label}</span>
+                    <span class="flex-1 text-ink">{t(group.label)}</span>
                     <Show when={hasSelection()}>
                       <span
                         aria-hidden="true"
@@ -235,7 +236,7 @@ export function ListFilterDropdown<
                                     </span>
                                   </Show>
                                   <span class="flex-1 truncate">
-                                    {option.label}
+                                    {t(option.label)}
                                   </span>
                                 </span>
                               </Dropdown.CheckboxItem>
@@ -271,7 +272,7 @@ export function ListFilterDropdown<
                                     </span>
                                   </Show>
                                   <span class="flex-1 truncate">
-                                    {option.label}
+                                    {t(option.label)}
                                   </span>
                                 </span>
                                 <Dropdown.ItemIndicator>
@@ -302,7 +303,7 @@ export function ListFilterDropdown<
                 })}
                 onSelect={onClear()}
               >
-                {props.clearLabel ?? 'Clear filters'}
+                {props.clearLabel ? t(props.clearLabel) : t('Clear filters')}
               </Dropdown.Item>
             </Dropdown.Group>
           )}

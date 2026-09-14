@@ -37,3 +37,15 @@ export async function repairSelfHostBackfillCompletion() {
     return await authServiceClient.repairSelfHostBackfillCompletion();
   });
 }
+
+export async function repairSelfHostOpensearchAlignment() {
+  return await throwOnErr(async () => {
+    return await authServiceClient.repairSelfHostOpensearchAlignment();
+  });
+}
+
+export async function repairSelfHostQueueBacklog() {
+  return await throwOnErr(async () => {
+    return await authServiceClient.repairSelfHostQueueBacklog();
+  });
+}

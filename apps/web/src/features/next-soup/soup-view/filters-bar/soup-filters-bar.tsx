@@ -97,9 +97,7 @@ export function SoupFiltersBar(props: {
         {/* PRIVATE-HOOK: email_translation:list-toolbar */}
         <Show when={emailTranslationEnabled()}>
           <CollapsibleToolbarItem id="soup-toolbar-translate" priority={2}>
-            {(isCollapsed) => (
-              <SoupListTranslateButton hideLabel={isCollapsed()} />
-            )}
+            {() => <SoupListTranslateButton hideLabel={true} />}
           </CollapsibleToolbarItem>
         </Show>
         <Show when={isCompaniesView()}>

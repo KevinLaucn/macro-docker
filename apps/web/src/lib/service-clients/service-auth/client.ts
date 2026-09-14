@@ -1036,6 +1036,21 @@ export const authServiceClient = {
       { method: 'POST' }
     );
   },
+  async repairSelfHostOpensearchAlignment() {
+    return await fetchWithAuth<{
+      deleted_orphans: number;
+      queued_backfill_threads: number;
+    }>(`${authHost}/admin/health-check/repair/opensearch-alignment`, {
+      method: 'POST',
+    });
+  },
+  async repairSelfHostQueueBacklog() {
+    return await fetchWithAuth<{
+      purged_dlqs: Array<{ queue: string; dlq: string; drained: number }>;
+    }>(`${authHost}/admin/health-check/repair/queue-backlog`, {
+      method: 'POST',
+    });
+  },
 };
 
 registerClient('auth', authServiceClient);

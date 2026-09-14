@@ -152,16 +152,23 @@ async fn probe_search_index(context: &ApiContext) -> HealthCheckItem {
                 status,
                 message: if status == HealthStatus::Ok {
                     format!("邮件数据库与搜索索引差异 {} 条", diff.abs())
+                } else if diff > 0 {
+                    format!("邮件搜索索引少 {} 条，可能导致部分邮件搜索不到", diff)
                 } else {
-                    format!("邮件搜索索引少 {} 条，可能导致邮件搜索不到", diff.abs())
+                    format!(
+                        "邮件搜索索引比数据库多 {} 条，可能存在已删除邮件的历史残留文档",
+                        diff.abs()
+                    )
                 },
                 details: Some(format!(
                     "database_messages={}, indexed_messages={}, diff={}",
                     database_count, index_count, diff
                 )),
-                remediation_hint: Some(
-                    "检查 search_processing_service，并执行邮件索引回填。".to_string(),
-                ),
+                remediation_hint: Some(if diff > 0 {
+                    "检查 search_processing_service，并执行邮件索引回填。".to_string()
+                } else {
+                    "检查 search_processing_service 删除同步事件，或清理 OpenSearch 中的孤立文档。".to_string()
+                }),
                 duration_ms,
             }
         }

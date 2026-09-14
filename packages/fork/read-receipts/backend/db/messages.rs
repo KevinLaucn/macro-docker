@@ -66,7 +66,11 @@ pub async fn record_message_open(
         UPDATE email_messages
         SET first_opened_at = COALESCE(email_messages.first_opened_at, NOW()),
             last_opened_at = NOW(),
-            open_count = email_messages.open_count + 1
+            open_count = CASE
+                WHEN email_messages.last_opened_at IS NULL THEN email_messages.open_count + 1
+                WHEN email_messages.last_opened_at < NOW() - INTERVAL '5 minutes' THEN email_messages.open_count + 1
+                ELSE email_messages.open_count
+            END
         FROM (
             SELECT id, first_opened_at
             FROM email_messages

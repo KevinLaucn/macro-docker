@@ -96,7 +96,7 @@ export function formatReadReceiptStatus(status?: ReadReceiptStatusData): {
 
   return {
     label: text,
-    tooltip: text,
+    tooltip: `${text} (${t('Multiple reading sessions')})`,
   };
 }
 

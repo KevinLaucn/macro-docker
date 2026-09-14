@@ -15,6 +15,8 @@ import { Button, cn } from '@ui';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 import {
   repairSelfHostBackfillCompletion,
+  repairSelfHostOpensearchAlignment,
+  repairSelfHostQueueBacklog,
   useSelfHostHealthQuery,
 } from './queries';
 import type { CheckCategory, HealthCheckItem, HealthStatus } from './types';
@@ -339,10 +341,26 @@ function HealthItemRow(props: {
   const [repairing, setRepairing] = createSignal(false);
   const hasExtra = () =>
     Boolean(props.item.details || props.item.remediation_hint);
-  const canRepair = () =>
-    props.item.id === 'email_backfill_completion' &&
-    props.item.status !== 'ok' &&
-    props.item.status !== 'disabled';
+  const canRepair = () => {
+    if (props.item.status === 'ok' || props.item.status === 'disabled') return false;
+    return (
+      props.item.id === 'email_backfill_completion' ||
+      props.item.id === 'opensearch_email_index' ||
+      props.item.id === 'sqs_queue_backlog'
+    );
+  };
+
+  const repairTooltip = () => {
+    switch (props.item.id) {
+      case 'opensearch_email_index':
+        return t('一键自动对齐索引');
+      case 'sqs_queue_backlog':
+        return t('一键清理排查死信消息');
+      default:
+        return t('安全重投递');
+    }
+  };
+
   const toggleExpanded = () => {
     if (hasExtra()) setExpanded((value) => !value);
   };
@@ -399,7 +417,7 @@ function HealthItemRow(props: {
               variant="ghost"
               size="icon-xs"
               label={t('修复')}
-              tooltip={t('安全重投递')}
+              tooltip={repairTooltip()}
               disabled={repairing()}
               onClick={repair}
               class="text-warning hover:text-ink"
@@ -436,8 +454,18 @@ function HealthItemRow(props: {
 
 export function SelfHostHealth() {
   const query = useSelfHostHealthQuery();
-  const repair = async () => {
-    await repairSelfHostBackfillCompletion();
+  const repairItem = async (item: HealthCheckItem) => {
+    switch (item.id) {
+      case 'opensearch_email_index':
+        await repairSelfHostOpensearchAlignment();
+        break;
+      case 'sqs_queue_backlog':
+        await repairSelfHostQueueBacklog();
+        break;
+      default:
+        await repairSelfHostBackfillCompletion();
+        break;
+    }
     await query.refetch();
   };
 
@@ -586,7 +614,9 @@ export function SelfHostHealth() {
             }
           >
             <For each={report()?.checks}>
-              {(check) => <HealthItemRow item={check} onRepair={repair} />}
+              {(check) => (
+                <HealthItemRow item={check} onRepair={() => repairItem(check)} />
+              )}
             </For>
           </Show>
         </SettingsCard>

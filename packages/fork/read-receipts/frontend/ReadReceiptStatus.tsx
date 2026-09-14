@@ -17,7 +17,7 @@ export interface ReadReceiptStatusProps {
 
 export function ReadReceiptStatus(props: ReadReceiptStatusProps) {
   const isEligible = () => {
-    const isSent = Boolean(props.message.is_sent || props.message.sent_at);
+    const isSent = Boolean(props.message.is_sent);
     return Boolean(isSent && !props.message.is_draft && props.message.db_id);
   };
 
