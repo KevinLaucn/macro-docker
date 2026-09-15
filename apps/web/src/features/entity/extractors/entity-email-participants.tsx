@@ -2,6 +2,7 @@ import { HoverCard } from '@core/component/HoverCard';
 import { StaticMarkdown } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { unifiedListMarkdownTheme } from '@core/component/LexicalMarkdown/theme';
 import { toast } from '@core/component/Toast/Toast';
+import { UserIcon } from '@core/component/UserIcon';
 import { UserTooltip } from '@core/component/UserTooltip';
 import { useEmailLinksContext } from '@core/context/emailLinks';
 import { emailToMacroId, getDisplayName } from '@core/user';
@@ -89,6 +90,20 @@ function ParticipantWithTooltip(props: {
               participant={props.participant}
               selfEmailSet={props.selfEmailSet}
               label={props.displayName}
+              avatar={
+                <Show when={(props.participant as { photoUrl?: string }).photoUrl}>
+                  {(url) => (
+                    <UserIcon
+                      email={props.participant.email}
+                      photoUrl={url()}
+                      size="sm"
+                      suppressClick
+                      showTooltip={false}
+                      class="shrink-0 size-3.5 rounded-full inline-block"
+                    />
+                  )}
+                </Show>
+              }
             />
           </Show>
         </>

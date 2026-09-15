@@ -27,6 +27,15 @@ describe("email participant identity", () => {
 		).toEqual(["me", "Alex", "Alex"]);
 	});
 
+	it("excludes delegated inboxes from self identity", () => {
+		const selfWithDelegated = resolveSelfEmails([
+			{ email_address: "user@gmail.com" },
+			{ email_address: "support@company.com", is_delegated: true },
+			{ email_address: "sales@company.com", isDelegated: true },
+		]);
+		expect(Array.from(selfWithDelegated)).toEqual(["user@gmail.com"]);
+	});
+
 	it("deduplicates external participants by normalized email, not display name", () => {
 		expect(
 			resolveParticipantIdentities(

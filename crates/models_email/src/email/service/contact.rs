@@ -29,7 +29,9 @@ impl From<crate::email::db::contact::Contact> for Contact {
             link_id: db_contact.link_id,
             name: db_contact.name,
             email_address: db_contact.email_address,
-            original_photo_url: db_contact.original_photo_url,
+            original_photo_url: db_contact
+                .original_photo_url
+                .or(db_contact.sfs_photo_url.clone()),
             sfs_photo_url: db_contact.sfs_photo_url,
         }
     }

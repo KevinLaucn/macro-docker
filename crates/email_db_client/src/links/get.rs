@@ -235,7 +235,7 @@ pub async fn fetch_inbox_details_for_macro_id(
                s.signature_on_replies_forwards as "signature_on_replies_forwards?",
                s.signature,
                bj.status as "latest_backfill_status?: _",
-               c.original_photo_url as "photo_url?",
+               COALESCE(c.original_photo_url, c.sfs_photo_url) as "photo_url?",
                COALESCE(g.granted_scopes, '{}') AS "google_granted_scopes!",
                (g.calendar_disabled_at IS NOT NULL) AS "calendar_disabled!",
                EXISTS (

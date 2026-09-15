@@ -26,6 +26,7 @@ customizations:
       - .fork/private-hooks.yml
     tests:
       - conventions
+      - email-identity
       - web
 
   - id: READ-RECEIPTS-001
