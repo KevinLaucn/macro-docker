@@ -7,9 +7,12 @@ hooks:
   - id: email_identity_participants
     file: apps/web/src/features/entity/extractors/entity-email-participants.tsx
     marker: "// PRIVATE-HOOK: email_identity:participants"
-    expected: "const { links } = useEmailLinksContext();"
+    expected: |-
+      // PRIVATE-HOOK: email_identity:participants
+      return resolveParticipantIdentities(participants, selfEmailSet).map(
     context:
-      - "export function EntityEmailParticipants(props: { entity: EmailEntity }) {"
+      - "function resolveParticipants("
+      - "displayName: identity.isSelf"
   - id: self_host_media_bypass_image_proxy
     file: apps/web/src/features/email-message/rendering-adapter.ts
     marker: "// PRIVATE-HOOK: self_host_media:bypass-proxy"
@@ -323,4 +326,10 @@ hooks:
     marker: "// PRIVATE-HOOK: self_host_health:repair_method"
     expected: "async repairSelfHostBackfillCompletion()"
     context:
-      - "admin/health-check/repair/backfill-completion"
+      - "fetchWithAuth"
+  - id: self_host_health_email_probe
+    file: services/email_service/src/api/email/links/health_check.rs
+    marker: "// PRIVATE-HOOK: self_host_health:email_probe"
+    expected: "pub async fn health_check_handler("
+    context:
+      - "LinkManagerMessage::HealthCheck"
