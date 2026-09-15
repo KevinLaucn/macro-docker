@@ -8,6 +8,7 @@ import { useEmailLinksContext } from '@core/context/emailLinks';
 import { emailToMacroId, getDisplayName } from '@core/user';
 import {
   EmailParticipantIdentity,
+  normalizeEmail,
   resolveParticipantIdentities,
   resolveSelfEmails,
 } from '@macro/email-participant-identity';
@@ -126,7 +127,7 @@ function resolveParticipants(
   return resolveParticipantIdentities(participants, selfEmailSet).map(
     (identity) => {
       const participant = participants.find(
-        (p) => p.email === identity.email
+        (p) => normalizeEmail(p.email) === normalizeEmail(identity.email)
       ) ?? {
         email: identity.email,
       };
