@@ -13,7 +13,7 @@ const self = resolveSelfEmails([
 ]);
 
 describe("email participant identity", () => {
-	it("marks every linked inbox as me and leaves external names distinct", () => {
+	it("collapses every linked inbox into one me identity and leaves external names distinct", () => {
 		expect(
 			resolveParticipantIdentities(
 				[
@@ -24,7 +24,20 @@ describe("email participant identity", () => {
 				],
 				self,
 			).map(({ label }) => label),
-		).toEqual(["me", "me", "Alex", "Alex"]);
+		).toEqual(["me", "Alex", "Alex"]);
+	});
+
+	it("deduplicates external participants by normalized email, not display name", () => {
+		expect(
+			resolveParticipantIdentities(
+				[
+					{ email: " A@example.com ", name: "Alex" },
+					{ email: "a@EXAMPLE.com", name: "Different header name" },
+					{ email: "b@example.com", name: "Alex" },
+				],
+				self,
+			).map(({ email }) => email),
+		).toEqual([" A@example.com ", "b@example.com"]);
 	});
 
 	it("shows Sent recipients without me or an arrow", () => {
