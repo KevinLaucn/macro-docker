@@ -7,6 +7,7 @@ import { useEmailLinksContext } from '@core/context/emailLinks';
 import { emailToMacroId, getDisplayName } from '@core/user';
 import {
   EmailParticipantIdentity,
+  buildThreadDisplay,
   normalizeEmail,
   resolveParticipantIdentities,
   resolveSelfEmails,
@@ -116,7 +117,6 @@ function resolveParticipants(
 ): ResolvedParticipant[] {
   if (!participants || participants.length === 0) return [];
 
-  // PRIVATE-HOOK: email_identity:participants
   return resolveParticipantIdentities(participants, selfEmailSet).map(
     (identity) => {
       const participant = participants.find(
@@ -190,21 +190,52 @@ export function EntityEmailParticipants(props: { entity: EmailEntity }) {
   const fetchDisplayName = (email: string) =>
     getDisplayName(emailToMacroId(email));
 
-  const participants = () =>
-    abbreviateParticipants(
-      resolveParticipants(
-        props.entity.participants,
-        selfEmailSet(),
-        fetchDisplayName
-      )
-    );
+  const viewMode = () => {
+    const rawMode = (props.entity as { emailIdentityViewMode?: string })
+      .emailIdentityViewMode;
+    return rawMode === 'sent' ? 'sent' : 'inbox';
+  };
 
-  const allResolved = () =>
-    resolveParticipants(
-      props.entity.participants,
-      selfEmailSet(),
-      fetchDisplayName
-    );
+  const latestSender = () => {
+    if (!props.entity.senderEmail) return undefined;
+    return {
+      email: props.entity.senderEmail,
+      name: props.entity.senderName,
+    };
+  };
+
+  // PRIVATE-HOOK: email_identity:participants
+  const display = () =>
+    buildThreadDisplay({
+      participants: props.entity.participants ?? [],
+      latestSender: latestSender(),
+      selfEmailSet: selfEmailSet(),
+      viewMode: viewMode(),
+    });
+
+  const orderedResolved = () => {
+    const thread = display();
+    const allParticipants = props.entity.participants ?? [];
+    return thread.participants.map((identity) => {
+      const original = allParticipants.find(
+        (p) => normalizeEmail(p.email) === normalizeEmail(identity.email)
+      ) ?? { email: identity.email, name: identity.label };
+      return {
+        participant: original,
+        displayName: identity.isSelf
+          ? identity.label
+          : resolveParticipantName(
+              original,
+              fetchDisplayName(identity.email)
+            ),
+        isSelf: identity.isSelf,
+      };
+    });
+  };
+
+  const participants = () => abbreviateParticipants(orderedResolved());
+
+  const allResolved = () => orderedResolved();
 
   const hiddenParticipants = () => {
     const all = allResolved();
@@ -224,12 +255,28 @@ export function EntityEmailParticipants(props: { entity: EmailEntity }) {
     return result !== name ? result : undefined;
   };
 
+  const isOutbound = () => {
+    const sender = latestSender();
+    return sender ? selfEmailSet().has(normalizeEmail(sender.email)) : false;
+  };
+
+  const renderSeparator = (index: number, isSelf: boolean) => {
+    if (index === 0) return null;
+    if (display().separator === 'arrow') {
+      const isArrow = isOutbound() ? index === 1 : isSelf;
+      if (isArrow) {
+        return <span class="opacity-60 mx-1">→</span>;
+      }
+    }
+    return <>, </>;
+  };
+
   return (
     <>
       <For each={participants()}>
         {(resolved, index) => (
           <>
-            <Show when={index() > 0}>, </Show>
+            {renderSeparator(index(), resolved.isSelf)}
             <ParticipantWithTooltip
               participant={resolved.participant}
               displayName={resolved.displayName}

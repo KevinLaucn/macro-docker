@@ -7,12 +7,10 @@ hooks:
   - id: email_identity_participants
     file: apps/web/src/features/entity/extractors/entity-email-participants.tsx
     marker: "// PRIVATE-HOOK: email_identity:participants"
-    expected: |-
-      // PRIVATE-HOOK: email_identity:participants
-      return resolveParticipantIdentities(participants, selfEmailSet).map(
+    expected: "const display = () =>"
     context:
-      - "function resolveParticipants("
-      - "displayName: identity.isSelf"
+      - "export function EntityEmailParticipants(props: { entity: EmailEntity }) {"
+      - "buildThreadDisplay({"
   - id: self_host_media_bypass_image_proxy
     file: apps/web/src/features/email-message/rendering-adapter.ts
     marker: "// PRIVATE-HOOK: self_host_media:bypass-proxy"

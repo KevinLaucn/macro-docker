@@ -9,6 +9,7 @@ import { buildSentDisplay } from "./sent-display";
 export type ThreadDisplay = {
 	participants: ReturnType<typeof resolveParticipantIdentities>;
 	direction?: string;
+	separator: "arrow" | "comma";
 };
 
 function lastRealMessage(messages: readonly EmailMessage[]) {
@@ -31,6 +32,7 @@ function selfParticipant(selfEmailSet: ReadonlySet<string>) {
  *
  * - inbound: external participants -> me
  * - outbound: me -> external participants
+ * - bidirectional with external reply: external participants, me
  * - sent: external recipients only, no arrow
  *
  * `latestSender` is the lightweight Soup-list path. Full thread consumers can
@@ -46,6 +48,7 @@ export function buildThreadDisplay(args: {
 	if (args.viewMode === "sent") {
 		return {
 			participants: buildSentDisplay(args.participants, args.selfEmailSet),
+			separator: "comma",
 		};
 	}
 
@@ -55,12 +58,12 @@ export function buildThreadDisplay(args: {
 		? [...args.participants, sender]
 		: [...args.participants];
 	const resolved = resolveParticipantIdentities(candidates, args.selfEmailSet);
-	if (!sender) return { participants: resolved };
+	if (!sender) return { participants: resolved, separator: "comma" };
 
 	const me = resolved.find((participant) => participant.isSelf) ??
 		selfParticipant(args.selfEmailSet);
 	const externals = resolved.filter((participant) => !participant.isSelf);
-	if (!me || externals.length === 0) return { participants: resolved };
+	if (!me || externals.length === 0) return { participants: resolved, separator: "comma" };
 
 	const senderIsSelf = isSelfEmail(sender.email, args.selfEmailSet);
 	if (!senderIsSelf) {
@@ -72,12 +75,21 @@ export function buildThreadDisplay(args: {
 		});
 	}
 
+	const realMessages = args.messages ? args.messages.filter((m) => !m.isDraft) : [];
+	const hasSelfMessage = realMessages.some((m) => m.from && isSelfEmail(m.from.email, args.selfEmailSet));
+	const hasExternalMessage = realMessages.some((m) => m.from && !isSelfEmail(m.from.email, args.selfEmailSet));
+	const isBidirectional = hasSelfMessage && hasExternalMessage;
+
+	const separator = isBidirectional && !senderIsSelf ? "comma" : "arrow";
 	const participants = senderIsSelf ? [me, ...externals] : [...externals, me];
 	const externalLabels = externals.map(({ label }) => label).join(", ");
 	return {
 		participants,
-		direction: senderIsSelf
-			? `${me.label} → ${externalLabels}`
-			: `${externalLabels} → ${me.label}`,
+		direction: separator === "comma"
+			? `${externalLabels}, ${me.label}`
+			: senderIsSelf
+				? `${me.label} → ${externalLabels}`
+				: `${externalLabels} → ${me.label}`,
+		separator,
 	};
 }

@@ -52,7 +52,27 @@ describe("email participant identity", () => {
 		).toEqual(["Danielle"]);
 	});
 
-	it("uses the last non-draft message for direction", () => {
+	it("uses the last non-draft message for direction and separator", () => {
+		// Single received message
+		expect(
+			buildThreadDisplay({
+				participants: [{ email: "a@example.com", name: "Danielle" }],
+				selfEmailSet: self,
+				viewMode: "inbox",
+				messages: [
+					{
+						from: { email: "a@example.com", name: "Danielle" },
+						to: [{ email: "user@gmail.com" }],
+						sentAt: "1",
+					},
+				],
+			}),
+		).toMatchObject({
+			direction: "Danielle → me",
+			separator: "arrow",
+		});
+
+		// Bidirectional conversation where Danielle replied last: "Danielle, me"
 		expect(
 			buildThreadDisplay({
 				participants: [{ email: "a@example.com", name: "Danielle" }],
@@ -76,8 +96,35 @@ describe("email participant identity", () => {
 						sentAt: "3",
 					},
 				],
-			}).direction,
-		).toBe("Danielle → me");
+			}),
+		).toMatchObject({
+			direction: "Danielle, me",
+			separator: "comma",
+		});
+
+		// Bidirectional conversation where self replied last: "me → Danielle"
+		expect(
+			buildThreadDisplay({
+				participants: [{ email: "a@example.com", name: "Danielle" }],
+				selfEmailSet: self,
+				viewMode: "inbox",
+				messages: [
+					{
+						from: { email: "a@example.com", name: "Danielle" },
+						to: [{ email: "user@gmail.com" }],
+						sentAt: "1",
+					},
+					{
+						from: { email: "user@gmail.com" },
+						to: [{ email: "a@example.com", name: "Danielle" }],
+						sentAt: "2",
+					},
+				],
+			}),
+		).toMatchObject({
+			direction: "me → Danielle",
+			separator: "arrow",
+		});
 	});
 });
 

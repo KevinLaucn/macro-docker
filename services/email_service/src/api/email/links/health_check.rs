@@ -54,6 +54,7 @@ impl IntoResponse for HealthCheckError {
     )
 )]
 #[tracing::instrument(skip(ctx, authorization), fields(user_id=authorization.authorization.user.user_context.user_id, fusionauth_user_id=authorization.authorization.user.user_context.fusion_user_id), err)]
+// PRIVATE-HOOK: self_host_health:email_probe
 pub async fn health_check_handler(
     State(ctx): State<ApiContext>,
     authorization: MacroAuthorizationExtractor<AuthorizationService, UserOrInternal>,
