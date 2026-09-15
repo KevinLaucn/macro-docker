@@ -3857,5 +3857,7 @@
   "Error: {err}": "错误：{err}",
   "Failed to change {entityLabel} access": "无法更改 {entityLabel} 访问权限",
   "Failed to connect {display_name}": "无法连接 {display_name}",
-  "Failed to mark sender as {label}@@email": "无法将发件人标记为 {label}"
+  "Failed to mark sender as {label}@@email": "无法将发件人标记为 {label}",
+  "Ask AI…": "向 AI 提问…",
+  "Close company creation": "关闭公司创建"
 }
