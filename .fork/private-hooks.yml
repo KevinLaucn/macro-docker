@@ -4,6 +4,12 @@ version: 1
 # Keep hooks small: marker + the expected one-line import/call/router/component
 # entry that connects upstream code to private feature modules.
 hooks:
+  - id: email_identity_participants
+    file: apps/web/src/features/entity/extractors/entity-email-participants.tsx
+    marker: "// PRIVATE-HOOK: email_identity:participants"
+    expected: "const { links } = useEmailLinksContext();"
+    context:
+      - "export function EntityEmailParticipants(props: { entity: EmailEntity }) {"
   - id: self_host_media_bypass_image_proxy
     file: apps/web/src/features/email-message/rendering-adapter.ts
     marker: "// PRIVATE-HOOK: self_host_media:bypass-proxy"

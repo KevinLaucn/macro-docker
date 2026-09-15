@@ -83,6 +83,7 @@ export function createEmailsInfiniteQuery(
             const participants = email.contacts.map((p) => ({
               email: p.emailAddress ?? '',
               name: p.name ?? '',
+              photoUrl: p.sfsPhotoUrl ?? undefined,
             }));
 
             return {

@@ -213,7 +213,11 @@ export const getEntityProjectId = (e: EntityData): string | false => {
   return 'projectId' in e ? (e.projectId ?? false) : false;
 };
 
-export type EmailThreadParticipants = Array<{ email: string; name?: string }>;
+export type EmailThreadParticipants = Array<{
+  email: string;
+  name?: string;
+  photoUrl?: string;
+}>;
 
 export type EmailAttachment = {
   id: string;

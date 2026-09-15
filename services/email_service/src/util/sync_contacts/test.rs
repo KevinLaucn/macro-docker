@@ -107,6 +107,58 @@ fn assert_published_batches(thread_count: usize, expected_batch_sizes: &[usize])
     assert_eq!(published_thread_ids, thread_ids);
 }
 
+fn contact(email: &str, name: Option<&str>, photo: Option<&str>) -> Contact {
+    Contact {
+        id: Uuid::now_v7(),
+        link_id: Uuid::nil(),
+        name: name.map(str::to_owned),
+        email_address: Some(email.to_owned()),
+        original_photo_url: photo.map(str::to_owned),
+        sfs_photo_url: None,
+    }
+}
+
+#[test]
+fn primary_contact_wins_but_uses_other_photo_when_primary_has_none() {
+    let merged = merge_contacts_by_source(vec![
+        SourcedContact {
+            contact: contact("danielle@example.com", Some("Danielle"), None),
+            source: ContactSource::Primary,
+        },
+        SourcedContact {
+            contact: contact("DANIELLE@example.com", None, Some("other-photo")),
+            source: ContactSource::Other,
+        },
+    ]);
+
+    assert_eq!(merged.len(), 1);
+    assert_eq!(merged[0].name.as_deref(), Some("Danielle"));
+    assert_eq!(merged[0].original_photo_url.as_deref(), Some("other-photo"));
+}
+
+#[test]
+fn primary_photo_replaces_other_photo_when_primary_is_later_available() {
+    let merged = merge_contacts_by_source(vec![
+        SourcedContact {
+            contact: contact("danielle@example.com", None, Some("other-photo")),
+            source: ContactSource::Other,
+        },
+        SourcedContact {
+            contact: contact(
+                "danielle@example.com",
+                Some("Danielle"),
+                Some("primary-photo"),
+            ),
+            source: ContactSource::Primary,
+        },
+    ]);
+
+    assert_eq!(
+        merged[0].original_photo_url.as_deref(),
+        Some("primary-photo")
+    );
+}
+
 #[tokio::test]
 async fn publishes_no_batches_for_zero_threads() {
     assert_published_batches(0, &[]);

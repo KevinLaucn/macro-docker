@@ -2,9 +2,15 @@ import { HoverCard } from '@core/component/HoverCard';
 import { StaticMarkdown } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { unifiedListMarkdownTheme } from '@core/component/LexicalMarkdown/theme';
 import { toast } from '@core/component/Toast/Toast';
+import { UserIcon } from '@core/component/UserIcon';
 import { UserTooltip } from '@core/component/UserTooltip';
-import { useEmail } from '@core/context/user';
+import { useEmailLinksContext } from '@core/context/emailLinks';
 import { emailToMacroId, getDisplayName } from '@core/user';
+import {
+  EmailParticipantIdentity,
+  resolveParticipantIdentities,
+  resolveSelfEmails,
+} from '@macro/email-participant-identity';
 import {
   highlightTermsInText,
   mergeAdjacentMacroEmTags,
@@ -52,6 +58,7 @@ function ParticipantWithTooltip(props: {
   participant: EmailThreadParticipants[number];
   displayName: string;
   highlighted?: string;
+  selfEmailSet: ReadonlySet<string>;
 }) {
   const macroId = () => emailToMacroId(props.participant.email);
   const macroDisplayName = () => getDisplayName(macroId());
@@ -65,18 +72,33 @@ function ParticipantWithTooltip(props: {
       onOpenChange={setOpen}
       triggerAs="span"
       trigger={
-        <Show
-          when={props.highlighted}
-          fallback={<span>{props.displayName}</span>}
-        >
-          {(md) => (
-            <StaticMarkdown
-              markdown={md()}
-              theme={unifiedListMarkdownTheme}
-              singleLine
+        <>
+          <Show when={props.highlighted}>
+            {(md) => (
+              <StaticMarkdown
+                markdown={md()}
+                theme={unifiedListMarkdownTheme}
+                singleLine
+              />
+            )}
+          </Show>
+          <Show when={!props.highlighted}>
+            <EmailParticipantIdentity
+              participant={props.participant}
+              selfEmailSet={props.selfEmailSet}
+              label={props.displayName}
+              avatar={
+                <UserIcon
+                  email={props.participant.email}
+                  photoUrl={props.participant.photoUrl}
+                  size="sm"
+                  suppressClick
+                  showTooltip={false}
+                />
+              }
             />
-          )}
-        </Show>
+          </Show>
+        </>
       }
       content={
         <UserTooltip
@@ -96,35 +118,29 @@ function ParticipantWithTooltip(props: {
  */
 function resolveParticipants(
   participants: EmailThreadParticipants | undefined,
-  userEmail: string | undefined,
+  selfEmailSet: ReadonlySet<string>,
   getMacroDisplayName: (email: string) => string | undefined
 ): ResolvedParticipant[] {
   if (!participants || participants.length === 0) return [];
 
-  const seen = new Set<string>();
-  const result: ResolvedParticipant[] = [];
-
-  for (const participant of participants) {
-    if (!participant.email) continue;
-    if (userEmail && participant.email === userEmail) continue;
-
-    const macroDisplayName = getMacroDisplayName(participant.email);
-    const displayName = resolveParticipantName(participant, macroDisplayName);
-
-    if (seen.has(displayName)) continue;
-    seen.add(displayName);
-
-    result.push({ participant, displayName });
-  }
-
-  // Every participant was the current user (self-to-self threads, or
-  // duplicate own-address rows from multi-inbox accounts) — show "me".
-  if (result.length === 0) {
-    const self = participants.find((p) => userEmail && p.email === userEmail);
-    if (self) return [{ participant: self, displayName: 'me' }];
-  }
-
-  return result;
+  return resolveParticipantIdentities(participants, selfEmailSet).map(
+    (identity) => {
+      const participant = participants.find(
+        (p) => p.email === identity.email
+      ) ?? {
+        email: identity.email,
+      };
+      return {
+        participant,
+        displayName: identity.isSelf
+          ? 'me'
+          : resolveParticipantName(
+              participant,
+              getMacroDisplayName(identity.email)
+            ),
+      };
+    }
+  );
 }
 
 function abbreviateParticipants(
@@ -174,7 +190,9 @@ function HiddenParticipantsTooltip(props: { hidden: ResolvedParticipant[] }) {
 
 /** Get a nicely formatted list of participants from an email entity. */
 export function EntityEmailParticipants(props: { entity: EmailEntity }) {
-  const userEmail = useEmail();
+  // PRIVATE-HOOK: email_identity:participants
+  const { links } = useEmailLinksContext();
+  const selfEmailSet = () => resolveSelfEmails(links());
   const fetchDisplayName = (email: string) =>
     getDisplayName(emailToMacroId(email));
 
@@ -182,7 +200,7 @@ export function EntityEmailParticipants(props: { entity: EmailEntity }) {
     abbreviateParticipants(
       resolveParticipants(
         props.entity.participants,
-        userEmail(),
+        selfEmailSet(),
         fetchDisplayName
       )
     );
@@ -190,7 +208,7 @@ export function EntityEmailParticipants(props: { entity: EmailEntity }) {
   const allResolved = () =>
     resolveParticipants(
       props.entity.participants,
-      userEmail(),
+      selfEmailSet(),
       fetchDisplayName
     );
 
@@ -221,6 +239,7 @@ export function EntityEmailParticipants(props: { entity: EmailEntity }) {
               participant={resolved.participant}
               displayName={resolved.displayName}
               highlighted={highlightName(resolved.displayName)}
+              selfEmailSet={selfEmailSet()}
             />
           </>
         )}

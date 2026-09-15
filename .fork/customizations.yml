@@ -13,6 +13,21 @@ customizations:
     tests:
       - conventions
 
+  - id: EMAIL-PARTICIPANT-IDENTITY-001
+    title: Unified Gmail self-identity and participant display
+    rationale: Show all linked Gmail addresses as me while preserving distinct external contacts and existing inbox attribution avatars.
+    risk: medium
+    paths:
+      - packages/fork/email-participant-identity/**
+      - apps/web/src/features/entity/extractors/entity-email-participants.tsx
+      - apps/web/src/features/entity/queries/email.ts
+      - apps/web/src/features/entity/types/entity.ts
+      - apps/web/tsconfig.json
+      - .fork/private-hooks.yml
+    tests:
+      - conventions
+      - web
+
   - id: READ-RECEIPTS-001
     title: Isolated read receipts and email tracking
     rationale: Keep send-side open tracking, status APIs, settings, pixel handling, and compatibility hooks in one fork-owned feature package without changing the public contract.

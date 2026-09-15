@@ -14,7 +14,7 @@ use models_email::service::pubsub::SFSUploaderMessage;
 use models_email::service::sync_token::SyncTokens;
 use sqlx::PgPool;
 use sqs_client::SQS;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 use uuid::Uuid;
 
@@ -49,7 +49,7 @@ pub async fn sync_contacts<B: MacroEventBroker>(
             sqs_client,
             macro_event_broker,
             link,
-            new_contacts,
+            merge_contacts_by_source(new_contacts),
         ))
         .await?;
     }
@@ -85,14 +85,17 @@ async fn fetch_new_contacts_from_google(
     link: &Link,
     contacts_sync_token: Option<String>,
     other_contacts_sync_token: Option<String>,
-) -> (Vec<Contact>, SyncTokens) {
-    let mut all_new_contacts: Vec<Contact> = Vec::new();
+) -> (Vec<SourcedContact>, SyncTokens) {
+    let mut all_new_contacts: Vec<SourcedContact> = Vec::new();
     let mut new_contacts_token = None;
     let mut new_other_contacts_token = None;
 
     match email_api.get_self_contact(link.id).await {
         Ok(contact) => {
-            all_new_contacts.push(contact);
+            all_new_contacts.push(SourcedContact {
+                contact,
+                source: ContactSource::Primary,
+            });
         }
         Err(e) => {
             tracing::error!(error = ?e, link_id = %link.id, "Failed to get own contact");
@@ -109,7 +112,12 @@ async fn fetch_new_contacts_from_google(
     {
         Ok(contact_list) => {
             new_contacts_token = Some(contact_list.next_sync_token);
-            all_new_contacts.extend(contact_list.contacts);
+            all_new_contacts.extend(contact_list.contacts.into_iter().map(|contact| {
+                SourcedContact {
+                    contact,
+                    source: ContactSource::Primary,
+                }
+            }));
         }
         Err(e) => {
             tracing::debug!(error = ?e, link_id = %link.id, "Failed to get primary contacts");
@@ -126,7 +134,12 @@ async fn fetch_new_contacts_from_google(
     {
         Ok(contact_list) => {
             new_other_contacts_token = Some(contact_list.next_sync_token);
-            all_new_contacts.extend(contact_list.contacts);
+            all_new_contacts.extend(contact_list.contacts.into_iter().map(|contact| {
+                SourcedContact {
+                    contact,
+                    source: ContactSource::Other,
+                }
+            }));
         }
         Err(e) => {
             tracing::debug!(error = ?e, link_id = %link.id, "Failed to get other contacts");
@@ -140,6 +153,56 @@ async fn fetch_new_contacts_from_google(
     };
 
     (all_new_contacts, new_sync_tokens)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ContactSource {
+    Primary,
+    Other,
+}
+
+#[derive(Debug)]
+struct SourcedContact {
+    contact: Contact,
+    source: ContactSource,
+}
+
+/// Combines the two Google contact collections by address. A primary contact
+/// owns the name, while its photo falls back to Other Contacts when needed.
+fn merge_contacts_by_source(contacts: Vec<SourcedContact>) -> Vec<Contact> {
+    let mut merged: HashMap<String, (Contact, ContactSource)> = HashMap::new();
+
+    for sourced in contacts {
+        let Some(email) = sourced.contact.email_address.as_ref() else {
+            continue;
+        };
+        let key = email.trim().to_lowercase();
+        if key.is_empty() {
+            continue;
+        }
+
+        match merged.get_mut(&key) {
+            None => {
+                merged.insert(key, (sourced.contact, sourced.source));
+            }
+            Some((current, current_source)) => {
+                let primary = sourced.source == ContactSource::Primary;
+                let current_is_primary = *current_source == ContactSource::Primary;
+                if primary && !current_is_primary {
+                    let mut replacement = sourced.contact;
+                    replacement.original_photo_url = replacement
+                        .original_photo_url
+                        .or_else(|| current.original_photo_url.clone());
+                    *current = replacement;
+                    *current_source = ContactSource::Primary;
+                } else if !primary && current.original_photo_url.is_none() {
+                    current.original_photo_url = sourced.contact.original_photo_url;
+                }
+            }
+        }
+    }
+
+    merged.into_values().map(|(contact, _)| contact).collect()
 }
 
 #[derive(Debug, Clone, Copy)]

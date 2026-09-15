@@ -86,6 +86,12 @@
       "@macro/self-host-health/*": [
         "../../packages/fork/self-host-health/*"
       ],
+      "@macro/email-participant-identity": [
+        "../../packages/fork/email-participant-identity/index.ts"
+      ],
+      "@macro/email-participant-identity/*": [
+        "../../packages/fork/email-participant-identity/*"
+      ],
       "@macro/tauri": [
         "./src/lib/tauri"
       ],
