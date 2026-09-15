@@ -22,6 +22,8 @@ customizations:
       - apps/web/src/features/entity/extractors/entity-email-participants.tsx
       - apps/web/src/features/entity/queries/email.ts
       - apps/web/src/features/entity/types/entity.ts
+      - apps/web/src/features/email-view/queries/use-email-query.ts
+      - crates/models_email/src/email/service/contact.rs
       - apps/web/tsconfig.json
       - .fork/private-hooks.yml
     tests:
@@ -52,6 +54,10 @@ customizations:
       - apps/web/src/features/extensions/Extensions.tsx
       - apps/web/src/features/settings/ReadReceiptsSection.tsx
       - apps/web/src/features/block-email/util/readReceipts.ts
+      - apps/web/src/features/block-email/component/TopBar.tsx
+      - apps/web/src/features/next-soup/actions/make-delete-action.ts
+      - apps/web/src/features/next-soup/utils.ts
+      - apps/web/src/features/notifications/notification-platform.ts
       - apps/web/src/lib/queries/email/readReceipts.ts
       - apps/web/src/lib/service-clients/service-email/readReceiptsClient.ts
       - package.json
@@ -86,9 +92,15 @@ customizations:
       - services/authentication_service/src/api.rs
       - services/authentication_service/src/main.rs
       - services/authentication_service/src/openapi.rs
+      - services/document_storage_service/src/api/internal.rs
       - apps/web/src/components/app/Layout.tsx
+      - apps/web/src/lib/core/constant/SettingsState.tsx
+      - apps/web/src/lib/core/constant/settingsTabsConfig.tsx
       - apps/web/src/features/settings/Settings.tsx
       - apps/web/src/lib/service-clients/service-auth/client.ts
+      - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
+      - apps/web/src/routes/Root.tsx
+      - crates/ai_projections/src/domain/ai_projection_service.rs
       - self-host/scripts/check-drift.py
       - self-host/scripts/affected-services.py
       - .github/workflows/self-host-images.yml
@@ -108,6 +120,9 @@ customizations:
       - nix/**
       - tooling/xtask/crates/xtask_local/**
       - tooling/just/**
+      - apps/web/src/lib/core/constant/featureFlags.ts
+      - services/sync-service/wrangler.docker.toml
+      - services/document_cognition_service/src/service/chat_renamer.rs
     tests:
       - conventions
       - selfhost-config
@@ -145,6 +160,8 @@ customizations:
     risk: high
     paths:
       - services/email_service/**
+      - services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
+      - services/email_service/src/api/email/links/health_check.rs
       - crates/email/**
       - crates/email_db_client/**
       - crates/email_api_client/**
@@ -168,6 +185,10 @@ customizations:
       - services/authentication_service/src/api/utils.rs
       - services/authentication_service/src/api/login/sso.rs
       - services/authentication_service/src/api/oauth2.rs
+      - services/authentication_service/src/api/link/gmail.rs
+      - services/authentication_service/src/api/link/gmail/test.rs
+      - services/authentication_service/src/api/oauth.rs
+      - crates/soup/src/outbound/pg_soup_repo/candidate_gates.rs
       - services/authentication_service/src/main.rs
       - services/authentication_service/Cargo.toml
       - self-host/init/Dockerfile
@@ -186,9 +207,16 @@ customizations:
     risk: medium
     paths:
       - packages/fork/i18n/**
-      - apps/web/src/lib/i18n/**
       - rules/ast-grep/**
       - sgconfig.yml
+      - apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
+      - apps/web/src/features/auth/GmailReauthenticationPrompt.tsx
+      - apps/web/src/features/settings/ConnectedAccounts.tsx
+      - apps/web/src/features/settings/Integrations.tsx
+      - apps/web/src/features/companies/Company/Company.tsx
+      - apps/web/src/features/companies/Company/CompanyContactsSection.tsx
+      - apps/web/src/features/contacts/Contact/**
+      - apps/web/vite.base.ts
     tests:
       - conventions
       - i18n
@@ -209,6 +237,8 @@ customizations:
       - apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
       - apps/web/src/features/email-view/components/EmailControls.tsx
       - apps/web/src/features/email-view/components/EmailList.tsx
+      - apps/web/src/features/email-view/components/EmailHeader.tsx
+      - apps/web/src/features/email-view/components/EmailSidebar.tsx
       - apps/web/src/features/email-view/email-list-translation-context.tsx
       - apps/web/src/features/email-view/email-view.tsx
       - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
@@ -241,3 +271,19 @@ customizations:
     tests:
       - conventions
       - workflow-lint
+
+  - id: ADOBE-ATTACHMENT-PREVIEW-001
+    title: Adobe Illustrator and EPS attachment preview
+    rationale: Provide lightweight client-side AI/EPS inspection, TIFF extraction, and explicit status states without cloud or Ghostscript dependencies.
+    risk: low
+    paths:
+      - packages/fork/adobe-preview/**
+      - apps/web/src/features/email-message/attachment-action-adapter.ts
+      - apps/web/src/features/email-message/components/attachment-pill.tsx
+      - apps/web/src/features/block-unknown/component/Block.tsx
+      - apps/web/tsconfig.json
+      - apps/web/vite.base.ts
+      - .fork/private-hooks.yml
+    tests:
+      - conventions
+      - web

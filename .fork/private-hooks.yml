@@ -331,3 +331,21 @@ hooks:
     expected: "pub async fn health_check_handler("
     context:
       - "LinkManagerMessage::HealthCheck"
+  - id: adobe_preview_open_action
+    file: apps/web/src/features/email-message/attachment-action-adapter.ts
+    marker: "// PRIVATE-HOOK: adobe_preview:open_action"
+    expected: "const adobeExt = attachment.filename?.split('.').pop()?.toLowerCase();"
+    context:
+      - "const openAttachment = async (attachment: EmailAttachment) => {"
+  - id: adobe_preview_pill_badge
+    file: apps/web/src/features/email-message/components/attachment-pill.tsx
+    marker: "{/* PRIVATE-HOOK: adobe_preview:pill_badge */}"
+    expected: "const ext = props.attachment.fileName.split('.').pop()?.toLowerCase();"
+    context:
+      - "export function EmailAttachmentPill(props: EmailAttachmentPillProps) {"
+  - id: adobe_preview_fallback_preview
+    file: apps/web/src/features/block-unknown/component/Block.tsx
+    marker: "// PRIVATE-HOOK: adobe_preview:fallback_preview"
+    expected: "import { AdobePreviewContainer, getAdobeFormatFromFileName } from '@macro/adobe-preview';"
+    context:
+      - "export default function BlockUnknown() {"

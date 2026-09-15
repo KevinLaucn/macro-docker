@@ -19,14 +19,15 @@ packages/fork/<feature>/  二开功能的完整实现
 
 ## 2. 官方源码接入
 
-官方文件只允许保留最小接入代码：`import`、`register`、组件 Hook、路由挂载
-或一行调用。业务逻辑必须放在 `packages/fork/<feature>/`。
+完整二开功能、跨文件模块或需要独立测试/配置/构建边界的实现放在
+`packages/fork/<feature>/`。官方文件通常只保留最小接入代码；但小型语义补丁和上游兼容性
+修补可以留在对应 upstream-owned 文件中，不得为了形式统一强行 package 化。
 
 每个官方源码接入点必须：
 
 1. 添加唯一的 `PRIVATE-HOOK:` 标记；
 2. 登记到 `.fork/private-hooks.yml`，填写官方文件、接入点和预期代码；
-3. 运行 `ruby .github/scripts/check-private-hooks.rb`；
+3. 运行 `just fork-gate`（机器门禁的唯一入口）；
 4. 同一区域已有多个二开时，优先增加一个统一 Fork 入口，由入口内部组合功能。
 
 ## 3. 固定覆盖
@@ -53,12 +54,7 @@ packages/fork/<feature>/  二开功能的完整实现
 → 通过 PR 合并到 main
 ```
 
-`just fork-gate` 检查：
-
-- `private-hooks`：接入口仍存在且唯一；
-- `overrides --check`：固定覆盖仍能精确应用；
-- `customizations`：上游是否触碰受保护区域；
-- `zero-cloud`：自托管构建路径是否新增官方服务或遥测 endpoint。
+`just fork-gate` 是机器门禁的唯一真源；具体检查项以 recipe 实现为准，不在文档中重复枚举。
 
 门禁失败时只修复命中的二开点。门禁通过不代表语义审查可以省略；上游修改某个功能
 关联文件时，必须运行该功能的 targeted test。
@@ -98,8 +94,4 @@ Telemetry/analytics 单独登记为 `TELEMETRY-PRIVACY-001`，不与 runtime 风
 
 ```bash
 just fork-gate
-ruby .github/scripts/check-private-hooks.rb
-ruby .github/scripts/check-fork-overrides.rb --check
-ruby .github/scripts/check-upstream-overlap.rb --base upstream/main --head HEAD
-ruby .github/scripts/check-fork-retirements.rb --upstream upstream/main
 ```

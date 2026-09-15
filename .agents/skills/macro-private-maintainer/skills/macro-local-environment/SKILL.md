@@ -5,10 +5,6 @@ description: Local development, macOS Docker runtime, local stack, headless stac
 
 # Macro Local Environment
 
-Fork 二开实现默认放在 `packages/fork/<feature>/`。修改 upstream-owned 文件时只保留最小
-接入层，并同步登记 `.fork/private-hooks.yml` 与 `.fork/customizations.yml`；不要把完整二开
-业务逻辑散落进官方目录。
-
 Use this skill for any task involving local development, macOS Docker runtime, local stack startup, `run_local`, `run_dev`, `doctor-local`, `status_local`, `stack`, local service image builds, port conflicts, or local production/CI parity checks.
 
 ## First Step
@@ -22,7 +18,7 @@ Classify the request before running commands:
 - `CI_PARITY`: local reproduction of CI or release build behavior.
 - `DEBUG_EXISTING_LOCAL`: inspect or repair an already running local stack.
 
-Before acting, state:
+When useful, record:
 
 - `LOCAL MODE`
 - `HOST`
@@ -46,7 +42,7 @@ just frontend
 
 > **默认热更新说明**：
 > - 本地日常前端开发**默认使用热更新开发模式**（`just run_local` 或 `just frontend`），访问 `http://localhost:3000/app`。
-> - 本地开发私有变量的权威文件是仓库根目录 `.env.local`；`xtask_local` 默认读取它。不要把本地开发凭据写到 `local.env`、`.env`、compose 文件或 shell 历史里。
+> - 后端、xtask 和本地栈私有变量的权威文件是仓库根目录 `.env.local`；`xtask_local` 默认读取它。前端专属 flags/覆盖使用 `apps/web/.env.local`，由 Vite 读取；不要把凭据写到 Skill、compose 文件或 shell 历史里。
 > - 在热更新模式下，任何在 `apps/web/src` 下修改的代码将由 Vite 实时编译热替换（HMR），无需手动重新 build。
 > - 如需使用 Rustup toolchain 编译前端中的 agent-fold 等 Wasm 依赖，请确保 PATH 包含 `$HOME/.cargo/bin`。
 
@@ -107,16 +103,12 @@ just stack down
    ```
    采用最新编译构建更新容器，本地数据库、已绑定的邮箱账户与邮件数据 100% 完整留存。
 
-## Google / Gmail 认证链路回归测试规范 (Google OAuth Regression Check)
+## Integration credentials
 
-为避免环境重置或更新后出现 Google/Gmail 绑定报 500 或 IdP 丢失，提供以下自动化回归检查流程：
-1. **凭证完整性**：确认根目录 `.env.local` 存在且包含合法的 `GOOGLE_CLIENT_ID` 与 `GOOGLE_CLIENT_SECRET_KEY=GOCSPX-...`。
-2. **IdP 注册状态**：调用 FusionAuth Admin API 确认已注册 `google_gmail` 身份提供商。
-3. **服务容器状态**：确认 `macro-authentication-service-1` 容器内注入的不是占位符 `local-google-client`。
-4. **用户角色权限**：确认当前测试用户拥有 `professional_subscriber` 权限角色。
-
-日常可通过一行回归验证脚本快速执行全套检测：
-`bash -c 'test -f .env.local && grep -q "^GOOGLE_CLIENT_SECRET_KEY=GOCSPX-" .env.local && curl -sf http://localhost:9011/api/identity-provider -H "Authorization: bf69486b-4733-4954-a44e-2e1b5f2c8a91" | grep -q "google_gmail" && echo "✓ Google 认证链路回归校验全部通过"'`
+For Google/Gmail or other integrations, verify only that required env keys are
+present and that the local reconcile/status path reports the provider correctly.
+Never place real values, token-shaped examples, or admin headers in this Skill.
+Use the repository's documented env loading and FusionAuth reconcile flow.
 
 
 
@@ -124,13 +116,13 @@ just stack down
 
 - Preserve the upstream local workflow unless the task explicitly asks to change it.
 - Do not create a second local infrastructure stack when `xtask_local` already owns the workflow.
-- Root `.env.local` is the default local developer env file. Prefer it over `local.env`; keep production `.env` separate.
+- Root `.env.local` is the default backend/xtask/local-stack developer env file. `apps/web/.env.local` is for frontend-only flags and Vite overrides; keep production env separate.
 - Do not kill unrelated host processes for port conflicts by default; prefer `--instance` and `--port-base`.
 - Use the same `--instance` and `--port-base` for run, seed, status, stop, reset, and destroy commands.
 - Never run destructive local seed/reset commands while debugging a user's real local data unless the user explicitly requests a database reset.
 - Never use production secrets for normal DEV.
 - Do not treat local DEV success as production or CI parity.
-- Use CodeGraph for symbol/call relationship analysis when `.codegraph/` exists.
+- Use CodeGraph for symbol/call relationship analysis when `.codegraph/` exists; use `rg` for literal/config searches.
 - Use Cargo/Nix/Compose graphs for build dependency analysis instead of guessing from filenames.
 - For runtime state drift such as missing FusionAuth IdPs, stale LocalStack resources, missing queues, stale Docker volumes, missing seeded roles, or service config that exists in code but not in the running environment, inspect upstream-native repo mechanisms first: `just` recipes, `xtask_local`, Pulumi stacks, Docker Compose, migrations, seed tools, README runbooks, and existing doctor/status commands. Prefer restoring the intended upstream/IaC reconcile path over adding one-off curl patches or business-code fallbacks.
 - For CI parity checks, distinguish upstream-existing warnings from fork-introduced failures before editing. If a warning exists on `upstream/main` and does not fail the current gate, report it without changing upstream code. Fix fork-introduced errors/warnings by following the upstream file's existing patterns and boundaries.

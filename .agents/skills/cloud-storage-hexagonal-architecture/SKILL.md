@@ -5,7 +5,7 @@ description: Enforce hexagonal architecture in the Rust backend. Use before modi
 
 # Cloud Storage Hexagonal Architecture Guard
 
-Use this skill whenever you add, change, or review Rust code under `crates/**` or `services/**` that touches a crate with `src/domain`, `src/inbound`, or `src/outbound`.
+Use this skill whenever you add, change, or review Rust code under `crates/**` or `services/**` in a crate that already adopts `src/domain`, `src/inbound`, or `src/outbound`. It governs new and changed boundaries; it does not require a legacy crate to be migrated because an old violation is nearby.
 
 This repository follows the ports-and-adapters / hexagonal style described in _Master Hexagonal Architecture in Rust_ and the `howtocodeit/hexarch` `3-simple-service` branch: domain models + ports + services are the center; inbound and outbound adapters are replaceable shells around that center.
 
@@ -224,8 +224,11 @@ rg -n "crate::inbound|axum|IntoResponse|Json<|Router|StatusCode" "$CRATE/src/out
 ## If you find an existing violation
 
 - Do not add more logic to the violating adapter.
-- If the task touches that use case, prefer moving the policy/orchestration into the domain service as part of the change.
-- If a full refactor is large or risky, stop and ask the user before making sweeping changes. Offer the smallest compliant plan that prevents new violations.
+- For new or changed code, follow the boundary above. Record pre-existing
+  violations as findings; refactor them only when the task explicitly includes
+  the migration or the violation blocks the requested change.
+- If a necessary refactor is large or risky, stop before sweeping changes and
+  offer the smallest compliant plan.
 
 ## Final response requirement
 

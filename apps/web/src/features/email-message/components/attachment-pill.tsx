@@ -1,3 +1,4 @@
+import { AdobeAttachmentBadge } from '@macro/adobe-preview';
 import { EntityIcon } from '@core/component/EntityIcon';
 import { t } from '@macro/i18n';
 import X from '@phosphor/x.svg';
@@ -42,12 +43,21 @@ export function EmailAttachmentPill(props: EmailAttachmentPillProps) {
           if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
         }}
       >
-        <Show when={fileType() !== undefined || props.attachment.mimeType}>
-          <EntityIcon
-            targetType={fileType() ?? (props.attachment.mimeType as FileType)}
-            size="xs"
-          />
-        </Show>
+        {/* PRIVATE-HOOK: adobe_preview:pill_badge */}
+        {(() => {
+          const ext = props.attachment.fileName.split('.').pop()?.toLowerCase();
+          if (ext === 'ai' || ext === 'eps') {
+            return <AdobeAttachmentBadge format={ext} />;
+          }
+          return (
+            <Show when={fileType() !== undefined || props.attachment.mimeType}>
+              <EntityIcon
+                targetType={fileType() ?? (props.attachment.mimeType as FileType)}
+                size="xs"
+              />
+            </Show>
+          );
+        })()}
         <span class="ph-no-capture truncate ml-1">
           {props.attachment.fileName}
         </span>

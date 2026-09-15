@@ -86,6 +86,12 @@
       "@macro/self-host-health/*": [
         "../../packages/fork/self-host-health/*"
       ],
+      "@macro/adobe-preview": [
+        "../../packages/fork/adobe-preview/index.ts"
+      ],
+      "@macro/adobe-preview/*": [
+        "../../packages/fork/adobe-preview/*"
+      ],
       "@macro/email-participant-identity": [
         "../../packages/fork/email-participant-identity/index.ts"
       ],

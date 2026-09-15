@@ -39,36 +39,32 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install just
+        uses: extractions/setup-just@v2
+
       - name: Fetch upstream reference for manual runs
-        if: github.event_name == 'workflow_dispatch' && startsWith(inputs.base, 'upstream/')
         run: |
-          git remote add upstream https://github.com/macro-inc/macro.git
+          git remote add upstream https://github.com/macro-inc/macro.git 2>/dev/null || true
           git fetch --no-tags upstream main
 
-      - name: Validate protected private hooks
-        run: ruby .github/scripts/check-private-hooks.rb
-
-      - name: Validate fork overrides
-        run: ruby .github/scripts/check-fork-overrides.rb --check
-
-      - name: Validate zero-cloud self-host boundary
+      - name: Run unified fork gate
         env:
-          BASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.base || github.event.pull_request.base.sha }}
-          HEAD_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.head || github.event.pull_request.head.sha }}
-        run: ruby .github/scripts/check-zero-cloud.rb --base "$BASE_REF" --head "$HEAD_REF"
+          CHECK_BASE: ${{ github.event_name == 'workflow_dispatch' && inputs.base || 'upstream/main' }}
+        run: just fork-gate
 
-      - name: Validate telemetry privacy boundary
-        env:
-          BASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.base || github.event.pull_request.base.sha }}
-          HEAD_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.head || github.event.pull_request.head.sha }}
-        run: ruby .github/scripts/check-telemetry-privacy.rb --base "$BASE_REF" --head "$HEAD_REF"
-
-      - name: Validate manifest and detect overlaps
+      - name: Detect overlaps for targeted-test matrix
         id: overlap
         env:
           BASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.base || github.event.pull_request.base.sha }}
           HEAD_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.head || github.event.pull_request.head.sha }}
         run: ruby .github/scripts/check-upstream-overlap.rb --base "$BASE_REF" --head "$HEAD_REF" --format github
+
+      # The unified gate above owns validation. This invocation only exposes
+      # the overlap script's JSON output for the matrix fan-out.
+      - name: Export targeted test groups
+        env:
+          TEST_GROUPS: ${{ steps.overlap.outputs.test_groups }}
+        run: 'echo "Targeted test groups: $TEST_GROUPS"'
 
   targeted-tests:
     needs: detect

@@ -37,6 +37,9 @@ export default function BlockUnknown() {
   );
 }
 
+// PRIVATE-HOOK: adobe_preview:fallback_preview
+import { AdobePreviewContainer, getAdobeFormatFromFileName } from '@macro/adobe-preview';
+
 const Unknown = () => {
   const fileName = useBlockDocumentName();
   const downloadName = useBlockDocumentDownloadName();
@@ -53,24 +56,53 @@ const Unknown = () => {
     }
   });
 
+  const adobeFormat = () => getAdobeFormatFromFileName(fileName());
+
   return (
     <div class="h-full flex flex-col justify-center items-center">
-      <div class="w-fit mx-4 p-4 flex flex-col justify-center items-center gap-4">
-        <div class="text-lg text-center">
-          No preview available for{' '}
-          <span class="text-ink-muted">{fileName()}</span>
-        </div>
+      {(() => {
+        const format = adobeFormat();
+        if (format) {
+          return (
+            <div class="size-full flex flex-col">
+              <div class="grow min-h-0 overflow-hidden">
+                <AdobePreviewContainer
+                  format={format}
+                  fileName={fileName()}
+                  getBlob={getBlob}
+                />
+              </div>
+              <div class="p-3 border-t border-ink-muted/10 flex justify-center gap-2 bg-surface">
+                <Button variant="accent" onClick={shareCtx.open}>
+                  <ShareFat class="size-4" /> Share
+                </Button>
+                <Button variant="accent" onClick={downloadDocument}>
+                  <DownloadSimple class="size-4" /> Download
+                </Button>
+              </div>
+            </div>
+          );
+        }
 
-        <div class="flex flex-row gap-2 items-center">
-          <Button variant="accent" onClick={shareCtx.open}>
-            <ShareFat class="size-4" /> Share
-          </Button>
+        return (
+          <div class="w-fit mx-4 p-4 flex flex-col justify-center items-center gap-4">
+            <div class="text-lg text-center">
+              No preview available for{' '}
+              <span class="text-ink-muted">{fileName()}</span>
+            </div>
 
-          <Button variant="accent" onClick={downloadDocument}>
-            <DownloadSimple class="size-4" /> Download
-          </Button>
-        </div>
-      </div>
+            <div class="flex flex-row gap-2 items-center">
+              <Button variant="accent" onClick={shareCtx.open}>
+                <ShareFat class="size-4" /> Share
+              </Button>
+
+              <Button variant="accent" onClick={downloadDocument}>
+                <DownloadSimple class="size-4" /> Download
+              </Button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

@@ -41,17 +41,19 @@ For each manifest/lockfile, determine the correct override mechanism:
 
 Read each target `package.json` or `Cargo.toml` to check for existing overrides before adding new ones.
 
-## Step 4: Present the plan
+## Step 4: Decide whether to pause
 
-Present a table of all alerts grouped by manifest, showing:
+Present a concise table of alerts grouped by manifest, showing:
 - Alert numbers
 - Package name
 - Current version (from lockfile)
 - Patched version
 - Severity
-- Override mechanism to use
+- Override mechanism to use.
 
-Ask the user to confirm before making changes.
+If the user explicitly asked to fix the alerts, continue without another
+confirmation. Pause only when the fix is a major-version/API semantic change,
+requires a product decision, or would materially change runtime behavior.
 
 ## Step 5: Apply fixes
 

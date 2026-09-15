@@ -42,11 +42,16 @@ export function createEmailAttachmentOpener() {
     const fileType = Object.values(FileTypeMap).findLast(
       (type) => type.mime === attachment.mime_type
     )?.extension;
-    const blockName = fileType
-      ? fileTypeToBlockName(fileType as FileType)
-      : 'unknown';
+    // PRIVATE-HOOK: adobe_preview:open_action
+    const adobeExt = attachment.filename?.split('.').pop()?.toLowerCase();
+    const effectiveBlockName = (() => {
+      if (adobeExt === 'ai') return 'pdf';
+      if (adobeExt === 'eps') return 'unknown';
+      return fileType ? fileTypeToBlockName(fileType as FileType) : 'unknown';
+    })();
+
     openWithSplit(
-      { type: blockName, id: document_id },
+      { type: effectiveBlockName, id: document_id },
       { preferNewSplit: true }
     );
   };

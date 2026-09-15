@@ -90,30 +90,26 @@ Canonical inventory starts at `apps/web/src/components/ui/index.ts`, including `
 ## Implementation workflow
 
 1. **Discover:** Use `codegraph explore` for the requested UI and identify the closest canonical component and good reference screen. Inspect `@ui` before creating anything.
-2. **State the reuse plan:** Name the primitives, semantic tokens, typography scale, and existing interaction pattern that will be reused.
+2. **Reuse deliberately:** keep the selected primitives, tokens, typography, and interaction pattern aligned with the nearby reference.
 3. **Compose:** Keep data fetching/mutations in queries or feature orchestration. Keep primitives small and free of use-case-specific context.
 4. **Check all states:** Default, hover, active, focus-visible, disabled, loading, empty, error, permission-gated, destructive, narrow/mobile, long translated text, dark/light themes, and reduced motion as relevant.
 5. **Verify:** Exercise user-visible behavior in a real browser. Static checks cannot prove interaction quality.
 
-## Required validation
+## Proportional validation
 
-Run proportionally, using the repository's current commands as authority:
+- **Small visual/text/layout change:** run the scoped `just check` and exercise
+  the affected desktop or narrow layout in a real browser.
+- **Logic or feature-flow change:** add focused tests, run scoped type/lint
+  checks, and verify affected loading/empty/error/permission states in a
+  browser.
+- **Shared primitive, theme/token, or broad UI change:** run `just check full`,
+  focused Vitest/Tailwind checks, and the relevant browser matrix. Do not make
+  this the default for a small change.
 
-```bash
-just check
-
-# For core types, shared components, design tokens, or broad UI changes:
-just check full
-
-cd apps/web
-bunx vitest
-just check-tailwind
-just build-dev
-```
-
-Also run focused tests for changed primitives and theme utilities. When modifying email rendering, run `just test-email-rendering`; update snapshots only when the visual change is intentional and reviewed.
-
-In browser verification, check at least the affected desktop and narrow/mobile layout, keyboard focus path, light/dark theme behavior, and reduced-motion behavior when motion changed. A change is not complete merely because TypeScript, Biome, or Vitest passes.
+When modifying email rendering, run `just test-email-rendering`; update
+snapshots only when the visual change is intentional and reviewed. Browser
+verification must cover the affected viewport, keyboard path, theme, and
+reduced motion when relevant.
 
 ## Review rejection conditions
 
