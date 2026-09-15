@@ -1,5 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+// updateThreadLabel returns a Result (an HTTP failure resolves to Err rather
+// than rejecting), so the mock mirrors that shape; trashEmails wraps it in
+// throwOnErr.
+type ResultLike = {
+  isErr: () => boolean;
+  value?: undefined;
+  error?: { code: string; message: string }[];
+};
+const okResult: ResultLike = { isErr: () => false, value: undefined };
+const errResult: ResultLike = {
+  isErr: () => true,
+  error: [{ code: 'ERR', message: 'boom' }],
+};
+
 const operationMocks = vi.hoisted(() => ({
   cancelQueries: vi.fn(async () => {}),
   fetchAndCacheThread: vi.fn(),
@@ -9,7 +23,13 @@ const operationMocks = vi.hoisted(() => ({
   invalidateQueries: vi.fn(async () => {}),
   invalidateSoupEntity: vi.fn(async () => {}),
   setQueryData: vi.fn(),
-  updateThreadLabel: vi.fn(async () => {}),
+  updateThreadLabel: vi.fn(
+    async (_args: {
+      thread_id: string;
+      label_id: string;
+      value: boolean;
+    }): Promise<ResultLike> => ({ isErr: () => false, value: undefined })
+  ),
 }));
 
 // utils.ts transitively imports websocket clients that would otherwise open
@@ -95,6 +115,8 @@ afterEach(() => {
   operationMocks.fetchQuery.mockResolvedValue({ labels: trashLabels });
   operationMocks.getQueriesData.mockReturnValue([]);
   operationMocks.getQueryData.mockReturnValue(undefined);
+  operationMocks.updateThreadLabel.mockImplementation(async () => okResult);
+  operationMocks.fetchAndCacheThread.mockReset();
 });
 
 describe('trashEmails', () => {
@@ -152,5 +174,75 @@ describe('trashEmails', () => {
       label_id: 'trash-b',
       value: true,
     });
+  });
+
+  it('falls back to the sole TRASH label only when the inbox is unknown', async () => {
+    operationMocks.fetchQuery.mockResolvedValue({ labels: [trashLabels[0]] });
+
+    const handle = trashEmails([{ id: 'thread-x' }]);
+    await handle.done;
+
+    // A single inbox needs no thread fetch to disambiguate.
+    expect(operationMocks.fetchAndCacheThread).not.toHaveBeenCalled();
+    expect(operationMocks.updateThreadLabel).toHaveBeenCalledWith({
+      thread_id: 'thread-x',
+      label_id: 'trash-a',
+      value: true,
+    });
+  });
+
+  it('fails without trashing when a known inbox has no matching label', async () => {
+    operationMocks.fetchQuery.mockResolvedValue({ labels: trashLabels });
+
+    const handle = trashEmails([{ id: 'thread-c', linkId: 'link-c' }]);
+
+    await expect(handle.done).rejects.toThrow();
+    // The mismatch is caught before any label is applied, so nothing is trashed
+    // into the wrong inbox.
+    expect(operationMocks.updateThreadLabel).not.toHaveBeenCalled();
+  });
+
+  it('surfaces an API failure and rejects done', async () => {
+    operationMocks.fetchQuery.mockResolvedValue({ labels: trashLabels });
+    operationMocks.updateThreadLabel.mockImplementation(async () => errResult);
+
+    const handle = trashEmails([{ id: 'thread-a', linkId: 'link-a' }]);
+
+    await expect(handle.done).rejects.toThrow();
+    // A failed trash must not silently look like a success (throwOnErr).
+    expect(operationMocks.updateThreadLabel).toHaveBeenCalledWith({
+      thread_id: 'thread-a',
+      label_id: 'trash-a',
+      value: true,
+    });
+  });
+
+  it('reverts threads that trashed when a sibling fails', async () => {
+    operationMocks.fetchQuery.mockResolvedValue({ labels: trashLabels });
+    operationMocks.updateThreadLabel.mockImplementation(async (args) =>
+      args.thread_id === 'thread-b' && args.value === true
+        ? errResult
+        : okResult
+    );
+
+    const handle = trashEmails([
+      { id: 'thread-a', linkId: 'link-a' },
+      { id: 'thread-b', linkId: 'link-b' },
+    ]);
+
+    await expect(handle.done).rejects.toThrow();
+
+    // thread-a trashed, thread-b failed -> thread-a is reverted so the server
+    // matches the rolled-back UI, and undo has nothing left to restore.
+    expect(operationMocks.updateThreadLabel).toHaveBeenCalledWith({
+      thread_id: 'thread-a',
+      label_id: 'trash-a',
+      value: false,
+    });
+
+    await handle.undo();
+    expect(operationMocks.updateThreadLabel).not.toHaveBeenCalledWith(
+      expect.objectContaining({ value: false, thread_id: 'thread-b' })
+    );
   });
 });

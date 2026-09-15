@@ -1044,7 +1044,9 @@ type TrashEmailsHandle = {
   undo: () => Promise<void>;
 };
 
-export type TrashEmailTarget = string | { id: string; linkId?: string };
+export type TrashEmailTarget = { id: string; linkId?: string };
+
+type TrashLabel = { id: string; linkId?: string };
 
 /**
  * Trash one or more email threads.
@@ -1056,10 +1058,7 @@ export type TrashEmailTarget = string | { id: string; linkId?: string };
  * Returns synchronously so the caller can show the undo toast immediately.
  */
 export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
-  const normalizedTargets = targets.map((t) =>
-    typeof t === 'string' ? { id: t, linkId: undefined } : t
-  );
-  const ids = normalizedTargets.map((t) => t.id);
+  const ids = targets.map((t) => t.id);
   queryClient.cancelQueries({ queryKey: queryKeys.all.email });
 
   const previousEmail = queryClient.getQueriesData<{
@@ -1090,12 +1089,13 @@ export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
     }
   };
 
-  // Map each thread ID to its assigned TRASH label ID (resolved lazily by API calls; used by undo)
+  // Map each thread id to the TRASH label used to trash it, so undo can remove
+  // the same label. Populated only once every thread has trashed successfully.
   const threadTrashLabelIds = new Map<string, string>();
 
-  // Map thread IDs to their linkId if available from explicit targets or cached email queries
+  // Seed known linkIds from the explicit targets and the cached email lists.
   const threadLinkIds = new Map<string, string>();
-  for (const target of normalizedTargets) {
+  for (const target of targets) {
     if (target.linkId) {
       threadLinkIds.set(target.id, target.linkId);
     }
@@ -1105,14 +1105,58 @@ export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
     for (const page of data.pages) {
       if (!page?.items) continue;
       for (const item of page.items) {
-        if (item?.id && 'linkId' in item && item.linkId && idSet.has(item.id)) {
-          if (!threadLinkIds.has(item.id)) {
-            threadLinkIds.set(item.id, item.linkId);
-          }
+        if (
+          item?.id &&
+          idSet.has(item.id) &&
+          !threadLinkIds.has(item.id) &&
+          'linkId' in item &&
+          item.linkId
+        ) {
+          threadLinkIds.set(item.id, item.linkId);
         }
       }
     }
   }
+
+  // Resolve the TRASH label belonging to a thread's own inbox. The labels
+  // endpoint returns every inbox's labels, so a multi-inbox user must trash
+  // with the label whose linkId matches the thread. The single-label fallback
+  // applies only when the inbox is unknown — a known inbox with no matching
+  // label fails rather than trashing into the wrong one.
+  const resolveTrashLabelId = async (
+    id: string,
+    trashLabels: TrashLabel[]
+  ): Promise<string> => {
+    let linkId = threadLinkIds.get(id);
+    if (!linkId) {
+      const threadData = queryClient.getQueryData<{
+        link_id?: string;
+        pages?: Array<{ link_id?: string }>;
+      }>(emailKeys.threadMessages(id).queryKey);
+      linkId = threadData?.link_id ?? threadData?.pages?.[0]?.link_id;
+    }
+    if (!linkId && trashLabels.length > 1) {
+      const fetched = await fetchAndCacheThread(id);
+      if (!fetched.isErr()) {
+        linkId = fetched.value.thread.link_id;
+      }
+    }
+
+    const matchedLabelId = linkId
+      ? trashLabels.find((label) => label.linkId === linkId)?.id
+      : undefined;
+    const labelId =
+      matchedLabelId ??
+      (linkId
+        ? undefined
+        : trashLabels.length === 1
+          ? trashLabels[0]?.id
+          : undefined);
+    if (!labelId) {
+      throw new Error('TRASH label not found');
+    }
+    return labelId;
+  };
 
   const done = (async () => {
     try {
@@ -1124,51 +1168,57 @@ export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
       });
       const trashLabels =
         labelsData?.labels.filter((l) => l.providerLabelId === 'TRASH') ?? [];
-      const fallbackTrashLabelId = trashLabels[0]?.id;
-      if (trashLabels.length === 0 || !fallbackTrashLabelId) {
+      if (trashLabels.length === 0) {
         throw new Error('TRASH label not found');
       }
 
-      await Promise.all(
-        ids.map(async (id) => {
-          let linkId = threadLinkIds.get(id);
-          if (!linkId) {
-            const threadData = queryClient.getQueryData<{
-              link_id?: string;
-              pages?: Array<{ link_id?: string }>;
-            }>(emailKeys.threadMessages(id).queryKey);
-            if (threadData?.link_id) {
-              linkId = threadData.link_id;
-            } else if (threadData?.pages?.[0]?.link_id) {
-              linkId = threadData.pages[0].link_id;
-            }
-          }
-          if (!linkId && trashLabels.length > 1) {
-            const fetched = await fetchAndCacheThread(id);
-            if (!fetched.isErr()) {
-              linkId = fetched.value.thread.link_id;
-            }
-          }
-
-          const matchedLabelId = linkId
-            ? trashLabels.find((label) => label.linkId === linkId)?.id
-            : undefined;
-          const labelId =
-            matchedLabelId ??
-            (trashLabels.length === 1 ? fallbackTrashLabelId : undefined);
-
-          if (!labelId) {
-            throw new Error('TRASH label not found');
-          }
-          threadTrashLabelIds.set(id, labelId);
-
-          return emailClient.updateThreadLabel({
-            thread_id: id,
-            label_id: labelId,
-            value: true,
-          });
-        })
+      // Resolve every thread's label before trashing any of them, so a lookup
+      // failure can't leave part of the batch trashed on the server while the
+      // rest is rolled back locally.
+      const labelIds = await Promise.all(
+        ids.map((id) => resolveTrashLabelId(id, trashLabels))
       );
+
+      // updateThreadLabel resolves an Err on HTTP failure rather than
+      // rejecting, so throwOnErr turns a failed trash into a real rejection.
+      // Settle every call so a partial failure can be compensated instead of
+      // leaving the server disagreeing with the rolled-back UI.
+      const outcomes = await Promise.allSettled(
+        ids.map((id, i) =>
+          throwOnErr(() =>
+            emailClient.updateThreadLabel({
+              thread_id: id,
+              label_id: labelIds[i]!,
+              value: true,
+            })
+          )
+        )
+      );
+
+      const failure = outcomes.find((o) => o.status === 'rejected');
+      if (failure) {
+        // Revert the threads that did trash so the server matches the rollback
+        // below; best effort, so a failed revert can't mask the original error.
+        await Promise.allSettled(
+          ids.flatMap((id, i) =>
+            outcomes[i]?.status === 'fulfilled'
+              ? [
+                  throwOnErr(() =>
+                    emailClient.updateThreadLabel({
+                      thread_id: id,
+                      label_id: labelIds[i]!,
+                      value: false,
+                    })
+                  ),
+                ]
+              : []
+          )
+        );
+        throw (failure as PromiseRejectedResult).reason;
+      }
+
+      // Every thread trashed — remember the labels so undo can remove them.
+      ids.forEach((id, i) => threadTrashLabelIds.set(id, labelIds[i]!));
     } catch (err) {
       rollback();
       throw err;
@@ -1183,8 +1233,9 @@ export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
   return {
     done,
     undo: async () => {
-      // Wait for the trash calls to finish so we know the label IDs.
-      // If the trash call itself failed, rollback already happened — nothing to undo.
+      // Wait for the trash calls to finish so we know the label IDs. On any
+      // failure `done` has already rolled back and reverted the server, so
+      // there is nothing left to undo.
       try {
         await done;
       } catch {
@@ -1198,11 +1249,13 @@ export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
           ids.map((id) => {
             const labelId = threadTrashLabelIds.get(id);
             if (!labelId) return Promise.resolve();
-            return emailClient.updateThreadLabel({
-              thread_id: id,
-              label_id: labelId,
-              value: false,
-            });
+            return throwOnErr(() =>
+              emailClient.updateThreadLabel({
+                thread_id: id,
+                label_id: labelId,
+                value: false,
+              })
+            );
           })
         );
       } finally {
