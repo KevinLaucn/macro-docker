@@ -69,6 +69,10 @@ type AdmittedEmails = {
   items: EmailEntity[];
 };
 
+type EmailIdentityListEntity = EmailEntity & {
+  emailIdentityViewMode: 'sent' | 'default';
+};
+
 /** Query, service search, and row assembly owned by the Email view. */
 export function useEmailDataSource(
   state: EmailDataSourceInput,
@@ -105,7 +109,12 @@ export function useEmailDataSource(
       if (!isEmailEntity(entity)) continue;
       if (!emailMatchesTab(entity, context.tab, userId())) continue;
 
-      selected.push(entity);
+      // PRIVATE-HOOK: email_identity:list-view
+      const emailWithIdentityView: EmailIdentityListEntity = {
+        ...entity,
+        emailIdentityViewMode: context.tab === 'sent' ? 'sent' : 'default',
+      };
+      selected.push(emailWithIdentityView);
     }
     return selected;
   };
