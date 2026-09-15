@@ -40,6 +40,12 @@ hooks:
     expected: "mod features;"
     context:
       - "mod api;"
+  - id: email_selfhost_local_poller_gate
+    file: services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
+    marker: "// PRIVATE-HOOK: email_selfhost:local-poller-gate"
+    expected: "if config.local_gmail_poller_enabled {"
+    context:
+      - "// process user inbox updates from gmail inbox_sync queue, triggered by update pubsub messages from Google"
   - id: email_read_receipts_module
     file: services/email_service/src/features/mod.rs
     marker: "// PRIVATE-HOOK: read_receipts:module"

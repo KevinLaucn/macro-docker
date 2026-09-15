@@ -18,6 +18,7 @@ env_vars! {
     pub struct EmailServiceCloudfrontDistributionUrl;
     pub struct EmailServiceCloudfrontSignerPublicKeyId;
     pub struct ApolloApiKey;
+    pub struct LocalGmailPollerEnabled;
 }
 
 #[derive(macro_config::MacroConfig)]
@@ -147,6 +148,11 @@ pub struct Config {
     /// The environment we are in
     #[macro_config_default(Environment::new_or_prod())]
     pub environment: Environment,
+
+    /// Whether to run the local-only Gmail profile poller as a fallback when
+    /// Pub/Sub delivery is unavailable.
+    #[macro_config_default(false)]
+    pub local_gmail_poller_enabled: bool,
 
     /// Auth service secret key, used for internal access
     pub authentication_service_secret_key: LocalOrRemoteSecret<AuthenticationServiceSecretKey>,

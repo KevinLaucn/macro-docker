@@ -17,7 +17,7 @@
 use std::collections::BTreeMap;
 
 use super::instance::{Instance, Port};
-use super::{Mode, identity, resources};
+use super::{identity, resources, Mode};
 
 const LOCAL_MACRO_API_TOKEN_PRIVATE_KEY: &str = r#"-----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEAlR0tDzyTkQuUyGg1zHKyvR5O2h2oQQV61MbaqojLL9G1VNQL
@@ -138,6 +138,9 @@ impl LocalEnv {
         // Calendar search ships dark too: off in deployed envs until each has
         // its calendar index created and backfilled.
         env.insert("CALENDAR_SEARCH_ENABLED".into(), "true".into());
+        // Local self-host development has no Google Pub/Sub push delivery, so
+        // keep the Gmail profile poller enabled only in generated local env.
+        env.insert("LOCAL_GMAIL_POLLER_ENABLED".into(), "true".into());
         self.infra.write(&mut env);
         self.storage.write(&mut env);
         self.queues.write(&mut env);

@@ -1,6 +1,6 @@
 use super::*;
-use crate::local::Mode;
 use crate::local::instance::{Instance, Port};
+use crate::local::Mode;
 
 /// The merged env a `--no-doppler` stack sees: boot stubs below, the
 /// authoritative local env on top (mirrors `env_layer::resolve`).
@@ -19,6 +19,7 @@ fn emits_required_keys() {
     let env = local_env();
     for key in [
         "ENVIRONMENT",
+        "LOCAL_GMAIL_POLLER_ENABLED",
         "PORT",
         "BASE_URL",
         "DATABASE_URL",
