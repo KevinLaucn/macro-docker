@@ -68,7 +68,7 @@ const SingleValueSegment = (props: {
       >
         <ValueDisplay values={props.facet.values()} />
       </Dropdown.Trigger>
-      <Dropdown.Content class="shadow-menu">
+      <Dropdown.Content>
         <Dropdown.Group>
           <For each={props.facet.options}>
             {(option) => (
@@ -109,7 +109,7 @@ const ModeSegment = (props: { mode: FacetModeVM }) => (
     >
       {t(MODE_OPTIONS.find((o) => o.id === props.mode.value())?.label ?? '')}
     </Dropdown.Trigger>
-    <Dropdown.Content class="shadow-menu">
+    <Dropdown.Content>
       <Dropdown.Group>
         <For each={MODE_OPTIONS}>
           {(option) => (

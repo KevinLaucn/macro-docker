@@ -127,6 +127,7 @@ import type { GroupedSoupGroupPage } from './generated/schemas/groupedSoupGroupP
 import type { GroupedSoupInitialPage } from './generated/schemas/groupedSoupInitialPage';
 import type { GroupedSoupSort } from './generated/schemas/groupedSoupSort';
 import type { Item } from './generated/schemas/item';
+import type { ListFavoritesParams } from './generated/schemas/listFavoritesParams';
 import type { ListOccurrencesParams } from './generated/schemas/listOccurrencesParams';
 import type { ListRemindersParams } from './generated/schemas/listRemindersParams';
 import type { ListTeamOutOfOfficeParams } from './generated/schemas/listTeamOutOfOfficeParams';
@@ -1834,6 +1835,30 @@ export const storageServiceClient = {
     });
   },
 
+  /**
+   * Look a foreign entity up by the identifier its source system assigned,
+   * e.g. `owner/repo/pull/12` for `github_pull_request`. The identifier is a
+   * wildcard path segment, so its slashes are kept and only the segments
+   * themselves are escaped.
+   */
+  async getForeignEntityBySource({
+    source,
+    foreignEntityId,
+  }: {
+    source: string;
+    foreignEntityId: string;
+  }): Promise<Result<ForeignEntity, ResultError<FetchWithTokenErrorCode>[]>> {
+    const encodedForeignEntityId = foreignEntityId
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
+
+    return await dssFetch<ForeignEntity>(
+      `/foreign_entity/by_source/${encodeURIComponent(source)}/${encodedForeignEntityId}`,
+      { method: 'GET' }
+    );
+  },
+
   async exportDocument({ documentId }) {
     return (
       await dssFetch<ExportDocumentResponse>(
@@ -2557,8 +2582,17 @@ export const storageServiceClient = {
   },
 
   favorites: {
-    async getFavorites() {
-      return await dssFetch<FavoritesList>('/favorites');
+    async getFavorites(params?: ListFavoritesParams) {
+      const query = new URLSearchParams();
+      // Each dimension repeats its key once per value; the two combine with AND.
+      params?.entityType?.forEach((entityType) =>
+        query.append('entityType', entityType)
+      );
+      params?.entityId?.forEach((entityId) =>
+        query.append('entityId', entityId)
+      );
+      const qs = query.toString();
+      return await dssFetch<FavoritesList>(`/favorites${qs ? `?${qs}` : ''}`);
     },
     async addFavorite(params: AddFavoriteRequest) {
       return await dssFetch<Favorite>('/favorites', {
@@ -2591,8 +2625,12 @@ export const storageServiceClient = {
     },
     async listReminders(params?: ListRemindersParams) {
       const query = new URLSearchParams();
-      if (params?.entityType) query.set('entityType', params.entityType);
-      if (params?.entityId) query.set('entityId', params.entityId);
+      params?.entityType?.forEach((entityType) =>
+        query.append('entityType', entityType)
+      );
+      params?.entityId?.forEach((entityId) =>
+        query.append('entityId', entityId)
+      );
       if (params?.includeCompleted !== undefined) {
         query.set('includeCompleted', String(params.includeCompleted));
       }

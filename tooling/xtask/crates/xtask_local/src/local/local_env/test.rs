@@ -1,6 +1,6 @@
 use super::*;
-use crate::local::instance::{Instance, Port};
 use crate::local::Mode;
+use crate::local::instance::{Instance, Port};
 
 /// The merged env a `--no-doppler` stack sees: boot stubs below, the
 /// authoritative local env on top (mirrors `env_layer::resolve`).

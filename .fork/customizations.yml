@@ -97,6 +97,7 @@ customizations:
       - apps/web/src/lib/core/constant/SettingsState.tsx
       - apps/web/src/lib/core/constant/settingsTabsConfig.tsx
       - apps/web/src/features/settings/Settings.tsx
+      - apps/web/src/features/settings/SettingsTabContent.tsx
       - apps/web/src/lib/service-clients/service-auth/client.ts
       - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
       - apps/web/src/routes/Root.tsx
@@ -167,6 +168,7 @@ customizations:
       - crates/email_api_client/**
       - crates/email_utils/**
       - apps/web/src/features/block-email/**
+      - apps/web/src/features/email-message/**
       - apps/web/src/lib/service-clients/service-email/**
     tests:
       - conventions

@@ -1,4 +1,3 @@
-import { useMaybeBlockId } from '@core/block';
 import { t } from '@macro/i18n';
 import { Property } from '@property';
 import { usePropertiesContext } from '@property/context/PropertiesContext';
@@ -25,7 +24,6 @@ export const InlinePropertyValue: Component<InlinePropertyValueProps> = (
   props
 ) => {
   const ctx = usePropertiesContext();
-  const blockId = useMaybeBlockId();
 
   const isUserEntity = () =>
     props.property.valueType === 'ENTITY' &&
@@ -76,7 +74,7 @@ export const InlinePropertyValue: Component<InlinePropertyValueProps> = (
       <Property.PopoverEditor
         entitySelfFilter={{
           entityType: ctx.entityType,
-          blockId: props.entityId ?? blockId,
+          blockId: props.entityId,
         }}
       />
     </Property.Root>

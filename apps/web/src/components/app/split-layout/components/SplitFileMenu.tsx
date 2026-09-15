@@ -52,6 +52,7 @@ import {
   useContext,
 } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
+import { match } from 'ts-pattern';
 import {
   getSplitFileMenuActionSections,
   type SplitFileMenuAction,
@@ -107,6 +108,7 @@ export type SplitFileMenuViews = {
  * hook's callers.
  */
 const BLOCKS_WITH_ENTITY_HOTKEYS: ReadonlySet<BlockName> = new Set<BlockName>([
+  'agent',
   'canvas',
   'channel',
   'chat',
@@ -197,7 +199,7 @@ function DesktopRender(props: SplitFileMenuRenderProps) {
       >
         <DotsThree />
       </Dropdown.Trigger>
-      <Dropdown.Content class="w-64 shadow-menu">
+      <Dropdown.Content class="w-64">
         <For each={sections()}>
           {(section) => (
             <Dropdown.Group>
@@ -225,28 +227,22 @@ function MobileRender(
       <Show
         when={children().length > 0}
         fallback={
-          <button
+          <MobileDrawer.Item
             type="button"
-            class={cn(
-              'w-full bg-surface flex items-center gap-3 py-3 text-sm hover:bg-hover hover-transition-bg text-left not-last:mb-px text-ink',
-              nested ? 'pl-9 pr-4' : 'px-4'
-            )}
+            class={cn(nested ? 'pl-9 pr-4' : 'px-4')}
             onClick={(e) => {
               action.action?.(e);
               props.onOpenChange(false);
             }}
           >
             <SplitMenuItemContent {...action} showHotkey={false} />
-          </button>
+          </MobileDrawer.Item>
         }
       >
-        <div class="w-full bg-surface">
-          <button
+        <div class="w-full">
+          <MobileDrawer.Item
             type="button"
-            class={cn(
-              'w-full flex items-center gap-3 py-3 text-sm hover:bg-hover hover-transition-bg text-left text-ink',
-              nested ? 'pl-9 pr-4' : 'px-4'
-            )}
+            class={cn(nested ? 'pl-9 pr-4' : 'px-4')}
             onClick={() => {
               setExpandedSubmenu(expanded() ? undefined : action);
             }}
@@ -256,9 +252,9 @@ function MobileRender(
               component={expanded() ? CaretDown : CaretRight}
               class="size-3.5 shrink-0"
             />
-          </button>
+          </MobileDrawer.Item>
           <Show when={expanded()}>
-            <div class="border-t border-edge-muted/60">
+            <div class="pt-1">
               <For each={children()}>{(child) => item(child, true)}</For>
             </div>
           </Show>
@@ -276,7 +272,7 @@ function MobileRender(
       preventScrollbarShift={false}
     >
       <MobileDrawer.Portal>
-        <MobileDrawer.Overlay class="fixed inset-0 z-modal-overlay bg-modal-overlay pattern-diagonal-4 pattern-edge-muted" />
+        <MobileDrawer.Overlay />
         <MobileDrawer.Content aria-label="File actions">
           <MobileDrawer.Handle />
           <MobileDrawer.ScrollBody>
@@ -293,11 +289,10 @@ function MobileRender(
                   >
                     <For each={views().options}>
                       {(option) => (
-                        <button
+                        <MobileDrawer.Item
                           type="button"
                           role="radio"
                           aria-checked={views().value === option.value}
-                          class="w-full bg-surface flex items-center gap-3 py-3 px-4 text-sm hover:bg-hover hover-transition-bg text-left not-last:mb-px text-ink"
                           onClick={() => {
                             views().onSelect(option.value);
                             props.onOpenChange(false);
@@ -311,7 +306,7 @@ function MobileRender(
                           <Show when={views().value === option.value}>
                             <Check class="size-3.5 text-accent shrink-0" />
                           </Show>
-                        </button>
+                        </MobileDrawer.Item>
                       )}
                     </For>
                   </MobileDrawer.Section>
@@ -524,21 +519,23 @@ export function SplitFileMenu(props: {
     onCleanup(() => ctx.setTitleFileMenuTrigger(undefined));
   });
 
+  const ownsMenuEntity = () =>
+    match(props.entity)
+      .with(undefined, () => isOwner())
+      .otherwise((entity) => entity.ownerId === userId());
+
   const ops = createMemo<SplitFileMenuAction[]>(() => {
     const mapped = props.ops
       .map((op) => {
         if (isDefaultFileOperation(op)) {
-          switch (op.op) {
-            case 'delete':
-              if (!isOwner()) return null;
+          return match(op.op)
+            .returnType<SplitFileMenuAction | null>()
+            .with('delete', () => {
+              if (!ownsMenuEntity()) return null;
               return {
                 label: 'Delete',
                 action: () => {
-                  const entity = buildEntityData({
-                    id: props.id,
-                    name: props.name,
-                    blockName: aliasedBlockName,
-                  });
+                  const entity = menuEntity();
                   if (!entity) return;
                   setOpen(false);
                   openBulkEditModal({
@@ -554,17 +551,13 @@ export function SplitFileMenu(props: {
                 icon: Trash,
                 group: 'delete' as const,
               };
-
-            case 'rename':
-              if (!isOwner()) return null;
+            })
+            .with('rename', () => {
+              if (!ownsMenuEntity()) return null;
               return {
                 label: 'Rename',
                 action: () => {
-                  const entity = buildEntityData({
-                    id: props.id,
-                    name: props.name,
-                    blockName: aliasedBlockName,
-                  });
+                  const entity = menuEntity();
                   if (!entity) return;
                   setOpen(false);
                   openBulkEditModal({
@@ -578,8 +571,8 @@ export function SplitFileMenu(props: {
                 hotkeyToken: blockHotkeyToken(TOKENS.entity.action.rename),
                 group: 'file' as const,
               };
-
-            case 'copy':
+            })
+            .with('copy', () => {
               return {
                 label: 'Duplicate',
                 action: async () => {
@@ -607,8 +600,8 @@ export function SplitFileMenu(props: {
                 icon: Copy,
                 group: 'file' as const,
               };
-
-            case 'moveToProject':
+            })
+            .with('moveToProject', () => {
               if (!isOwner()) return null;
               return {
                 label: 'Move to Folder',
@@ -633,7 +626,8 @@ export function SplitFileMenu(props: {
                 ),
                 group: 'file' as const,
               };
-          }
+            })
+            .exhaustive();
         } else {
           return op;
         }

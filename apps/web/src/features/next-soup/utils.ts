@@ -1,7 +1,14 @@
 import { isListViewID } from '@app/constants/list-views';
 import { URL_PARAMS as EMAIL_PARAMS } from '@app/features/email-thread/core/location';
+import { withListNavigationSource } from '@app/features/soup/collection/list-navigation-source';
 import { scopeChannelNotificationsForEntity } from '@app/features/soup/entity-notifications';
 import { globalSplitManager } from '@app/signal/splitLayout';
+import { createCalendarBlockRange } from '@block-calendar/calendar-range';
+import {
+  CALENDAR_BLOCK_ID,
+  type CalendarBlockProps,
+} from '@block-calendar/types';
+import { URL_PARAMS as CALL_PARAMS } from '@block-call/constants';
 import { URL_PARAMS as CHANNEL_PARAMS } from '@block-channel/constants';
 import {
   getChannelParams,
@@ -17,7 +24,11 @@ import type {
 } from '@components/app/split-layout/layoutManager';
 import { toast } from '@core/component/Toast/Toast';
 import { fileTypeToBlockName } from '@core/constant/allBlocks';
-import { USE_MACRO_PR_SUMMARY_BLOCK } from '@core/constant/featureFlags';
+import {
+  enableCalendarUi,
+  isFeatureEnabled,
+  USE_MACRO_PR_SUMMARY_BLOCK,
+} from '@core/constant/featureFlags';
 import {
   ENTITY_ID_DATA_ATTRIBUTE,
   entityIdSelector,
@@ -28,7 +39,11 @@ import { throwOnErr } from '@core/util/result';
 import { waitForFrames } from '@core/util/sleep';
 import { openExternalUrl } from '@core/util/url';
 import {
+  type CalendarEventEntity,
   type ChannelClickTarget,
+  type ChannelEntity,
+  type ChannelMessageEntity,
+  type ChannelThreadEntity,
   type EntityData,
   emailQueryKeyExcludesDone,
   getSnippetHit,
@@ -43,6 +58,7 @@ import {
   type ReminderEntity,
   type SearchLocation,
   toNotificationEntity,
+  type WithNotification,
   type WithSearch,
 } from '@entity';
 import {
@@ -56,6 +72,7 @@ import {
 } from '@notifications';
 import { queryClient } from '@queries/client';
 import { emailKeys } from '@queries/email/keys';
+import { fetchAndCacheThread } from '@queries/email/thread';
 import {
   type NotificationEntityRef,
   updateNotificationsForEntities,
@@ -212,6 +229,7 @@ export const openEntityInNewTab = ({
   entity: EntityData;
   location?: SearchLocation;
 }) => {
+  location ??= getRowClickFallbackLocation(entity);
   // A reminder opens its own editor — a `reminder-view` component split with a
   // URL of its own — the same as the split paths, even a standalone one that
   // references nothing.
@@ -228,7 +246,7 @@ export const openEntityInNewTab = ({
   // Build URL for the entity
   let entityPath: string;
   if (entity.type === 'calendar_event') {
-    return;
+    entityPath = `/app/calendar/${CALENDAR_BLOCK_ID}`;
   } else if (entity.type === 'document') {
     const { fileType, subType } = entity;
     const blockName = fileTypeToBlockName(subType?.type ?? fileType);
@@ -252,6 +270,13 @@ export const openEntityInNewTab = ({
     }
   } else if (location) {
     switch (location.type) {
+      case 'agent':
+        for (const [key, value] of Object.entries(
+          agentMessageParams(location)
+        )) {
+          entityUrl.searchParams.set(key, value);
+        }
+        break;
       case 'channel':
         if (location.messageId) {
           entityUrl.searchParams.set(
@@ -295,6 +320,14 @@ export const openEntityInNewTab = ({
         }
         if (location.searchSnippet) {
           entityUrl.searchParams.set('search_snippet', location.searchSnippet);
+        }
+        break;
+      case 'call_record':
+        if (location.transcriptId) {
+          entityUrl.searchParams.set(
+            CALL_PARAMS.transcriptId,
+            location.transcriptId
+          );
         }
         break;
     }
@@ -425,8 +458,20 @@ export function preventDuplicatePreviewEntityOpen(
  * row's preview shows (which may be your own send) rather than an older
  * notification or nothing.
  */
+export type ChannelPreviewSelection = WithNotification<
+  | Pick<ChannelEntity, 'id' | 'type' | 'target'>
+  | Pick<
+      ChannelMessageEntity,
+      'id' | 'type' | 'channelId' | 'messageId' | 'threadId' | 'target'
+    >
+  | Pick<
+      ChannelThreadEntity,
+      'id' | 'type' | 'channelId' | 'messageId' | 'threadId' | 'target'
+    >
+>;
+
 export function getChannelEntityTarget(
-  entity: EntityData
+  entity: EntityData | ChannelPreviewSelection
 ): ChannelClickTarget | undefined {
   if (
     entity.type !== 'channel' &&
@@ -486,22 +531,16 @@ export function getChannelEntityTarget(
  * entity unchanged, so a reactive derivation would never re-run — but a click
  * should always re-activate the target (e.g. after the user cleared the
  * highlight by clicking a message), matching the old inbox's per-click
- * behaviour. No-ops for non-channel entities or when there is no target.
+ * behaviour.
  */
 export async function navigateChannelEntityToTarget(
-  entity: EntityData,
+  entity: ChannelPreviewSelection,
   blockOrchestrator: BlockOrchestrator
 ): Promise<void> {
   const target = getChannelEntityTarget(entity);
   if (!target) return;
 
-  const channelId =
-    entity.type === 'channel'
-      ? entity.id
-      : entity.type === 'channel_message' || entity.type === 'channel_thread'
-        ? entity.channelId
-        : undefined;
-  if (!channelId) return;
+  const channelId = entity.type === 'channel' ? entity.id : entity.channelId;
 
   if (target.kind === 'latest') {
     await goToChannelLatest(blockOrchestrator, channelId);
@@ -516,12 +555,22 @@ export async function navigateChannelEntityToTarget(
   );
 }
 
+export type CalendarPreviewSelection = WithNotification<
+  Pick<CalendarEventEntity, 'id' | 'type' | 'time' | 'occurrenceKey'>
+>;
+
 /** Retargets the singleton Calendar block to a calendar event row. */
 export async function navigateCalendarEntityToTarget(
-  entity: EntityData,
-  _blockOrchestrator: BlockOrchestrator
+  entity: CalendarPreviewSelection,
+  blockOrchestrator: BlockOrchestrator
 ): Promise<void> {
-  if (entity.type !== 'calendar_event') return;
+  const calendarHandle = await blockOrchestrator.getBlockHandle(
+    CALENDAR_BLOCK_ID,
+    'calendar'
+  );
+  await calendarHandle?.goToLocationFromParams(
+    calendarBlockParamsForEntity(entity)
+  );
 }
 
 /**
@@ -533,9 +582,11 @@ export async function navigateCalendarEntityToTarget(
 export const getRowClickFallbackLocation = (
   entity: EntityData
 ): SearchLocation | undefined =>
-  isHitSnippetEntity(entity) && !isEmailEntity(entity)
-    ? getSnippetHit(entity)?.location
-    : undefined;
+  entity.type === 'agent_session' && isSearchEntity(entity)
+    ? entity.search.contentHitData?.[0]?.location
+    : isHitSnippetEntity(entity) && !isEmailEntity(entity)
+      ? getSnippetHit(entity)?.location
+      : undefined;
 
 /**
  * Opens an entity in a split, handling navigation to specific locations within the entity.
@@ -616,7 +667,36 @@ export const openEntityInSplitFromUnifiedList = async (
 
   const blockOrchestrator = splitManager.getOrchestrator();
 
+  // Calendar is a singleton block. Event opens retarget that one instance
+  // with a locator range, including repeat clicks on an already-open split.
   if (entity.type === 'calendar_event') {
+    if (!isFeatureEnabled(enableCalendarUi)) return;
+    const params = calendarBlockParamsForEntity(entity);
+    const existing = splitManager.getSplitByContent(
+      'calendar',
+      CALENDAR_BLOCK_ID
+    );
+    const existingIsViewer =
+      existing &&
+      splitHandle?.isControllerSplit() &&
+      splitHandle.viewerId() === existing.id;
+
+    if (existing && !existingIsViewer) {
+      existing.activate();
+    } else {
+      splitManager.openWithSplit(
+        { type: 'calendar', id: CALENDAR_BLOCK_ID, params },
+        {
+          activate: true,
+          referredFrom: null,
+          preferNewSplit: openInNewSplit,
+          replacePreview,
+          handle: splitHandle,
+          mergeHistory,
+        }
+      );
+    }
+    await navigateCalendarEntityToTarget(entity, blockOrchestrator);
     return;
   }
 
@@ -642,13 +722,17 @@ export const openEntityInSplitFromUnifiedList = async (
   }
 
   let params: Record<string, string> | undefined;
-  if (entity.type === 'channel' && location?.type === 'channel') {
+  if (entity.type === 'agent_session' && location?.type === 'agent') {
+    params = agentMessageParams(location);
+  } else if (entity.type === 'channel' && location?.type === 'channel') {
     params = getChannelParams(location.messageId, location.threadId);
   } else if (channelMessageTarget) {
     params = getChannelParams(
       channelMessageTarget.messageId,
       channelMessageTarget.threadId
     );
+  } else if (entity.type === 'call' && location?.type === 'call_record') {
+    params = { [CALL_PARAMS.transcriptId]: location.transcriptId };
   }
 
   const sourceContent =
@@ -661,6 +745,9 @@ export const openEntityInSplitFromUnifiedList = async (
   const referredFrom = options.referredFrom ?? sourceListView;
 
   let splitContent: SplitContent = { ...content, params };
+  if (splitHandle && referredFrom && isListViewID(referredFrom)) {
+    splitContent = withListNavigationSource(splitContent, splitHandle);
+  }
   // Preview source metadata belongs on Viewer entries; a replacement takes the
   // Preview Pair's place, so its entry is ordinary split history.
   if (splitHandle?.isControllerSplit() && !replacePreview) {
@@ -765,22 +852,18 @@ export function markReminderSeenOnOpen(
  * The event and instance a calendar row points at, resolved exactly as the
  * open path resolves it so a copied link lands where a click would.
  */
-export function calendarEventLinkTarget(
-  entity: Extract<EntityData, { type: 'calendar_event' }>
-): { eventId: string; occurrenceKey?: string } {
+export function calendarEventLinkTarget(entity: CalendarPreviewSelection): {
+  eventId: string;
+  occurrenceKey?: string;
+} {
   const { eventId, occurrenceKey } = calendarBlockParamsForEntity(entity);
   return { eventId: eventId ?? entity.id, occurrenceKey };
 }
 
-type CalendarEventLinkTarget = {
-  eventId: string;
-  occurrenceKey?: string;
-};
-
-/** Build stable calendar event link identity without depending on the removed calendar block. */
+/** Build singleton calendar block parameters for an event row's occurrence. */
 export function calendarBlockParamsForEntity(
-  entity: Extract<EntityData, { type: 'calendar_event' }>
-): CalendarEventLinkTarget {
+  entity: CalendarPreviewSelection
+): CalendarBlockProps {
   const notifications = isWithNotification(entity)
     ? (entity.notifications?.() ?? [])
     : [];
@@ -789,11 +872,22 @@ export function calendarBlockParamsForEntity(
     .find((candidate) => candidate?.tag === 'calendar_event_reminder');
   const content =
     metadata?.tag === 'calendar_event_reminder' ? metadata.content : undefined;
+  const time = content?.startsAt
+    ? {
+        kind: 'timed' as const,
+        startsAt: content.startsAt,
+        endsAt: content.endsAt ?? undefined,
+      }
+    : content?.startDate
+      ? { kind: 'allDay' as const, startDate: content.startDate }
+      : entity.time;
+
   return {
     eventId: content?.eventId ?? entity.id,
     // A reminder names a precise instance, so it wins; otherwise fall back to
     // whatever resolved the row (search supplies one, soup does not).
     occurrenceKey: content?.occurrenceKey ?? entity.occurrenceKey,
+    range: time ? createCalendarBlockRange(time) : undefined,
   };
 }
 
@@ -806,7 +900,12 @@ export function calendarBlockParamsForEntity(
  * `fileType`/`subType` come resolved from the server, so a referenced document
  * lands on its real block rather than 'unknown'.
  */
-export function reminderSplitTarget(entity: ReminderEntity) {
+export type ReminderPreviewSelection = Pick<
+  ReminderEntity,
+  'id' | 'type' | 'referencedEntity'
+>;
+
+export function reminderSplitTarget(entity: ReminderPreviewSelection) {
   const referenced = entity.referencedEntity;
   if (!referenced) return undefined;
   return {
@@ -819,44 +918,52 @@ export function reminderSplitTarget(entity: ReminderEntity) {
 
 // TODO(dev-rb/github): Map GitHub PRs to { type: 'pr', id }.
 function getEntitySplitContent(entity: EntityData) {
-  return match(entity)
-    .with({ type: 'document' }, (entity) => {
-      const { id, fileType, subType } = entity;
-      const blockName = fileTypeToBlockName(subType?.type ?? fileType);
+  return (
+    match(entity)
+      .with({ type: 'document' }, (entity) => {
+        const { id, fileType, subType } = entity;
+        const blockName = fileTypeToBlockName(subType?.type ?? fileType);
 
-      return { type: blockName, id };
-    })
-    .with({ type: 'channel_message' }, (entity) => {
-      return { type: 'channel' as const, id: entity.channelId };
-    })
-    .with({ type: 'channel_thread' }, (entity) => {
-      return { type: 'channel' as const, id: entity.channelId };
-    })
-    .with({ type: 'foreign' }, (entity) => {
-      return { type: 'unknown' as const, id: entity.id };
-    })
-    .with({ type: 'crm_company' }, (entity) => {
-      return { type: 'company' as const, id: entity.id };
-    })
-    .with({ type: 'crm_contact' }, (entity) => {
-      return { type: 'contact' as const, id: entity.id };
-    })
-    .with({ type: 'reminder' }, (entity) => {
-      // A reminder has no block of its own; it opens its editor as a
-      // component split. The reminder id rides in the content id (component
-      // params are dropped on URL restore, and split identity is keyed on the
-      // id, so each reminder needs a distinct one) — see `resolveComponent`.
-      return {
-        type: 'component' as const,
-        id: `reminder-view~${entity.id}`,
-      };
-    })
-    .with({ type: 'calendar_event' }, () => {
-      return { type: 'unknown' as const, id: entity.id };
-    })
-    .otherwise((entity) => {
-      return { type: entity.type, id: entity.id };
-    });
+        return { type: blockName, id };
+      })
+      .with({ type: 'channel_message' }, (entity) => {
+        return { type: 'channel' as const, id: entity.channelId };
+      })
+      .with({ type: 'channel_thread' }, (entity) => {
+        return { type: 'channel' as const, id: entity.channelId };
+      })
+      .with({ type: 'foreign' }, (entity) => {
+        return { type: 'unknown' as const, id: entity.id };
+      })
+      .with({ type: 'agent_session' }, (entity) => ({
+        type: 'agent' as const,
+        id: entity.id,
+      }))
+      .with({ type: 'crm_company' }, (entity) => {
+        return { type: 'company' as const, id: entity.id };
+      })
+      .with({ type: 'crm_contact' }, (entity) => {
+        return { type: 'contact' as const, id: entity.id };
+      })
+      .with({ type: 'reminder' }, (entity) => {
+        // A reminder has no block of its own; it opens its editor as a
+        // component split. The reminder id rides in the content id (component
+        // params are dropped on URL restore, and split identity is keyed on the
+        // id, so each reminder needs a distinct one) — see `resolveComponent`.
+        return {
+          type: 'component' as const,
+          id: `reminder-view~${entity.id}`,
+        };
+      })
+      // Calendar events open the singleton calendar block; the open path
+      // branches before reaching here, so this only serves duplicate checks.
+      .with({ type: 'calendar_event' }, () => {
+        return { type: 'calendar' as const, id: CALENDAR_BLOCK_ID };
+      })
+      .otherwise((entity) => {
+        return { type: entity.type, id: entity.id };
+      })
+  );
 }
 
 /**
@@ -871,6 +978,10 @@ async function navigateToLocation(
   if (!blockHandle) return;
 
   switch (location.type) {
+    case 'agent': {
+      await blockHandle.goToLocationFromParams(agentMessageParams(location));
+      break;
+    }
     case 'channel': {
       // NOTE: this is handled by the channel block params but this can be used to re-flash an open channel
       await blockHandle.goToLocationFromParams(
@@ -898,6 +1009,12 @@ async function navigateToLocation(
           location.highlightTerms
         ),
         [PDF_PARAMS.searchSnippet]: location.searchSnippet,
+      });
+      break;
+    }
+    case 'call_record': {
+      await blockHandle.goToLocationFromParams({
+        [CALL_PARAMS.transcriptId]: location.transcriptId,
       });
       break;
     }
@@ -970,7 +1087,9 @@ type TrashEmailsHandle = {
   undo: () => Promise<void>;
 };
 
-export type TrashEmailTarget = string | { id: string; linkId?: string };
+export type TrashEmailTarget = { id: string; linkId?: string };
+
+type TrashLabel = { id: string; linkId?: string };
 
 /**
  * Trash one or more email threads.
@@ -982,10 +1101,7 @@ export type TrashEmailTarget = string | { id: string; linkId?: string };
  * Returns synchronously so the caller can show the undo toast immediately.
  */
 export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
-  const normalizedTargets = targets.map((t) =>
-    typeof t === 'string' ? { id: t, linkId: undefined } : t
-  );
-  const ids = normalizedTargets.map((t) => t.id);
+  const ids = targets.map((t) => t.id);
   queryClient.cancelQueries({ queryKey: queryKeys.all.email });
 
   const previousEmail = queryClient.getQueriesData<{
@@ -1016,12 +1132,13 @@ export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
     }
   };
 
-  // Map each thread ID to its assigned TRASH label ID (resolved lazily by API calls; used by undo)
+  // Map each thread id to the TRASH label used to trash it, so undo can remove
+  // the same label. Populated only once every thread has trashed successfully.
   const threadTrashLabelIds = new Map<string, string>();
 
-  // Map thread IDs to their linkId if available from explicit targets or cached email queries
+  // Seed known linkIds from the explicit targets and the cached email lists.
   const threadLinkIds = new Map<string, string>();
-  for (const target of normalizedTargets) {
+  for (const target of targets) {
     if (target.linkId) {
       threadLinkIds.set(target.id, target.linkId);
     }
@@ -1031,14 +1148,58 @@ export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
     for (const page of data.pages) {
       if (!page?.items) continue;
       for (const item of page.items) {
-        if (item?.id && 'linkId' in item && item.linkId && idSet.has(item.id)) {
-          if (!threadLinkIds.has(item.id)) {
-            threadLinkIds.set(item.id, item.linkId);
-          }
+        if (
+          item?.id &&
+          idSet.has(item.id) &&
+          !threadLinkIds.has(item.id) &&
+          'linkId' in item &&
+          item.linkId
+        ) {
+          threadLinkIds.set(item.id, item.linkId);
         }
       }
     }
   }
+
+  // Resolve the TRASH label belonging to a thread's own inbox. The labels
+  // endpoint returns every inbox's labels, so a multi-inbox user must trash
+  // with the label whose linkId matches the thread. The single-label fallback
+  // applies only when the inbox is unknown — a known inbox with no matching
+  // label fails rather than trashing into the wrong one.
+  const resolveTrashLabelId = async (
+    id: string,
+    trashLabels: TrashLabel[]
+  ): Promise<string> => {
+    let linkId = threadLinkIds.get(id);
+    if (!linkId) {
+      const threadData = queryClient.getQueryData<{
+        link_id?: string;
+        pages?: Array<{ link_id?: string }>;
+      }>(emailKeys.threadMessages(id).queryKey);
+      linkId = threadData?.link_id ?? threadData?.pages?.[0]?.link_id;
+    }
+    if (!linkId && trashLabels.length > 1) {
+      const fetched = await fetchAndCacheThread(id);
+      if (!fetched.isErr()) {
+        linkId = fetched.value.thread.link_id;
+      }
+    }
+
+    const matchedLabelId = linkId
+      ? trashLabels.find((label) => label.linkId === linkId)?.id
+      : undefined;
+    const labelId =
+      matchedLabelId ??
+      (linkId
+        ? undefined
+        : trashLabels.length === 1
+          ? trashLabels[0]?.id
+          : undefined);
+    if (!labelId) {
+      throw new Error('TRASH label not found');
+    }
+    return labelId;
+  };
 
   const done = (async () => {
     try {
@@ -1050,45 +1211,57 @@ export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
       });
       const trashLabels =
         labelsData?.labels.filter((l) => l.providerLabelId === 'TRASH') ?? [];
-      const fallbackTrashLabelId = trashLabels[0]?.id;
-      if (trashLabels.length === 0 || !fallbackTrashLabelId) {
+      if (trashLabels.length === 0) {
         throw new Error('TRASH label not found');
       }
 
-      await Promise.all(
-        ids.map(async (id) => {
-          let linkId = threadLinkIds.get(id);
-          if (!linkId) {
-            const threadData = queryClient.getQueryData<{
-              link_id?: string;
-              pages?: Array<{ link_id?: string }>;
-            }>(emailKeys.threadMessages(id).queryKey);
-            if (threadData?.link_id) {
-              linkId = threadData.link_id;
-            } else if (threadData?.pages?.[0]?.link_id) {
-              linkId = threadData.pages[0].link_id;
-            }
-          }
-
-          const matchedLabelId = linkId
-            ? trashLabels.find((label) => label.linkId === linkId)?.id
-            : undefined;
-          const labelId =
-            matchedLabelId ??
-            (trashLabels.length === 1 ? fallbackTrashLabelId : undefined);
-
-          if (!labelId) {
-            throw new Error('TRASH label not found');
-          }
-          threadTrashLabelIds.set(id, labelId);
-
-          return emailClient.updateThreadLabel({
-            thread_id: id,
-            label_id: labelId,
-            value: true,
-          });
-        })
+      // Resolve every thread's label before trashing any of them, so a lookup
+      // failure can't leave part of the batch trashed on the server while the
+      // rest is rolled back locally.
+      const labelIds = await Promise.all(
+        ids.map((id) => resolveTrashLabelId(id, trashLabels))
       );
+
+      // updateThreadLabel resolves an Err on HTTP failure rather than
+      // rejecting, so throwOnErr turns a failed trash into a real rejection.
+      // Settle every call so a partial failure can be compensated instead of
+      // leaving the server disagreeing with the rolled-back UI.
+      const outcomes = await Promise.allSettled(
+        ids.map((id, i) =>
+          throwOnErr(() =>
+            emailClient.updateThreadLabel({
+              thread_id: id,
+              label_id: labelIds[i]!,
+              value: true,
+            })
+          )
+        )
+      );
+
+      const failure = outcomes.find((o) => o.status === 'rejected');
+      if (failure) {
+        // Revert the threads that did trash so the server matches the rollback
+        // below; best effort, so a failed revert can't mask the original error.
+        await Promise.allSettled(
+          ids.flatMap((id, i) =>
+            outcomes[i]?.status === 'fulfilled'
+              ? [
+                  throwOnErr(() =>
+                    emailClient.updateThreadLabel({
+                      thread_id: id,
+                      label_id: labelIds[i]!,
+                      value: false,
+                    })
+                  ),
+                ]
+              : []
+          )
+        );
+        throw (failure as PromiseRejectedResult).reason;
+      }
+
+      // Every thread trashed — remember the labels so undo can remove them.
+      ids.forEach((id, i) => threadTrashLabelIds.set(id, labelIds[i]!));
     } catch (err) {
       rollback();
       throw err;
@@ -1103,8 +1276,9 @@ export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
   return {
     done,
     undo: async () => {
-      // Wait for the trash calls to finish so we know the label IDs.
-      // If the trash call itself failed, rollback already happened — nothing to undo.
+      // Wait for the trash calls to finish so we know the label IDs. On any
+      // failure `done` has already rolled back and reverted the server, so
+      // there is nothing left to undo.
       try {
         await done;
       } catch {
@@ -1118,11 +1292,13 @@ export function trashEmails(targets: TrashEmailTarget[]): TrashEmailsHandle {
           ids.map((id) => {
             const labelId = threadTrashLabelIds.get(id);
             if (!labelId) return Promise.resolve();
-            return emailClient.updateThreadLabel({
-              thread_id: id,
-              label_id: labelId,
-              value: false,
-            });
+            return throwOnErr(() =>
+              emailClient.updateThreadLabel({
+                thread_id: id,
+                label_id: labelId,
+                value: false,
+              })
+            );
           })
         );
       } finally {
@@ -1151,7 +1327,14 @@ function notificationsForMarkDone(
   notifications: UnifiedNotification[],
   scopeChannelNotificationsToEntity: boolean
 ): UnifiedNotification[] {
-  if (!scopeChannelNotificationsToEntity) return notifications;
+  if (
+    !scopeChannelNotificationsToEntity ||
+    (entity.type !== 'channel' &&
+      entity.type !== 'channel_message' &&
+      entity.type !== 'channel_thread')
+  ) {
+    return notifications;
+  }
 
   return scopeChannelNotificationsForEntity(entity, notifications);
 }
@@ -1310,7 +1493,7 @@ export function applyEntitiesDoneOptimistic(args: {
     emailRowTxns = emailIds.map((id) =>
       optimisticUpdateSoupEntity({
         tag: 'emailThread',
-        data: { id, workflowDone: true },
+        data: { id, inboxVisible: false },
         frecency_score: getSoupEntityById(id)?.frecency_score ?? 0,
       })
     );
@@ -1386,7 +1569,7 @@ export function applyEntitiesNotDoneOptimistic(args: {
   const emailRowTxns = emailIds.map((id) =>
     optimisticUpdateSoupEntity({
       tag: 'emailThread',
-      data: { id, workflowDone: false },
+      data: { id, inboxVisible: true },
       frecency_score: getSoupEntityById(id)?.frecency_score ?? 0,
     })
   );
@@ -1562,3 +1745,5 @@ export async function executeMarkEntitiesUndone(args: {
     ),
   ]);
 }
+
+import { agentMessageParams } from '@app/features/block-agent/core/search-location';

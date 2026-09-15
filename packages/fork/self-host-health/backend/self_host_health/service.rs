@@ -122,7 +122,10 @@ impl SelfHostHealthService {
         Ok(result.rows_affected())
     }
 
-    pub async fn repair_opensearch_alignment(&self, macro_user_id: &str) -> anyhow::Result<serde_json::Value> {
+    pub async fn repair_opensearch_alignment(
+        &self,
+        macro_user_id: &str,
+    ) -> anyhow::Result<serde_json::Value> {
         let url = macro_env_var::maybe_read_env("OPENSEARCH_URL")
             .ok_or_else(|| anyhow::anyhow!("OPENSEARCH_URL 未配置"))?;
         let username = macro_env_var::maybe_read_env("OPENSEARCH_USERNAME").unwrap_or_default();
@@ -212,7 +215,8 @@ impl SelfHostHealthService {
                     .await?;
                 if delete_res.status().is_success() {
                     let val = delete_res.json::<serde_json::Value>().await?;
-                    deleted_orphans += val["deleted"].as_u64().unwrap_or(chunk.len() as u64) as usize;
+                    deleted_orphans +=
+                        val["deleted"].as_u64().unwrap_or(chunk.len() as u64) as usize;
                 }
             }
         }
@@ -227,16 +231,25 @@ impl SelfHostHealthService {
                 WHERE id = ANY($1)
                 "#,
             )
-            .bind(&missing_in_os.iter().filter_map(|s| s.parse::<uuid::Uuid>().ok()).collect::<Vec<_>>())
+            .bind(
+                &missing_in_os
+                    .iter()
+                    .filter_map(|s| s.parse::<uuid::Uuid>().ok())
+                    .collect::<Vec<_>>(),
+            )
             .fetch_all(&self.context.db)
             .await?;
 
             queued_backfill_threads = thread_ids.len();
             if !thread_ids.is_empty() {
                 let sps_url = macro_env_var::maybe_read_env("SEARCH_PROCESSING_URL")
-                    .unwrap_or_else(|| "http://macro-selfhost-search_processing_service-1:8080".to_string());
+                    .unwrap_or_else(|| {
+                        "http://macro-selfhost-search_processing_service-1:8080".to_string()
+                    });
                 let _ = client
-                    .post(format!("{sps_url}/search-processing/internal/backfill/emails"))
+                    .post(format!(
+                        "{sps_url}/search-processing/internal/backfill/emails"
+                    ))
                     .json(&json!({
                         "thread_ids": thread_ids
                     }))
@@ -253,7 +266,10 @@ impl SelfHostHealthService {
         }))
     }
 
-    pub async fn repair_queue_backlog(&self, macro_user_id: &str) -> anyhow::Result<serde_json::Value> {
+    pub async fn repair_queue_backlog(
+        &self,
+        macro_user_id: &str,
+    ) -> anyhow::Result<serde_json::Value> {
         let queues = [
             (
                 "gmail_inbox_sync",
@@ -282,24 +298,47 @@ impl SelfHostHealthService {
 
         for (name, queue_url) in queues {
             let Some(queue_url) = queue_url else { continue };
-            if let Ok(attributes) = self.context.sqs_client.get_queue_attributes(queue_url).await {
+            if let Ok(attributes) = self
+                .context
+                .sqs_client
+                .get_queue_attributes(queue_url)
+                .await
+            {
                 if let Some(dlq_name) = attributes.redrive_policy.as_deref().and_then(|p| {
                     serde_json::from_str::<serde_json::Value>(p)
                         .ok()
-                        .and_then(|v| v.get("deadLetterTargetArn").and_then(|a| a.as_str()).map(|s| {
-                            s.split(':').last().unwrap_or(s).to_string()
-                        }))
+                        .and_then(|v| {
+                            v.get("deadLetterTargetArn")
+                                .and_then(|a| a.as_str())
+                                .map(|s| s.split(':').last().unwrap_or(s).to_string())
+                        })
                 }) {
-                    if let Ok(dlq_url) = self.context.sqs_client.resolve_queue_url(&dlq_name).await {
-                        if let Ok(dlq_attrs) = self.context.sqs_client.get_queue_attributes(&dlq_url).await {
-                            let total = dlq_attrs.visible_messages + dlq_attrs.delayed_messages + dlq_attrs.not_visible_messages;
+                    if let Ok(dlq_url) = self.context.sqs_client.resolve_queue_url(&dlq_name).await
+                    {
+                        if let Ok(dlq_attrs) =
+                            self.context.sqs_client.get_queue_attributes(&dlq_url).await
+                        {
+                            let total = dlq_attrs.visible_messages
+                                + dlq_attrs.delayed_messages
+                                + dlq_attrs.not_visible_messages;
                             if total > 0 {
                                 let mut drained = 0;
-                                while let Ok(messages) = self.context.sqs_client.receive_messages(&dlq_url, 10, 1).await {
-                                    if messages.is_empty() { break; }
+                                while let Ok(messages) = self
+                                    .context
+                                    .sqs_client
+                                    .receive_messages(&dlq_url, 10, 1)
+                                    .await
+                                {
+                                    if messages.is_empty() {
+                                        break;
+                                    }
                                     for msg in &messages {
                                         if let Some(receipt) = &msg.receipt_handle {
-                                            let _ = self.context.sqs_client.delete_message(&dlq_url, receipt).await;
+                                            let _ = self
+                                                .context
+                                                .sqs_client
+                                                .delete_message(&dlq_url, receipt)
+                                                .await;
                                             drained += 1;
                                         }
                                     }

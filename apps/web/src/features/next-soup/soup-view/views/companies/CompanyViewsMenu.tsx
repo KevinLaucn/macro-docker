@@ -203,7 +203,7 @@ export function CompanyViewsMenu(props: { hideLabel?: boolean } = {}) {
         </Show>
       </Dropdown.Trigger>
 
-      <Dropdown.Content class="w-64 shadow-menu">
+      <Dropdown.Content class="w-64">
         <Dropdown.Group>
           <Dropdown.GroupLabel>{t('My views')}</Dropdown.GroupLabel>
           <For
@@ -356,7 +356,7 @@ export function CompanyDisplayMenu() {
           </Dropdown.Trigger>
         </Tooltip>
 
-        <Dropdown.Content class="w-56 shadow-menu">
+        <Dropdown.Content class="w-56">
           {/* Column visibility only applies to the list. */}
           <Show when={viewMode() === 'list'}>
             <Dropdown.Group>

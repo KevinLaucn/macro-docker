@@ -76,7 +76,7 @@ type CompleteMutationRoot {
 	"""
 	moveEntities(inputs: [MoveEntityInput!]!): EntityMutationPayload!
 	"""
-	Update link and channel share policies across supported entity kinds.
+	Update link, explicit team, and channel share policies across supported entity kinds.
 	"""
 	updateEntitySharePolicies(inputs: [UpdateEntitySharePolicyInput!]!): EntityMutationPayload!
 	"""
@@ -210,7 +210,7 @@ input EntityRefInput {
 }
 
 """
-Shared link/channel share-policy update.
+Shared link, explicit team, and channel share-policy update.
 """
 input EntitySharePolicyInput {
 	"""
@@ -223,9 +223,33 @@ input EntitySharePolicyInput {
 	"""
 	linkShareAccessLevel: GraphqlEntityAccessLevel
 	"""
+	Explicit team access level. Omit to leave unchanged or pass null to disable team sharing,
+	independently of link sharing. Only the actual owner may change this setting;
+	enabling it requires the owner to belong to a team. OWNER is not an allowed level.
+	"""
+	teamShareAccessLevel: GraphqlEntityAccessLevel
+	"""
 	Channel access entries to add, remove, or replace.
 	"""
 	channelSharePermissions: [ChannelSharePolicyInput!]
+}
+
+"""
+Which of the authenticated user's favorites to return.
+
+The two dimensions are independent. Values of one are alternatives, and
+both must hold. An omitted or empty list constrains nothing, so the whole
+collection is the default.
+"""
+input FavoritesFilterInput {
+	"""
+	Restrict to favorites of these entity types.
+	"""
+	entityTypes: [GraphqlEntityType!]! = []
+	"""
+	Restrict to favorites with these entity ids.
+	"""
+	entityIds: [ID!]! = []
 }
 
 """
@@ -542,6 +566,102 @@ input GraphqlAgentSessionLiteral @oneOf {
 	The owner option.
 	"""
 	owner: String
+}
+
+"""
+Metadata for being named in a prompt to an agent session.
+"""
+type GraphqlAgentSessionMentionedMetadata {
+	"""
+	The session this is about.
+	"""
+	session: GraphqlAgentSessionRef!
+	"""
+	Who wrote the prompt.
+	"""
+	mentionedBy: String
+	"""
+	The action carrying the prompt.
+	"""
+	actionId: ID!
+}
+
+"""
+The session an agent-session notification points at.
+"""
+type GraphqlAgentSessionRef {
+	"""
+	Agent session identifier; what a click opens.
+	"""
+	sessionId: ID!
+	"""
+	Session name at the time of the event.
+	"""
+	sessionName: String!
+	"""
+	Bot identifier.
+	"""
+	botId: ID!
+	"""
+	Bot display name; agent notifications read as being from the bot.
+	"""
+	botName: String!
+	"""
+	Channel the session was opened from, when it was.
+	"""
+	channelId: ID
+	"""
+	Thread the session was opened from, when it was.
+	"""
+	threadId: ID
+	"""
+	The magic-chip message for the turn, when one was posted.
+	"""
+	announcementMessageId: ID
+}
+
+"""
+Metadata for an agent session that finished with nothing queued.
+"""
+type GraphqlAgentSessionSettledMetadata {
+	"""
+	The session this is about.
+	"""
+	session: GraphqlAgentSessionRef!
+	"""
+	The turn that ended.
+	"""
+	turn: Int!
+	"""
+	Who prompted the turn.
+	"""
+	actor: String
+	"""
+	ACP stop reason, or `error`.
+	"""
+	stopReason: String!
+	"""
+	The agent's last prose in the turn.
+	"""
+	excerpt: String
+}
+
+"""
+Metadata for an agent session blocked on a question.
+"""
+type GraphqlAgentSessionWaitingForInputMetadata {
+	"""
+	The session this is about.
+	"""
+	session: GraphqlAgentSessionRef!
+	"""
+	The turn asking.
+	"""
+	turn: Int!
+	"""
+	The question, as the agent phrased it.
+	"""
+	question: String!
 }
 
 """
@@ -1719,6 +1839,10 @@ input GraphqlEmailLiteral @oneOf {
 	"""
 	read: Boolean
 	"""
+	Inbox visibility: false selects archived (done) mail, independently of notifications.
+	"""
+	inboxVisible: Boolean
+	"""
 	The shared option.
 	"""
 	shared: GraphqlSharedEmailFilter
@@ -2095,6 +2219,14 @@ enum GraphqlEntityType {
 	AI coding agent session entity.
 	"""
 	AGENT_SESSION
+	"""
+	Scheduled action entity.
+	"""
+	SCHEDULED_ACTION
+	"""
+	Initiative entity.
+	"""
+	INITIATIVE
 }
 
 """
@@ -2886,6 +3018,41 @@ enum GraphqlLinkShare {
 }
 
 """
+A body-free normalized message snapshot used by canonical Mail preview edges.
+Its ID identifies the same message across ALL, Drafts and Sent references.
+"""
+type GraphqlMailPreviewMessage {
+	"""
+	Global message ID.
+	"""
+	id: ID!
+	"""
+	Message subject.
+	"""
+	subject: String
+	"""
+	Message snippet, never a body.
+	"""
+	snippet: String
+	"""
+	Whether this message is a draft.
+	"""
+	isDraft: Boolean!
+	"""
+	Sender email address.
+	"""
+	senderEmail: String
+	"""
+	Sender display name.
+	"""
+	senderName: String
+	"""
+	Sender photo URL.
+	"""
+	senderPhotoUrl: String
+}
+
+"""
 Metadata for a mention in a document comment.
 """
 type GraphqlMentionedInDocumentCommentMetadata {
@@ -2990,7 +3157,7 @@ type GraphqlNewNotification {
 """
 Typed GraphQL union containing every supported notification event payload.
 """
-union GraphqlNotifEvent = GraphqlChannelMentionMetadata | GraphqlDocumentMentionMetadata | GraphqlMentionedInDocumentCommentMetadata | GraphqlRepliedToDocumentCommentThreadMetadata | GraphqlCommentedOnDocumentMetadata | GraphqlChannelInviteMetadata | GraphqlChannelMessageSendMetadata | GraphqlChannelReplyMetadata | GraphqlCallStartedMetadata | GraphqlNewEmailMetadata | GraphqlInboxReauthRequiredMetadata | GraphqlInviteToTeamMetadata | GraphqlTaskAssignedMetadata | GraphqlReminderMetadata | GraphqlCalendarEventReminderMetadata | GraphqlAiResponseMetadata | GraphqlGithubPrStatusChangedMetadata | GraphqlGithubPrCheckRunMetadata | GraphqlGithubReviewRequestedMetadata | GraphqlGithubPrCommentMetadata | GraphqlGithubPrMentionMetadata | GraphqlGithubPrReviewMetadata
+union GraphqlNotifEvent = GraphqlChannelMentionMetadata | GraphqlDocumentMentionMetadata | GraphqlMentionedInDocumentCommentMetadata | GraphqlRepliedToDocumentCommentThreadMetadata | GraphqlCommentedOnDocumentMetadata | GraphqlChannelInviteMetadata | GraphqlChannelMessageSendMetadata | GraphqlChannelReplyMetadata | GraphqlCallStartedMetadata | GraphqlNewEmailMetadata | GraphqlInboxReauthRequiredMetadata | GraphqlInviteToTeamMetadata | GraphqlTaskAssignedMetadata | GraphqlReminderMetadata | GraphqlCalendarEventReminderMetadata | GraphqlAiResponseMetadata | GraphqlGithubPrStatusChangedMetadata | GraphqlGithubPrCheckRunMetadata | GraphqlGithubReviewRequestedMetadata | GraphqlGithubPrCommentMetadata | GraphqlGithubPrMentionMetadata | GraphqlGithubPrReviewMetadata | GraphqlAgentSessionSettledMetadata | GraphqlAgentSessionWaitingForInputMetadata | GraphqlAgentSessionMentionedMetadata
 
 """
 A notification associated with a Soup entity.
@@ -4293,6 +4460,10 @@ type GraphqlSoupChat implements GraphqlSoupEntity {
 	"""
 	name: String!
 	"""
+	The last model selected for a sent message (`provider/model` id).
+	"""
+	model: String
+	"""
 	The identifier of the owner.
 	"""
 	ownerId: String!
@@ -4905,7 +5076,7 @@ type GraphqlSoupEmailThread implements GraphqlSoupEntity {
 	"""
 	entityType: GraphqlSoupEntityType!
 	"""
-	Opaque cache projection metadata, unavailable for this entity variant.
+	Opaque server-only facts used by the offline Mail projection.
 	"""
 	cacheProjection: SoupCacheProjection
 	"""
@@ -5044,6 +5215,18 @@ type GraphqlSoupEmailThread implements GraphqlSoupEntity {
 	Timestamp of the latest inbound message, in RFC 3339 format.
 	"""
 	latestInboundMessageTs: String
+	"""
+	Latest eligible message for ALL, INBOX, Calendar and Shared, without bodies.
+	"""
+	mailAllPreview: GraphqlMailPreviewMessage
+	"""
+	Latest eligible draft, even when a newer non-draft exists in the thread.
+	"""
+	mailDraftPreview: GraphqlMailPreviewMessage
+	"""
+	Latest eligible sent message, without bodies.
+	"""
+	mailSentPreview: GraphqlMailPreviewMessage
 	"""
 	A page of messages in this thread, newest first.
 	"""
@@ -5540,9 +5723,10 @@ type GraphqlUser {
 	"""
 	id: ID!
 	"""
-	The authenticated user's favorites in manual order.
+	The authenticated user's favorites in manual order, optionally
+	restricted by entity type and entity id.
 	"""
-	favorites: [GraphqlFavorite!]!
+	favorites(filter: FavoritesFilterInput): [GraphqlFavorite!]!
 	"""
 	A page of the authenticated user's own activity, newest first.
 	Delegated actions performed on the user's behalf are included.
@@ -5951,7 +6135,7 @@ input UpdateEntitySharePolicyInput {
 	"""
 	entity: EntityRefInput!
 	"""
-	New link/channel policy values.
+	New link, explicit team, and channel policy values.
 	"""
 	policy: EntitySharePolicyInput!
 }

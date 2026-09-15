@@ -97,13 +97,21 @@ interface Params {
 function stripEmptySlots(params: Params): void {
   for (const [slot, value] of Object.entries(params)) {
     if (slot === 'body') continue;
-    if (value && typeof value === 'object' && !Array.isArray(value) && !Object.keys(value).length) {
+    if (
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      !Object.keys(value).length
+    ) {
       delete params[slot as Slot];
     }
   }
 }
 
-export function buildClientParams(args: ReadonlyArray<unknown>, fields: FieldsConfig): Params {
+export function buildClientParams(
+  args: ReadonlyArray<unknown>,
+  fields: FieldsConfig
+): Params {
   const params: Params = {
     headers: Object.create(null),
     path: Object.create(null),
@@ -154,7 +162,9 @@ export function buildClientParams(args: ReadonlyArray<unknown>, fields: FieldsCo
             params[field.map] = value;
           }
         } else {
-          const extra = extraPrefixes.find(([prefix]) => key.startsWith(prefix));
+          const extra = extraPrefixes.find(([prefix]) =>
+            key.startsWith(prefix)
+          );
 
           if (extra) {
             const [prefix, slot] = extra;

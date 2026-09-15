@@ -39,6 +39,7 @@ import {
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import CheckIcon from '@phosphor/check.svg';
 import SpinnerIcon from '@phosphor/spinner.svg';
+import { createElementSize } from '@solid-primitives/resize-observer';
 import { debounce } from '@solid-primitives/scheduled';
 import { Button, cn } from '@ui';
 import {
@@ -209,6 +210,8 @@ export function InboxList(props: InboxListProps) {
   }
 
   const [viewport, setViewport] = createSignal<HTMLDivElement>();
+  const [topSpacer, setTopSpacer] = createSignal<HTMLDivElement>();
+  const topSpacerSize = createElementSize(topSpacer);
   const [emptyViewport, setEmptyViewport] = createSignal<HTMLDivElement>();
   const [virtualizer, setVirtualizer] = createSignal<VirtualizerHandle>();
   const [isPullRefreshing, setIsPullRefreshing] = createSignal(false);
@@ -450,8 +453,7 @@ export function InboxList(props: InboxListProps) {
         aria-multiselectable="true"
         aria-activedescendant={list.focus.key()}
         tabIndex={0}
-        class="soup-list relative mt-3 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none"
-        style={{ '--mobile-content-inset-top': '0px' }}
+        class="soup-list relative mt-3 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden outline-none touch:mt-0"
       >
         <PullToRefresh
           scrollContainer={pullScrollContainer}
@@ -482,7 +484,7 @@ export function InboxList(props: InboxListProps) {
                 !forceEmptyState() && source.isLoading() && !isPullRefreshing()
               }
             >
-              <div class="grid min-h-0 flex-1 place-items-center text-ink-muted">
+              <div class="grid min-h-0 flex-1 place-items-center text-ink-muted touch:pt-(--mobile-content-inset-top)">
                 <SpinnerIcon
                   aria-label={t('Loading notifications')}
                   class="size-5 animate-spin"
@@ -493,7 +495,7 @@ export function InboxList(props: InboxListProps) {
             <Match when={!forceEmptyState() && source.error()}>
               <div
                 ref={setEmptyViewport}
-                class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto pb-[max(1rem,var(--mobile-content-inset-bottom,0px))] text-sm text-ink-muted"
+                class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto pb-[max(1rem,var(--mobile-content-inset-bottom,0px))] touch:pt-(--mobile-content-inset-top) text-sm text-ink-muted"
               >
                 <span>{t('Notifications couldn’t be loaded.')}</span>
                 <Button
@@ -523,10 +525,19 @@ export function InboxList(props: InboxListProps) {
                 }}
                 class="scrollbar-hidden min-h-0 flex-1 overflow-y-auto overscroll-none pb-[max(0.5rem,var(--mobile-content-inset-bottom,0px))]"
               >
+                {/* The spacer scrolls away; the viewport stays behind the filters. */}
+                <div
+                  ref={setTopSpacer}
+                  aria-hidden="true"
+                  class="h-0 touch:h-(--mobile-content-inset-top)"
+                />
                 <Virtualizer
                   ref={registerVirtualizer}
                   data={rows()}
                   scrollRef={viewport()}
+                  startMargin={
+                    isTouchDevice() ? (topSpacerSize.height ?? 0) : 0
+                  }
                   bufferSize={500}
                   itemSize={88}
                   keepMounted={
@@ -568,7 +579,7 @@ export function InboxList(props: InboxListProps) {
                             >
                               <div role="gridcell">
                                 <InboxListEntity
-                                  class="mx-0 w-full border-b border-edge touch:border-b-0"
+                                  class="mx-0 w-full border-b-[1px] border-thread-rail touch:border-b-0"
                                   cardClass="rounded-none px-4 py-3 mobile:pl-(--soup-row-padding-l)"
                                   entity={entityRow().entity}
                                   occurrenceKey={entityRow().id}

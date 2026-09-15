@@ -16,7 +16,6 @@ import {
 } from '@components/app/GlobalAppState';
 import { useSplitLayout } from '@components/app/split-layout/layout';
 import {
-  ContextMenuContent,
   MenuGroup,
   MenuItem,
   MenuSeparator,
@@ -28,9 +27,7 @@ import {
 } from '@core/constant/featureFlags';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import type { EntityData } from '@entity';
-import { ContextMenu } from '@kobalte/core/context-menu';
 import { Tooltip as KobalteTooltip } from '@kobalte/core/tooltip';
-import { t } from '@macro/i18n';
 import { isChannelNotification } from '@notifications/notification-helpers';
 import { getChannelNotificationParams } from '@notifications/notification-navigation';
 import type { UnifiedNotification } from '@notifications/types';
@@ -38,7 +35,6 @@ import CaretDownIcon from '@phosphor/caret-down.svg';
 import {
   favoriteEntityKey,
   useFavoritesData,
-  useRemoveFavoriteMutation,
   useReorderFavoritesMutation,
 } from '@queries/favorites/favorites';
 import type { Favorite } from '@service-storage/generated/schemas/favorite';
@@ -58,6 +54,7 @@ import {
   type ParentProps,
   Show,
 } from 'solid-js';
+import { FavoriteContextMenu } from '../FavoriteContextMenu';
 
 /**
  * Drag data carried by favorite row sortables. Distinct from `EntityDragData`
@@ -222,7 +219,7 @@ export const FavoritesSection = (props: {
     <Show when={props.sidebarState === 'expanded' && favorites().length > 0}>
       <div class="w-full shrink-0">
         <FavoritesGroup
-          label={t('Favorites')}
+          label="Favorites"
           favorites={favorites()}
           persistKey="sidebar-favorites-expanded"
           onContextMenuOpenChange={props.onContextMenuOpenChange}
@@ -292,7 +289,7 @@ const FavoritesGroup = (props: {
           aria-expanded={expanded()}
           onClick={() => setExpanded(!expanded())}
         >
-          <span class="min-w-0 truncate">{t(props.label)}</span>
+          <span class="min-w-0 truncate">{props.label}</span>
           <CaretDownIcon
             class={cn(
               'size-3 shrink-0 transition-transform duration-[120ms] ease-in-out',
@@ -345,7 +342,6 @@ const FavoriteRow = (props: {
   const muteAction = makeMuteAction({
     notificationSource: () => notificationSource,
   });
-  const removeMutation = useRemoveFavoriteMutation();
   // Favorites already store the canonical notification type (`email_thread`),
   // which the mute mapping accepts as-is.
   const favoriteAsEntity = () =>
@@ -407,32 +403,11 @@ const FavoriteRow = (props: {
   };
 
   const open = (e: MouseEvent) => openFavorite(e.shiftKey);
-  const canOpenInNewSplit = () =>
-    globalSplitManager()?.canAppendSplit() ?? false;
-  const canOpenFullscreen = () => layout.getSplitCount() > 1;
-  const openInCurrentSplit = () => openFavorite(false);
-  const openInNewSplit = () => {
-    if (canOpenInNewSplit()) openFavorite(true);
-  };
-  const openFullscreen = () => {
-    const split = layout.replaceAllSplits(content(), {
-      referredFrom: 'sidebar',
-    });
-    globalSplitManager()?.returnFocus();
-    return split;
-  };
   const markAllAsRead = () => {
     void notificationSource.bulkMarkAsRead(props.notifications());
   };
   const markAllAsDone = () => {
     void notificationSource.bulkMarkAsDone(props.notifications());
-  };
-
-  const removeFromFavorites = () => {
-    removeMutation.mutate({
-      entityType: props.favorite.entityType,
-      entityId: props.favorite.entityId,
-    });
   };
 
   const isUnreadChannelFavorite = () =>
@@ -485,50 +460,17 @@ const FavoriteRow = (props: {
         sortable.isActiveDraggable && 'opacity-40'
       )}
     >
-      <ContextMenu onOpenChange={setContextMenuOpen}>
-        <ContextMenu.Trigger class="w-full h-7">
-          <Show when={isUnreadChannelFavorite()} fallback={row}>
-            <FavoriteChannelHoverCard
-              channelId={props.favorite.entityId}
-              notifications={props.notifications()}
-              disabled={contextMenuOpen()}
-              onOpenChange={setHoverPreviewOpen}
-            >
-              {row}
-            </FavoriteChannelHoverCard>
-          </Show>
-        </ContextMenu.Trigger>
-
-        <ContextMenu.Portal>
-          <ContextMenuContent class="text-xs text-ink-muted">
-            <MenuGroup>
-              <MenuItem
-                text={t('Open in new split', { context: 'favorites' })}
-                onClick={openInNewSplit}
-                disabled={!canOpenInNewSplit()}
-              />
-              <Show when={canOpenFullscreen()}>
-                <MenuItem
-                  text={t('Open fullscreen', { context: 'favorites' })}
-                  onClick={openFullscreen}
-                />
-              </Show>
-              <MenuItem
-                text={t('Open in current split', { context: 'favorites' })}
-                onClick={openInCurrentSplit}
-              />
-            </MenuGroup>
+      <FavoriteContextMenu
+        favorite={props.favorite}
+        triggerClass="h-7"
+        onOpenChange={setContextMenuOpen}
+        additionalActions={
+          <>
             <Show when={props.notifications().length > 0}>
               <MenuSeparator />
               <MenuGroup>
-                <MenuItem
-                  text={t('Mark all as read')}
-                  onClick={markAllAsRead}
-                />
-                <MenuItem
-                  text={t('Mark all as done')}
-                  onClick={markAllAsDone}
-                />
+                <MenuItem text="Mark all as read" onClick={markAllAsRead} />
+                <MenuItem text="Mark all as done" onClick={markAllAsDone} />
               </MenuGroup>
             </Show>
             <Show when={muteAction.canExecute(favoriteAsEntity())}>
@@ -537,23 +479,27 @@ const FavoriteRow = (props: {
                 <MenuItem
                   text={
                     muteAction.isMuted(favoriteAsEntity())
-                      ? t('Unmute notifications')
-                      : t('Mute notifications')
+                      ? 'Unmute notifications'
+                      : 'Mute notifications'
                   }
                   onClick={() => void muteAction.execute([favoriteAsEntity()])}
                 />
               </MenuGroup>
             </Show>
-            <MenuSeparator />
-            <MenuGroup>
-              <MenuItem
-                text={t('Remove from favorites')}
-                onClick={removeFromFavorites}
-              />
-            </MenuGroup>
-          </ContextMenuContent>
-        </ContextMenu.Portal>
-      </ContextMenu>
+          </>
+        }
+      >
+        <Show when={isUnreadChannelFavorite()} fallback={row}>
+          <FavoriteChannelHoverCard
+            channelId={props.favorite.entityId}
+            notifications={props.notifications()}
+            disabled={contextMenuOpen()}
+            onOpenChange={setHoverPreviewOpen}
+          >
+            {row}
+          </FavoriteChannelHoverCard>
+        </Show>
+      </FavoriteContextMenu>
     </div>
   );
 };

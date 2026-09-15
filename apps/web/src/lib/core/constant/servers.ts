@@ -62,7 +62,7 @@ type Servers = Record<keyof typeof serverHostRemote, string>;
 // exists in both windows and workers.)
 const rawLocalBackendOrigin: string | undefined = import.meta.env
   .VITE_LOCAL_BACKEND_ORIGIN;
-const proxyOrigin: string | undefined =
+export const proxyOrigin: string | undefined =
   rawLocalBackendOrigin === 'same-origin'
     ? globalThis.location?.origin
     : resolveProxyOrigin(rawLocalBackendOrigin);

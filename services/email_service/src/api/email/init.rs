@@ -19,7 +19,6 @@ use email_api_client::domain::models::EmailApiError;
 #[cfg(feature = "calendar")]
 use email_api_client::domain::models::TokenFreshness;
 use email_service::pubsub::publish_email_event;
-use crate::util::sync_contacts::sync_contacts;
 use macro_authorization::{MacroAuthorizationExtractor, UserOrInternal};
 use macro_db_client::in_progress_user_link::InProgressUserLink;
 use macro_user_id::email::EmailStr;
@@ -419,25 +418,6 @@ async fn init_user(
                 .await
                 .context("Failed to check existing link by email")?
             {
-                // Reauthorization is also the refresh point for the Gmail account's
-                // own People profile. Keep the inbox avatar current even when the
-                // mailbox link already exists and no backfill is needed.
-                if let Err(error) = sync_contacts(
-                    &existing_link,
-                    &ctx.db,
-                    &ctx.email_api,
-                    &ctx.sqs_client,
-                    &ctx.macro_event_broker,
-                )
-                .await
-                {
-                    tracing::warn!(
-                        error = ?error,
-                        link_id = %existing_link.id,
-                        "Failed to refresh Gmail profile photo after reauthorization"
-                    );
-                }
-
                 let _applied = apply_and_consume_calendar_grant(
                     &ctx,
                     existing_link.id,

@@ -109,6 +109,8 @@ import { unwrap } from 'solid-js/store';
 
 type DataSource<T> = {
   data: Accessor<T[]>;
+  /** Results are limited to synchronized email metadata. */
+  cachedMail?: Accessor<boolean>;
   error: Accessor<Error | null>;
   /** True when the active request has local or network data, including an
    * intentionally empty result. */
@@ -123,7 +125,7 @@ type DataSource<T> = {
   isPlaceholderData: Accessor<boolean>;
   isFetchingNextPage: Accessor<boolean>;
   hasNextPage: Accessor<boolean>;
-  fetchNextPage: VoidFunction;
+  fetchNextPage: () => Promise<void>;
   /**
    * Full refresh (e.g. mobile pull-to-refresh): starts invalidation of every
    * soup query plus notification state, then resolves once the refetch of the
@@ -135,6 +137,10 @@ type DataSource<T> = {
 };
 
 type SoupViewInitializeOptions = {
+  /** Composed views can keep their own state without overwriting legacy tab preferences. */
+  persistFilters?: boolean;
+  /** A composed view may own its ordering independently of legacy tabs. */
+  sortMethod?: Accessor<NonNullable<SoupParams['sort_method']> | undefined>;
   initialQuery?: Query;
   initialClientFilters?: SetPredicatesInput<string>;
   initialSearchText?: string;
@@ -320,10 +326,14 @@ export const SoupViewContextProvider: FlowComponent<
     disableLocalSearch: props.disableLocalSearch,
     additionalEntities: props.additionalEntities,
     itemMembershipFilter: props.itemMembershipFilter,
+    sortMethod: props.sortMethod,
+    persistFilters: props.persistFilters,
   });
 
   const queryClient = useQueryClient();
-  const [filterPersistenceEnabled] = useSoupFilterPersistence();
+  const [persistFilterPreference] = useSoupFilterPersistence();
+  const filterPersistenceEnabled = () =>
+    config().persistFilters !== false && persistFilterPreference();
 
   const panel = useSplitPanelOrThrow();
 
@@ -621,7 +631,7 @@ export const SoupViewContextProvider: FlowComponent<
   // List/board display mode — per-entry state so back/forward restores the
   // mode the user left each entry with.
   const [viewMode, setViewMode] = useEntryState<SoupViewMode>('soup.viewMode', {
-    default: 'board',
+    default: isTouchDevice() ? 'list' : 'board',
   });
   const [readFilter, setReadFilter] = makeFlaggedPersisted(
     useEntryState<ReadFilter>('soup.readFilter', { default: 'all' }),
@@ -692,7 +702,7 @@ export const SoupViewContextProvider: FlowComponent<
   });
 
   const presetSortMethod = () => {
-    const method = activePreset()?.sortMethod;
+    const method = config().sortMethod?.() ?? activePreset()?.sortMethod;
     return method === 'notified_at' && !notifiedSortFF().enabled
       ? 'updated_at'
       : method;
@@ -730,7 +740,9 @@ export const SoupViewContextProvider: FlowComponent<
   const clientSort = createMemo((): SortConfig<SoupEntity>[] =>
     presetSortMethod() === 'notified_at'
       ? [SORT_CONFIGS.notified_at]
-      : soup.sort.active()
+      : config().sortMethod?.() === 'touched_by_me'
+        ? []
+        : soup.sort.active()
   );
 
   // Active deal-stage set (team-customized when present). Drives the
@@ -1036,9 +1048,7 @@ export const SoupViewContextProvider: FlowComponent<
     isFetchingNextPage: () => itemsQuery.isFetchingNextPage,
     isEnabled: () => itemsQuery.isEnabled,
     hasNextPage: () => itemsQuery.hasNextPage,
-    fetchNextPage: () => {
-      void itemsQuery.fetchNextPage();
-    },
+    fetchNextPage: () => itemsQuery.fetchNextPage(),
   };
 
   const items = createMemo<SoupEntity[]>(
@@ -1513,6 +1523,8 @@ export const SoupViewContextProvider: FlowComponent<
     initialize,
     source: {
       data: entities,
+      cachedMail: () =>
+        !search.isSearching() && itemsQueryData()?.cachedMail === true,
       error: () =>
         search.isSearching() ? searchSourceError() : itemsSource.error(),
       hasData: () =>
@@ -1539,15 +1551,13 @@ export const SoupViewContextProvider: FlowComponent<
           (searchQuery.isEnabled && searchQuery.hasNextPage)
         );
       },
-      fetchNextPage: () => {
+      fetchNextPage: async () => {
         if (!enabled()) return;
 
-        if (itemsSource.isEnabled()) {
-          itemsSource.fetchNextPage();
-        }
-        if (searchQuery.isEnabled) {
-          searchQuery.fetchNextPage();
-        }
+        await Promise.all([
+          itemsSource.isEnabled() ? itemsSource.fetchNextPage() : undefined,
+          searchQuery.isEnabled ? searchQuery.fetchNextPage() : undefined,
+        ]);
       },
       refresh: async () => {
         if (!enabled()) return;

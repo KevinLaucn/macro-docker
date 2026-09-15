@@ -36,7 +36,7 @@ export const SortDropdown: Component<SortDropdownProps> = (props) => {
           <span>{t('Sort')}</span>
         </Dropdown.Trigger>
       </Tooltip>
-      <Dropdown.Content class="shadow-menu">
+      <Dropdown.Content>
         <Dropdown.Group>
           <For each={options()}>
             {(option) => (

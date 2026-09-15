@@ -260,17 +260,15 @@ hooks:
     context:
       - "pub fn router(state: ApiContext) -> Router<ApiContext> {"
   - id: self_host_health_settings_tab
-    file: apps/web/src/features/settings/Settings.tsx
+    file: apps/web/src/features/settings/SettingsTabContent.tsx
     marker: "{/* PRIVATE-HOOK: self_host_health:settings_tab */}"
     expected: "<SelfHostHealth />"
     context:
       - "isCurrentTab('SelfHostHealth')"
   - id: self_host_health_settings_import
-    file: apps/web/src/features/settings/Settings.tsx
+    file: apps/web/src/features/settings/SettingsTabContent.tsx
     marker: "// PRIVATE-HOOK: self_host_health:settings_import"
     expected: "import { SelfHostHealth } from '@macro/self-host-health';"
-    context:
-      - "import { Billing } from '@app/features/settings/Billing';"
   - id: self_host_health_prompt_import
     file: apps/web/src/components/app/Layout.tsx
     marker: "// PRIVATE-HOOK: self_host_health:prompt_import"

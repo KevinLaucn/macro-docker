@@ -9,8 +9,6 @@
  * tool from its title.
  */
 
-import { t } from '@macro/i18n';
-import type { MessagePart } from '@service-agent-fold/generated/types';
 import type { JSX } from 'solid-js';
 import { match } from 'ts-pattern';
 import { EditToolCall } from './EditToolCall';
@@ -19,11 +17,14 @@ import { OutputToolCall } from './OutputToolCall';
 import { PathsToolCall } from './PathsToolCall';
 import { SearchToolCall } from './SearchToolCall';
 import { SubagentToolCall } from './SubagentToolCall';
-import { type ToolCallCommon, type ToolCallContext, toolLabel } from './shared';
+import {
+  type ToolCallCommon,
+  type ToolCallContext,
+  type ToolUsePart,
+  toolLabel,
+} from './shared';
 import { TerminalToolCall } from './TerminalToolCall';
 import { UserToolCall } from './UserToolCall';
-
-type ToolUsePart = Extract<MessagePart, { kind: 'tool_use' }>;
 
 export function ToolCallPart(props: {
   part: ToolUsePart;
@@ -38,9 +39,7 @@ export function ToolCallPart(props: {
     label: toolLabel(props.part.name),
     status: props.part.status,
     muted: failed(),
-    trailing: failed() ? (
-      <span class="text-ink">{t('Failed')}</span>
-    ) : undefined,
+    trailing: failed() ? <span class="text-ink">Failed</span> : undefined,
   });
 
   return match(props.part.detail)

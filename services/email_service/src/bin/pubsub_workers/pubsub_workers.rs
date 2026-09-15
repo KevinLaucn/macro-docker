@@ -8,7 +8,7 @@ use email_service::outbound::email_api::{
 };
 use email_service::pubsub::CrmMetadataResolver;
 use email_service::util::redis::RedisClient;
-use macro_entrypoint::{shutdown_signal, MacroEntrypoint};
+use macro_entrypoint::{MacroEntrypoint, shutdown_signal};
 use macro_env::Environment;
 #[cfg(not(feature = "event_broker"))]
 use macro_event_broker::NoopMacroEventBroker;
@@ -19,8 +19,8 @@ use macro_service_urls::{
 };
 use notification::domain::service::SqsNotificationIngress;
 use notification::outbound::queue::SqsQueue;
-use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 use static_file_service_client::StaticFileServiceClient;
 use std::sync::Arc;
 #[cfg(feature = "event_broker")]

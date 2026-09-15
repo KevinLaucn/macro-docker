@@ -167,7 +167,8 @@ async fn probe_search_index(context: &ApiContext) -> HealthCheckItem {
                 remediation_hint: Some(if diff > 0 {
                     "检查 search_processing_service，并执行邮件索引回填。".to_string()
                 } else {
-                    "检查 search_processing_service 删除同步事件，或清理 OpenSearch 中的孤立文档。".to_string()
+                    "检查 search_processing_service 删除同步事件，或清理 OpenSearch 中的孤立文档。"
+                        .to_string()
                 }),
                 duration_ms,
             }

@@ -89,6 +89,7 @@ import {
 import { registerHotkey, useHotkeyDOMScope } from '@core/hotkey/hotkeys';
 import { TOKENS } from '@core/hotkey/tokens';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
+import type { DateValue } from '@core/util/date';
 import { openExternalUrl } from '@core/util/url';
 import { useIsKeyPressActive } from '@core/util/useIsKeyPressActive';
 import {
@@ -454,7 +455,9 @@ export const SoupView = (props: SoupViewProps) => {
         if (owners.length > 0 !== soup.predicates.isActive('company-owner')) {
           soup.predicates.toggle({ and: ['company-owner'] });
         }
-        soupView.setViewMode(initialCrmView.viewMode ?? 'board');
+        soupView.setViewMode(
+          initialCrmView.viewMode ?? (isTouchDevice() ? 'list' : 'board')
+        );
       }
     });
   });
@@ -749,6 +752,11 @@ export const SoupView = (props: SoupViewProps) => {
             setPreviewOpenPreference(open);
         }}
       />
+      <Show when={soupView.source.cachedMail?.()}>
+        <p role="status" class="px-4 py-1 text-xs text-ink-muted">
+          Showing cached mail. Only synchronized messages are available.
+        </p>
+      </Show>
       <Show when={applyDefaultCrmView}>
         <CrmDefaultViewLoader />
       </Show>
@@ -771,15 +779,19 @@ export const SoupView = (props: SoupViewProps) => {
             content that is already constrained in both layouts. */}
         <Show
           when={
-            ENABLE_UNIFIED_LIST_AI_INPUT &&
             !isTouchDevice() &&
+            ENABLE_UNIFIED_LIST_AI_INPUT &&
             !isInboxView() &&
             !panel.handle.isControllerSplit() &&
             !isBoardRendered() &&
             !isComponentListView('search')
           }
         >
-          <SoupChatInput />
+          <div class="absolute bottom-0 inset-x-px pb-2.5 px-2 flex justify-center pointer-events-none">
+            <div class="pointer-events-auto w-full min-w-0 max-w-3xl">
+              <SoupChatInput />
+            </div>
+          </div>
         </Show>
       </Suspense>
     </div>
@@ -787,6 +799,13 @@ export const SoupView = (props: SoupViewProps) => {
 };
 
 interface SoupViewListProps {
+  emptyState?: () => JSX.Element;
+  timestamp?: (entity: EntityData) => DateValue | null | undefined;
+  navigationKey?: string;
+  /** Composed folder browsers keep ordinary folder activation in their pane. */
+  onOpenProject?: (id: string) => void;
+  uploadProjectId?: string;
+  disableTabHotkeys?: boolean;
   customScrollbarHidden?: boolean;
   scopeId?: string;
 }
@@ -800,6 +819,12 @@ export const SoupViewList = (props: SoupViewListProps) => (
     <SoupViewListContent
       customScrollbarHidden={props.customScrollbarHidden}
       scopeId={props.scopeId}
+      onOpenProject={props.onOpenProject}
+      uploadProjectId={props.uploadProjectId}
+      disableTabHotkeys={props.disableTabHotkeys}
+      timestamp={props.timestamp}
+      navigationKey={props.navigationKey}
+      emptyState={props.emptyState}
     />
   </SoupRowMetadataProvider>
 );
@@ -946,6 +971,7 @@ const SoupViewListContent = (props: SoupViewListProps) => {
     isFetching: source.isFetching,
     isFetchingNextPage: source.isFetchingNextPage,
     fetchNextPage: source.fetchNextPage,
+    error: source.error,
   });
 
   // Register entity action hotkeys
@@ -984,6 +1010,8 @@ const SoupViewListContent = (props: SoupViewListProps) => {
     activeTab,
     applyTabPreset,
     fetchNextGroupPage,
+    onOpenProject: props.onOpenProject,
+    disableTabHotkeys: props.disableTabHotkeys,
   });
 
   // Create markDone action for swipe/click handlers
@@ -1021,6 +1049,18 @@ const SoupViewListContent = (props: SoupViewListProps) => {
     const entity = (
       type === 'entity' ? args.entity : args.projectEntity
     ) as EntityData;
+
+    if (
+      entity.type === 'project' &&
+      props.onOpenProject &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey
+    ) {
+      props.onOpenProject(entity.id);
+      return;
+    }
 
     markReminderSeenOnOpen(entity, notificationSource);
 
@@ -1291,6 +1331,16 @@ const SoupViewListContent = (props: SoupViewListProps) => {
     registerFocusEffects(!panel.handle.isControllerSplit());
   };
 
+  createEffect(
+    on(
+      () => props.navigationKey,
+      () => {
+        virtualizerHandle()?.scrollTo(0);
+      },
+      { defer: true }
+    )
+  );
+
   const registerVirtualizerHandler = (
     handle: VirtualizerHandle | undefined
   ) => {
@@ -1317,7 +1367,7 @@ const SoupViewListContent = (props: SoupViewListProps) => {
         data-soup-view
         data-soup-view-id={panel.handle.id}
       >
-        <SoupViewFileDropzone>
+        <SoupViewFileDropzone projectId={props.uploadProjectId}>
           <div class="@container/u-list size-full unified-list-root flex flex-col relative no-select-children">
             <Show
               when={
@@ -1339,7 +1389,7 @@ const SoupViewListContent = (props: SoupViewListProps) => {
                 <Match when={showLoadError()}>
                   <div
                     ref={setEmptyStateRef}
-                    class="flex-1 min-h-0 flex flex-col touch:pt-(--mobile-content-inset-top) touch:pb-(--mobile-content-inset-bottom)"
+                    class="flex-1 min-h-0 flex flex-col touch:pb-(--mobile-content-inset-bottom)"
                   >
                     <LoadErrorPanel onRetry={retryLoad} />
                   </div>
@@ -1371,15 +1421,22 @@ const SoupViewListContent = (props: SoupViewListProps) => {
                 <Match when={showEmptyState()}>
                   <div
                     ref={setEmptyStateRef}
-                    class="flex-1 min-h-0 flex flex-col touch:pt-(--mobile-content-inset-top) touch:pb-(--mobile-content-inset-bottom)"
+                    class="flex-1 min-h-0 flex flex-col touch:pb-(--mobile-content-inset-bottom)"
                   >
-                    <EmptyState
-                      listView={currentView()}
-                      search={!!searchText()}
-                      hasRefinementsFromBase={hasActiveRefinements()}
-                      hasHiddenItems={hasHiddenItems()}
-                      onClearFilters={resetToTabDefaults}
-                    />
+                    <Show
+                      when={!searchText() && props.emptyState}
+                      fallback={
+                        <EmptyState
+                          listView={currentView()}
+                          search={!!searchText()}
+                          hasRefinementsFromBase={hasActiveRefinements()}
+                          hasHiddenItems={hasHiddenItems()}
+                          onClearFilters={resetToTabDefaults}
+                        />
+                      }
+                    >
+                      {(emptyState) => emptyState()()}
+                    </Show>
                   </div>
                 </Match>
                 <Match when={rows().length}>
@@ -1430,6 +1487,8 @@ const SoupViewListContent = (props: SoupViewListProps) => {
                       >
                         {(row, i) => {
                           const timestamp = () => {
+                            if (props.timestamp)
+                              return props.timestamp(row.original) ?? undefined;
                             const sort_ = clientSort();
                             // The notified order shows when you were told,
                             // ahead of the row's own recency stamp.

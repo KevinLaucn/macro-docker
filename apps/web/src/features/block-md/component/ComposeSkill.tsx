@@ -326,6 +326,7 @@ export function ComposeSkill(props: ComposeSkillProps) {
   };
 
   onMount(() => {
+    splitPanel.handle.setDisplayName('New skill');
     const container = containerRef();
     if (container) {
       attachHotkeys(container);

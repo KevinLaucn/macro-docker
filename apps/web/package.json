@@ -9,6 +9,11 @@
     "postbuild:semver": "echo $npm_package_version+$(git rev-parse --short HEAD) > ./dist/semver.txt",
     "postbuild:bundle-manifest": "bun ./scripts/write-bundle-manifest.mjs",
     "test": "bunx vitest run",
+    "native:e2e:build": "bash tests/native/build.sh",
+    "native:e2e": "bash tests/native/run.sh",
+    "native:e2e:smoke": "bash tests/native/run.sh --smoke",
+    "native:e2e:fixtures": "bun test tests/native/fixtures",
+    "native:e2e:check": "tsc -p tests/native/tsconfig.json",
     "local:e2e": "LOCAL_E2E=true bunx playwright test",
     "local:e2e:ui": "LOCAL_E2E=true bunx playwright test --ui",
     "gen-api": "bun scripts/generate-api-schema.ts",
@@ -84,6 +89,7 @@
     "@solid-primitives/context": "^0.3.2",
     "@solid-primitives/keyed": "^1.5.3",
     "@solid-primitives/lifecycle": "^0.1.2",
+    "@solid-primitives/map": "^0.4.13",
     "@solid-primitives/memo": "^1.4.5",
     "@solid-primitives/platform": "^0.2.1",
     "@solid-primitives/promise": "^1.1.2",
@@ -195,6 +201,7 @@
     "vite-plugin-solid": "^2.11.8",
     "vite-plugin-solid-svg": "^0.8.1",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "webdriverio": "9.29.1"
   }
 }

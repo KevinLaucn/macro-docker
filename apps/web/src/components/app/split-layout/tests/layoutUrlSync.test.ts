@@ -40,6 +40,7 @@ beforeAll(() => {
 
 function createMockOrchestrator(): BlockOrchestrator {
   return {
+    isBlockMounted: vi.fn(() => false),
     createBlockInstance: vi.fn((_type, id, _splitId) => ({
       node: { type: 'mock-node', id },
       detach: vi.fn(),
@@ -280,6 +281,17 @@ describe('layout URL synchronization', () => {
       replace: true,
     });
 
+    harness.dispose();
+  });
+
+  it('preserves agent creation links while settings canonicalizes its tab', async () => {
+    const harness = createHarness({
+      managerContent: [{ type: 'component', id: 'settings' }],
+      urlSegments: ['settings', 'agents'],
+      search: '?createAgent=true',
+    });
+    await flushUrlSync();
+    expect(harness.navigate).not.toHaveBeenCalled();
     harness.dispose();
   });
 });

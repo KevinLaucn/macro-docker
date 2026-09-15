@@ -453,6 +453,10 @@ pub struct AgentSessionResponse {
     pub name: String,
     /// The user who created and owns the session.
     pub owner_id: String,
+    /// Whether the caller may drive the session - prompt it, answer its
+    /// questions, stop it - rather than only watch. Edit access; the
+    /// creator owns the session, so a create response always says so.
+    pub can_edit: bool,
     /// The root message of the thread the session was created from, if any.
     pub thread_id: Option<Uuid>,
     /// The channel `thread_id` lives in, when the session was spawned from a
@@ -469,6 +473,8 @@ pub struct AgentSessionResponse {
     /// The repository the session works with, when one was stated.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub repo_url: Option<String>,
+    /// The session's linked pull request.
+    pub pull_request_url: Option<String>,
     /// The directory the session's harness runs in on its runtime.
     pub workspace: String,
     /// Compute tier of the managed sandbox.
@@ -515,12 +521,14 @@ impl From<ExternalSession> for ExternalSessionResponse {
     }
 }
 
-impl From<AgentSession> for AgentSessionResponse {
-    fn from(session: AgentSession) -> Self {
+impl AgentSessionResponse {
+    /// Describe `session` to a caller whose edit access is `can_edit`.
+    pub fn new(session: AgentSession, can_edit: bool) -> Self {
         Self {
             id: session.id.as_uuid(),
             name: session.name,
             owner_id: session.owner_id.to_string(),
+            can_edit,
             thread_id: session.thread_id,
             thread_channel_id: session.thread_channel_id,
             originating_message_id: session.originating_message_id,
@@ -528,6 +536,7 @@ impl From<AgentSession> for AgentSessionResponse {
             model: session.model,
             harness: session.harness,
             repo_url: session.repo_url,
+            pull_request_url: session.pull_request_url,
             workspace: session.workspace,
             sandbox_size: session.sandbox_size,
             instructions: session.instructions,
@@ -560,7 +569,7 @@ pub async fn get_agent_session_handler<
     Access: EntityAccessService,
     Auth: MacroAuthorizationService,
 >(
-    _access: AgentSessionAccessLevelExtractor<ViewAccessLevel, Access, Auth>,
+    access: AgentSessionAccessLevelExtractor<ViewAccessLevel, Access, Auth>,
     State(state): State<AgentSessionRouterState<T, Access, Auth>>,
     Path(session_id): Path<Uuid>,
 ) -> Result<Json<AgentSessionResponse>, AgentSessionApiError> {
@@ -568,8 +577,12 @@ pub async fn get_agent_session_handler<
         .service
         .get_session(AgentSessionId::new_from_uuid(session_id))
         .await?;
+    let can_edit = access
+        .entity_access_receipt
+        .entity_permission()
+        .satisfies::<EditAccessLevel>();
 
-    Ok(Json(session.into()))
+    Ok(Json(AgentSessionResponse::new(session, can_edit)))
 }
 
 /// Request body for `POST /agent-sessions/preview`.
@@ -606,7 +619,7 @@ pub struct PreviewAgentSessionsResponse {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AgentSessionPreviewDto {
     /// The caller may view the session.
-    Access(AgentSessionPreviewData),
+    Access(Box<AgentSessionPreviewData>),
     /// The session exists but the caller holds no grant on it.
     NoAccess(WithAgentSessionId),
     /// No session with this id exists.
@@ -637,6 +650,9 @@ pub struct AgentSessionPreviewData {
     pub owner_id: String,
     /// The bot running the agent.
     pub bot_id: Uuid,
+    /// Minimal identity of the session's bot, when available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bot: Option<SessionBot>,
     /// The session's last known status.
     pub status: SessionStatusDto,
     /// When the session was created.
@@ -648,15 +664,16 @@ pub struct AgentSessionPreviewData {
 impl From<AgentSessionPreview> for AgentSessionPreviewDto {
     fn from(preview: AgentSessionPreview) -> Self {
         match preview {
-            AgentSessionPreview::Access(data) => Self::Access(AgentSessionPreviewData {
+            AgentSessionPreview::Access(data) => Self::Access(Box::new(AgentSessionPreviewData {
                 id: data.id.as_uuid(),
                 name: data.name,
                 owner_id: data.owner_id.to_string(),
                 bot_id: data.bot_id.as_uuid(),
+                bot: data.bot,
                 status: data.status.into(),
                 created_at: data.created_at,
                 modified_at: data.modified_at,
-            }),
+            })),
             AgentSessionPreview::NoAccess(id) => {
                 Self::NoAccess(WithAgentSessionId { id: id.as_uuid() })
             }
@@ -1351,10 +1368,11 @@ where
 #[serde(rename_all = "camelCase")]
 pub struct CreateAgentSessionRequest {
     /// Bot the session runs for. On a managed request this optionally selects
-    /// a persisted persona the user owns or may use through team membership;
-    /// omitting it uses the deployment's default coding persona. On an
-    /// external request, bot callers may omit it (their own identity is used)
-    /// and must not name another bot; user callers must supply a bot they own.
+    /// a persisted persona the user owns, may use through team membership, or
+    /// can `@` mention in a shared channel; omitting it uses the deployment's
+    /// default coding persona. On an external request, bot callers may omit it
+    /// (their own identity is used) and must not name another bot; user callers
+    /// must supply a bot they own.
     pub bot_id: Option<Uuid>,
     /// Absolute directory the bot's harness runs in on its runtime. Present
     /// for an external session, absent for a managed one, which runs in the
@@ -1647,8 +1665,8 @@ pub async fn create_agent_session_handler<
     let instructions = request.instructions.filter(|text| !text.trim().is_empty());
 
     // No workspace means the managed shape. A bot id selects a managed
-    // persona; the domain resolver owns its user/team authorization policy.
-    // External-only fields remain invalid on this shape.
+    // persona; the domain resolver owns its user/team/channel authorization
+    // policy. External-only fields remain invalid on this shape.
     let Some(workspace) = request.workspace else {
         if request.repo_url.is_some() || request.thread.is_some() || request.owner.is_some() {
             return Err(CreateSessionApiError::MixedSessionShape);
@@ -1681,7 +1699,7 @@ pub async fn create_agent_session_handler<
         return Ok((
             StatusCode::CREATED,
             Json(CreateAgentSessionResponse {
-                session: session.into(),
+                session: AgentSessionResponse::new(session, true),
             }),
         ));
     };
@@ -1767,7 +1785,7 @@ pub async fn create_agent_session_handler<
     Ok((
         StatusCode::CREATED,
         Json(CreateAgentSessionResponse {
-            session: session.into(),
+            session: AgentSessionResponse::new(session, true),
         }),
     ))
 }

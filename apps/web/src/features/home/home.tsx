@@ -168,7 +168,7 @@ function HomeContent() {
   );
 }
 
-const HomeChatInput = () => {
+export const HomeChatInput = () => {
   const splitPanelContext = useSplitPanelOrThrow();
   const input = useChatInputContext();
 

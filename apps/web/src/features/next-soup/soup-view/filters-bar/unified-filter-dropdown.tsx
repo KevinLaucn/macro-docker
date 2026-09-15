@@ -963,7 +963,7 @@ export const UnifiedFilterDropdown = (
           </Switch>
         </Show>
 
-        <Dropdown.Content class={cn('shadow-menu min-w-32')}>
+        <Dropdown.Content class={cn('min-w-32')}>
           <Dropdown.Group>
             <Show when={isInboxView()}>
               <ReadStatusSubmenu

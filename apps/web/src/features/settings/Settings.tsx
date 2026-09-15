@@ -1,7 +1,4 @@
-// PRIVATE-HOOK: self_host_health:settings_import
-
-import { Billing } from '@app/features/settings/Billing';
-import { Bots } from '@app/features/settings/Bots';
+import { toBaseRelative } from '@app/constants/routerBase';
 import { PillTabs } from '@components/app/mobile/PillTabs';
 import { HeaderIsland } from '@components/app/split-layout/components/HeaderIsland';
 import {
@@ -16,45 +13,29 @@ import {
   settingsTabFromSplitPath,
   useSettingsState,
 } from '@core/constant/SettingsState';
+import { stripSettingsSplitFromUrl } from '@core/constant/settingsSplitUrl';
 import { useSettingsTabs } from '@core/constant/settingsTabsConfig';
 import { registerHotkey, useHotkeyDOMScope } from '@core/hotkey/hotkeys';
 import type { ValidHotkey } from '@core/hotkey/types';
 import { isMobile } from '@core/mobile/isMobile';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { activeTabId, setActiveTabId } from '@core/signal/settingsTab';
-import { t } from '@macro/i18n';
-import { SelfHostHealth } from '@macro/self-host-health';
 import ArrowsIn from '@phosphor/arrows-in.svg';
 import ArrowsOut from '@phosphor/arrows-out.svg';
 import CaretLeftIcon from '@phosphor/caret-left.svg';
 import SignOutIcon from '@phosphor/sign-out.svg';
-import { useLocation } from '@solidjs/router';
+import { useLocation, useNavigate } from '@solidjs/router';
 import { Button, cn, Layer, SideNav } from '@ui';
 import {
   createRenderEffect,
   createSignal,
-  ErrorBoundary,
   For,
   onCleanup,
   onMount,
   Show,
-  Suspense,
   untrack,
 } from 'solid-js';
-import { Extensions } from '../extensions/Extensions';
-import { Account } from './Account';
-import { Admin } from './Admin';
-import { Agent } from './Agent';
-import { Agents } from './Agents';
-import { ApiKeys } from './ApiKeys';
-import { Appearance } from './Appearance';
-import { ConnectedAccounts } from './ConnectedAccounts';
-import { Crm } from './Crm';
-import { Harness } from './Harness';
-import { Notifications } from './Notifications';
-import { Shortcuts } from './Shortcuts';
-import { Tags } from './Tags';
-import { Team } from './Team';
+import { SettingsTabContent } from './SettingsTabContent';
 
 /** Where the settings panel is mounted, which determines its header chrome. */
 export type SettingsVariant = 'split' | 'fullscreen';
@@ -80,7 +61,29 @@ export function SettingsPanelComponentWrapper() {
     const tab = settingsTabFromSplitPath(location.pathname);
     if (tab && untrack(activeTabId) !== tab) setActiveTabId(tab);
   });
-  return <SettingsPanel variant={isSoloSettings() ? 'fullscreen' : 'split'} />;
+  return (
+    <Show when={!isMobile()} fallback={<MobileSettingsDeepLink />}>
+      <SettingsPanel variant={isSoloSettings() ? 'fullscreen' : 'split'} />
+    </Show>
+  );
+}
+
+/** Old settings URLs still open their section, over the restored app surface. */
+function MobileSettingsDeepLink() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { openSettings } = useSettingsState();
+  onMount(() => {
+    const tab = settingsTabFromSplitPath(location.pathname) ?? activeTabId();
+    openSettings(tab);
+    navigate(
+      stripSettingsSplitFromUrl(
+        `${toBaseRelative(location.pathname)}${location.search}${location.hash}`
+      ),
+      { replace: true }
+    );
+  });
+  return null;
 }
 
 type SettingsPanelProps = {
@@ -97,15 +100,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     activeTabId,
     selectTab,
   } = useSettingsState();
-  const { groups, flatTabs, isAvailable } = useSettingsTabs();
+  const { groups, flatTabs } = useSettingsTabs();
   const logout = useLogout();
 
   const variant = () => props.variant ?? 'split';
-
-  // A tab's content renders only when it's both selected and still available
-  // (gating lives solely in the settings tab config).
-  const isCurrentTab = (tab: SettingsTab) =>
-    activeTabId() === tab && isAvailable(tab);
 
   // Responsive state, driven by the panel's own width (see breakpoints above).
   const [panelWidth, setPanelWidth] = createSignal(Number.POSITIVE_INFINITY);
@@ -231,14 +229,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
       class="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-ink-extra-muted cursor-default hover:bg-ink/4 hover:text-ink-muted"
     >
       <CaretLeftIcon class="size-4 shrink-0" />
-      <span class="whitespace-nowrap">{t('Back to app')}</span>
+      <span class="whitespace-nowrap">Back to app</span>
     </button>
   );
 
   const moveToSplitButton = () => (
     <Button
       class="p-1 rounded-md"
-      label={t('Move to split')}
+      label="Move to split"
       onClick={() => moveSettingsToSplit()}
     >
       <ArrowsIn class="size-4" />
@@ -277,7 +275,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             <HeaderIsland>
               <div class="h-full flex gap-3 items-center">
                 <h1 class="font-semibold text-ink select-none text-sm shrink-0">
-                  {t('Settings', { context: 'settings' })}
+                  Settings
                 </h1>
               </div>
             </HeaderIsland>
@@ -301,7 +299,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           <SplitHeaderRight>
             <Button
               class="p-1 rounded-lg"
-              label={t('Open fullscreen', { context: 'settings' })}
+              label="Open fullscreen"
               onClick={() => moveSettingsToSolo()}
             >
               <ArrowsOut class="size-4" />
@@ -329,7 +327,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             </Show>
             <For each={groups()}>
               {(group) => (
-                <SideNav.Group label={t(group.label)}>
+                <SideNav.Group label={group.label}>
                   <For each={group.items}>
                     {(item) => (
                       <SideNav.Item
@@ -338,7 +336,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         onSelect={() => handleTabChange(item.tab)}
                         class="text-xs py-1.5"
                       >
-                        {t(item.label)}
+                        {item.label}
                       </SideNav.Item>
                     )}
                   </For>
@@ -352,7 +350,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-ink-extra-muted cursor-default hover:bg-ink/3 hover:text-ink"
               >
                 <SignOutIcon class="size-4 shrink-0" />
-                <span class="whitespace-nowrap">{t('Log out')}</span>
+                <span class="whitespace-nowrap">Log out</span>
               </button>
             </div>
           </SideNav>
@@ -393,98 +391,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   so content scrolls under the floating header/dock like every
                   other block instead of being boxed between them. */}
               <div class="relative min-h-0 flex-1 overflow-hidden">
-                <Show when={isCurrentTab('Account')}>
-                  <Suspense>
-                    <Account />
-                  </Suspense>
-                </Show>
-                <Show when={isCurrentTab('API Keys')}>
-                  <Suspense>
-                    <ApiKeys />
-                  </Suspense>
-                </Show>
-                <Show when={isCurrentTab('Notifications')}>
-                  <Notifications />
-                </Show>
-                <Show when={isCurrentTab('Billing')}>
-                  <ErrorBoundary
-                    fallback={(err) => {
-                      console.error('Failed to load Billing settings:', err);
-                      return (
-                        <div class="p-8 text-ink text-sm">
-                          {t('Failed to load Billing settings.')}
-                        </div>
-                      );
-                    }}
-                  >
-                    <Suspense>
-                      <Billing />
-                    </Suspense>
-                  </ErrorBoundary>
-                </Show>
-                <Show when={isCurrentTab('Appearance')}>
-                  <ErrorBoundary
-                    fallback={(err) => {
-                      console.error('Failed to load Appearance settings:', err);
-                      return (
-                        <div class="p-8 text-ink text-sm">
-                          Failed to load Appearance settings. Check console for
-                          details.
-                        </div>
-                      );
-                    }}
-                  >
-                    <Appearance />
-                  </ErrorBoundary>
-                </Show>
-                <Show when={isCurrentTab('Shortcuts')}>
-                  <Shortcuts />
-                </Show>
-                <Show when={isCurrentTab('Team')}>
-                  <Suspense>
-                    <Team />
-                  </Suspense>
-                </Show>
-                <Show when={isCurrentTab('Tags')}>
-                  <Suspense>
-                    <Tags />
-                  </Suspense>
-                </Show>
-                <Show when={isCurrentTab('CRM')}>
-                  <Suspense>
-                    <Crm />
-                  </Suspense>
-                </Show>
-                <Show when={isCurrentTab('Connected')}>
-                  <Suspense>
-                    <ConnectedAccounts />
-                  </Suspense>
-                </Show>
-                <Show when={isCurrentTab('Agent')}>
-                  <Agent />
-                </Show>
-                <Show when={isCurrentTab('Agents')}>
-                  <Agents />
-                </Show>
-                <Show when={isCurrentTab('Harness')}>
-                  <Harness />
-                </Show>
-                <Show when={isCurrentTab('Bots')}>
-                  <Suspense>
-                    <Bots />
-                  </Suspense>
-                </Show>
-                <Show when={isCurrentTab('Admin')}>
-                  <Admin />
-                </Show>
-                {/* PRIVATE-HOOK: self_host_health:settings_tab */}
-                <Show when={isCurrentTab('SelfHostHealth')}>
-                  <Suspense>
-                    <SelfHostHealth />
-                  </Suspense>
-                </Show>
-                <Show when={isCurrentTab('Extensions')}>
-                  <Extensions />
+                <Show when={activeTabId()}>
+                  {(tab) => <SettingsTabContent tab={tab()} />}
                 </Show>
               </div>
             </div>

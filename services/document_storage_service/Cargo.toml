@@ -88,6 +88,7 @@ location_check = []
 
 [dependencies]
 activity = { path = "../../crates/activity", default-features = false }
+agent_session = { path = "../../crates/agent_session", features = ["outbound"] }
 ai_tools = { path = "../../crates/ai_tools", optional = true }
 ai_usage = { path = "../../crates/ai_usage", optional = true }
 analytics_client = { path = "../../crates/analytics_client", optional = true }

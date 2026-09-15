@@ -7,6 +7,8 @@ import {
 import { toast } from '@core/component/Toast/Toast';
 import { throwOnErr } from '@core/util/result';
 import { scheduledActionKeys } from '@queries/agent-schedule/keys';
+import { deleteAgentSession } from '@queries/agent-session/entity-mutations';
+import { callKeys } from '@queries/call/keys';
 import { queryClient } from '@queries/client';
 import { notificationKeys } from '@queries/notification/keys';
 import { reminderKeys } from '@queries/reminders/keys';
@@ -21,6 +23,7 @@ import {
 } from '@queries/soup/cache';
 import { soupKeys } from '@queries/soup/keys';
 import { ownTouchStamp } from '@queries/soup/normalized-cache/own-touch';
+import { callServiceClient } from '@service-call/client';
 import { scheduledActionClient } from '@service-scheduled-action/client';
 import { storageServiceClient } from '@service-storage/client';
 import { useMutation } from '@tanstack/solid-query';
@@ -30,9 +33,11 @@ export function createBulkDeleteDssItemsMutation() {
   const isDeletable = (entity: EntityData) => {
     const type = entity.type;
     return (
+      type === 'agent_session' ||
       type === 'chat' ||
       type === 'document' ||
       type === 'project' ||
+      type === 'call' ||
       type === 'automation' ||
       type === 'reminder'
     );
@@ -41,7 +46,16 @@ export function createBulkDeleteDssItemsMutation() {
     mutationFn: async (entities: EntityData[]) => {
       const deletable = entities.filter(isDeletable);
       const results = await Promise.all(
-        deletable.map((e) => {
+        deletable.map(async (e) => {
+          if (e.type === 'agent_session') {
+            await deleteAgentSession(e.id);
+            return true;
+          }
+          if (e.type === 'call') {
+            return throwOnErr(() =>
+              callServiceClient.deleteCallRecord(e.id)
+            ).then(() => true);
+          }
           if (e.type === 'automation') {
             return throwOnErr(() =>
               scheduledActionClient.deleteSchedule({ scheduleId: e.id })
@@ -58,6 +72,9 @@ export function createBulkDeleteDssItemsMutation() {
           return deleteItem({ id: e.id, itemType: e.type });
         })
       );
+      if (deletable.some((e) => e.type === 'call')) {
+        queryClient.invalidateQueries({ queryKey: callKeys._def });
+      }
       if (deletable.some((e) => e.type === 'reminder')) {
         // The reminder lists are their own queries; the soup cache is already
         // handled by the shared optimistic removal in onMutate. Notifications

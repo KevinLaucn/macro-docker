@@ -13,8 +13,18 @@ use super::*;
 /// The announcement is best-effort: a session a runtime is about to serve
 /// must not die because the courtesy post failed, most plainly when the bot
 /// cannot post in the claimed channel.
-impl<Sessions, Containers, Announcer, Runtimes, PromptContext, PromptComposer, Egress>
-    agent_session::domain::ports::SessionOpener
+impl<
+    Sessions,
+    Containers,
+    Announcer,
+    Runtimes,
+    PromptContext,
+    PromptComposer,
+    Egress,
+    Lifecycle,
+    Mentions,
+    Notifier,
+> agent_session::domain::ports::SessionOpener
     for AgentHarnessService<
         Sessions,
         Containers,
@@ -23,6 +33,9 @@ impl<Sessions, Containers, Announcer, Runtimes, PromptContext, PromptComposer, E
         PromptContext,
         PromptComposer,
         Egress,
+        Lifecycle,
+        Mentions,
+        Notifier,
     >
 where
     Sessions: AgentSessionService,
@@ -32,6 +45,9 @@ where
     PromptContext: ChannelPromptContext,
     PromptComposer: AgentPromptComposer,
     Egress: SandboxEgressProvisioner,
+    Lifecycle: AgentSessionLifecyclePublisher,
+    Mentions: PromptMentions,
+    Notifier: AgentSessionNotifier,
 {
     async fn open_external_session(
         &self,
@@ -55,8 +71,8 @@ where
                 instructions: request.instructions,
                 // No egress, so no MCP servers of ours to select from.
                 mcp_servers: AgentMcpServers::OwnerConnections,
-                // No sandbox: the runtime dials in and reaches the network on
-                // its operator's own terms, so there is no egress token.
+                // Mint the internal-tool credential when an authenticated
+                // runtime binds, and rotate it on each subsequent binding.
                 egress_token_hash: None,
                 // The thread linkage is the caller's claim, not an observed
                 // mention; it must not grant the channel anything.
@@ -248,7 +264,18 @@ where
     }
 }
 
-impl<Sessions, Containers, Announcer, Runtimes, PromptContext, PromptComposer, Egress>
+impl<
+    Sessions,
+    Containers,
+    Announcer,
+    Runtimes,
+    PromptContext,
+    PromptComposer,
+    Egress,
+    Lifecycle,
+    Mentions,
+    Notifier,
+>
     AgentHarnessInner<
         Sessions,
         Containers,
@@ -257,6 +284,9 @@ impl<Sessions, Containers, Announcer, Runtimes, PromptContext, PromptComposer, E
         PromptContext,
         PromptComposer,
         Egress,
+        Lifecycle,
+        Mentions,
+        Notifier,
     >
 where
     Sessions: AgentSessionService,
@@ -266,6 +296,9 @@ where
     PromptContext: ChannelPromptContext,
     PromptComposer: AgentPromptComposer,
     Egress: SandboxEgressProvisioner,
+    Lifecycle: AgentSessionLifecyclePublisher,
+    Mentions: PromptMentions,
+    Notifier: AgentSessionNotifier,
 {
     #[tracing::instrument(err, skip(self, command), fields(
         %session_id,

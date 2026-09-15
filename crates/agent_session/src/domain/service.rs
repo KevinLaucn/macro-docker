@@ -58,7 +58,8 @@ use super::model::{
 use super::ports::{
     AgentConnector, AgentSessionLifecyclePublisher, AgentSessionLogRepo, AgentSessionLogWriter,
     AgentSessionNameGenerator, AgentSessionQueueChanged, AgentSessionRealtime, AgentSessionRepo,
-    Appended, NoOpAgentSessionNameGenerator, SessionOwnership, SessionTurnObserver,
+    Appended, NoOpAgentSessionNameGenerator, NoOpToolCatalog, SessionOwnership, SessionToolCatalog,
+    SessionTurnObserver,
 };
 use super::session::actors::{SessionActor, SessionCommand, Stepped};
 use super::session::{CloseReason, Input};
@@ -137,6 +138,13 @@ pub trait AgentSessionService: Send + Sync + 'static {
         params: CreateAgentSessionParams,
     ) -> impl Future<Output = Result<AgentSession>> + Send;
 
+    /// Rotate the credential provided to an authenticated runtime attachment.
+    fn set_egress_token_hash(
+        &self,
+        id: AgentSessionId,
+        hash: &str,
+    ) -> impl Future<Output = Result<()>> + Send;
+
     /// Get a persisted agent session by id.
     fn get_session(&self, id: AgentSessionId) -> impl Future<Output = Result<AgentSession>> + Send;
 
@@ -213,6 +221,13 @@ pub trait AgentSessionService: Send + Sync + 'static {
     /// The bot a session runs for, as viewers see it.
     fn session_bot(&self, id: BotId) -> impl Future<Output = Result<SessionBot>> + Send;
 
+    /// Every user who has driven the session; see
+    /// [`AgentSessionLogRepo::participants`].
+    fn session_participants(
+        &self,
+        id: AgentSessionId,
+    ) -> impl Future<Output = Result<Vec<MacroUserIdStr<'static>>>> + Send;
+
     /// The user-message id the next prompt appended to this session will fold to.
     fn next_prompt_message_id(
         &self,
@@ -278,6 +293,9 @@ pub struct AgentSessionServiceImpl<R, Folds, Rt, Namer = NoOpAgentSessionNameGen
     /// Told when a session's turn ends or its actor stops - the harness's
     /// prompt-queue gate. Erased so wiring it is not another type parameter.
     turn_observer: Arc<dyn SessionTurnObserver>,
+    /// Lists a session's MCP tools for its telemetry. Erased like the
+    /// observer, for the same reason.
+    tool_catalog: Arc<dyn SessionToolCatalog>,
     /// Where lifecycle facts go - renames, from here; everything else from
     /// the harness. Erased for the same reason as the observer.
     lifecycle_publisher: Arc<dyn AgentSessionLifecyclePublisher>,
@@ -299,7 +317,10 @@ impl<R, Folds, Rt, Namer> AgentSessionServiceImpl<R, Folds, Rt, Namer> {
     /// it passes [`NoOpTurnObserver`], one with nothing downstream passes
     /// [`NoopLifecyclePublisher`], and one that is the only service instance
     /// in its process mints its own [`ReplicaId`] - each choice visible at the
-    /// call site rather than hidden in a builder's default.
+    /// call site rather than hidden in a builder's default. The one
+    /// exception is the tool catalog: it starts as [`NoOpToolCatalog`] and
+    /// [`Self::with_tool_catalog`] swaps in a real one, since only a process
+    /// with an in-process MCP client can list anything.
     ///
     /// `replica` is this service's identity in the session-management lease.
     /// A restarted process is a new replica whose claims are recovered by
@@ -322,12 +343,21 @@ impl<R, Folds, Rt, Namer> AgentSessionServiceImpl<R, Folds, Rt, Namer> {
             name_generator,
             turn_observer,
             lifecycle_publisher,
+            tool_catalog: Arc::new(NoOpToolCatalog),
             active: Arc::new(DashMap::new()),
             replica,
             tasks: TaskTracker::new(),
             cancellation: CancellationToken::new(),
             lifecycle: Arc::new(Mutex::new(())),
         }
+    }
+
+    /// Replace the no-op tool catalog with one that lists a session's MCP
+    /// tools, so its turns' spans carry the tools the agent could choose from.
+    #[must_use]
+    pub fn with_tool_catalog(mut self, tool_catalog: Arc<dyn SessionToolCatalog>) -> Self {
+        self.tool_catalog = tool_catalog;
+        self
     }
 
     /// This service's identity in the session-management lease, for the
@@ -430,6 +460,7 @@ impl<R, Folds, Rt, Namer> AgentSessionServiceImpl<R, Folds, Rt, Namer> {
             command_rx,
             attachment.handshake,
             Arc::clone(&self.turn_observer),
+            Arc::clone(&self.tool_catalog),
         );
         self.tasks.spawn(
             run_session(
@@ -618,6 +649,10 @@ where
         Ok(())
     }
 
+    async fn set_egress_token_hash(&self, id: AgentSessionId, hash: &str) -> Result<()> {
+        self.repo.set_egress_token_hash(id, hash).await
+    }
+
     async fn get_session(&self, id: AgentSessionId) -> Result<AgentSession> {
         self.repo.get(id).await
     }
@@ -640,7 +675,21 @@ where
         if ids.is_empty() {
             return Ok(Vec::new());
         }
-        self.repo.preview(viewer, &ids).await
+        let mut previews = self.repo.preview(viewer, &ids).await?;
+        let mut profiles = std::collections::HashMap::new();
+        for preview in &mut previews {
+            let AgentSessionPreview::Access(data) = preview else {
+                continue;
+            };
+            if let std::collections::hash_map::Entry::Vacant(entry) = profiles.entry(data.bot_id) {
+                let profile = self.repo.session_bot(data.bot_id).await.inspect_err(|error| {
+                    tracing::warn!(error = ?error, bot_id = %data.bot_id, "failed to hydrate session preview bot");
+                }).ok();
+                entry.insert(profile);
+            }
+            data.bot = profiles.get(&data.bot_id).cloned().flatten();
+        }
+        Ok(previews)
     }
 
     async fn find_for_channel(
@@ -781,6 +830,13 @@ where
         self.repo.session_bot(id).await
     }
 
+    async fn session_participants(
+        &self,
+        id: AgentSessionId,
+    ) -> Result<Vec<MacroUserIdStr<'static>>> {
+        self.repo.participants(id).await
+    }
+
     async fn next_prompt_message_id(&self, id: AgentSessionId) -> Result<MessageId> {
         Ok(MessageId {
             turn: self.folds.next_turn_id(id).await?,
@@ -853,7 +909,7 @@ fn spawn_initial_agent_session_rename<R, Rt, Namer>(
     id: AgentSessionId,
     initial_prompt: String,
 ) where
-    R: AgentSessionRepo + Clone,
+    R: AgentSessionRepo + AgentSessionLogRepo + Clone,
     Rt: AgentSessionRealtime + Send + Sync + 'static,
     Namer: AgentSessionNameGenerator + Send + Sync + 'static,
 {
@@ -924,12 +980,13 @@ async fn publish_renamed_lifecycle<R>(
     lifecycle_publisher: &Arc<dyn AgentSessionLifecyclePublisher>,
     id: AgentSessionId,
 ) where
-    R: AgentSessionRepo,
+    R: AgentSessionRepo + AgentSessionLogRepo,
 {
     let identity = async {
         let session = repo.get(id).await?;
-        let bot = repo.session_bot(session.bot_id).await?;
-        Ok::<_, AgentSessionError>(session_identity(&session, &bot))
+        let (bot, participants) =
+            tokio::try_join!(repo.session_bot(session.bot_id), repo.participants(id))?;
+        Ok::<_, AgentSessionError>(session_identity(&session, &bot, participants))
     }
     .await;
     match identity {
@@ -1145,6 +1202,10 @@ where
         self.repo.preview(viewer, ids).await
     }
 
+    async fn set_egress_token_hash(&self, id: AgentSessionId, hash: &str) -> Result<()> {
+        self.repo.set_egress_token_hash(id, hash).await
+    }
+
     async fn find_by_egress_token_hash(
         &self,
         egress_token_hash: &str,
@@ -1157,6 +1218,14 @@ where
         id: bots::domain::models::BotId,
     ) -> Result<super::model::SessionBot> {
         self.repo.session_bot(id).await
+    }
+
+    async fn recent_for_owner(
+        &self,
+        owner: &MacroUserIdStr<'_>,
+        limit: std::num::NonZeroUsize,
+    ) -> Result<Vec<super::model::AgentSession>> {
+        self.repo.recent_for_owner(owner, limit).await
     }
 
     async fn find_for_channel(
@@ -1177,6 +1246,10 @@ where
         acp_session_id: SessionId,
     ) -> Result<()> {
         self.repo.set_acp_session_id(id, acp_session_id).await
+    }
+
+    async fn set_repo_url(&self, id: AgentSessionId, repo_url: Option<String>) -> Result<()> {
+        self.repo.set_repo_url(id, repo_url).await
     }
 
     async fn set_model(&self, id: AgentSessionId, model: &str) -> Result<()> {

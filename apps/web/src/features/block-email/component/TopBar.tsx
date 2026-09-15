@@ -12,7 +12,6 @@ import {
 } from '@app/features/next-soup/utils';
 import type { BlockTool } from '@components/app/ResponsiveBlockToolbar';
 import { ResponsiveBlockToolbar } from '@components/app/ResponsiveBlockToolbar';
-import { useSidePanel } from '@components/app/side-panel';
 import {
   SplitHeaderLeft,
   SplitHeaderRight,
@@ -32,7 +31,6 @@ import {
   useShareDialogContext,
 } from '@core/component/TopBar/ShareButton';
 import { ENABLE_EMAIL_SHARING } from '@core/constant/featureFlags';
-import { registerHotkey } from '@core/hotkey/hotkeys';
 import { TOKENS } from '@core/hotkey/tokens';
 import { isMobile } from '@core/mobile/isMobile';
 import { buildEntityData } from '@entity';
@@ -50,7 +48,7 @@ import CheckBoldIcon from '@phosphor-icons/core/bold/check-bold.svg?component-so
 import ArrowCounterClockwise from '@phosphor-icons/core/regular/arrow-counter-clockwise.svg?component-solid';
 import { useEmailLinksQuery } from '@queries/email/link';
 import { Button } from '@ui';
-import { onCleanup, Show } from 'solid-js';
+import { Show } from 'solid-js';
 
 export function TopBar(props: {
   id: string;
@@ -63,24 +61,7 @@ export function TopBar(props: {
   const emailCtx = useEmailThreadState();
   const soup = useMaybeSoup();
   const linksQuery = useEmailLinksQuery();
-  const sidePanel = useSidePanel();
   const moveToProjectAction = makeMoveToProjectAction();
-
-  if (splitPanel?.splitHotkeyScope) {
-    const reg = registerHotkey({
-      hotkey: ']',
-      scopeId: splitPanel.splitHotkeyScope,
-      hotkeyToken: TOKENS.block.toggleSidePanel,
-      description: 'Toggle Side Panel',
-      keyDownHandler: () => {
-        if (!sidePanel) return false;
-        if (!sidePanel.hasSections()) return false;
-        sidePanel.toggle();
-        return true;
-      },
-    });
-    onCleanup(() => reg.dispose());
-  }
 
   const isInvite = () => {
     const row = soup?.items.get(props.id);

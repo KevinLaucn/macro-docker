@@ -39,22 +39,44 @@ function getAccentColorForIcon(): string {
   return `oklch(${l[0]()} ${c[0]()} ${h[0]()}deg)`;
 }
 
+/**
+ * Who the notification reads as being from. Agent notifications have no user
+ * sender - a bot is not a user - so the bot (or, for a mention, the author)
+ * named in the metadata stands in.
+ */
+async function resolveActorName(
+  notification: UnifiedNotification,
+  resolveUserName: UserNameResolver
+): Promise<string | undefined> {
+  const meta = notification.notification_metadata;
+  if (
+    meta.tag === 'agent_session_settled' ||
+    meta.tag === 'agent_session_waiting_for_input'
+  ) {
+    return meta.content.botName;
+  }
+  if (meta.tag === 'agent_session_mentioned') {
+    return meta.content.mentionedBy
+      ? await resolveUserName(meta.content.mentionedBy)
+      : meta.content.botName;
+  }
+  if (meta.tag === 'new_email' && meta.content.sender) {
+    return meta.content.sender;
+  }
+  return notification.sender_id
+    ? await resolveUserName(notification.sender_id)
+    : undefined;
+}
+
 export async function toPlatformNotificationData(
   notification: UnifiedNotification,
   resolveUserName: UserNameResolver,
   resolveDocumentName: DocumentNameResolver
 ): Promise<PlatformNotificationData | null> {
   const meta = notification.notification_metadata;
-  let actor: string;
-
-  if (meta.tag === 'new_email' && meta.content.sender) {
-    actor = meta.content.sender;
-  } else {
-    const actorId = notification.sender_id;
-    actor =
-      (actorId ? await resolveUserName(actorId) : undefined) ??
-      USER_NAME_FALLBACK;
-  }
+  const actor =
+    (await resolveActorName(notification, resolveUserName)) ??
+    USER_NAME_FALLBACK;
 
   const showTarget = shouldShowNotificationTarget(notification);
   const targetName =
