@@ -52,6 +52,7 @@ function resolveParticipantName(
 type ResolvedParticipant = {
   participant: EmailThreadParticipants[number];
   displayName: string;
+  isSelf: boolean;
 };
 
 function ParticipantWithTooltip(props: {
@@ -104,8 +105,9 @@ function ParticipantWithTooltip(props: {
 }
 
 /**
- * Resolves participants into display-ready objects, handling the "me" case
- * and filtering out the current user.
+ * Resolves participants into display-ready objects while preserving the fork's
+ * logical self identity. External display names continue using Macro's normal
+ * name resolution; self must remain the stable `me` label.
  */
 function resolveParticipants(
   participants: EmailThreadParticipants | undefined,
@@ -114,6 +116,7 @@ function resolveParticipants(
 ): ResolvedParticipant[] {
   if (!participants || participants.length === 0) return [];
 
+  // PRIVATE-HOOK: email_identity:participants
   return resolveParticipantIdentities(participants, selfEmailSet).map(
     (identity) => {
       const participant = participants.find(
@@ -123,10 +126,13 @@ function resolveParticipants(
       };
       return {
         participant,
-        displayName: resolveParticipantName(
-          participant,
-          getMacroDisplayName(identity.email)
-        ),
+        displayName: identity.isSelf
+          ? identity.label
+          : resolveParticipantName(
+              participant,
+              getMacroDisplayName(identity.email)
+            ),
+        isSelf: identity.isSelf,
       };
     }
   );
@@ -179,7 +185,6 @@ function HiddenParticipantsTooltip(props: { hidden: ResolvedParticipant[] }) {
 
 /** Get a nicely formatted list of participants from an email entity. */
 export function EntityEmailParticipants(props: { entity: EmailEntity }) {
-  // PRIVATE-HOOK: email_identity:participants
   const { links } = useEmailLinksContext();
   const selfEmailSet = () => resolveSelfEmails(links());
   const fetchDisplayName = (email: string) =>
@@ -211,7 +216,8 @@ export function EntityEmailParticipants(props: { entity: EmailEntity }) {
     return props.entity.search.senderHighlightTerms;
   };
 
-  const highlightName = (name: string) => {
+  const highlightName = (name: string, isSelf: boolean) => {
+    if (isSelf) return undefined;
     const terms = searchTerms();
     if (!terms?.length) return undefined;
     const result = mergeAdjacentMacroEmTags(highlightTermsInText(name, terms));
@@ -227,7 +233,10 @@ export function EntityEmailParticipants(props: { entity: EmailEntity }) {
             <ParticipantWithTooltip
               participant={resolved.participant}
               displayName={resolved.displayName}
-              highlighted={highlightName(resolved.displayName)}
+              highlighted={highlightName(
+                resolved.displayName,
+                resolved.isSelf
+              )}
               selfEmailSet={selfEmailSet()}
             />
           </>
