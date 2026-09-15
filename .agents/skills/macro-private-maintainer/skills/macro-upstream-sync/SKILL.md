@@ -220,6 +220,27 @@ PR -> main
 
 ---
 
+## 8.1 合并 upstream 与 GitHub “落后”状态
+
+同步分支完成并合并回 `main` 后，upstream 的提交会进入 Fork 的提交祖先链。只要同步目标已经包含 upstream 在比较基准之前的提交，GitHub 通常不会再把这部分提交计为 `behind`。
+
+本 Fork 默认同步目标是 `upstream/main`，用于持续跟随上游并减少 GitHub 的 behind 状态。只有用户明确指定 Stable Release 时，才改用稳定版 tag。
+
+* 同步到 `upstream/main`：包含上游最新开发代码，可能包含尚未正式 Release 的变更，必须在最终报告中明确标注。
+* 同步到 Stable Release：只表示跟上指定正式版本；如果 upstream 随后继续提交，Fork 仍可能相对 `upstream/main` 显示落后。
+* 仅修改 remote URL、打 tag、改版本号或 cherry-pick 少量提交，不能替代把 upstream 提交合入当前分支，也不能可靠消除 GitHub 的 behind 状态。
+
+最终报告必须分别说明：
+
+```text
+Target tracking mode: Stable Release | upstream/main
+GitHub behind relative to target: 0 | N commits | unavailable
+```
+
+不得为了消除 GitHub 的 behind 提示而跳过二开保护、冲突审查或验证。
+
+---
+
 ## 9. 禁止顺手重构和扩大范围
 
 Upstream Sync PR 只负责：
@@ -481,27 +502,11 @@ symbol/function
 
 默认：
 
-> **同步最新 Stable Release。**
+> **同步 `upstream/main`。**
 
-例如：
+这样 upstream 的提交会进入同步分支及最终本地 `main` 的祖先链，GitHub 相对 `upstream/main` 的 behind 才能被实际消除或减少。
 
-```text
-v2026.9.7.1
-```
-
-而不是默认同步：
-
-```text
-upstream/main
-```
-
-因为 `upstream/main` 可能包含尚未正式 Release 的代码。
-
-如果用户明确要求：
-
-> 最新 main
-
-才同步 `upstream/main`。
+如果用户明确要求某个正式版本，才同步对应 Stable Release tag，并记录该 tag 与 `upstream/main` 的差距。
 
 ---
 
@@ -528,7 +533,10 @@ v4
 ```text
 当前 main
 ↓
-最新 Stable Release
+sync/upstream-xxx
+↓ merge upstream/main
+↓
+本地 main
 ```
 
 作为一次完整同步。
@@ -563,19 +571,19 @@ upstream = macro-inc/macro
 默认：
 
 ```text
-latest stable release
+upstream/main
 ```
 
 记录：
 
 ```text
-release tag
-commit SHA
+target ref
+target commit SHA
 ```
 
-如果用户要求 `upstream/main`，明确说明：
+如果用户指定 Stable Release，明确说明：
 
-> 此次同步包含未正式发布代码。
+> 此次同步不会包含该 Stable Release 之后 upstream/main 的未发布代码。
 
 ---
 
@@ -584,13 +592,13 @@ commit SHA
 从当前 `main`：
 
 ```text
-sync/upstream-<release>
+sync/upstream-main-<short-sha>
 ```
 
 例如：
 
 ```text
-sync/upstream-v2026.9.7.1
+sync/upstream-main-e00d041a
 ```
 
 记录当前：

@@ -14,19 +14,13 @@ import {
   isEmailEntity,
 } from '../../types/entity';
 
-/**
- * Resolves the linked inbox a thread belongs to, but only when the user has
- * more than one accessible inbox (a single inbox needs no attribution) and the
- * thread's link is one the user can see. Returns undefined otherwise — e.g. a
- * thread shared with the user that isn't one of their own/delegated inboxes.
- */
+/** Resolves the linked inbox a thread belongs to when it is visible to the user. */
 export function useOwningInbox(entity: Accessor<EmailEntity | undefined>) {
   const { links } = useEmailLinksContext();
   return createMemo(() => {
     const linkId = entity()?.linkId;
     if (!linkId) return undefined;
     const availableLinks = links();
-    if (availableLinks.length <= 1) return undefined;
     return availableLinks.find((link) => link.id === linkId);
   });
 }
@@ -39,11 +33,7 @@ export function useOwningInboxForEntity(entity: Accessor<EntityData>) {
   });
 }
 
-/**
- * Shows which linked inbox a thread belongs to as the inbox's icon (full
- * address on hover), resolved by email so an own secondary inbox shows its own
- * identity rather than the parent account's.
- */
+/** Shows the authorized Gmail identity that owns this thread. */
 export function EmailInboxChip(props: { entity: EmailEntity; class?: string }) {
   const inbox = useOwningInbox(() => props.entity);
   return (
