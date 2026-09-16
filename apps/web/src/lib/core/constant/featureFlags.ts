@@ -107,12 +107,14 @@ export function isFeatureEnabled(flag: Flag): boolean {
 
 /**
  * Switches Inbox, Tasks, and Channels from the current SoupView implementations
- * to the new composable view implementations. Override locally with
- * VITE_ENABLE_NEW_APP_VIEWS.
+ * to the new composable view implementations. Enabled by default in local
+ * development; production follows PostHog. Override locally with
+ * VITE_ENABLE_NEW_APP_VIEWS=false.
  */
 export const enableNewAppViews = defineFlag({
   key: 'enable-new-app-views',
   env: 'ENABLE_NEW_APP_VIEWS',
+  default: DEV_MODE_ENV || undefined,
 });
 
 /**
@@ -274,16 +276,6 @@ export const ENABLE_SVG_PREVIEW = defineFlag({
   default: true,
 }).enabled;
 
-export const USE_WIDE_ICONS = defineFlag({
-  env: 'USE_WIDE_ICONS',
-  default: true,
-}).enabled;
-
-export const ENABLE_ANIMATED_ICONS = defineFlag({
-  env: 'ENABLE_ANIMATED_ICONS',
-  default: true,
-}).enabled;
-
 export const ENABLE_TTFT = defineFlag({
   env: 'ENABLE_TTFT',
   default: DEV_MODE_ENV,
@@ -398,19 +390,6 @@ export const enableEmailSignatures = defineFlag({
   key: 'enable-email-signatures',
   env: 'ENABLE_EMAIL_SIGNATURES',
   default: onInDev,
-});
-
-// SidebarNext: the rebuilt app sidebar — the narrow icon rail in
-// `components/app/sidebar-next` — rendered in place of `AppSidebar`.
-// PostHog-gated everywhere, dev included: no dev-mode default, so `AppSidebar`
-// stays the sidebar you get by default until the flag is on for you. Set
-// VITE_ENABLE_SIDEBAR_NEXT=true to force the rail on locally without PostHog.
-//
-// The PostHog key is deliberately broader than the local names: `enable-new-app-views`
-// is the rollout switch for the rebuilt app surfaces, of which this sidebar is one.
-export const enableSidebarNext = defineFlag({
-  key: 'enable-new-app-views',
-  env: 'ENABLE_SIDEBAR_NEXT',
 });
 
 // CRM companies & contacts frontend: the Companies view + sidebar entry, the
