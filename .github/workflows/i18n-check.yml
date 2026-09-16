@@ -23,6 +23,10 @@ on:
       - "bun.lock"
       - "package.json"
 
+concurrency:
+  group: i18n-check-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   i18n-check:
     name: i18n Infrastructure & Quality Gate

@@ -51,10 +51,8 @@ on:
         default: full
 
 concurrency:
-  # Keep independent image builds alive so a targeted repair cannot cancel
-  # unrelated jobs from an earlier push on the same branch.
-  group: self-host-images-${{ github.ref }}-${{ github.run_id }}
-  cancel-in-progress: false
+  group: self-host-images-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -142,7 +140,7 @@ jobs:
             fi
             # Every workspace package may be imported by apps/web. Keep this
             # broad so a shared-package change cannot publish a stale Web image.
-            matches '^(apps/web/|packages/|bun\.lock$|package\.json$)' && run_web=true
+            matches '^(apps/web/|packages/|packages/fork/|bun\.lock$|package\.json$)' && run_web=true
             matches '^(self-host/init/|self-host/images/Dockerfile\.init)' && run_init=true
             matches '^(self-host/images/Dockerfile\.(scheduled-action|workers)|docker/(sync-service|websocket-service)\.Dockerfile|services/(sync|websocket))' && run_workers=true
             matches '^(services/agent_schedule|self-host/images/Dockerfile\.scheduled-action)' && run_scheduled_action=true
