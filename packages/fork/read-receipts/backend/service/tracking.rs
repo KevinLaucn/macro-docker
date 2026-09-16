@@ -57,6 +57,12 @@ async fn open_pixel_handler(State(ctx): State<ApiContext>, Path(token): Path<Str
                         );
                     }
                 }
+
+                let db = ctx.db.clone();
+                let internal_api_key = ctx.internal_api_key.to_string();
+                tokio::spawn(async move {
+                    broadcast_open_event(&db, &internal_api_key, &open).await;
+                });
             }
             Ok(None) => {}
             Err(error) => {
@@ -66,6 +72,74 @@ async fn open_pixel_handler(State(ctx): State<ApiContext>, Path(token): Path<Str
     }
 
     pixel_gif_response()
+}
+
+async fn broadcast_open_event(
+    db: &sqlx::Pool<sqlx::Postgres>,
+    internal_api_key: &str,
+    open: &email_db_client::read_receipts::RecordedOpen,
+) {
+    let user_ids = match fetch_notification_users_for_link(db, open.link_id).await {
+        Ok(ids) => ids,
+        Err(err) => {
+            tracing::warn!(
+                error = ?err,
+                link_id = %open.link_id,
+                "Failed to fetch users for read receipt broadcast"
+            );
+            return;
+        }
+    };
+
+    if user_ids.is_empty() {
+        return;
+    }
+
+    let entities: Vec<model_entity::Entity<'static>> = user_ids
+        .into_iter()
+        .map(|id| model_entity::EntityType::User.with_entity_string(id))
+        .collect();
+
+    let payload = serde_json::json!({
+        "messageId": open.message_id.to_string(),
+        "threadId": open.thread_db_id.to_string(),
+        "openCount": open.open_count,
+        "lastOpenedAt": chrono::Utc::now().to_rfc3339(),
+    });
+
+    if let Ok(gw_url) = macro_service_urls::ConnectionGatewayUrl::new() {
+        let client = connection_gateway_client::client::ConnectionGatewayClient::new(
+            internal_api_key.to_string(),
+            gw_url.to_string(),
+        );
+        if let Err(err) = client
+            .batch_send_message("email_read_receipt_opened".to_string(), payload, entities)
+            .await
+        {
+            tracing::warn!(
+                error = ?err,
+                "Failed to broadcast email_read_receipt_opened event"
+            );
+        }
+    }
+}
+
+async fn fetch_notification_users_for_link(
+    db: &sqlx::Pool<sqlx::Postgres>,
+    link_id: Uuid,
+) -> anyhow::Result<Vec<String>> {
+    let rows = sqlx::query_scalar::<_, String>(
+        r#"
+        SELECT macro_id FROM email_links WHERE id = $1
+        UNION
+        SELECT primary_macro_id FROM macro_user_links WHERE link_id = $1
+        "#,
+    )
+    .bind(link_id)
+    .fetch_all(db)
+    .await?;
+
+    Ok(rows)
 }
 
 pub fn pixel_gif_response() -> Response {

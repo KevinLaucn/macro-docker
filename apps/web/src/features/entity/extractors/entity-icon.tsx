@@ -7,7 +7,9 @@ import { UserIcon } from '@core/component/UserIcon';
 import { useUserId } from '@core/context/user';
 import GitMerge from '@phosphor/git-merge.svg';
 import GitPullRequest from '@phosphor/git-pull-request.svg';
+import { useEmailListEnvelopeClass } from '@queries/email/readReceipts';
 import type { StreamEvent } from '@service-connection/generated/schemas';
+import { cn } from '@ui';
 import { Match, Show, Switch } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { match } from 'ts-pattern';
@@ -108,6 +110,9 @@ function GithubPullRequestIcon(props: {
 }
 
 export function EntityIcon(props: EntityIconProps) {
+  // PRIVATE-HOOK: read_receipts:list-envelope
+  const envelopeClass = useEmailListEnvelopeClass(() => props.entity);
+
   const iconType = () => {
     return (
       match(props.entity)
@@ -158,7 +163,7 @@ export function EntityIcon(props: EntityIconProps) {
         <CoreEntityIcon
           targetType={validIconType()}
           size="fill"
-          class={props.class}
+          class={cn(props.class, envelopeClass())}
         />
       }
     >

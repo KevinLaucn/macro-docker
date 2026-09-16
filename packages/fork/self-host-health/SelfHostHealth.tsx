@@ -15,6 +15,7 @@ import { Button, cn } from '@ui';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 import {
   repairSelfHostBackfillCompletion,
+  repairSelfHostGmailSync,
   repairSelfHostOpensearchAlignment,
   repairSelfHostQueueBacklog,
   useSelfHostHealthQuery,
@@ -342,10 +343,18 @@ function HealthItemRow(props: {
   const hasExtra = () =>
     Boolean(props.item.details || props.item.remediation_hint);
   const canRepair = () => {
-    if (props.item.status === 'ok' || props.item.status === 'disabled') return false;
+    if (props.item.status === 'disabled') return false;
+    if (props.item.id === 'opensearch_email_index') {
+      // 只要索引与数据库存在差异（哪怕只有 1 条处在正常容差 Ok 范围内），或处于 Warning/Critical，均允许触发一键对齐
+      if (props.item.details && props.item.details.includes('diff=0')) {
+        return false;
+      }
+      return true;
+    }
+    if (props.item.status === 'ok') return false;
     return (
       props.item.id === 'email_backfill_completion' ||
-      props.item.id === 'opensearch_email_index' ||
+      props.item.id === 'gmail_official_sync' ||
       props.item.id === 'sqs_queue_backlog'
     );
   };
@@ -354,6 +363,8 @@ function HealthItemRow(props: {
     switch (props.item.id) {
       case 'opensearch_email_index':
         return t('一键自动对齐索引');
+      case 'gmail_official_sync':
+        return t('一键唤醒并对齐 Gmail 同步');
       case 'sqs_queue_backlog':
         return t('一键清理排查死信消息');
       default:
@@ -458,6 +469,9 @@ export function SelfHostHealth() {
     switch (item.id) {
       case 'opensearch_email_index':
         await repairSelfHostOpensearchAlignment();
+        break;
+      case 'gmail_official_sync':
+        await repairSelfHostGmailSync();
         break;
       case 'sqs_queue_backlog':
         await repairSelfHostQueueBacklog();

@@ -19,6 +19,20 @@ export type ReadReceiptStatusesResponse = {
   statuses: ReadReceiptStatusData[];
 };
 
+export type ThreadReadReceiptStatusData = {
+  thread_id: string;
+  latest_message_id: string;
+  is_last_message_sent: boolean;
+  is_opened: boolean;
+  open_count: number;
+  first_opened_at: string | null;
+  last_opened_at: string | null;
+};
+
+export type ThreadReadReceiptStatusesResponse = {
+  statuses: ThreadReadReceiptStatusData[];
+};
+
 export type ReadReceiptsPreferenceResponse = {
   read_receipts_enabled: boolean;
 };
@@ -35,6 +49,16 @@ export const readReceiptsClient = {
       {
         method: 'POST',
         body: JSON.stringify(messageIds),
+      }
+    );
+  },
+
+  getThreadStatuses(threadIds: string[]) {
+    return fetchWithToken<ThreadReadReceiptStatusesResponse>(
+      `${emailHost}/email/messages/tracking/threads`,
+      {
+        method: 'POST',
+        body: JSON.stringify(threadIds),
       }
     );
   },

@@ -10,6 +10,7 @@ import {
   type GlobalExtensionSettingsResponse,
   type ReadReceiptStatusData,
   readReceiptsClient,
+  type ThreadReadReceiptStatusData,
 } from './client';
 
 interface PendingBatchRequest {
@@ -118,12 +119,212 @@ export function useReadReceiptStatusQuery(
           // Once opened, refresh less frequently (2 minutes) for open count updates
           return 120_000;
         }
-        // Unopened sent messages refresh every 30s to catch the first open in a timely manner
-        return 30_000;
+        // Unopened sent messages refresh every 5s as a fallback to catch open events
+        return 5_000;
       },
       refetchIntervalInBackground: false,
+      refetchOnWindowFocus: true,
     };
   });
+}
+
+export function handleReadReceiptOpenedEvent(
+  payload: unknown,
+  queryClient: QueryClient
+): void {
+  if (!payload || typeof payload !== 'object') return;
+  const p = payload as Record<string, unknown>;
+  const messageId = String(p.messageId || p.message_id || '');
+  if (!messageId) return;
+
+  const openCount = Number(p.openCount ?? p.open_count ?? 1);
+  const lastOpenedAt = String(
+    p.lastOpenedAt ?? p.last_opened_at ?? new Date().toISOString()
+  );
+
+  queryClient.setQueryData<ReadReceiptStatusData>(
+    ['email', 'read-receipt', messageId],
+    (old) => ({
+      message_id: messageId,
+      first_opened_at: old?.first_opened_at ?? lastOpenedAt,
+      last_opened_at: lastOpenedAt,
+      open_count: Math.max(old?.open_count ?? 0, openCount),
+    })
+  );
+
+  // Update thread read-receipt status cache in real-time when the last message was opened
+  queryClient.setQueriesData<ThreadReadReceiptStatusData>(
+    { queryKey: ['email', 'read-receipt-thread'] },
+    (old) => {
+      if (!old || old.latest_message_id !== messageId) return old;
+      return {
+        ...old,
+        is_opened: true,
+        open_count: Math.max(old.open_count, openCount),
+        last_opened_at: lastOpenedAt,
+      };
+    }
+  );
+}
+
+interface PendingThreadBatchRequest {
+  resolve: (data: ThreadReadReceiptStatusData) => void;
+  reject: (err: unknown) => void;
+}
+
+let pendingThreadBatch: Map<string, PendingThreadBatchRequest[]> = new Map();
+let threadBatchScheduled = false;
+
+async function resolveThreadReadReceiptStatusChunk(
+  chunkIds: string[],
+  currentBatch: Map<string, PendingThreadBatchRequest[]>,
+  queryClient?: QueryClient
+): Promise<void> {
+  try {
+    const res = await throwOnErr(() =>
+      readReceiptsClient.getThreadStatuses(chunkIds)
+    );
+    const statuses = res.statuses || [];
+    const statusMap = new Map<string, ThreadReadReceiptStatusData>();
+    for (const s of statuses) statusMap.set(s.thread_id, s);
+    for (const id of chunkIds) {
+      const status = statusMap.get(id) ?? {
+        thread_id: id,
+        latest_message_id: '',
+        is_last_message_sent: false,
+        is_opened: false,
+        open_count: 0,
+        first_opened_at: null,
+        last_opened_at: null,
+      };
+      queryClient?.setQueryData(['email', 'read-receipt-thread', id], status);
+      for (const cb of currentBatch.get(id) ?? []) cb.resolve(status);
+    }
+  } catch (err) {
+    for (const id of chunkIds) {
+      for (const cb of currentBatch.get(id) ?? []) cb.reject(err);
+    }
+  }
+}
+
+export function flushThreadReadReceiptStatusBatch(
+  queryClient?: QueryClient
+): void {
+  const currentBatch = pendingThreadBatch;
+  pendingThreadBatch = new Map();
+  threadBatchScheduled = false;
+
+  const ids = Array.from(currentBatch.keys());
+  if (ids.length === 0) return;
+
+  for (let i = 0; i < ids.length; i += MAX_STATUS_BATCH_CHUNK) {
+    const chunkIds = ids.slice(i, i + MAX_STATUS_BATCH_CHUNK);
+    void resolveThreadReadReceiptStatusChunk(
+      chunkIds,
+      currentBatch,
+      queryClient
+    );
+  }
+}
+
+export function fetchThreadReadReceiptStatusBatched(
+  threadId: string,
+  queryClient?: QueryClient
+): Promise<ThreadReadReceiptStatusData> {
+  return new Promise((resolve, reject) => {
+    const existing = pendingThreadBatch.get(threadId);
+    if (existing) {
+      existing.push({ resolve, reject });
+    } else {
+      pendingThreadBatch.set(threadId, [{ resolve, reject }]);
+    }
+
+    if (!threadBatchScheduled) {
+      threadBatchScheduled = true;
+      queueMicrotask(() => {
+        flushThreadReadReceiptStatusBatch(queryClient);
+      });
+    }
+  });
+}
+
+export function useThreadReadReceiptStatusQuery(
+  threadId: Accessor<string | undefined | null>,
+  enabled: Accessor<boolean>
+) {
+  const queryClient = useQueryClient();
+
+  return useQuery(() => {
+    const id = threadId();
+    return {
+      queryKey: ['email', 'read-receipt-thread', id],
+      enabled: enabled() && Boolean(id),
+      queryFn: async (): Promise<ThreadReadReceiptStatusData> => {
+        if (!id) {
+          return {
+            thread_id: '',
+            latest_message_id: '',
+            is_last_message_sent: false,
+            is_opened: false,
+            open_count: 0,
+            first_opened_at: null,
+            last_opened_at: null,
+          };
+        }
+        return fetchThreadReadReceiptStatusBatched(id, queryClient);
+      },
+      staleTime: 10_000,
+      refetchInterval: (query) => {
+        if (typeof document !== 'undefined' && document.hidden) {
+          return false;
+        }
+        const data = query.state.data;
+        if (data && data.is_opened) {
+          return 120_000;
+        }
+        return 5_000;
+      },
+      refetchIntervalInBackground: false,
+      refetchOnWindowFocus: true,
+    };
+  });
+}
+
+/**
+ * Checks if the last email in a thread was sent by us and opened by the recipient,
+ * returning '!text-accent' to style the list envelope orange.
+ * Restricted strictly to the Sent view ('sent').
+ */
+export function useEmailListEnvelopeClass(
+  entity: Accessor<
+    | {
+        type?: string;
+        id?: string;
+        emailIdentityViewMode?: string;
+      }
+    | undefined
+  >
+): Accessor<string | undefined> {
+  const isEligible = () => {
+    const e = entity();
+    if (!e || e.type !== 'email') return false;
+    // Restricted strictly to the Sent view!
+    return e.emailIdentityViewMode === 'sent' && Boolean(e.id);
+  };
+
+  const query = useThreadReadReceiptStatusQuery(() => {
+    const e = entity();
+    return isEligible() ? e?.id : undefined;
+  }, isEligible);
+
+  return () => {
+    if (!isEligible()) return undefined;
+    const data = query.data;
+    if (data?.is_last_message_sent && data.is_opened) {
+      return '!text-orange';
+    }
+    return undefined;
+  };
 }
 
 export function useReadReceiptsPreferenceQuery(

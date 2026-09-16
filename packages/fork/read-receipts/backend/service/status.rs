@@ -32,6 +32,22 @@ pub struct ReadReceiptStatusesResponse {
     pub statuses: Vec<ReadReceiptStatus>,
 }
 
+#[derive(Debug, Clone, sqlx::FromRow, Serialize)]
+pub struct ThreadReadReceiptStatus {
+    pub thread_id: Uuid,
+    pub latest_message_id: Uuid,
+    pub is_last_message_sent: bool,
+    pub is_opened: bool,
+    pub open_count: i32,
+    pub first_opened_at: Option<DateTime<Utc>>,
+    pub last_opened_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ThreadReadReceiptStatusesResponse {
+    pub statuses: Vec<ThreadReadReceiptStatus>,
+}
+
 pub const MAX_BATCH_SIZE: usize = 200;
 
 #[derive(Debug, thiserror::Error)]
@@ -112,4 +128,67 @@ pub async fn batch_handler(
     .context("unable to fetch read receipt statuses")?;
 
     Ok(Json(ReadReceiptStatusesResponse { statuses }))
+}
+
+#[tracing::instrument(skip(ctx, authorization, ids), fields(user_id = authorization.authorization.user.user_context.user_id))]
+pub async fn thread_batch_handler(
+    State(ctx): State<ApiContext>,
+    authorization: MacroAuthorizationExtractor<AuthorizationService, UserOrInternal>,
+    Json(ids): Json<Vec<Uuid>>,
+) -> Result<Json<ThreadReadReceiptStatusesResponse>, ReadReceiptStatusError> {
+    if ids.len() > MAX_BATCH_SIZE {
+        return Err(ReadReceiptStatusError::BatchTooLarge(
+            ids.len(),
+            MAX_BATCH_SIZE,
+        ));
+    }
+
+    if ids.is_empty() {
+        return Ok(Json(ThreadReadReceiptStatusesResponse {
+            statuses: Vec::new(),
+        }));
+    }
+
+    let link_ids: HashSet<Uuid> = email_db_client::links::get::fetch_inboxes_for_macro_id(
+        &ctx.db,
+        &authorization.authorization.user.user_context.user_id,
+    )
+    .await
+    .context("unable to fetch inboxes for user")?
+    .into_iter()
+    .map(|l| l.id)
+    .collect();
+
+    if link_ids.is_empty() {
+        return Ok(Json(ThreadReadReceiptStatusesResponse {
+            statuses: Vec::new(),
+        }));
+    }
+
+    let link_id_vec: Vec<Uuid> = link_ids.into_iter().collect();
+
+    let statuses = sqlx::query_as::<_, ThreadReadReceiptStatus>(
+        r#"
+        SELECT DISTINCT ON (m.thread_id)
+            m.thread_id,
+            m.id AS latest_message_id,
+            m.is_sent AS is_last_message_sent,
+            (COALESCE(m.open_count, 0) > 0 AND m.open_tracking_token IS NOT NULL) AS is_opened,
+            COALESCE(m.open_count, 0) AS open_count,
+            m.first_opened_at,
+            m.last_opened_at
+        FROM email_messages m
+        WHERE m.thread_id = ANY($1)
+          AND m.link_id = ANY($2)
+          AND m.is_draft = false
+        ORDER BY m.thread_id, COALESCE(m.internal_date_ts, m.sent_at, m.created_at) DESC, m.id DESC
+        "#,
+    )
+    .bind(&ids)
+    .bind(&link_id_vec)
+    .fetch_all(&ctx.db)
+    .await
+    .context("unable to fetch thread read receipt statuses")?;
+
+    Ok(Json(ThreadReadReceiptStatusesResponse { statuses }))
 }

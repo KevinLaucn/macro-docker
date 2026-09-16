@@ -5,7 +5,7 @@ export function buildSentDisplay(
 	participants: readonly EmailParticipant[],
 	selfEmailSet: ReadonlySet<string>,
 ) {
-	return resolveParticipantIdentities(participants, selfEmailSet).filter(
-		(participant) => !participant.isSelf,
-	);
+	const resolved = resolveParticipantIdentities(participants, selfEmailSet);
+	const externals = resolved.filter((participant) => !participant.isSelf);
+	return externals.length > 0 ? externals : resolved;
 }

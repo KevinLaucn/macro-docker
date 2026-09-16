@@ -1,12 +1,18 @@
 export { EmailParticipantIdentity } from "./components/EmailParticipantIdentity";
-export { resolveContactAvatar } from "./avatar/avatar-policy";
+export {
+	resolveAvatarWithPriority,
+	resolveContactAvatar,
+	resolveTooltipPhotoUrl,
+} from "./avatar/avatar-policy";
 export { resolveAvatarUrl } from "./avatar/avatar-resolver";
 export { buildSentDisplay } from "./display/sent-display";
 export { buildThreadDisplay } from "./display/thread-display";
 export { getParticipantLabel } from "./display/participant-label";
 export { normalizeEmail } from "./identity/normalize-email";
 export {
+	extractOutboundRecipients,
 	isSelfEmail,
+	needOutboundRecipients,
 	participantLabel,
 	resolveParticipantIdentities,
 } from "./identity/participant-identity";

@@ -1,6 +1,7 @@
 import { HoverCard } from '@core/component/HoverCard';
 import { UserTooltip } from '@core/component/UserTooltip';
 import { emailToMacroId } from '@core/user/macroId';
+import { resolveTooltipPhotoUrl } from '@macro/email-participant-identity';
 import { createSignal, type JSX } from 'solid-js';
 
 interface Recipient {
@@ -35,7 +36,11 @@ export function EmailUserTooltip(props: EmailUserTooltipProps) {
               ? emailToMacroId(props.recipient.email)
               : undefined
           }
-          photoUrl={props.photoUrl}
+          // PRIVATE-HOOK: email_identity:tooltip-photo
+          photoUrl={resolveTooltipPhotoUrl(
+            props.photoUrl,
+            props.recipient as { photo_url?: string | null }
+          )}
           onClose={() => setOpen(false)}
         />
       }

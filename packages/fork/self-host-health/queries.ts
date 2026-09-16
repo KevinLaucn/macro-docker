@@ -49,3 +49,9 @@ export async function repairSelfHostQueueBacklog() {
     return await authServiceClient.repairSelfHostQueueBacklog();
   });
 }
+
+export async function repairSelfHostGmailSync() {
+  return await throwOnErr(async () => {
+    return await authServiceClient.repairSelfHostGmailSync();
+  });
+}

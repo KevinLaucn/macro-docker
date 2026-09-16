@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
 	buildSentDisplay,
 	buildThreadDisplay,
+	extractOutboundRecipients,
+	needOutboundRecipients,
 	resolveContactAvatar,
 	resolveParticipantIdentities,
 	resolveSelfEmails,
@@ -59,6 +61,52 @@ describe("email participant identity", () => {
 				self,
 			).map(({ label }) => label),
 		).toEqual(["Danielle"]);
+	});
+
+	it("falls back to self in Sent view if no external recipients exist", () => {
+		expect(
+			buildSentDisplay([{ email: "user@gmail.com" }], self).map(
+				({ label }) => label,
+			),
+		).toEqual(["me"]);
+	});
+
+	it("detects when outbound thread needs recipient resolution and extracts external recipients", () => {
+		expect(needOutboundRecipients([{ email: "user@gmail.com" }], self)).toBe(
+			true,
+		);
+		expect(
+			needOutboundRecipients(
+				[
+					{ email: "user@gmail.com" },
+					{ email: "customer@example.com" },
+				],
+				self,
+			),
+		).toBe(false);
+
+		const messages = [
+			{
+				to: [
+					{ email: "customer@example.com", name: "Customer Name" },
+					{ email: "user@gmail.com" },
+				],
+				cc: [{ email: "partner@example.com" }],
+			},
+		];
+		const extracted = extractOutboundRecipients(messages, self);
+		expect(extracted).toEqual([
+			{
+				email: "customer@example.com",
+				name: "Customer Name",
+				photoUrl: undefined,
+			},
+			{
+				email: "partner@example.com",
+				name: undefined,
+				photoUrl: undefined,
+			},
+		]);
 	});
 
 	it("uses the last non-draft message for direction and separator", () => {

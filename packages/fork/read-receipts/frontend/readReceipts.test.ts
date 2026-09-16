@@ -11,6 +11,7 @@ import {
 import {
   fetchReadReceiptStatusBatched,
   flushReadReceiptStatusBatch,
+  handleReadReceiptOpenedEvent,
 } from './queries';
 import {
   isMacroTrackingPixelUrl,
@@ -159,5 +160,58 @@ describe('batching read receipt status queries', () => {
     } finally {
       readReceiptsClient.getStatuses = originalGetStatuses;
     }
+  });
+
+  it('handleReadReceiptOpenedEvent updates query cache in real time', () => {
+    const queryClient = new QueryClient();
+    handleReadReceiptOpenedEvent(
+      {
+        messageId: 'msg-realtime-1',
+        openCount: 3,
+        lastOpenedAt: '2026-09-16T12:00:00Z',
+      },
+      queryClient
+    );
+
+    const cached = queryClient.getQueryData([
+      'email',
+      'read-receipt',
+      'msg-realtime-1',
+    ]);
+    expect(cached).toEqual({
+      message_id: 'msg-realtime-1',
+      first_opened_at: '2026-09-16T12:00:00Z',
+      last_opened_at: '2026-09-16T12:00:00Z',
+      open_count: 3,
+    });
+  });
+
+  it('handleReadReceiptOpenedEvent also updates thread query cache for matching latest message', () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(['email', 'read-receipt-thread', 'thread-1'], {
+      thread_id: 'thread-1',
+      latest_message_id: 'msg-realtime-2',
+      is_last_message_sent: true,
+      is_opened: false,
+      open_count: 0,
+      first_opened_at: null,
+      last_opened_at: null,
+    });
+
+    handleReadReceiptOpenedEvent(
+      {
+        messageId: 'msg-realtime-2',
+        openCount: 1,
+        lastOpenedAt: '2026-09-16T12:05:00Z',
+      },
+      queryClient
+    );
+
+    const threadCached = queryClient.getQueryData<{
+      is_opened: boolean;
+      open_count: number;
+    }>(['email', 'read-receipt-thread', 'thread-1']);
+    expect(threadCached?.is_opened).toBe(true);
+    expect(threadCached?.open_count).toBe(1);
   });
 });

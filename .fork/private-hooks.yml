@@ -11,6 +11,20 @@ hooks:
     context:
       - "export function EntityEmailParticipants(props: { entity: EmailEntity }) {"
       - "buildThreadDisplay({"
+  - id: email_identity_avatar_priority
+    file: apps/web/src/lib/core/component/UserIcon.tsx
+    marker: "// PRIVATE-HOOK: email_identity:avatar-priority"
+    expected: "const imageUrl = () =>"
+    context:
+      - "function ProfileImage(props: {"
+      - "resolveAvatarWithPriority"
+  - id: email_identity_tooltip_photo
+    file: apps/web/src/features/email-message/components/email-user-tooltip.tsx
+    marker: "// PRIVATE-HOOK: email_identity:tooltip-photo"
+    expected: "photoUrl={resolveTooltipPhotoUrl("
+    context:
+      - "export function EmailUserTooltip(props: EmailUserTooltipProps) {"
+      - "resolveTooltipPhotoUrl"
   - id: self_host_media_bypass_image_proxy
     file: apps/web/src/features/email-message/rendering-adapter.ts
     marker: "// PRIVATE-HOOK: self_host_media:bypass-proxy"
@@ -119,6 +133,12 @@ hooks:
     expected: "return replyingTo.is_sent ? stripOwnTrackingPixelsFromHtml(html) : html;"
     context:
       - "function getComposerQuotedBodyHtml("
+  - id: email_read_receipts_realtime_event
+    file: apps/web/src/lib/queries/sync/SyncProvider.tsx
+    marker: "// PRIVATE-HOOK: read_receipts:realtime-event"
+    expected: "handleReadReceiptOpenedEvent(payload, queryClient);"
+    context:
+      - ".with({ type: 'email_read_receipt_opened' }, () => {"
   - id: email_read_receipts_db_module
     file: crates/email_db_client/src/lib.rs
     marker: "// PRIVATE-HOOK: read_receipts:module"
@@ -347,3 +367,10 @@ hooks:
     expected: "import { AdobePreviewContainer, getAdobeFormatFromFileName } from '@macro/adobe-preview';"
     context:
       - "export default function BlockUnknown() {"
+  - id: email_read_receipts_list_envelope
+    file: apps/web/src/features/entity/extractors/entity-icon.tsx
+    marker: "// PRIVATE-HOOK: read_receipts:list-envelope"
+    expected: "const envelopeClass = useEmailListEnvelopeClass(() => props.entity);"
+    context:
+      - "export function EntityIcon(props: EntityIconProps) {"
+

@@ -12,7 +12,12 @@ pub fn public_router() -> Router<ApiContext> {
 
 /// Router for message read-receipt tracking status queries.
 pub fn messages_router() -> Router<ApiContext> {
-    Router::new().route("/tracking", post(super::status::batch_handler))
+    Router::new()
+        .route("/tracking", post(super::status::batch_handler))
+        .route(
+            "/tracking/threads",
+            post(super::status::thread_batch_handler),
+        )
 }
 
 /// Router for read-receipt settings (both per-link and global extension settings).

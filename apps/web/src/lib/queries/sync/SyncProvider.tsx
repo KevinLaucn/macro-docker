@@ -26,7 +26,9 @@ import {
   handleCommsReaction,
 } from '@queries/channel/sync';
 import { handleCommsTyping } from '@queries/channel/typing';
+import { queryClient } from '@queries/client';
 import { invalidateContacts } from '@queries/contacts/contacts';
+import { handleReadReceiptOpenedEvent } from '@queries/email/readReceipts';
 import { handleRefreshEmail } from '@queries/email/sync';
 import { invalidateFavorites } from '@queries/favorites/favorites';
 import {
@@ -159,6 +161,12 @@ export function QuerySyncProvider(props: SyncProviderProps) {
       })
       .with({ type: 'refresh_email' }, () => {
         withParsedWebsocketPayload(data.type, data.data, handleRefreshEmail);
+      })
+      // PRIVATE-HOOK: read_receipts:realtime-event
+      .with({ type: 'email_read_receipt_opened' }, () => {
+        withParsedWebsocketPayload(data.type, data.data, (payload) => {
+          handleReadReceiptOpenedEvent(payload, queryClient);
+        });
       })
       .with({ type: 'refresh_calendar' }, () => {
         withParsedWebsocketPayload(data.type, data.data, handleRefreshCalendar);

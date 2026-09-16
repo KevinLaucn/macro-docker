@@ -1,4 +1,5 @@
-import EyeIcon from '@phosphor-icons/core/regular/eye.svg?component-solid';
+import CheckIcon from '@phosphor-icons/core/regular/check.svg?component-solid';
+import ChecksIcon from '@phosphor-icons/core/regular/checks.svg?component-solid';
 import { cn, Tooltip } from '@ui';
 import { createMemo, Show } from 'solid-js';
 import { useReadReceiptStatusQuery } from './queries';
@@ -37,17 +38,22 @@ export function ReadReceiptStatus(props: ReadReceiptStatusProps) {
             props.showIconOnly
               ? cn(
                   'size-6 flex items-center justify-center rounded-md hover:overlay-hover transition-colors text-xs cursor-default shrink-0',
-                  isOpened() ? 'text-accent' : 'text-ink-extra-muted',
+                  isOpened() ? 'text-orange' : 'text-ink-extra-muted',
                   props.class
                 )
               : cn(
                   'flex items-center gap-1 text-xs cursor-default shrink-0',
-                  isOpened() ? 'text-accent' : 'text-ink-extra-muted',
+                  isOpened() ? 'text-orange' : 'text-ink-extra-muted',
                   props.class
                 )
           }
         >
-          <EyeIcon class="size-3.5" />
+          <Show
+            when={isOpened()}
+            fallback={<CheckIcon class="size-3.5" />}
+          >
+            <ChecksIcon class="size-3.5" />
+          </Show>
           <Show when={!props.showIconOnly}>
             <span>{formatted().label}</span>
           </Show>

@@ -6,6 +6,7 @@ import { isMacroNewId } from '@core/constant/macroNew';
 import { staticFileSizedUrl } from '@core/constant/servers';
 import { internalDrag } from '@core/directive/internalDragState';
 import { useProfilePictureUrl } from '@core/signal/profilePicture';
+import { resolveAvatarWithPriority } from '@macro/email-participant-identity';
 import {
   getDisplayName,
   getDisplayNameParts,
@@ -75,8 +76,9 @@ function ProfileImage(props: {
 
   const [profilePicUrl] = useProfilePictureUrl(props.id);
 
-  // Macro profile picture wins; fall back to a contact photo before initials.
-  const imageUrl = () => profilePicUrl() || props.photoUrl;
+  // PRIVATE-HOOK: email_identity:avatar-priority
+  const imageUrl = () =>
+    resolveAvatarWithPriority(props.photoUrl, profilePicUrl());
 
   return (
     <Show

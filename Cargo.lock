@@ -1648,6 +1648,7 @@ dependencies = [
  "mockall",
  "model",
  "model-entity",
+ "models_email",
  "models_permissions",
  "native_app_service",
  "non_empty",

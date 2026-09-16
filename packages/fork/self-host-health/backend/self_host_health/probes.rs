@@ -653,6 +653,11 @@ async fn cache_gmail_probe_item(macro_user_id: &str, item: HealthCheckItem) -> H
     item
 }
 
+pub(super) async fn invalidate_gmail_probe_cache(macro_user_id: &str) {
+    let mut cache = GMAIL_DEEP_PROBE_CACHE.lock().await;
+    cache.remove(macro_user_id);
+}
+
 #[derive(Debug, Deserialize)]
 struct GmailProfile {
     #[serde(rename = "messagesTotal")]

@@ -149,6 +149,7 @@ mockall = { workspace = true }
 model = { path = "../../crates/model" }
 model-entity = { path = "../../crates/model-entity" }
 models_permissions = { path = "../../crates/models_permissions" }
+models_email = { path = "../../crates/models_email" }
 native_app_service = { path = "../../crates/native_app_service", optional = true }
 non_empty = { path = "../../crates/non_empty" }
 notification = { path = "../../crates/notification", optional = true }

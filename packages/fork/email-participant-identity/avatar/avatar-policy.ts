@@ -20,3 +20,26 @@ export function resolveContactAvatar(
 			Boolean(contact.photoUrl),
 	)?.photoUrl;
 }
+
+/**
+ * Resolves avatar with fork priority:
+ * Prioritize synced contact/Gmail photoUrl when provided, falling back to Macro profile picture.
+ */
+export function resolveAvatarWithPriority(
+	photoUrl?: string,
+	macroProfilePicUrl?: string,
+): string | undefined {
+	return photoUrl || macroProfilePicUrl;
+}
+
+/**
+ * Resolves tooltip photo URL from either explicit prop or recipient contact photo_url.
+ */
+export function resolveTooltipPhotoUrl(
+	photoUrl?: string,
+	recipient?: { photo_url?: string | null } | null,
+): string | undefined {
+	return photoUrl || recipient?.photo_url || undefined;
+}
+
+

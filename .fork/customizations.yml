@@ -59,6 +59,7 @@ customizations:
       - apps/web/src/features/next-soup/utils.ts
       - apps/web/src/features/notifications/notification-platform.ts
       - apps/web/src/lib/queries/email/readReceipts.ts
+      - apps/web/src/lib/queries/sync/SyncProvider.tsx
       - apps/web/src/lib/service-clients/service-email/readReceiptsClient.ts
       - package.json
       - apps/web/vitest.config.ts

@@ -242,19 +242,29 @@ impl SelfHostHealthService {
 
             queued_backfill_threads = thread_ids.len();
             if !thread_ids.is_empty() {
+                let internal_api_key = macro_env_var::maybe_read_env("INTERNAL_API_SECRET_KEY")
+                    .unwrap_or_default();
                 let sps_url = macro_env_var::maybe_read_env("SEARCH_PROCESSING_URL")
+                    .or_else(|| macro_env_var::maybe_read_env("SEARCH_PROCESSING_SERVICE_URL"))
                     .unwrap_or_else(|| {
-                        "http://macro-selfhost-search_processing_service-1:8080".to_string()
+                        "http://search-processing-service:8080".to_string()
                     });
-                let _ = client
+                let mut req = client
                     .post(format!(
                         "{sps_url}/search-processing/internal/backfill/emails"
                     ))
                     .json(&json!({
                         "thread_ids": thread_ids
-                    }))
-                    .send()
-                    .await;
+                    }));
+                if !internal_api_key.is_empty() {
+                    req = req
+                        .header("x-internal-auth-key", &internal_api_key)
+                        .header("x-internal-macro-user-id", macro_user_id);
+                }
+                let resp = req.send().await;
+                if let Err(err) = resp {
+                    tracing::warn!(?err, "failed to trigger search processing email backfill");
+                }
             }
         }
 
@@ -361,6 +371,201 @@ impl SelfHostHealthService {
             "purged_dlqs": purged_dlqs,
         }))
     }
+
+    pub async fn repair_gmail_official_sync(
+        &self,
+        macro_user_id: &str,
+    ) -> anyhow::Result<serde_json::Value> {
+        let rows = sqlx::query(
+            r#"
+            SELECT
+                el.id AS link_id,
+                el.email_address,
+                el.fusionauth_user_id
+            FROM email_links el
+            WHERE el.macro_id = $1
+              AND el.is_sync_active = true
+              AND el.needs_reauth = false
+            "#,
+        )
+        .bind(macro_user_id)
+        .fetch_all(&self.context.db)
+        .await?;
+
+        let gmail_idp_id = self
+            .context
+            .auth_client
+            .get_identity_provider_id_by_name("google_gmail")
+            .await
+            .map_err(|err| anyhow::anyhow!("获取 google_gmail IdP 失败: {err}"))?;
+
+        let mut enqueued_syncs = Vec::new();
+        let mut errors = Vec::new();
+
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(10))
+            .build()?;
+
+        for row in rows {
+            use sqlx::Row;
+            let link_id: uuid::Uuid = match row.try_get("link_id") {
+                Ok(id) => id,
+                Err(err) => {
+                    tracing::warn!(?err, "读取 link_id 失败");
+                    continue;
+                }
+            };
+            let email_address: String = match row.try_get("email_address") {
+                Ok(addr) => addr,
+                Err(err) => {
+                    tracing::warn!(?err, "读取 email_address 失败");
+                    continue;
+                }
+            };
+            let fusionauth_user_id: String = match row.try_get("fusionauth_user_id") {
+                Ok(id) => id,
+                Err(err) => {
+                    tracing::warn!(email = %email_address, ?err, "读取 fusionauth_user_id 失败");
+                    continue;
+                }
+            };
+
+            // 1. 获取 Google OAuth access token
+            let links = match self
+                .context
+                .auth_client
+                .get_links(&fusionauth_user_id, Some(gmail_idp_id.clone()))
+                .await
+            {
+                Ok(l) => l,
+                Err(err) => {
+                    tracing::warn!(email = %email_address, ?err, "获取 FusionAuth OAuth 链接失败");
+                    errors.push(json!({
+                        "email": email_address,
+                        "error": format!("获取 OAuth 链接失败: {err}")
+                    }));
+                    continue;
+                }
+            };
+
+            let link = match links
+                .into_iter()
+                .find(|l| l.display_name.eq_ignore_ascii_case(&email_address))
+            {
+                Some(l) => l,
+                None => {
+                    tracing::warn!(email = %email_address, "未找到该邮箱对应的 FusionAuth link");
+                    errors.push(json!({
+                        "email": email_address,
+                        "error": "未找到对应的 OAuth link".to_string()
+                    }));
+                    continue;
+                }
+            };
+
+            let token = match self
+                .context
+                .auth_client
+                .refresh_google_token(link.token.as_str())
+                .await
+            {
+                Ok(t) => t,
+                Err(err) => {
+                    tracing::warn!(email = %email_address, ?err, "刷新 Google OAuth token 失败");
+                    errors.push(json!({
+                        "email": email_address,
+                        "error": format!("刷新 token 失败: {err}")
+                    }));
+                    continue;
+                }
+            };
+
+            // 2. 获取 Gmail 官方最新 profile 中的 historyId
+            let resp = match client
+                .get("https://gmail.googleapis.com/gmail/v1/users/me/profile")
+                .bearer_auth(&token.access_token)
+                .send()
+                .await
+            {
+                Ok(r) => r,
+                Err(err) => {
+                    tracing::warn!(email = %email_address, ?err, "请求 Gmail profile 失败");
+                    errors.push(json!({
+                        "email": email_address,
+                        "error": format!("请求 Gmail profile 失败: {err}")
+                    }));
+                    continue;
+                }
+            };
+
+            if !resp.status().is_success() {
+                let status = resp.status();
+                tracing::warn!(email = %email_address, %status, "Gmail profile 返回非 200 响应");
+                errors.push(json!({
+                    "email": email_address,
+                    "error": format!("Gmail API 返回状态码 {status}")
+                }));
+                continue;
+            }
+
+            let profile: serde_json::Value = match resp.json().await {
+                Ok(p) => p,
+                Err(err) => {
+                    tracing::warn!(email = %email_address, ?err, "解析 Gmail profile JSON 失败");
+                    continue;
+                }
+            };
+
+            let history_id_opt = profile["historyId"]
+                .as_str()
+                .and_then(|s| s.parse::<u64>().ok())
+                .or_else(|| profile["historyId"].as_u64());
+
+            if let Some(history_id) = history_id_opt {
+                // 3. 投递到 gmail_inbox_sync 队列，触发 pubsub worker 进行历史推进和增量同步
+                let message = models_email::gmail::inbox_sync::InboxSyncPubsubMessage {
+                    link_id,
+                    operation: models_email::gmail::inbox_sync::InboxSyncOperation::GmailMessage(
+                        models_email::gmail::inbox_sync::GmailMessagePayload {
+                            history_id,
+                        },
+                    ),
+                };
+                match self
+                    .context
+                    .sqs_client
+                    .enqueue_gmail_inbox_sync_notification(message)
+                    .await
+                {
+                    Ok(_) => {
+                        enqueued_syncs.push(json!({
+                            "email": email_address,
+                            "history_id": history_id,
+                            "enqueued": true
+                        }));
+                    }
+                    Err(err) => {
+                        tracing::warn!(email = %email_address, ?err, "入队 gmail_inbox_sync 失败");
+                        errors.push(json!({
+                            "email": email_address,
+                            "error": format!("入队失败: {err}")
+                        }));
+                    }
+                }
+            } else {
+                tracing::warn!(email = %email_address, ?profile, "Gmail profile 中未解析到有效 historyId");
+            }
+        }
+
+        // 清理缓存让探针立刻重新计算
+        probes::invalidate_gmail_probe_cache(macro_user_id).await;
+        self.state.write().await.by_user.remove(macro_user_id);
+
+        Ok(json!({
+            "enqueued_syncs": enqueued_syncs,
+            "errors": errors,
+        }))
+    }
 }
 
 fn disabled_report(environment: macro_env::Environment) -> SelfHostHealthReport {
@@ -390,6 +595,7 @@ pub fn router(context: ApiContext) -> Router<ApiContext> {
     let health_service = service.clone();
     let backfill_service = service.clone();
     let os_service = service.clone();
+    let gmail_sync_service = service.clone();
     let queue_service = service;
 
     Router::new()
@@ -532,6 +738,44 @@ pub fn router(context: ApiContext) -> Router<ApiContext> {
                             .user_id
                             .clone();
                         match service.repair_queue_backlog(&macro_user_id).await {
+                            Ok(result) => (StatusCode::OK, Json(result)).into_response(),
+                            Err(err) => (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(serde_json::json!({ "error": err.to_string() })),
+                            )
+                                .into_response(),
+                        }
+                    }
+                },
+            ),
+        )
+        .route(
+            "/health-check/repair/gmail-sync",
+            post(
+                move |State(_): State<ApiContext>, db_permissions: DbPermissionsExtractor| {
+                    let service = gmail_sync_service.clone();
+                    async move {
+                        if !db_permissions
+                            .permissions
+                            .contains(WRITE_ADMIN_PANEL_PERMISSION)
+                        {
+                            return (
+                                StatusCode::FORBIDDEN,
+                                Json(serde_json::json!({
+                                    "error": "Insufficient permissions: write:admin_panel required"
+                                })),
+                            )
+                                .into_response();
+                        }
+
+                        let macro_user_id = db_permissions
+                            .authorization
+                            .authorization
+                            .user
+                            .user_context
+                            .user_id
+                            .clone();
+                        match service.repair_gmail_official_sync(&macro_user_id).await {
                             Ok(result) => (StatusCode::OK, Json(result)).into_response(),
                             Err(err) => (
                                 StatusCode::INTERNAL_SERVER_ERROR,
