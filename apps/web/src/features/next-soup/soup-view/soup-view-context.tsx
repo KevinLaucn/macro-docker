@@ -106,6 +106,10 @@ import {
   useContext,
 } from 'solid-js';
 import { unwrap } from 'solid-js/store';
+import {
+  applyDocumentTabScope,
+  withDocumentTabItemScope,
+} from './document-tab-scope';
 
 type DataSource<T> = {
   data: Accessor<T[]>;
@@ -852,6 +856,9 @@ export const SoupViewContextProvider: FlowComponent<
     let next = applyInboxFilter(state);
     next = applyInboxThreadFilter(next);
     next = applyInboxReadFilter(next);
+    if (activeListView() === 'documents') {
+      next = applyDocumentTabScope(next, activeTab(), userId());
+    }
     return next;
   };
 
@@ -1021,7 +1028,11 @@ export const SoupViewContextProvider: FlowComponent<
         showSupportedForeignEntities: showSupportedForeignEntitiesFF().enabled,
         onBeforeGraphqlRefresh: () => groupQueries.resetToInitialPage(),
         meta: {
-          itemFilter: (item) => soupItemMatchesActiveFilters(item, view),
+          itemFilter: withDocumentTabItemScope(
+            view === 'documents' ? activeTab() : undefined,
+            userId(),
+            (item) => soupItemMatchesActiveFilters(item, view)
+          ),
           insertFilter: (item) =>
             emailItemMatchesImportance(item, emailImportance),
         },
@@ -1210,7 +1221,11 @@ export const SoupViewContextProvider: FlowComponent<
       return {
         enabled: enabled() && !search.isSearching(),
         meta: {
-          itemFilter: (item) => soupItemMatchesActiveFilters(item, view),
+          itemFilter: withDocumentTabItemScope(
+            view === 'documents' ? activeTab() : undefined,
+            userId(),
+            (item) => soupItemMatchesActiveFilters(item, view)
+          ),
           insertFilter: (item) =>
             emailItemMatchesImportance(item, emailImportance),
         },
