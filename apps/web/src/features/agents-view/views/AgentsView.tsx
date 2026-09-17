@@ -293,9 +293,9 @@ function AgentsWorkspace(props: { initialRoute?: AgentsRoute }) {
           >
             <ViewShell.Root
               asidePreferenceKey="agents"
+              class="bg-panel"
               resizable
               aside={{
-                width: 280,
                 min: 224,
                 max: 380,
                 preserveDuringResize: false,

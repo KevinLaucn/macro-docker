@@ -1,4 +1,4 @@
-import { ViewSidebarToggle } from '@app/components/view-shell/ViewShell';
+import { ViewShell } from '@app/components/view-shell/ViewShell';
 import CopyIcon from '@phosphor/copy.svg';
 import DotsIcon from '@phosphor/dots-three.svg';
 import PencilIcon from '@phosphor/pencil-simple.svg';
@@ -31,10 +31,11 @@ export function Topbar(props: {
   children?: JSX.Element;
 }) {
   return (
-    <div class="topbar">
-      <ViewSidebarToggle action="expand" />
-      <h1 class="truncate">{props.title}</h1>
-      <div class="right">
+    <ViewShell.TopBar class="touch:flex">
+      <h1 class="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+        {props.title}
+      </h1>
+      <div class="flex shrink-0 items-center gap-2">
         {props.children}
         <div class="bbar" role="toolbar" aria-label="Session actions">
           <button
@@ -159,6 +160,6 @@ export function Topbar(props: {
           </MenuAnchor>
         </div>
       </div>
-    </div>
+    </ViewShell.TopBar>
   );
 }

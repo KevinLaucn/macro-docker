@@ -1,5 +1,4 @@
 import { fireEvent, render, screen } from '@solidjs/testing-library';
-import type { JSX } from 'solid-js';
 import { describe, expect, it, vi } from 'vitest';
 import {
   type AgentConversationEntity,
@@ -7,12 +6,12 @@ import {
 } from '../core/recent-conversations';
 import { AgentsSidebar } from './AgentsSidebar';
 
-vi.mock('@app/components/view-shell', () => ({
+vi.mock('@app/components/view-shell', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/components/view-shell')>()),
   useViewControlHotkeys: vi.fn(),
-  ViewSidebar: {
-    Header: (props: { children: JSX.Element }) => <div>{props.children}</div>,
-    Title: (props: { children: JSX.Element }) => <h1>{props.children}</h1>,
-  },
+}));
+vi.mock('@solid-primitives/resize-observer', () => ({
+  createResizeObserver: () => {},
 }));
 vi.mock('@components/app/split-layout/layoutUtils', () => ({
   useSplitPanelOrThrow: () => ({

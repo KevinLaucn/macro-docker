@@ -1,12 +1,18 @@
-import { useViewControlHotkeys, ViewSidebar } from '@app/components/view-shell';
+import {
+  CollapsibleSection,
+  SearchBar,
+  useViewControlHotkeys,
+  ViewSidebar,
+} from '@app/components/view-shell';
 import { SidebarCreateButton } from '@app/components/view-shell/SidebarCreateButton';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
-import { SplitPanel } from '@components/app/split-panel';
 import ChatIcon from '@phosphor/chat-circle.svg';
 import CodeIcon from '@phosphor/code.svg';
 import MagnifyingGlassIcon from '@phosphor/magnifying-glass.svg';
+import SpinnerIcon from '@phosphor/spinner.svg';
 import { Key } from '@solid-primitives/keyed';
-import { createSignal, For, Show } from 'solid-js';
+import { cn } from '@ui';
+import { createSignal, Show } from 'solid-js';
 import {
   conversationState,
   conversationStateLabel,
@@ -60,60 +66,61 @@ function Row(props: {
   };
 
   return (
-    <button
-      type="button"
-      class={props.active ? 'row active' : 'row'}
+    <ViewSidebar.Item
+      active={props.active}
+      class={cn(props.mode === 'code' && 'h-12 items-start py-1.5 touch:h-12')}
       title={title()}
       data-kind={props.mode}
-      aria-current={props.active ? 'page' : undefined}
       onClick={props.onOpen}
     >
-      <span class="lead">
+      <ViewSidebar.Icon>
         <Show
           when={state() === 'starting'}
           fallback={
-            <Show
-              when={props.mode === 'code'}
-              fallback={<ChatIcon class="ph" />}
-            >
-              <CodeIcon class="ph" />
+            <Show when={props.mode === 'code'} fallback={<ChatIcon />}>
+              <CodeIcon />
             </Show>
           }
         >
-          <span class="spin" />
+          <SpinnerIcon class="motion-safe:animate-spin" />
+        </Show>
+      </ViewSidebar.Icon>
+      <span class="min-w-0 flex-1">
+        <span class="block truncate">{title()}</span>
+        <Show when={props.mode === 'code'}>
+          <span class="flex min-w-0 items-center gap-1.5 text-xs leading-4 text-ink-extra-muted">
+            <Show when={props.handle}>
+              {(handle) => <span class="truncate">@{handle()}</span>}
+            </Show>
+            <Show when={props.handle && stateLabel()}>
+              <span>·</span>
+            </Show>
+            <Show when={stateLabel()}>
+              {(label) => <span class="shrink-0">{label()}</span>}
+            </Show>
+            <span class="ml-auto shrink-0 tabular-nums">{age()}</span>
+          </span>
         </Show>
       </span>
-      <span class="truncate">{title()}</span>
-      <Show
-        when={props.mode === 'code'}
-        fallback={<span class="when">{age()}</span>}
-      >
-        <span />
-        <span class="sub">
-          <Show when={props.handle}>
-            {(handle) => <span class="h">@{handle()}</span>}
-          </Show>
-          <Show when={props.handle && stateLabel()}>
-            <span>·</span>
-          </Show>
-          <Show when={stateLabel()}>{(label) => <span>{label()}</span>}</Show>
-          <span class="when" style={{ 'margin-left': 'auto' }}>
-            {age()}
-          </span>
+      <Show when={props.mode !== 'code'}>
+        <span class="shrink-0 text-xs text-ink-extra-muted tabular-nums">
+          {age()}
         </span>
       </Show>
-    </button>
+    </ViewSidebar.Item>
   );
 }
 
 export function AgentsSidebar(props: AgentsSidebarProps) {
   const panel = useSplitPanelOrThrow();
   const [searchOpen, setSearchOpen] = createSignal(false);
+  const [conversationsOpen, setConversationsOpen] = createSignal(true);
   let searchInput: HTMLInputElement | undefined;
   const total = () =>
     props.groups.reduce((sum, group) => sum + group.conversations.length, 0);
 
   const openSearch = () => {
+    setConversationsOpen(true);
     setSearchOpen(true);
     queueMicrotask(() => searchInput?.focus());
   };
@@ -135,119 +142,134 @@ export function AgentsSidebar(props: AgentsSidebarProps) {
   });
 
   return (
-    <aside class="aside" aria-label="Agents navigation">
+    <ViewSidebar.Root aria-label="Agents navigation">
       <ViewSidebar.Header>
         <div class="flex min-w-0 items-center gap-1">
-          <SplitPanel.CloseButton />
+          <ViewSidebar.CloseButton />
           <ViewSidebar.Title>Agents</ViewSidebar.Title>
         </div>
       </ViewSidebar.Header>
 
-      <div class="content" data-view="agents">
-        <div class="top-actions">
-          <SidebarCreateButton
-            label="New conversation"
-            onCreate={props.onNewConversation}
-          />
-        </div>
+      <ViewSidebar.Primary>
+        <SidebarCreateButton
+          label="New conversation"
+          onCreate={props.onNewConversation}
+        />
+      </ViewSidebar.Primary>
 
-        <section class="recent">
-          <div class="sec-head">
-            <h2>Conversations</h2>
-            <button
-              type="button"
-              class="icon-btn"
+      <ViewSidebar.Content class="overflow-hidden">
+        <CollapsibleSection.Root
+          open={conversationsOpen()}
+          onOpenChange={setConversationsOpen}
+          class={cn(
+            'flex min-h-0 flex-col',
+            conversationsOpen() ? 'flex-1' : 'shrink-0'
+          )}
+        >
+          <CollapsibleSection.Header>
+            <CollapsibleSection.Trigger class="flex-1">
+              <span class="min-w-0 truncate">Conversations</span>
+              <CollapsibleSection.Indicator />
+            </CollapsibleSection.Trigger>
+            <CollapsibleSection.Action
+              label="Search conversations"
               aria-pressed={searchOpen()}
-              aria-label="Search conversations"
+              class={cn(searchOpen() && 'bg-active text-ink')}
               onClick={() => (searchOpen() ? closeSearch() : openSearch())}
             >
-              <MagnifyingGlassIcon class="ph" />
-            </button>
-          </div>
-          <Show when={searchOpen()}>
-            <div class="search">
-              <MagnifyingGlassIcon class="ph" />
-              <input
+              <MagnifyingGlassIcon class="size-3.5" />
+            </CollapsibleSection.Action>
+          </CollapsibleSection.Header>
+          <CollapsibleSection.Content class="flex min-h-0 flex-1 flex-col gap-1">
+            <Show when={searchOpen()}>
+              <SearchBar
                 ref={searchInput}
                 placeholder="Search conversations"
-                aria-label="Search conversations"
+                label="Search conversations"
                 value={props.search}
-                onInput={(event) =>
-                  props.onSearchChange(event.currentTarget.value)
-                }
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape' && !props.search) closeSearch();
+                onValueChange={props.onSearchChange}
+                onEscape={() => {
+                  if (!props.search) closeSearch();
                 }}
+                class="h-9 shrink-0 rounded-xl"
               />
-            </div>
-          </Show>
-          <nav
-            class="list"
-            aria-label="Recent conversations"
-            onScroll={(event) => {
-              const list = event.currentTarget;
-              if (!props.hasNextPage || props.loadingNextPage) return;
-              if (
-                list.scrollTop + list.clientHeight >=
-                list.scrollHeight - 200
-              ) {
-                props.onLoadMore();
-              }
-            }}
-          >
-            <For each={props.groups}>
-              {(group) => (
-                <>
-                  <Show when={group.label}>
-                    {(label) => (
-                      <div class="group-h">
-                        {label()}
-                        <span class="n">{group.conversations.length}</span>
-                      </div>
-                    )}
-                  </Show>
-                  <Key each={group.conversations} by="id">
-                    {(conversation) => (
-                      <Row
-                        conversation={conversation()}
-                        mode={props.modeForConversation(conversation())}
-                        active={
-                          props.activeConversationId === conversation().id
-                        }
-                        handle={props.handleForBot(
-                          conversationBotId(conversation())
-                        )}
-                        onOpen={(event) =>
-                          props.onOpenConversation(conversation(), event)
-                        }
-                      />
-                    )}
-                  </Key>
-                </>
-              )}
-            </For>
-            <Show when={props.loading}>
-              <p class="list-note">Loading conversations…</p>
             </Show>
-            <Show when={props.error}>
-              <button type="button" class="row" onClick={props.onRetry}>
-                <span class="lead" />
-                <span class="truncate">Retry loading</span>
-              </button>
-            </Show>
-            <Show when={!props.loading && !props.error && total() === 0}>
-              <p class="list-note">
-                {props.search.trim()
-                  ? `No results for "${props.search.trim()}"`
-                  : 'No conversations yet.'}
-              </p>
-            </Show>
-            <Show when={props.loadingNextPage}>
-              <p class="list-note">Loading more…</p>
-            </Show>
-          </nav>
-        </section>
-      </div>
-    </aside>
+            <ViewSidebar.Nav
+              class="min-h-0 flex-1 shrink overflow-auto"
+              aria-label="Recent conversations"
+              onScroll={(event) => {
+                const list = event.currentTarget;
+                if (!props.hasNextPage || props.loadingNextPage) return;
+                if (
+                  list.scrollTop + list.clientHeight >=
+                  list.scrollHeight - 200
+                ) {
+                  props.onLoadMore();
+                }
+              }}
+            >
+              <Key each={props.groups} by="id">
+                {(group) => (
+                  <>
+                    <Show when={group().label}>
+                      {(label) => (
+                        <ViewSidebar.Toolbar>
+                          <h3 class="text-xs font-medium text-ink-muted">
+                            {label()}
+                          </h3>
+                          <span class="text-xs text-ink-extra-muted tabular-nums">
+                            {group().conversations.length}
+                          </span>
+                        </ViewSidebar.Toolbar>
+                      )}
+                    </Show>
+                    <Key each={group().conversations} by="id">
+                      {(conversation) => (
+                        <Row
+                          conversation={conversation()}
+                          mode={props.modeForConversation(conversation())}
+                          active={
+                            props.activeConversationId === conversation().id
+                          }
+                          handle={props.handleForBot(
+                            conversationBotId(conversation())
+                          )}
+                          onOpen={(event) =>
+                            props.onOpenConversation(conversation(), event)
+                          }
+                        />
+                      )}
+                    </Key>
+                  </>
+                )}
+              </Key>
+              <Show when={props.loading}>
+                <p class="px-(--sidebar-item-inset) py-2 text-xs text-ink-muted">
+                  Loading conversations…
+                </p>
+              </Show>
+              <Show when={props.error}>
+                <ViewSidebar.Item onClick={props.onRetry}>
+                  <ViewSidebar.Icon />
+                  <span class="truncate">Retry loading</span>
+                </ViewSidebar.Item>
+              </Show>
+              <Show when={!props.loading && !props.error && total() === 0}>
+                <p class="px-(--sidebar-item-inset) py-2 text-xs text-ink-muted">
+                  {props.search.trim()
+                    ? `No results for "${props.search.trim()}"`
+                    : 'No conversations yet.'}
+                </p>
+              </Show>
+              <Show when={props.loadingNextPage}>
+                <p class="px-(--sidebar-item-inset) py-2 text-xs text-ink-muted">
+                  Loading more…
+                </p>
+              </Show>
+            </ViewSidebar.Nav>
+          </CollapsibleSection.Content>
+        </CollapsibleSection.Root>
+      </ViewSidebar.Content>
+    </ViewSidebar.Root>
   );
 }
