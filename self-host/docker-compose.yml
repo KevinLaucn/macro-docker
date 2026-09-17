@@ -70,6 +70,16 @@ services:
       - "-c"
       - |
         rm -rf /out/* && cp -a /srv/frontend/. /out/
+        # 自动化修补前端生产产物 (避免修改官方源码并保持上游合并 0 冲突)
+        for f in /out/app-*.js; do
+          if [ -f "$$f" ]; then
+            sed -i "s/P1=uk\.sonnet5/P1=uk\.gpt56/g" "$$f"
+            sed -i "s/fEt=uk\.haiku45/fEt=uk\.gpt56Mini/g" "$$f"
+            # 自动化修复文档组件卸载时 cDe.get 未捕获异常导致的侧边栏点击卡死问题
+            sed -i 's/const I=cDe\.get();/const I=cDe?.get?.();/g' "$$f"
+            sed -i 's/xe(()=>{h\.stop(),u\.destroy();const I=i()?.documentId;I&&o(I)})/xe(()=>{h.stop(),u.destroy();try{const I=i()?.documentId;I\&\&o(I)}catch{}})/g' "$$f"
+          fi
+        done
         cat <<EOF > /out/env-config.js
         window.__MACRO_ENV__ = {
           ADMIN_EMAIL: "$${ADMIN_EMAIL:-hello@chnprints.com}",
