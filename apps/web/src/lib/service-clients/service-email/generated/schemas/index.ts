@@ -105,7 +105,6 @@ export * from './apiPaginatedThreadCursor';
 export * from './apiPaginatedThreadCursorNextCursor';
 export * from './apiSortMethod';
 export * from './apiThread';
-export * from './apiThreadFollowUpCompletedAt';
 export * from './apiThreadLatestInboundMessageTs';
 export * from './apiThreadLatestNonSpamMessageTs';
 export * from './apiThreadLatestOutboundMessageTs';

@@ -133,6 +133,7 @@ services:
             agents: $${ENABLE_AGENTS:-false},
             docsCollab: false,
             enableNewAppViews: $${ENABLE_NEW_APP_VIEWS:-false},
+            enableSidebarNext: $${ENABLE_SIDEBAR_NEXT:-false},
             enableCrm: $${ENABLE_CRM:-true}
           },
           // ============================================================================
@@ -514,6 +515,18 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      localstack_reconciler:
+        condition: service_healthy
+    networks:
+      - databases
+      - services
+
+  search_upload_worker:
+    <<: *service
+    command: ["/app/out/search_upload_local_worker"]
+    depends_on:
+      document_storage_service:
+        condition: service_started
       localstack_reconciler:
         condition: service_healthy
     networks:

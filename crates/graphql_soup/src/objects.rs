@@ -1288,10 +1288,6 @@ where
         self.0.thread.is_important
     }
 
-    /// Whether the thread workflow is done.
-    async fn workflow_done(&self) -> bool {
-        self.0.thread.workflow_done
-    }
     /// The denormalized `email_threads.is_signal` importance classification —
     /// the same flag the soup Importance filter evaluates, distinct from
     /// `is_important` (Gmail's IMPORTANT label).

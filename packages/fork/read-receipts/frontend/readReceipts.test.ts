@@ -1,6 +1,4 @@
-// @vitest-environment jsdom
-
-import { QueryClient } from '@tanstack/solid-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { describe, expect, it } from 'vitest';
 import { readReceiptsClient } from './client';
 import {
@@ -213,5 +211,46 @@ describe('batching read receipt status queries', () => {
     }>(['email', 'read-receipt-thread', 'thread-1']);
     expect(threadCached?.is_opened).toBe(true);
     expect(threadCached?.open_count).toBe(1);
+  });
+});
+
+import { createComponent, createRoot, createSignal } from 'solid-js';
+import {
+  useEmailListEnvelopeClass,
+  useEmailListEnvelopeHighlight,
+} from './queries';
+
+describe('useEmailListEnvelopeHighlight', () => {
+  it('highlights envelope with !text-orange strictly when sent email is opened', () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(['email', 'read-receipt-thread', 'thread-1'], {
+      thread_id: 'thread-1',
+      latest_sent_message_id: 'msg-1',
+      is_opened: true,
+    });
+
+    createRoot((dispose) => {
+      createComponent(QueryClientProvider, {
+        client: queryClient,
+        get children() {
+          const [sentEntity] = createSignal({
+            type: 'email',
+            id: 'thread-1',
+            emailIdentityViewMode: 'sent',
+          });
+          const [inboxEntity] = createSignal({
+            type: 'email',
+            id: 'thread-1',
+            emailIdentityViewMode: 'inbox',
+          });
+
+          expect(useEmailListEnvelopeHighlight(sentEntity)()).toBe(true);
+          expect(useEmailListEnvelopeClass(sentEntity)()).toBe('!text-orange');
+          expect(useEmailListEnvelopeHighlight(inboxEntity)()).toBe(false);
+          return null;
+        },
+      });
+      dispose();
+    });
   });
 });

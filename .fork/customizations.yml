@@ -61,6 +61,9 @@ customizations:
       - apps/web/src/lib/queries/email/readReceipts.ts
       - apps/web/src/lib/queries/sync/SyncProvider.tsx
       - apps/web/src/lib/service-clients/service-email/readReceiptsClient.ts
+      - apps/web/src/features/entity/extractors/entity-icon.tsx
+      - apps/web/src/features/email-view/queries/use-email-query.ts
+      - apps/web/src/index.css
       - package.json
       - apps/web/vitest.config.ts
       - .github/workflows/upstream-sync-test-group.yml
@@ -125,6 +128,23 @@ customizations:
       - apps/web/src/lib/core/constant/featureFlags.ts
       - services/sync-service/wrangler.docker.toml
       - services/document_cognition_service/src/service/chat_renamer.rs
+    tests:
+      - conventions
+      - selfhost-config
+
+  - id: SELFHOST-SEARCH-UPLOAD-001
+    title: Self-host document search upload bridge
+    rationale: In official AWS, services/search_upload_handler forwards S3/EventBridge document upload events to DSS, which emits DocumentTopicEvent::ContentUploaded to drive Search Processor. Self-host uses LocalStack without AWS EventBridge/Lambda pipelines; packages/fork/search-upload-worker and self-host infrastructure replicate identical event semantics while maintaining 0 diff against upstream search_upload_handler.
+    risk: high
+    paths:
+      - packages/fork/search-upload-worker/**
+      - self-host/init/reconcile-localstack.sh
+      - self-host/docker-compose.yml
+      - self-host/.env.example
+      - self-host/scripts/check-drift.py
+      - nix/cloud-storage.nix
+      - Cargo.toml
+      - .fork/private-hooks.yml
     tests:
       - conventions
       - selfhost-config

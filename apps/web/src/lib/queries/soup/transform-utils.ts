@@ -439,8 +439,7 @@ export const useSearchResponseItemMapper = () => {
             isRead: result.is_read,
             isImportant: result.is_important,
             isDraft: result.is_draft,
-            done:
-              (result as { workflow_done?: boolean }).workflow_done ?? false,
+            done: !result.inbox_visible,
             participants,
             search,
             snippet: result.snippet ?? undefined,
@@ -788,7 +787,7 @@ export const mapApiSoupItemToEntity = (
         senderEmail: item.data.senderEmail ?? undefined,
         senderName: item.data.senderName ?? undefined,
         snippet: item.data.snippet ?? undefined,
-        done: item.data.workflowDone ?? false,
+        done: !item.data.inboxVisible,
         type: 'email',
         name: item.data.name || 'Email Thread',
         frecencyScore: item.frecency_score,

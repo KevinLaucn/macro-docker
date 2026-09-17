@@ -24,11 +24,7 @@ import {
 } from '@tanstack/solid-query';
 import { err, ok } from 'neverthrow';
 import type { Accessor } from 'solid-js';
-import {
-  optimisticUpdateSoupEntity,
-  refetchSoupEntity,
-  restoreSoupEntityToDoneFilteredQueries,
-} from '../soup/cache';
+import { optimisticUpdateSoupEntity, refetchSoupEntity } from '../soup/cache';
 import { invalidateAllSoup } from '../soup/normalized-cache';
 import { type UndoHandle, useUndoableMutation } from '../undo';
 import { type MutationCallbacks, withCallbacks } from '../utils';
@@ -415,12 +411,11 @@ type ArchiveThreadContext = {
   previousData: InfiniteData<Thread, number> | undefined;
 };
 
-/** Optimistically set `inbox_visible` and `workflow_done` when archiving a thread. */
+/** Optimistically set `inbox_visible` when archiving a thread. */
 async function threadArchiveOnMutate(params: ArchiveThreadParams) {
   await queryClient.cancelQueries({
     queryKey: emailKeys.threadMessages(params.threadId).queryKey,
   });
-
   const previousData = queryClient.getQueryData<InfiniteData<Thread, number>>(
     emailKeys.threadMessages(params.threadId).queryKey
   );
@@ -433,7 +428,6 @@ async function threadArchiveOnMutate(params: ArchiveThreadParams) {
         pages: old.pages.map((page: Thread) => ({
           ...page,
           inbox_visible: !params.archive,
-          workflow_done: params.archive,
         })),
       }
   );
@@ -609,25 +603,17 @@ export function useSendMessageMutation(
                   queryKey: emailKeys.threadMessages(threadID).queryKey,
                 })
                 .catch(Telemetry.error);
-              // Sending a reply reactivates the workflow immediately in local
-              // cache, using the same restore-first pattern as Undo: flip the
-              // entity to not-done and put it straight back into Important/Inbox
-              // style done-filtered views. Do not wait for Gmail/provider sync or
-              // refetch here; an early server read can still carry the previous
-              // workflow_done=true and overwrite the correct optimistic UI.
+              // Refresh the thread's soup item so inbox views stop showing it
+              // as a draft once the message is sent.
               if (!vars.skipSoupRefetch) {
-                optimisticUpdateSoupEntity({
-                  tag: 'emailThread',
-                  data: { id: threadID, workflowDone: false },
-                  frecency_score: 0,
-                });
-                restoreSoupEntityToDoneFilteredQueries(threadID);
+                void refetchSoupEntity(threadID, 'emailThread').catch(
+                  Telemetry.error
+                );
               }
             }
             void queryClient
               .invalidateQueries({
                 queryKey: emailKeys.previews._def,
-                refetchType: 'none',
               })
               .catch(Telemetry.error);
           } catch (error) {

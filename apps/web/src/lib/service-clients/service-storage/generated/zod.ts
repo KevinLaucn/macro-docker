@@ -10396,9 +10396,6 @@ export const getItemsSoupResponse = zod
                     .describe(
                       'Timestamp when the requesting user last viewed the thread.'
                     ),
-                  workflowDone: zod
-                    .boolean()
-                    .describe('Whether the thread workflow is done.'),
                 })
                 .describe('Email thread preview data as displayed in Soup.')
                 .and(
@@ -14368,9 +14365,6 @@ export const postItemsSoupResponse = zod
                     .describe(
                       'Timestamp when the requesting user last viewed the thread.'
                     ),
-                  workflowDone: zod
-                    .boolean()
-                    .describe('Whether the thread workflow is done.'),
                 })
                 .describe('Email thread preview data as displayed in Soup.')
                 .and(
@@ -17781,9 +17775,6 @@ export const postItemsSoupAstResponse = zod
                     .describe(
                       'Timestamp when the requesting user last viewed the thread.'
                     ),
-                  workflowDone: zod
-                    .boolean()
-                    .describe('Whether the thread workflow is done.'),
                 })
                 .describe('Email thread preview data as displayed in Soup.')
                 .and(
@@ -21467,9 +21458,6 @@ export const postItemsSoupAstGroupedResponse = zod
                           .describe(
                             'Timestamp when the requesting user last viewed the thread.'
                           ),
-                        workflowDone: zod
-                          .boolean()
-                          .describe('Whether the thread workflow is done.'),
                       })
                       .describe(
                         'Email thread preview data as displayed in Soup.'
@@ -24878,9 +24866,6 @@ export const postItemsSoupAstGroupedResponse = zod
                           .describe(
                             'Timestamp when the requesting user last viewed the thread.'
                           ),
-                        workflowDone: zod
-                          .boolean()
-                          .describe('Whether the thread workflow is done.'),
                       })
                       .describe(
                         'Email thread preview data as displayed in Soup.'

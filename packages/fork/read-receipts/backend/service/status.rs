@@ -35,7 +35,9 @@ pub struct ReadReceiptStatusesResponse {
 #[derive(Debug, Clone, sqlx::FromRow, Serialize)]
 pub struct ThreadReadReceiptStatus {
     pub thread_id: Uuid,
+    pub latest_sent_message_id: Uuid,
     pub latest_message_id: Uuid,
+    #[serde(default)]
     pub is_last_message_sent: bool,
     pub is_opened: bool,
     pub open_count: i32,
@@ -171,8 +173,9 @@ pub async fn thread_batch_handler(
         r#"
         SELECT DISTINCT ON (m.thread_id)
             m.thread_id,
+            m.id AS latest_sent_message_id,
             m.id AS latest_message_id,
-            m.is_sent AS is_last_message_sent,
+            true AS is_last_message_sent,
             (COALESCE(m.open_count, 0) > 0 AND m.open_tracking_token IS NOT NULL) AS is_opened,
             COALESCE(m.open_count, 0) AS open_count,
             m.first_opened_at,
@@ -180,6 +183,7 @@ pub async fn thread_batch_handler(
         FROM email_messages m
         WHERE m.thread_id = ANY($1)
           AND m.link_id = ANY($2)
+          AND m.is_sent = true
           AND m.is_draft = false
         ORDER BY m.thread_id, COALESCE(m.internal_date_ts, m.sent_at, m.created_at) DESC, m.id DESC
         "#,

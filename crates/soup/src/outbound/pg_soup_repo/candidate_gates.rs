@@ -327,3 +327,51 @@ pub(super) fn includes_email_threads(filter: Option<&EntityFilterAst>, link_ids:
             &[PropertyEntityType::Thread],
         )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use filter_ast::Expr;
+    use item_filters::ast::email::EmailFilterAst;
+
+    #[test]
+    fn email_gate_importance_and_inbox_visible() {
+        let signal_filter = EntityFilterAst {
+            email_filter: EmailFilterAst {
+                tree: Some(Box::new(Expr::Literal(EmailLiteral::Importance(true)))),
+            },
+            ..Default::default()
+        };
+        let gate_signal = email_gate("id", Some(&signal_filter));
+        assert!(gate_signal.contains("et.is_signal"));
+        assert!(!gate_signal.contains("workflow_done"));
+        assert!(!gate_signal.contains("follow_up_completed_at"));
+
+        let noise_filter = EntityFilterAst {
+            email_filter: EmailFilterAst {
+                tree: Some(Box::new(Expr::Literal(EmailLiteral::Importance(false)))),
+            },
+            ..Default::default()
+        };
+        let gate_noise = email_gate("id", Some(&noise_filter));
+        assert!(gate_noise.contains("NOT et.is_signal"));
+
+        let done_filter = EntityFilterAst {
+            email_filter: EmailFilterAst {
+                tree: Some(Box::new(Expr::Literal(EmailLiteral::InboxVisible(false)))),
+            },
+            ..Default::default()
+        };
+        let gate_done = email_gate("id", Some(&done_filter));
+        assert!(gate_done.contains("NOT et.inbox_visible"));
+
+        let inbox_filter = EntityFilterAst {
+            email_filter: EmailFilterAst {
+                tree: Some(Box::new(Expr::Literal(EmailLiteral::InboxVisible(true)))),
+            },
+            ..Default::default()
+        };
+        let gate_inbox = email_gate("id", Some(&inbox_filter));
+        assert!(gate_inbox.contains("et.inbox_visible"));
+    }
+}

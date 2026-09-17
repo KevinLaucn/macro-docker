@@ -13,6 +13,7 @@ fn thread_read_receipt_status_serialization() {
     let message_id = Uuid::new_v4();
     let status = ThreadReadReceiptStatus {
         thread_id,
+        latest_sent_message_id: message_id,
         latest_message_id: message_id,
         is_last_message_sent: true,
         is_opened: true,

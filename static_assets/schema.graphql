@@ -5132,10 +5132,6 @@ type GraphqlSoupEmailThread implements GraphqlSoupEntity {
 	"""
 	isImportant: Boolean!
 	"""
-	Whether the thread workflow is done.
-	"""
-	workflowDone: Boolean!
-	"""
 	The denormalized `email_threads.is_signal` importance classification —
 	the same flag the soup Importance filter evaluates, distinct from
 	`is_important` (Gmail's IMPORTANT label).

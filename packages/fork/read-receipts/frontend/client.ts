@@ -21,8 +21,9 @@ export type ReadReceiptStatusesResponse = {
 
 export type ThreadReadReceiptStatusData = {
   thread_id: string;
-  latest_message_id: string;
-  is_last_message_sent: boolean;
+  latest_sent_message_id: string;
+  latest_message_id?: string;
+  is_last_message_sent?: boolean;
   is_opened: boolean;
   open_count: number;
   first_opened_at: string | null;

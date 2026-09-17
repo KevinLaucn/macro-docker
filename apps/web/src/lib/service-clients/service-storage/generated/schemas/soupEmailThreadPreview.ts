@@ -55,6 +55,4 @@ the same flag the soup Importance filter evaluates, distinct from
   updatedAt: string;
   /** Timestamp when the requesting user last viewed the thread. */
   viewedAt?: SoupEmailThreadPreviewViewedAt;
-  /** Whether the thread workflow is done. */
-  workflowDone: boolean;
 }

@@ -95,7 +95,6 @@ pub struct EmailThreadPreview {
     pub viewed_at: Option<DateTime<Utc>>,
     pub project_id: Option<String>,
     pub link_id: Uuid,
-    pub workflow_done: bool,
 }
 
 #[non_exhaustive]

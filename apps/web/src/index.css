@@ -4,6 +4,7 @@
 @source inline("z-{popup-viewer,viewer-definition-lookup}");
 @source './lib/core/component/LexicalMarkdown/theme.ts';
 @source '../**/*.tsx';
+@source '../../../packages/fork/read-receipts/frontend/**/*.{ts,tsx}';
 
 @property --a0l { syntax: "<number>"; inherits: true; initial-value:   0.88; }
 @property --a0c { syntax: "<number>"; inherits: true; initial-value:   0.20; }

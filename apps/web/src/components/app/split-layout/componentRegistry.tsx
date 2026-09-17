@@ -21,6 +21,7 @@ import { SoupView } from '@app/features/next-soup/soup-view/soup-view';
 import { useRecentViewFlag } from '@app/features/next-soup/use-recent-view-flag';
 import { ReminderEditorSplit } from '@app/features/reminders/ReminderEditorSplit';
 import { SettingsPanelComponentWrapper } from '@app/features/settings/Settings';
+import { TasksView } from '@app/features/tasks-view/tasks-view';
 import { useAnalytics } from '@app/lib/analytics/analytics-context';
 import { useFeatureFlag, usePosthog } from '@app/lib/analytics/posthog';
 import { globalSplitManager } from '@app/signal/splitLayout';
@@ -499,9 +500,24 @@ function LegacyTasksView() {
   );
 }
 
+// PRIVATE-HOOK: tasks-view:enable-new-app-views
+function FeatureGatedTasksView() {
+  const newAppViews = useNewAppViews({
+    enabledLayout: () => (isTouchDevice() ? 'legacy' : 'composable'),
+  });
+
+  return (
+    <Show when={newAppViews.ready()} fallback={<LoadingBlock />}>
+      <Show when={newAppViews.enabled()} fallback={<LegacyTasksView />}>
+        <TasksView />
+      </Show>
+    </Show>
+  );
+}
+
 function RegisteredTasksView() {
   usePageViewTracking('tasks');
-  return <LegacyTasksView />;
+  return <FeatureGatedTasksView />;
 }
 
 registerComponent('tasks', withAuth(RegisteredTasksView));
@@ -541,6 +557,9 @@ function RegisteredChannelsView() {
 
 registerComponent('channels', withAuth(RegisteredChannelsView));
 
+// 架构说明: calls (通话记录) / folders (文件夹) / reminders (待办提醒) / recent (最近) 等辅助模块
+// 官方底层依托通用的成熟 SoupView 实体引擎与列表过滤器，并未设计独立 Composable View，
+// 在外层统一由新版 SidebarRail 窄边导轨直接导航和呼出。
 registerComponent(
   'calls',
   withAuth(() => {

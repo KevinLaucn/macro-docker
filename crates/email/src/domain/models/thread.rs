@@ -38,16 +38,6 @@ pub struct ThreadRow {
     pub updated_at: DateTime<Utc>,
     /// The project this thread belongs to, if any.
     pub project_id: Option<String>,
-    /// When the user completed the follow up on this thread.
-    pub follow_up_completed_at: Option<DateTime<Utc>>,
-    /// Authoritative Macro workflow completion status.
-    pub workflow_done: bool,
-}
-
-/// Computes authoritative Macro email workflow completion.
-/// An email workflow is done when the thread is not visible in inbox (!inbox_visible).
-pub fn is_email_workflow_done(inbox_visible: bool) -> bool {
-    !inbox_visible
 }
 
 /// A fully assembled email thread with paginated messages.
@@ -57,15 +47,4 @@ pub struct Thread {
     pub row: ThreadRow,
     /// Paginated messages in the thread.
     pub messages: Vec<Message>,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_workflow_done() {
-        assert!(!is_email_workflow_done(true));
-        assert!(is_email_workflow_done(false));
-    }
 }

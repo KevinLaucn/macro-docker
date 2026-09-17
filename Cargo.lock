@@ -14691,6 +14691,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "search_upload_worker"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aws-sdk-sqs",
+ "document_storage_service_client",
+ "macro_aws_config",
+ "macro_entrypoint",
+ "macro_env_var",
+ "macro_service_urls",
+ "s3_key",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "urlencoding",
+ "workspace-hack",
+]
+
+[[package]]
 name = "sec1"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -242,13 +242,11 @@ impl SelfHostHealthService {
 
             queued_backfill_threads = thread_ids.len();
             if !thread_ids.is_empty() {
-                let internal_api_key = macro_env_var::maybe_read_env("INTERNAL_API_SECRET_KEY")
-                    .unwrap_or_default();
+                let internal_api_key =
+                    macro_env_var::maybe_read_env("INTERNAL_API_SECRET_KEY").unwrap_or_default();
                 let sps_url = macro_env_var::maybe_read_env("SEARCH_PROCESSING_URL")
                     .or_else(|| macro_env_var::maybe_read_env("SEARCH_PROCESSING_SERVICE_URL"))
-                    .unwrap_or_else(|| {
-                        "http://search-processing-service:8080".to_string()
-                    });
+                    .unwrap_or_else(|| "http://search-processing-service:8080".to_string());
                 let mut req = client
                     .post(format!(
                         "{sps_url}/search-processing/internal/backfill/emails"
@@ -526,9 +524,7 @@ impl SelfHostHealthService {
                 let message = models_email::gmail::inbox_sync::InboxSyncPubsubMessage {
                     link_id,
                     operation: models_email::gmail::inbox_sync::InboxSyncOperation::GmailMessage(
-                        models_email::gmail::inbox_sync::GmailMessagePayload {
-                            history_id,
-                        },
+                        models_email::gmail::inbox_sync::GmailMessagePayload { history_id },
                     ),
                 };
                 match self

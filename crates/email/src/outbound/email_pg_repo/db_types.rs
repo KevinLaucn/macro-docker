@@ -44,9 +44,6 @@ pub struct ThreadPreviewCursorDbRow {
     pub viewed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub follow_up_completed_at: Option<DateTime<Utc>>,
-    pub latest_inbound_message_ts: Option<DateTime<Utc>>,
-    pub latest_outbound_message_ts: Option<DateTime<Utc>>,
     pub project_id: Option<String>,
     /// The macro user ID of the thread owner, resolved from email_links.
     pub owner_id: String,
@@ -120,15 +117,10 @@ impl ThreadPreviewCursorDbRow {
             viewed_at,
             created_at,
             updated_at,
-            follow_up_completed_at: _,
-            latest_inbound_message_ts: _,
-            latest_outbound_message_ts: _,
             project_id,
             owner_id,
             link_id,
         } = self;
-
-        let workflow_done = crate::domain::models::is_email_workflow_done(inbox_visible);
 
         EmailThreadPreview {
             id,
@@ -152,7 +144,6 @@ impl ThreadPreviewCursorDbRow {
             viewed_at,
             project_id,
             link_id,
-            workflow_done,
         }
     }
 }
@@ -190,12 +181,10 @@ pub struct DbThreadRow {
     pub created_at: chrono::DateTime<Utc>,
     pub updated_at: chrono::DateTime<Utc>,
     pub project_id: Option<String>,
-    pub follow_up_completed_at: Option<DateTime<Utc>>,
 }
 
 impl From<DbThreadRow> for ThreadRow {
     fn from(row: DbThreadRow) -> Self {
-        let workflow_done = crate::domain::models::is_email_workflow_done(row.inbox_visible);
         Self {
             db_id: row.id,
             provider_id: row.provider_id,
@@ -208,8 +197,6 @@ impl From<DbThreadRow> for ThreadRow {
             created_at: row.created_at,
             updated_at: row.updated_at,
             project_id: row.project_id,
-            follow_up_completed_at: row.follow_up_completed_at,
-            workflow_done,
         }
     }
 }

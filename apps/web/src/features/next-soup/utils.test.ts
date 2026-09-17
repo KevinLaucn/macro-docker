@@ -56,6 +56,8 @@ vi.mock('@queries/client', () => ({
   queryClient: {
     cancelQueries: operationMocks.cancelQueries,
     invalidateQueries: operationMocks.invalidateQueries,
+    getQueriesData: vi.fn(() => []),
+    setQueryData: vi.fn(),
   },
 }));
 vi.mock('@queries/notification/entity-mutations', () => ({
@@ -807,7 +809,7 @@ describe('getRowClickFallbackLocation', () => {
 });
 
 describe('applyEntitiesDoneOptimistic and applyEntitiesNotDoneOptimistic', () => {
-  it('patches emailThread entity with workflowDone: true on Mark Done', () => {
+  it('patches emailThread entity with inboxVisible: false on Mark Done', () => {
     const handle = applyEntitiesDoneOptimistic({
       entityIds: ['e-1'],
       emailIds: ['e-1'],
@@ -819,7 +821,7 @@ describe('applyEntitiesDoneOptimistic and applyEntitiesNotDoneOptimistic', () =>
         tag: 'emailThread',
         data: expect.objectContaining({
           id: 'e-1',
-          workflowDone: true,
+          inboxVisible: false,
         }),
       })
     );
@@ -828,7 +830,7 @@ describe('applyEntitiesDoneOptimistic and applyEntitiesNotDoneOptimistic', () =>
     expect(() => handle.rollback()).not.toThrow();
   });
 
-  it('patches emailThread entity with workflowDone: false on Mark Not Done', () => {
+  it('patches emailThread entity with inboxVisible: true on Mark Not Done', () => {
     const handle = applyEntitiesNotDoneOptimistic({
       emailIds: ['e-1'],
       notificationIds: [],
@@ -839,7 +841,7 @@ describe('applyEntitiesDoneOptimistic and applyEntitiesNotDoneOptimistic', () =>
         tag: 'emailThread',
         data: expect.objectContaining({
           id: 'e-1',
-          workflowDone: false,
+          inboxVisible: true,
         }),
       })
     );

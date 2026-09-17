@@ -210,55 +210,21 @@ const syncOrigin =
     ? 'https://dev.macro.com'
     : 'https://macro.com';
 
-export async function dssFetch(
+export function dssFetch(
   url: string,
   init?: SafeFetchInit
 ): Promise<Result<void, ResultError<FetchWithTokenErrorCode>[]>>;
-export async function dssFetch<T extends Record<string, any>>(
+export function dssFetch<T extends Record<string, any>>(
   url: string,
   init?: SafeFetchInit
 ): Promise<Result<T, ResultError<FetchWithTokenErrorCode>[]>>;
-export async function dssFetch<T extends Record<string, any> = never>(
+export function dssFetch<T extends Record<string, any> = never>(
   url: string,
   init?: SafeFetchInit
-): Promise<
-  | Result<T, ResultError<FetchWithTokenErrorCode>[]>
-  | Result<void, ResultError<FetchWithTokenErrorCode>[]>
-> {
-  const result = await fetchWithToken<T>(`${dssHost}${url}`, init);
-  if (result.isErr()) {
-    // Graceful fallback for standalone deployments when remote cloud storage is unreachable or CORS blocked
-    if (url.includes('/items/soup/ast/grouped')) {
-      return ok({ items: [], groups: [], mode: 'initial' } as unknown as T);
-    }
-    if (url.includes('/items/soup')) {
-      return ok({ items: [], next_cursor: null } as unknown as T);
-    }
-    if (url.includes('/channels/activity') || url.includes('/activity')) {
-      return ok([] as unknown as T);
-    }
-    if (url.includes('/channels')) {
-      return ok({ items: [], channels: [], next_cursor: null } as unknown as T);
-    }
-    if (url.includes('/calendar-events')) {
-      return ok({ occurrences: [], next_cursor: null } as unknown as T);
-    }
-    if (url.includes('/user-api-keys')) {
-      return ok({ keys: [] } as unknown as T);
-    }
-    if (url.includes('/bots') || url.includes('/agents')) {
-      return ok([] as unknown as T);
-    }
-    if (url.includes('/crm/settings')) {
-      return ok({
-        edit_stages_role: 'admin',
-        move_closed_deals_role: 'admin',
-        delete_records_role: 'admin',
-        team_views: [],
-      } as unknown as T);
-    }
-  }
-  return result;
+):
+  | Promise<Result<T, ResultError<FetchWithTokenErrorCode>[]>>
+  | Promise<Result<void, ResultError<FetchWithTokenErrorCode>[]>> {
+  return fetchWithToken<T>(`${dssHost}${url}`, init);
 }
 
 export async function getDocumentPermissionToken(

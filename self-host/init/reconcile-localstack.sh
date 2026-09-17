@@ -27,6 +27,18 @@ while true; do
       echo "LocalStack is healthy (transitioned from ${prev_state}). Reconciling upstream resources via ${PROVISIONER}..."
       if "$PROVISIONER" --url "$ENDPOINT"; then
         echo "LocalStack resources successfully reconciled."
+        # Self-host extension: wire search-upload-queue to S3 doc-storage ObjectCreated events
+        aws --endpoint-url="$ENDPOINT" sqs create-queue --queue-name search-upload-queue >/dev/null 2>&1 || true
+        search_queue_arn="arn:aws:sqs:us-east-1:000000000000:search-upload-queue"
+        finalizer_queue_arn="arn:aws:sqs:us-east-1:000000000000:document-upload-finalizer-queue"
+        source_arn="arn:aws:s3:::doc-storage"
+        search_policy="{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":\"sqs:SendMessage\",\"Resource\":\"$search_queue_arn\",\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"$source_arn\"}}}]}"
+        aws --endpoint-url="$ENDPOINT" sqs set-queue-attributes \
+          --queue-url "$ENDPOINT/000000000000/search-upload-queue" \
+          --attributes "{\"Policy\":$(echo "$search_policy" | jq -R .)}" >/dev/null 2>&1 || true
+        aws --endpoint-url="$ENDPOINT" s3api put-bucket-notification-configuration \
+          --bucket doc-storage \
+          --notification-configuration "{\"QueueConfigurations\":[{\"Id\":\"document-upload-finalizer\",\"QueueArn\":\"$finalizer_queue_arn\",\"Events\":[\"s3:ObjectCreated:*\"]},{\"Id\":\"document-search-upload\",\"QueueArn\":\"$search_queue_arn\",\"Events\":[\"s3:ObjectCreated:*\"]}]}" >/dev/null 2>&1 || true
         touch /tmp/localstack-ready
         prev_state="up"
       else

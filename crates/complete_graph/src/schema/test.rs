@@ -1563,7 +1563,6 @@ fn soup_email_thread_with_read_status(thread_id: Uuid, is_read: bool) -> SoupIte
             updated_at: Default::default(),
             viewed_at: None,
             project_id: None,
-            workflow_done: false,
         },
         attachments: Vec::new(),
         participants: vec![SoupContact {

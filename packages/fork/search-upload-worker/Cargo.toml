@@ -1,0 +1,25 @@
+[package]
+name = "search_upload_worker"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "search_upload_local_worker"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+aws-sdk-sqs = { workspace = true }
+document_storage_service_client = { path = "../../../crates/document_storage_service_client" }
+macro_aws_config = { path = "../../../crates/macro_aws_config" }
+macro_entrypoint = { path = "../../../crates/macro_entrypoint" }
+macro_env_var = { path = "../../../crates/macro_env_var" }
+macro_service_urls = { path = "../../../crates/macro_service_urls" }
+s3_key = { path = "../../../crates/s3_key" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+urlencoding = { workspace = true }
+workspace-hack = { version = "0.1", path = "../../../crates/workspace-hack" }

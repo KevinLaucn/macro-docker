@@ -1,5 +1,5 @@
-import CheckIcon from '@phosphor-icons/core/regular/check.svg?component-solid';
-import ChecksIcon from '@phosphor-icons/core/regular/checks.svg?component-solid';
+import CheckIcon from '@phosphor-icons/core/bold/check-bold.svg?component-solid';
+import ChecksIcon from '@phosphor-icons/core/bold/checks-bold.svg?component-solid';
 import { cn, Tooltip } from '@ui';
 import { createMemo, Show } from 'solid-js';
 import { useReadReceiptStatusQuery } from './queries';
@@ -50,9 +50,11 @@ export function ReadReceiptStatus(props: ReadReceiptStatusProps) {
         >
           <Show
             when={isOpened()}
-            fallback={<CheckIcon class="size-3.5" />}
+            fallback={
+              <CheckIcon class="size-3.5 stroke-current [stroke-width:12px]" />
+            }
           >
-            <ChecksIcon class="size-3.5" />
+            <ChecksIcon class="size-4 stroke-current [stroke-width:12px]" />
           </Show>
           <Show when={!props.showIconOnly}>
             <span>{formatted().label}</span>

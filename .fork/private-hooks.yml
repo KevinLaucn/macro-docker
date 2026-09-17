@@ -370,7 +370,14 @@ hooks:
   - id: email_read_receipts_list_envelope
     file: apps/web/src/features/entity/extractors/entity-icon.tsx
     marker: "// PRIVATE-HOOK: read_receipts:list-envelope"
-    expected: "const envelopeClass = useEmailListEnvelopeClass(() => props.entity);"
+    expected: "const envelopeHighlight = useEmailListEnvelopeHighlight(() => props.entity);"
     context:
       - "export function EntityIcon(props: EntityIconProps) {"
+  - id: search_upload_worker_workspace_member
+    file: Cargo.toml
+    marker: "# PRIVATE-HOOK: search_upload_worker:workspace_member"
+    expected: '"packages/fork/search-upload-worker",'
+    context:
+      - "members = ["
+
 

@@ -14,7 +14,6 @@ fragment EmailThreadPageFields on GraphqlSoupEmailThread {
 	linkId
 	inboxVisible
 	isRead
-	workflowDone
 	projectId
 	latestInboundMessageTs
 	createdAt

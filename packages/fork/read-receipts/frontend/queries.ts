@@ -156,7 +156,10 @@ export function handleReadReceiptOpenedEvent(
   queryClient.setQueriesData<ThreadReadReceiptStatusData>(
     { queryKey: ['email', 'read-receipt-thread'] },
     (old) => {
-      if (!old || old.latest_message_id !== messageId) return old;
+      if (!old) return old;
+      const targetMessageId =
+        old.latest_sent_message_id || old.latest_message_id;
+      if (targetMessageId !== messageId) return old;
       return {
         ...old,
         is_opened: true,
@@ -190,6 +193,7 @@ async function resolveThreadReadReceiptStatusChunk(
     for (const id of chunkIds) {
       const status = statusMap.get(id) ?? {
         thread_id: id,
+        latest_sent_message_id: '',
         latest_message_id: '',
         is_last_message_sent: false,
         is_opened: false,
@@ -263,6 +267,7 @@ export function useThreadReadReceiptStatusQuery(
         if (!id) {
           return {
             thread_id: '',
+            latest_sent_message_id: '',
             latest_message_id: '',
             is_last_message_sent: false,
             is_opened: false,
@@ -291,11 +296,11 @@ export function useThreadReadReceiptStatusQuery(
 }
 
 /**
- * Checks if the last email in a thread was sent by us and opened by the recipient,
- * returning '!text-accent' to style the list envelope orange.
+ * Checks if the most recent email sent by us in a thread was opened by the recipient,
+ * returning true to indicate that the list envelope should be highlighted.
  * Restricted strictly to the Sent view ('sent').
  */
-export function useEmailListEnvelopeClass(
+export function useEmailListEnvelopeHighlight(
   entity: Accessor<
     | {
         type?: string;
@@ -304,7 +309,7 @@ export function useEmailListEnvelopeClass(
       }
     | undefined
   >
-): Accessor<string | undefined> {
+): Accessor<boolean> {
   const isEligible = () => {
     const e = entity();
     if (!e || e.type !== 'email') return false;
@@ -318,13 +323,28 @@ export function useEmailListEnvelopeClass(
   }, isEligible);
 
   return () => {
-    if (!isEligible()) return undefined;
+    if (!isEligible()) return false;
     const data = query.data;
-    if (data?.is_last_message_sent && data.is_opened) {
-      return '!text-orange';
-    }
-    return undefined;
+    return Boolean(data?.is_opened);
   };
+}
+
+/**
+ * Backward-compatible helper returning '!text-orange' when highlighted.
+ * Restricted strictly to the Sent view ('sent').
+ */
+export function useEmailListEnvelopeClass(
+  entity: Accessor<
+    | {
+        type?: string;
+        id?: string;
+        emailIdentityViewMode?: string;
+      }
+    | undefined
+  >
+): Accessor<string | undefined> {
+  const isHighlighted = useEmailListEnvelopeHighlight(entity);
+  return () => (isHighlighted() ? '!text-orange' : undefined);
 }
 
 export function useReadReceiptsPreferenceQuery(

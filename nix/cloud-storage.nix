@@ -767,6 +767,11 @@
           binaries = [ "document_upload_finalizer_local_worker" ];
         }
         {
+          serviceName = "search-upload-worker";
+          packageName = "search_upload_worker";
+          binaries = [ "search_upload_local_worker" ];
+        }
+        {
           serviceName = "macro-db-migrator";
           packageName = "macro_db_migrator";
           binaries = [ "macro_db_migrate" ];

@@ -5,6 +5,7 @@ export {
 export {
   handleReadReceiptOpenedEvent,
   useEmailListEnvelopeClass,
+  useEmailListEnvelopeHighlight,
   useReadReceiptStatusQuery,
   useThreadReadReceiptStatusQuery,
 } from '@macro/fork-read-receipts/queries';

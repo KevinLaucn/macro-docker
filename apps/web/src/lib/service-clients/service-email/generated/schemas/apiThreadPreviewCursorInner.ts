@@ -30,5 +30,4 @@ export interface ApiThreadPreviewCursorInner {
   sortTs: string;
   updatedAt: string;
   viewedAt?: ApiThreadPreviewCursorInnerViewedAt;
-  workflowDone: boolean;
 }

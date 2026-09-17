@@ -336,8 +336,6 @@ where
             latest_inbound_message_ts: None,
             latest_outbound_message_ts: None,
             latest_non_spam_message_ts: None,
-            follow_up_completed_at: None,
-            workflow_done: false,
             created_at: now,
             updated_at: now,
             project_id: None,

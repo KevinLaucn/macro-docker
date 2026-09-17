@@ -58,7 +58,24 @@
 		}
 	}
 	handle_path /dss/* {
-		reverse_proxy document-storage-service:8080
+		# Keepalive prevents idle connection race conditions between Caddy and upstream Axum/Hyper
+		# Only safe read requests (GET/HEAD) are eligible for transient dial retries;
+		# mutations (POST/PUT/PATCH/DELETE) never retry to avoid non-idempotent duplication risks.
+		@dss_safe method GET HEAD
+		reverse_proxy @dss_safe document-storage-service:8080 {
+			transport http {
+				keepalive 30s
+				keepalive_idle_conns 100
+			}
+			lb_try_duration 4s
+			lb_try_interval 250ms
+		}
+		reverse_proxy document-storage-service:8080 {
+			transport http {
+				keepalive 30s
+				keepalive_idle_conns 100
+			}
+		}
 	}
 	handle_path /email/* {
 		reverse_proxy email-service:8080

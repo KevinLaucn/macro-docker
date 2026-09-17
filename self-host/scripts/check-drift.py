@@ -101,6 +101,7 @@ email_required_bins = [
     "unfurl_service",
     "search_processing_service",
     "document_upload_finalizer_local_worker",
+    "search_upload_local_worker",
     "document_cognition_service",
 ]
 
@@ -114,8 +115,14 @@ for req_bin in email_required_bins:
     if req_bin not in compose_bins:
         fail(f'required email production binary /app/out/{req_bin} missing from docker-compose.yml')
 
+fork_compose_bins = {
+    "search_upload_local_worker",
+}
+
 # Validate routes and execution for services declared in Compose
 for cargo_bin in compose_bins:
+    if cargo_bin in fork_compose_bins:
+        continue
     s = inv_by_bin.get(cargo_bin)
     if not s:
         # Binary used in Compose is not defined in inventory at all
