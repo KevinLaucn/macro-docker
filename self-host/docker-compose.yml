@@ -73,10 +73,10 @@ services:
         cat <<EOF > /out/env-config.js
         window.__MACRO_ENV__ = {
           ADMIN_EMAIL: "$${ADMIN_EMAIL:-hello@chnprints.com}",
-          ENABLE_NEW_APP_VIEWS: "$${ENABLE_NEW_APP_VIEWS:-false}",
+          ENABLE_NEW_APP_VIEWS: "$${ENABLE_NEW_APP_VIEWS:-true}",
           DEFAULT_AI_MODEL: "$${DEFAULT_AI_MODEL:-openai/gpt-5.6}",
           FREE_DEFAULT_AI_MODEL: "$${FREE_DEFAULT_AI_MODEL:-openai/gpt-5-mini}",
-          ENABLE_SIDEBAR_NEXT: "$${ENABLE_SIDEBAR_NEXT:-false}",
+          ENABLE_SIDEBAR_NEXT: "$${ENABLE_SIDEBAR_NEXT:-true}",
           ENABLE_INBOX_RESYNC: "$${ENABLE_INBOX_RESYNC:-true}",
           ENABLE_INBOX_SYNC_STATUS: "$${ENABLE_INBOX_SYNC_STATUS:-true}",
           ENABLE_CHAT_V3_AGENTS: "$${ENABLE_CHAT_V3_AGENTS:-true}",
@@ -132,8 +132,8 @@ services:
             scheduledActions: $${ENABLE_SCHEDULED_ACTIONS:-true},
             agents: $${ENABLE_AGENTS:-false},
             docsCollab: false,
-            enableNewAppViews: $${ENABLE_NEW_APP_VIEWS:-false},
-            enableSidebarNext: $${ENABLE_SIDEBAR_NEXT:-false},
+            enableNewAppViews: $${ENABLE_NEW_APP_VIEWS:-true},
+            enableSidebarNext: $${ENABLE_SIDEBAR_NEXT:-true},
             enableCrm: $${ENABLE_CRM:-true}
           },
           // ============================================================================
