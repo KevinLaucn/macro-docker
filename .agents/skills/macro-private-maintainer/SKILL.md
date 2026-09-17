@@ -67,6 +67,13 @@ corresponding GitHub workflow.
    changing them.
 5. **Build closure:** adding, moving, or renaming source must keep Cargo/Bun/
    TypeScript/Vite/Docker/Nix/CI inputs and production artifacts complete.
+   Specifically, when adding, removing, or renaming workspace crates, editing
+   `Cargo.toml`/`Cargo.lock`, or altering production services/Nix lists, run
+   `just hakari` (`cargo run -p xtask -- deps`) to regenerate
+   `.github/workspace-dep-closures.json` and `workspace-hack`, and sync
+   `self-host/scripts/affected-services.py`. Routine/small code edits (UI copy,
+   bug fixes, internal module logic) do not touch dependency graph boundaries
+   and must skip this heavy check.
 6. **Validation by phase:** development uses targeted/lightweight checks;
    upstream sync, release, and production acceptance use the required full or
    production checks. Targeted checks never redefine the production artifact.

@@ -112,6 +112,7 @@ const QUEUE_LABELS: Record<string, string> = {
   gmail_ops_retry: 'Gmail 操作重试',
   email_link_manager: '邮箱连接管理',
   email_backfill: '邮件历史回填',
+  search_upload: '文档搜索同步',
 };
 
 function displayDetailValue(value: string) {
@@ -629,7 +630,10 @@ export function SelfHostHealth() {
           >
             <For each={report()?.checks}>
               {(check) => (
-                <HealthItemRow item={check} onRepair={() => repairItem(check)} />
+                <HealthItemRow
+                  item={check}
+                  onRepair={() => repairItem(check)}
+                />
               )}
             </For>
           </Show>

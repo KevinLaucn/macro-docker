@@ -18947,6 +18947,7 @@ dependencies = [
  "ahash",
  "aho-corasick",
  "anyhow",
+ "async-graphql",
  "aws-config",
  "aws-credential-types",
  "aws-runtime",
@@ -19266,7 +19267,6 @@ dependencies = [
  "guppy",
  "serde",
  "serde_json",
- "workspace-hack",
  "xtask_graph",
 ]
 

@@ -44,6 +44,7 @@ SERVICE_ROOTS: dict[str, str] = {
     "unfurl-service": "unfurl_service",
     "search-processing-service": "search_processing_service",
     "upload-finalizer": "document_upload_finalizer_handler",
+    "search-upload-worker": "search_upload_worker",
     "macro-db-migrator": "macro_db_migrator",
     "localstack-provisioner": "xtask_local",
 }
@@ -283,6 +284,11 @@ def compute_service_targets(
         for path in changed
     ):
         fork_targets.add("self-host-email-email-service")
+    if any(
+        path.startswith(f"{FORK_BACKEND_PREFIX}search-upload-worker/")
+        for path in changed
+    ):
+        fork_targets.add("self-host-email-search-upload-worker")
     if fork_targets:
         return [
             f"self-host-email-{service_name}"

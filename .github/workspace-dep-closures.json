@@ -5345,7 +5345,6 @@
     ],
     "macro_db_migrator": [
       "crates/macro_db_migrator",
-      "crates/macro_env_var",
       "crates/workspace-hack"
     ],
     "macro_entrypoint": [
@@ -5484,6 +5483,17 @@
     ],
     "maybe_send": [
       "crates/maybe_send"
+    ],
+    "mcp_auth_proxy": [
+      "crates/cowlike",
+      "crates/fusionauth",
+      "crates/macro_auth",
+      "crates/macro_env",
+      "crates/macro_env_var",
+      "crates/macro_user_id",
+      "crates/remote_env_var",
+      "crates/workspace-hack",
+      "services/mcp_auth_proxy"
     ],
     "mcp_client": [
       "crates/agent",
@@ -7446,6 +7456,43 @@
       "crates/workspace-hack",
       "services/search_upload_handler"
     ],
+    "search_upload_worker": [
+      "crates/agent",
+      "crates/ai_toolset",
+      "crates/ai_usage",
+      "crates/attachment",
+      "crates/bot_id",
+      "crates/bot_token",
+      "crates/cowlike",
+      "crates/document_storage_service_client",
+      "crates/document_sub_type",
+      "crates/genai_telemetry",
+      "crates/harness_id",
+      "crates/harness_token",
+      "crates/macro_auth",
+      "crates/macro_authorization",
+      "crates/macro_aws_config",
+      "crates/macro_entrypoint",
+      "crates/macro_env",
+      "crates/macro_env_var",
+      "crates/macro_service_urls",
+      "crates/macro_user_id",
+      "crates/macro_uuid",
+      "crates/model",
+      "crates/model-entity",
+      "crates/model-error-response",
+      "crates/model_file_type",
+      "crates/model_user",
+      "crates/models_bulk_upload",
+      "crates/models_pagination",
+      "crates/models_permissions",
+      "crates/non_empty",
+      "crates/prompt",
+      "crates/remote_env_var",
+      "crates/s3_key",
+      "crates/workspace-hack",
+      "packages/fork/search-upload-worker"
+    ],
     "secretsmanager_client": [
       "crates/macro_env",
       "crates/macro_env_var",
@@ -8767,7 +8814,6 @@
       "tooling/xtask/crates/xtask_paths"
     ],
     "xtask_slim_plan": [
-      "crates/workspace-hack",
       "tooling/xtask/crates/xtask_graph",
       "tooling/xtask/crates/xtask_paths",
       "tooling/xtask/crates/xtask_slim_plan"

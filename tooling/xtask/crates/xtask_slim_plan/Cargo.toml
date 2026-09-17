@@ -16,4 +16,3 @@ guppy = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 xtask_graph = { path = "../xtask_graph" }
-workspace-hack = { version = "0.1", path = "../../../../crates/workspace-hack" }

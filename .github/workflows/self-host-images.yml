@@ -311,6 +311,7 @@ jobs:
               'unfurl-service',
               'search-processing-service',
               'upload-finalizer',
+              'search-upload-worker',
               'macro-db-migrator',
               'cargo-vendor-dir',
               'crane-utils',
@@ -823,6 +824,7 @@ jobs:
               'unfurl-service',
               'search-processing-service',
               'upload-finalizer',
+              'search-upload-worker',
               'macro-db-migrator',
               'cargo-vendor-dir',
               'crane-utils',
@@ -1010,6 +1012,7 @@ jobs:
             unfurl_service
             search_processing_service
             document_upload_finalizer_local_worker
+            search_upload_local_worker
             macro_db_migrate
             localstack_provision
           )

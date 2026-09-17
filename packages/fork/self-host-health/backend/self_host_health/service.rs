@@ -17,7 +17,7 @@ use super::types::{CheckCategory, HealthCheckItem, HealthStatus, SelfHostHealthR
 use crate::api::{context::ApiContext, permissions_extractor::DbPermissionsExtractor};
 
 const WRITE_ADMIN_PANEL_PERMISSION: &str = "write:admin_panel";
-const CACHE_TTL: Duration = Duration::from_secs(10);
+const CACHE_TTL: Duration = Duration::from_secs(30);
 
 #[derive(Clone)]
 pub struct SelfHostHealthService {

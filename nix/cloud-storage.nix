@@ -105,6 +105,7 @@
         "unfurl_service"
         "search_processing_service"
         "document_upload_finalizer_handler"
+        "search_upload_worker"
         "macro_db_migrator"
         "xtask_local"
       ];

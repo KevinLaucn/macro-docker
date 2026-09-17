@@ -12,14 +12,14 @@ use std::{
 use super::types::{CheckCategory, HealthCheckItem, HealthStatus, SelfHostHealthReport};
 use crate::api::context::ApiContext;
 
-const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
-const GMAIL_DEEP_PROBE_CACHE_TTL: Duration = Duration::from_secs(60);
-const GMAIL_SYNC_STALE_MINUTES: i64 = 3;
+const PROBE_TIMEOUT: Duration = Duration::from_secs(6);
+const GMAIL_DEEP_PROBE_CACHE_TTL: Duration = Duration::from_secs(120);
+const GMAIL_SYNC_STALE_MINUTES: i64 = 20;
 const QUEUE_WARNING_DEPTH: i64 = 100;
 const QUEUE_CRITICAL_DEPTH: i64 = 1000;
 const BACKFILL_COMPLETION_WARNING_MINUTES: i64 = 5;
 const BACKFILL_COMPLETION_CRITICAL_MINUTES: i64 = 30;
-const SEARCH_INDEX_DIFF_LIMIT: i64 = 1;
+const SEARCH_INDEX_DIFF_LIMIT: i64 = 25;
 
 static GMAIL_DEEP_PROBE_CACHE: LazyLock<
     tokio::sync::Mutex<HashMap<String, (Instant, HealthCheckItem)>>,
@@ -151,7 +151,10 @@ async fn probe_search_index(context: &ApiContext) -> HealthCheckItem {
                 category: CheckCategory::Services,
                 status,
                 message: if status == HealthStatus::Ok {
-                    format!("邮件数据库与搜索索引差异 {} 条", diff.abs())
+                    format!(
+                        "邮件数据库与搜索索引差异 {} 条（处于正常同步容差范围内）",
+                        diff.abs()
+                    )
                 } else if diff > 0 {
                     format!("邮件搜索索引少 {} 条，可能导致部分邮件搜索不到", diff)
                 } else {
@@ -188,7 +191,7 @@ async fn probe_search_index(context: &ApiContext) -> HealthCheckItem {
             name: "OpenSearch 邮件索引一致性".to_string(),
             category: CheckCategory::Services,
             status: HealthStatus::Warning,
-            message: "OpenSearch 索引检查超时 (3s)".to_string(),
+            message: format!("OpenSearch 索引检查超时 ({}s)", PROBE_TIMEOUT.as_secs()),
             details: None,
             remediation_hint: Some("检查 OpenSearch 响应时间与网络连接。".to_string()),
             duration_ms,
@@ -258,7 +261,7 @@ async fn probe_database_parity(context: &ApiContext) -> HealthCheckItem {
             name: "MacroDB 数据库连接".to_string(),
             category: CheckCategory::Database,
             status: HealthStatus::Critical,
-            message: "数据库查询超时 (3s)".to_string(),
+            message: format!("数据库查询超时 ({}s)", PROBE_TIMEOUT.as_secs()),
             details: None,
             remediation_hint: Some("检查数据库连接池是否耗尽或数据库负载过高。".to_string()),
             duration_ms,
@@ -324,7 +327,7 @@ async fn probe_fusionauth_idp(context: &ApiContext) -> HealthCheckItem {
             name: "FusionAuth 身份源配置 (IdP)".to_string(),
             category: CheckCategory::Auth,
             status: HealthStatus::Critical,
-            message: "FusionAuth 探测超时 (3s)".to_string(),
+            message: format!("FusionAuth 探测超时 ({}s)", PROBE_TIMEOUT.as_secs()),
             details: None,
             remediation_hint: Some("检查 FusionAuth 服务与反代健康状态。".to_string()),
             duration_ms,
@@ -398,7 +401,8 @@ async fn probe_gmail_inboxes(context: &ApiContext, macro_user_id: &str) -> Healt
             }
 
             let mut needs_reauth_list = Vec::new();
-            let mut official_failures = Vec::new();
+            let mut auth_failures = Vec::new();
+            let mut watch_warnings = Vec::new();
             let mut stale_syncs = Vec::new();
             let mut details = Vec::new();
             let mut active_count = 0;
@@ -475,8 +479,8 @@ async fn probe_gmail_inboxes(context: &ApiContext, macro_user_id: &str) -> Healt
                             };
 
                             if let Err(err) = &watch_result {
-                                official_failures
-                                    .push(format!("{email}: Gmail watch 续订失败: {err}"));
+                                watch_warnings
+                                    .push(format!("{email}: Gmail watch 续订未就绪: {err}"));
                             }
 
                             let remote_history = profile.history_id.as_str();
@@ -518,12 +522,11 @@ async fn probe_gmail_inboxes(context: &ApiContext, macro_user_id: &str) -> Healt
                             ));
                         }
                         Err(err) => {
-                            official_failures
-                                .push(format!("{email}: Gmail profile 查询失败: {err}"));
+                            auth_failures.push(format!("{email}: Gmail profile 查询失败: {err}"));
                         }
                     },
                     Err(err) => {
-                        official_failures.push(format!("{email}: OAuth token 刷新失败: {err}"));
+                        auth_failures.push(format!("{email}: OAuth token 刷新失败: {err}"));
                     }
                 }
             }
@@ -548,21 +551,21 @@ async fn probe_gmail_inboxes(context: &ApiContext, macro_user_id: &str) -> Healt
                     duration_ms,
                 }
             } else {
-                if !official_failures.is_empty() {
+                if !auth_failures.is_empty() {
                     return cache_gmail_probe_item(
                         macro_user_id,
                         HealthCheckItem {
-                        id: "gmail_official_sync".to_string(),
-                        name: "Gmail 官方 API / Watch / 同步进度".to_string(),
-                        category: CheckCategory::Gmail,
-                        status: HealthStatus::Critical,
-                        message: format!("Gmail 官方链路异常: {}", official_failures.join("; ")),
-                        details: Some(details.join("\n")),
-                        remediation_hint: Some(
-                            "检查 Google OAuth、GMAIL_GCP_QUEUE/PubSub topic、Gmail API 权限与 email-service webhook 配置。"
-                                .to_string(),
-                        ),
-                        duration_ms,
+                            id: "gmail_official_sync".to_string(),
+                            name: "Gmail 官方 API / 同步授权".to_string(),
+                            category: CheckCategory::Gmail,
+                            status: HealthStatus::Critical,
+                            message: format!("Gmail 身份鉴权异常: {}", auth_failures.join("; ")),
+                            details: Some(details.join("\n")),
+                            remediation_hint: Some(
+                                "检查 Google OAuth 授权凭据、Client Secret 与网络连接。"
+                                    .to_string(),
+                            ),
+                            duration_ms,
                         },
                     )
                     .await;
@@ -572,21 +575,42 @@ async fn probe_gmail_inboxes(context: &ApiContext, macro_user_id: &str) -> Healt
                     return cache_gmail_probe_item(
                         macro_user_id,
                         HealthCheckItem {
-                        id: "gmail_official_sync".to_string(),
-                        name: "Gmail 官方 API / Watch / 同步进度".to_string(),
-                        category: CheckCategory::Gmail,
-                        status: HealthStatus::Warning,
-                        message: format!(
-                            "发现 {} 个邮箱 Gmail historyId 长时间未推进: {}",
-                            stale_syncs.len(),
-                            stale_syncs.join(", ")
-                        ),
-                        details: Some(details.join("\n")),
-                        remediation_hint: Some(
-                            "检查 Gmail push webhook、pubsub workers、SQS/DLQ 积压和 email_gmail_histories 更新。"
-                                .to_string(),
-                        ),
-                        duration_ms,
+                            id: "gmail_official_sync".to_string(),
+                            name: "Gmail 官方 API / 同步进度".to_string(),
+                            category: CheckCategory::Gmail,
+                            status: HealthStatus::Warning,
+                            message: format!(
+                                "发现 {} 个邮箱 Gmail historyId 超过 {} 分钟未推进: {}",
+                                stale_syncs.len(),
+                                GMAIL_SYNC_STALE_MINUTES,
+                                stale_syncs.join(", ")
+                            ),
+                            details: Some(details.join("\n")),
+                            remediation_hint: Some(
+                                "检查 Gmail push webhook、pubsub workers、SQS/DLQ 积压和 email_gmail_histories 更新。"
+                                    .to_string(),
+                            ),
+                            duration_ms,
+                        },
+                    )
+                    .await;
+                }
+
+                if !watch_warnings.is_empty() {
+                    return cache_gmail_probe_item(
+                        macro_user_id,
+                        HealthCheckItem {
+                            id: "gmail_official_sync".to_string(),
+                            name: "Gmail 官方 API / 实时推送".to_string(),
+                            category: CheckCategory::Gmail,
+                            status: HealthStatus::Warning,
+                            message: format!("Gmail 实时推送未就绪: {}", watch_warnings.join("; ")),
+                            details: Some(details.join("\n")),
+                            remediation_hint: Some(
+                                "如需毫秒级实时邮件推送，请配置 GMAIL_GCP_QUEUE 与 Google Cloud Pub/Sub 主题；否则系统使用常规轮询机制。"
+                                    .to_string(),
+                            ),
+                            duration_ms,
                         },
                     )
                     .await;
@@ -594,11 +618,11 @@ async fn probe_gmail_inboxes(context: &ApiContext, macro_user_id: &str) -> Healt
 
                 HealthCheckItem {
                     id: "gmail_official_sync".to_string(),
-                    name: "Gmail 官方 API / Watch / 同步进度".to_string(),
+                    name: "Gmail 官方 API / 同步状态".to_string(),
                     category: CheckCategory::Gmail,
                     status: HealthStatus::Ok,
                     message: format!(
-                        "所有 {} 个邮箱授权、官方 API、watch 续订与同步进度正常 (活跃同步: {})",
+                        "所有 {} 个邮箱授权、API 访问与同步进度正常 (活跃同步: {})",
                         rows.len(),
                         active_count
                     ),
@@ -623,7 +647,7 @@ async fn probe_gmail_inboxes(context: &ApiContext, macro_user_id: &str) -> Healt
             name: "Gmail 邮箱授权与同步".to_string(),
             category: CheckCategory::Gmail,
             status: HealthStatus::Warning,
-            message: "Gmail 状态查询超时 (3s)".to_string(),
+            message: format!("Gmail 状态查询超时 ({}s)", PROBE_TIMEOUT.as_secs()),
             details: None,
             remediation_hint: None,
             duration_ms,
@@ -948,6 +972,35 @@ async fn probe_queues(context: &ApiContext) -> HealthCheckItem {
             }
         }
 
+        if let Ok(search_queue_url) = context
+            .sqs_client
+            .resolve_queue_url("search-upload-queue")
+            .await
+        {
+            if let Ok(attributes) = context
+                .sqs_client
+                .get_queue_attributes(&search_queue_url)
+                .await
+            {
+                let total = attributes.visible_messages
+                    + attributes.delayed_messages
+                    + attributes.not_visible_messages;
+                details.push(format!(
+                    "search_upload: visible={}, delayed={}, in_flight={}, total={}",
+                    attributes.visible_messages,
+                    attributes.delayed_messages,
+                    attributes.not_visible_messages,
+                    total
+                ));
+
+                if total >= QUEUE_CRITICAL_DEPTH {
+                    criticals.push(format!("search_upload 积压 {total} 条消息"));
+                } else if total >= QUEUE_WARNING_DEPTH {
+                    warnings.push(format!("search_upload 积压 {total} 条消息"));
+                }
+            }
+        }
+
         Ok::<_, String>((details, missing, warnings, criticals))
     })
     .await;
@@ -1005,7 +1058,7 @@ async fn probe_queues(context: &ApiContext) -> HealthCheckItem {
                 name: "SQS 队列与 DLQ 积压".to_string(),
                 category: CheckCategory::Queues,
                 status: HealthStatus::Ok,
-                message: "关键 Gmail/Email SQS 队列无异常积压，DLQ 为空".to_string(),
+                message: "关键 SQS 队列无异常积压，DLQ 为空".to_string(),
                 details: Some(details.join("\n")),
                 remediation_hint: None,
                 duration_ms,
@@ -1028,7 +1081,7 @@ async fn probe_queues(context: &ApiContext) -> HealthCheckItem {
             name: "SQS 队列与 DLQ 积压".to_string(),
             category: CheckCategory::Queues,
             status: HealthStatus::Critical,
-            message: "SQS 队列探测超时 (3s)".to_string(),
+            message: format!("SQS 队列探测超时 ({}s)", PROBE_TIMEOUT.as_secs()),
             details: None,
             remediation_hint: Some("检查 SQS endpoint 网络或队列服务负载。".to_string()),
             duration_ms,
@@ -1118,7 +1171,7 @@ async fn probe_backfill_completion(context: &ApiContext, macro_user_id: &str) ->
             name: "邮件历史回填完成状态".to_string(),
             category: CheckCategory::Queues,
             status: HealthStatus::Critical,
-            message: "回填完成状态查询超时 (3s)".to_string(),
+            message: format!("回填完成状态查询超时 ({}s)", PROBE_TIMEOUT.as_secs()),
             details: None,
             remediation_hint: Some("检查 MacroDB 负载与连接池。".to_string()),
             duration_ms,
@@ -1225,7 +1278,7 @@ async fn probe_dss_service(_context: &ApiContext) -> HealthCheckItem {
             name: "文档存储服务 (DSS)".to_string(),
             category: CheckCategory::Dss,
             status: HealthStatus::Critical,
-            message: "DSS 服务探测超时 (3s)".to_string(),
+            message: format!("DSS 服务探测超时 ({}s)", PROBE_TIMEOUT.as_secs()),
             details: Some(format!(
                 "public={health_url}\ninternal={internal_health_url}"
             )),
