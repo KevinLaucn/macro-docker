@@ -321,3 +321,19 @@ bottom through composer resizing and server acknowledgement. Check that restorin
 the caret after send does not pan the page while the keyboard resizes. Repeat with dictation
 and check that sent text does not return. Scroll into history before an incoming
 message or acknowledgement and verify that it does not pull you to latest.
+
+
+## Channel pictures
+
+Channels and group chats can have a custom picture. Admins and owners (the same
+people who can rename a channel) can open the title menu. Beside `Rename`,
+choose `Set channel picture` to add or replace a picture. Select a PNG, JPG,
+WebP, or GIF up to 16 MB. The upload must finish before the picture is saved;
+the server accepts only supported images uploaded by the person setting the
+picture. An error leaves the previous picture in place. When a picture is set, the menu also offers
+`Remove channel picture` to restore the standard channel icon. The picture
+beside the title is display-only and also appears in shared channel rows.
+Picture changes refresh other participants' open sessions, including after
+reconnecting.
+Members see the picture without editing controls. One-to-one direct messages
+continue to show the other person's user picture.
