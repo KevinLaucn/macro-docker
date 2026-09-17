@@ -31,12 +31,7 @@ hooks:
     expected: "if (isSelfHostedStaticFileUrl(url)) return url;"
     context:
       - "function proxyEmailImageUrl(url: string): string {"
-  - id: layout_deferred_navigation
-    file: apps/web/src/components/app/split-layout/layout.ts
-    marker: "// PRIVATE-HOOK: layout:deferred-navigation"
-    expected: "void whenSplitManagerReady()"
-    context:
-      - "if (!splitManager) {"
+
   - id: crm_backfill_populate_all_inboxes
     file: services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
     marker: "// PRIVATE-HOOK: crm_backfill:populate_all_inboxes"

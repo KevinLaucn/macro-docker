@@ -63,9 +63,7 @@ async function fetchProfilePictures(
     }));
   }
 
-  const pictures = Array.isArray(result.value?.pictures)
-    ? result.value.pictures
-    : [];
+  const { pictures } = result.value;
   return pictures.map(({ id, url }) => ({
     _createdAt: new Date(),
     id,

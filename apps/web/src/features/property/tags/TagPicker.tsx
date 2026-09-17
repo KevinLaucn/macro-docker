@@ -382,31 +382,24 @@ function TagPickerBody(props: {
     const optionScopes = new Map<string, TagScope>();
     const optionsById = new Map<string, PropertyOptionResponse>();
     const itemsByScope = new Map<TagScope, TagOptionItem[]>();
-    const sets = props.docTags.tagSets();
 
-    if (Array.isArray(sets)) {
-      for (const set of sets) {
-        if (Array.isArray(set?.options)) {
-          for (const option of set.options) {
-            if (option?.id) {
-              optionsById.set(option.id, option);
-            }
-          }
-
-          itemsByScope.set(
-            set.scope,
-            [...set.options]
-              .sort((a, b) => a.displayOrder - b.displayOrder)
-              .map((option) => {
-                optionScopes.set(option.id, set.scope);
-                return {
-                  scope: set.scope,
-                  option,
-                };
-              })
-          );
-        }
+    for (const set of props.docTags.tagSets()) {
+      for (const option of set.options) {
+        optionsById.set(option.id, option);
       }
+
+      itemsByScope.set(
+        set.scope,
+        [...set.options]
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+          .map((option) => {
+            optionScopes.set(option.id, set.scope);
+            return {
+              scope: set.scope,
+              option,
+            };
+          })
+      );
     }
 
     const selectedItems = initialAppliedTags().flatMap((tag) => {

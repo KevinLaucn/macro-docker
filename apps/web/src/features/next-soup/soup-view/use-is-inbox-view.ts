@@ -5,9 +5,9 @@ export function useIsInboxView() {
   const panel = useSplitPanelOrThrow();
 
   const currentView = () => {
-    const content = panel.handle.content();
-    if (!content || content.type !== 'component') return;
-    return isListViewID(content.id) ? content.id : undefined;
+    const { type, id } = panel.handle.content();
+    if (type !== 'component') return;
+    return isListViewID(id) ? id : undefined;
   };
 
   return () => currentView() === 'inbox';

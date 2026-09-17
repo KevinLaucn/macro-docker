@@ -235,141 +235,14 @@ export type TextResponse = { contentType: 'text/plain'; body: string };
  *   console.log('User data:', user);
  * }
  */
-type SuperAdminMacroEnv = { ADMIN_EMAIL?: string };
-type SuperAdminFallbackHandler = {
-  matches: (path: string) => boolean;
-  response: (env: SuperAdminMacroEnv) => unknown;
-};
-
-const includesAny = (path: string, fragments: readonly string[]) =>
-  fragments.some((fragment) => path.includes(fragment));
-
-const SUPER_ADMIN_FALLBACKS: readonly SuperAdminFallbackHandler[] = [
-  {
-    matches: (path) => path.includes('/email/links'),
-    response: () => ({ links: [] }),
-  },
-  {
-    matches: (path) => includesAny(path, ['/invites', '/user/invites']),
-    response: () => ({ invites: [] }),
-  },
-  {
-    matches: (path) =>
-      includesAny(path, ['/profile_pictures', '/profile-pictures']),
-    response: () => ({ pictures: [] }),
-  },
-  {
-    matches: (path) => path.includes('/team'),
-    response: (env) => ({
-      team: {
-        id: '00000000-0000-0000-0000-000000000001',
-        name: 'Macro Workspace',
-        role: 'owner',
-      },
-      members: [
-        {
-          id: '00000000-0000-0000-0000-000000000001',
-          email: env.ADMIN_EMAIL,
-          role: 'owner',
-        },
-      ],
-      invites: [],
-    }),
-  },
-  {
-    matches: (path) => path.includes('/contacts'),
-    response: () => ({ contacts: [], total: 0 }),
-  },
-  { matches: (path) => path.includes('/properties'), response: () => [] },
-  {
-    matches: (path) => path.includes('/items/soup/ast/grouped'),
-    response: () => ({ items: [], groups: [], mode: 'initial' }),
-  },
-  {
-    matches: (path) => path.includes('/items/soup'),
-    response: () => ({ items: [], next_cursor: null }),
-  },
-  {
-    matches: (path) => includesAny(path, ['/channels/activity', '/activity']),
-    response: () => [],
-  },
-  {
-    matches: (path) => path.includes('/channels'),
-    response: () => ({ items: [], channels: [], next_cursor: null }),
-  },
-  {
-    matches: (path) => path.includes('/user_notifications'),
-    response: () => ({ notifications: [], total: 0 }),
-  },
-  { matches: (path) => path.includes('/mcp/servers'), response: () => [] },
-  {
-    matches: (path) => path.includes('/calendar-events'),
-    response: () => ({ occurrences: [], next_cursor: null }),
-  },
-  {
-    matches: (path) => path.includes('/favorites'),
-    response: () => ({ favorites: [] }),
-  },
-  {
-    matches: (path) => path.includes('/history'),
-    response: () => ({ data: [] }),
-  },
-  {
-    matches: (path) => path.includes('/jwt/refresh'),
-    response: () => ({
-      access_token: 'local-super-admin-token',
-      refresh_token: 'local-super-admin-refresh',
-    }),
-  },
-  {
-    matches: (path) => includesAny(path, ['/bots', '/agents']),
-    response: () => [],
-  },
-];
-
-function getSuperAdminFallback(input: RequestInfo): unknown | undefined {
-  if (typeof window === 'undefined') return undefined;
-  const isCustomHost = window.location.hostname !== 'app.macro.com';
-  const macroEnv = (window as unknown as { __MACRO_ENV__?: SuperAdminMacroEnv })
-    .__MACRO_ENV__;
-  if (!isCustomHost || !macroEnv?.ADMIN_EMAIL) {
-    return undefined;
-  }
-
-  const rawUrl = typeof input === 'string' ? input : input.url;
-  if (!rawUrl) return undefined;
-
-  let url: URL;
-  try {
-    url = new URL(rawUrl, window.location.origin);
-  } catch {
-    return undefined;
-  }
-
-  if (!url.hostname.endsWith('macro.com')) {
-    return undefined;
-  }
-
-  return (
-    SUPER_ADMIN_FALLBACKS.find((handler) =>
-      handler.matches(url.pathname)
-    )?.response(macroEnv) ?? {}
-  );
-}
-
 export async function safeFetch<
-  T extends ObjectLike | Uint8Array,
+  T extends (ObjectLike & (TextResponse | {})) | Uint8Array,
   CustomErrorCode extends string = never,
 >(
   input: RequestInfo,
   init?: SafeFetchInit,
   errorResponseHandler?: ErrorResponseHandler<CustomErrorCode>
 ): Promise<Result<T, ResultError<BaseFetchErrorCode | CustomErrorCode>[]>> {
-  const superAdminFallback = getSuperAdminFallback(input);
-  if (superAdminFallback !== undefined) {
-    return ok(superAdminFallback as T);
-  }
-
   const { retry, trace, ...fetchInit } = init || {};
   const maxTries = retry?.maxTries ?? 1;
   const delay = retry?.delay ?? 0;
@@ -443,7 +316,7 @@ export async function safeFetch<
 
         if (contentType.includes('text/plain')) {
           const text = await response.text();
-          return ok({ contentType, body: text } as unknown as T);
+          return ok({ contentType, body: text } as T);
         }
 
         if (contentType.includes('application/octet-stream')) {

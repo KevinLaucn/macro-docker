@@ -551,12 +551,11 @@ export function runCommand(
 
 export function normalizeEventKeyPress(e: KeyboardEvent): string {
   const key = e.key;
-  if (!key || typeof key !== 'string') return '';
   if (key === ' ') return 'space';
   // Handle "dead" keys resulting from alt key press waiting for further input, e.g. opt+n
   // This is a hack, and will NOT work for non-US keyboards.
   if (key === 'Dead' && e.altKey) {
-    const deadKey = (e.code ? e.code.slice(3) : '').toLowerCase();
+    const deadKey = e.code.slice(3).toLowerCase();
     return deadKey;
   }
   if (IS_MAC && e.altKey && key in macOptionReverse) {

@@ -1,5 +1,6 @@
 import { ListPropertyValue } from '@app/features/next-soup/soup-view/views/tasks/list-property-value';
 import { describeReminderWhen } from '@app/features/reminders/reminder-schedule';
+import { formatCallDuration } from '@block-call/utils';
 import { BotIcon } from '@channel/Message/BotIcon';
 import { MACRO_AI_BOT_ID, MACRO_AI_NAME } from '@channel/macroAi';
 import { EntityIcon, getEntityIconType } from '@core/component/EntityIcon';
@@ -27,7 +28,6 @@ import {
 import { formatCompactRelativeTimestamp } from '@entity/utils/timestamp';
 import MacroLogo from '@icon/macro-logo.svg';
 import GithubIcon from '@icon/mcp-github.svg';
-import { locale } from '@macro/i18n';
 import { formatCalendarReminderTime } from '@notifications';
 import FilesIcon from '@phosphor/files.svg';
 import GitMergeIcon from '@phosphor/git-merge.svg';
@@ -41,7 +41,7 @@ import ChatTextIcon from '@phosphor-icons/core/regular/chat-text.svg?component-s
 import PaperclipIcon from '@phosphor-icons/core/regular/paperclip.svg?component-solid';
 import PhoneIcon from '@phosphor-icons/core/regular/phone.svg?component-solid';
 import QuestionIcon from '@phosphor-icons/core/regular/question.svg?component-solid';
-import RobotIcon from '@phosphor-icons/core/regular/robot.svg?component-solid';
+import AgentIcon from '@phosphor-icons/core/regular/sparkle.svg?component-solid';
 import UserPlusIcon from '@phosphor-icons/core/regular/user-plus.svg?component-solid';
 import {
   PropertiesProvider,
@@ -286,7 +286,7 @@ const tagBubbleIcon = (tag: NotificationTag) =>
     ))
     .with('call_started', () => () => <PhoneIcon class={AVATAR_GLYPH_CLASS} />)
     .with('agent_session_settled', () => () => (
-      <RobotIcon class={AVATAR_GLYPH_CLASS} />
+      <AgentIcon class={AVATAR_GLYPH_CLASS} />
     ))
     .with('agent_session_waiting_for_input', () => () => (
       <QuestionIcon class={AVATAR_GLYPH_CLASS} />
@@ -401,8 +401,7 @@ const formatDetailedTimestamp = (timestamp: string | undefined) => {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return timestamp;
 
-  const current = locale() === 'zh-CN' ? 'zh-CN' : undefined;
-  return date.toLocaleString(current, {
+  return date.toLocaleString(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',
   });
@@ -474,8 +473,7 @@ const channelLocation = (entity: EntityData): string | undefined => {
     return undefined;
   }
   if (entity.channelType === 'direct_message') return undefined;
-  const name = typeof entity.name === 'string' ? entity.name : undefined;
-  return name?.startsWith('#') ? name.slice(1) : (name ?? '');
+  return entity.name.startsWith('#') ? entity.name.slice(1) : entity.name;
 };
 
 const entityLocation = (entity: EntityData): string | undefined => {
@@ -1386,6 +1384,100 @@ export function GithubCardLayout(props: InboxCardLayoutProps) {
   );
 }
 
+function CallParticipantName(props: { id: string }) {
+  const displayName = createSenderDisplayName(() => props.id);
+  return <>{displayName()}</>;
+}
+
+export function CallCardLayout(props: InboxCardLayoutProps) {
+  const senderId = () => props.item.notification?.sender_id ?? undefined;
+
+  const senderName = createSenderDisplayName(senderId, () =>
+    props.item.notification
+      ? getNotificationSenderFallbackName(props.item.notification)
+      : undefined
+  );
+
+  const text = createMemo(() => {
+    const entity = props.item.entity;
+    const location = entityLocation(entity);
+
+    if (getNotificationTag(props.item.notification) === 'call_started') {
+      return {
+        title: buildActionLabel({
+          sender: senderName(),
+          action: location ? 'started a call in' : 'started a call',
+          location,
+        }),
+      };
+    }
+
+    if (entity.type === 'call' && entity.status === 'MISSED') {
+      return {
+        title: entity.name ? `Missed call in ${entity.name}` : 'Missed call',
+      };
+    }
+
+    if (entity.type === 'call' && entity.status === 'UNATTENDED') {
+      return {
+        title: entity.name
+          ? `Call unattended in ${entity.name}`
+          : 'Call unattended',
+      };
+    }
+
+    return { title: entity.name ? `Call in ${entity.name}` : 'Call' };
+  });
+
+  const participantIds = () =>
+    props.item.entity.type === 'call' ? props.item.entity.participantIds : [];
+
+  const duration = () => {
+    const entity = props.item.entity;
+    if (entity.type !== 'call') {
+      return getNotificationTag(props.item.notification) === 'call_started'
+        ? 'In progress'
+        : undefined;
+    }
+    if (entity.durationMs != null) return formatCallDuration(entity.durationMs);
+    return entity.isActive ? 'In progress' : 'No duration';
+  };
+
+  return (
+    <BaseCard
+      {...props}
+      icon={
+        <EntityIcon
+          class={AVATAR_GLYPH_CLASS}
+          targetType="call"
+          size="fill"
+          theme="monochrome"
+        />
+      }
+      title={text().title}
+    >
+      <Show when={participantIds().length}>
+        <InboxCard.Content class="truncate">
+          <For each={participantIds()}>
+            {(participantId, index) => (
+              <>
+                {index() > 0 ? ', ' : ''}
+                <CallParticipantName id={participantId} />
+              </>
+            )}
+          </For>
+        </InboxCard.Content>
+      </Show>
+
+      <Show when={duration()}>
+        {(value) => (
+          <InboxCard.Content class="truncate">{value()}</InboxCard.Content>
+        )}
+      </Show>
+    </BaseCard>
+  );
+}
+
 /**
  * A calendar event row exists because its alarm fired: the event title leads,
  * the occurrence's date sits on the second line, and its local time on the
@@ -1571,6 +1663,14 @@ export function InboxCardLayout(props: InboxCardLayoutProps) {
     <Switch>
       <Match when={props.item.entity.type === 'email'}>
         <EmailCardLayout {...props} />
+      </Match>
+      <Match
+        when={
+          notificationTag() === 'call_started' ||
+          props.item.entity.type === 'call'
+        }
+      >
+        <CallCardLayout {...props} />
       </Match>
       <Match when={isGithub()}>
         <GithubCardLayout {...props} />

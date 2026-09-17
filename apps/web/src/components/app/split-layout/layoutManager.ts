@@ -505,7 +505,7 @@ export type SplitHandle<TMeta extends ComponentMeta = ComponentMeta> = {
    * without a new entry). A no-op unless the split currently shows a block of
    * `type`.
    */
-  adoptContentId: (options: { type: SplitContentType; nextId: string }) => void;
+  adoptContentId: (options: { type: BlockName; nextId: string }) => void;
   removeFromHistory: (predicate: (content: SplitContent) => boolean) => void;
   toggleSpotlight: (force?: boolean) => void;
   setDisplayName: (name: string) => void;
@@ -1031,8 +1031,7 @@ export function createSplitLayout(
    * cause is `replace`, so the URL sync swaps the path in place instead of
    * adding a back step to a placeholder the user can never return to.
    */
-  function adoptContentId(id: SplitId, type: SplitContentType, nextId: string) {
-    if (type === 'component') return;
+  function adoptContentId(id: SplitId, type: BlockName, nextId: string) {
     const i = splitIndexById(id);
     if (i < 0) return;
 

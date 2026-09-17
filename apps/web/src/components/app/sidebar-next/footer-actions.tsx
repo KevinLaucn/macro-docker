@@ -3,6 +3,10 @@ import { globalSplitManager } from '@app/signal/splitLayout';
 import { CALENDAR_BLOCK_ID } from '@block-calendar/types';
 import { SidebarSettingsWidget } from '@components/app/app-sidebar/sidebar';
 import {
+  enableChatV3Agents,
+  isFeatureEnabled,
+} from '@core/constant/featureFlags';
+import {
   type SettingsTab,
   useSettingsState,
 } from '@core/constant/SettingsState';
@@ -64,10 +68,13 @@ export const FooterActions = (props: {
             // The two creatables both bind `a` and are mutually exclusive on the
             // agents flag, so pick the one that is actually registered.
             // `shouldInsert` is what `createBlock` turns into `preferNewSplit`.
-            runCreateAction('agent', {
-              shouldInsert: true,
-              source: 'sidebar',
-            })
+            runCreateAction(
+              isFeatureEnabled(enableChatV3Agents) ? 'agent' : 'chat',
+              {
+                shouldInsert: true,
+                source: 'sidebar',
+              }
+            )
           }
         >
           <SparkleIcon />

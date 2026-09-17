@@ -96,31 +96,23 @@ function createDocTags(
 
   const definitionByScope = createMemo(() => {
     const map = new Map<TagScope, PropertyDefinitionDetailResponse>();
-    const sets = tagSets();
-    if (!Array.isArray(sets)) return map;
-    for (const set of sets) {
-      if (set?.definition) map.set(set.scope, set.definition);
+    for (const set of tagSets()) {
+      if (set.definition) map.set(set.scope, set.definition);
     }
     return map;
   });
 
   const optionById = createMemo(() => {
     const map = new Map<string, ResolvedTag>();
-    const sets = tagSets();
-    if (!Array.isArray(sets)) return map;
-    for (const set of sets) {
-      if (Array.isArray(set?.options)) {
-        for (const option of set.options) {
-          if (option?.id) {
-            map.set(option.id, {
-              optionId: option.id,
-              propertyDefinitionId: option.propertyDefinitionId,
-              scope: set.scope,
-              label: optionLabel(option),
-              color: option.color ?? undefined,
-            });
-          }
-        }
+    for (const set of tagSets()) {
+      for (const option of set.options) {
+        map.set(option.id, {
+          optionId: option.id,
+          propertyDefinitionId: option.propertyDefinitionId,
+          scope: set.scope,
+          label: optionLabel(option),
+          color: option.color ?? undefined,
+        });
       }
     }
     return map;

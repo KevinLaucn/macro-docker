@@ -5,6 +5,7 @@ import {
   isFeatureEnabled,
 } from '@core/constant/featureFlags';
 import { renameAgentSession } from '@queries/agent-session/entity-mutations';
+import { callKeys } from '@queries/call/keys';
 import { channelKeys } from '@queries/channel/keys';
 import { queryClient } from '@queries/client';
 import { setHistoryItemName } from '@queries/history/history';
@@ -16,6 +17,7 @@ import {
 } from '@queries/soup/cache';
 import { ownTouchStamp } from '@queries/soup/normalized-cache/own-touch';
 import { type MutationCallbacks, withCallbacks } from '@queries/utils';
+import type { CallRecord } from '@service-call/client';
 import type { ApiChannelWithLatest } from '@service-storage/channel-list-types';
 import type { ItemType } from '@service-storage/client';
 import { ChannelTypeEnum } from '@service-storage/client';
@@ -262,6 +264,21 @@ const renameChannelSetData = (entities: EntityRenameOptimisticInfo[]): void => {
   );
 };
 
+const renameCallRecordSetData = (
+  entities: EntityRenameOptimisticInfo[]
+): void => {
+  entities.forEach(({ id, newName, itemType }) => {
+    if (itemType !== 'call') return;
+    queryClient.setQueryData<CallRecord>(
+      callKeys.record(id).queryKey,
+      (prev) => {
+        if (!prev) return prev;
+        return { ...prev, customName: newName };
+      }
+    );
+  });
+};
+
 const renamePreviewSetData = (entities: EntityRenameOptimisticInfo[]) => {
   entities.forEach(({ id, newName, itemType }) => {
     // Calendar event previews are API-served projections keyed to the
@@ -287,6 +304,7 @@ function performOptimisticRenameUpdates(
   renamePreviewSetData(entities);
   renameHistorySetData(entities);
   renameChannelSetData(entities);
+  renameCallRecordSetData(entities);
   const soupTransactions = renameDssSetData(entities);
 
   return { soupTransactions };
@@ -309,6 +327,7 @@ function rollbackOptimisticRenameUpdates({
   renameHistorySetData(rollbackEntities);
   renamePreviewSetData(rollbackEntities);
   renameChannelSetData(rollbackEntities);
+  renameCallRecordSetData(rollbackEntities);
 }
 
 const bulkRenameMutationFn = async (

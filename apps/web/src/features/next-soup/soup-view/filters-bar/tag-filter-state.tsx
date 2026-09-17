@@ -14,39 +14,27 @@ import type { SearchableOption } from './searchable-multi-select';
 export function createTagFilter(queryFilters: QueryStore) {
   const tagsQuery = useTagsQuery();
 
-  const tagSets = (): TagSetResponse[] =>
-    Array.isArray(tagsQuery.data) ? tagsQuery.data : [];
+  const tagSets = (): TagSetResponse[] => tagsQuery.data ?? [];
 
   const defByOption = createMemo(() => {
     const map = new Map<string, string>();
-    const sets = tagSets();
-    if (!Array.isArray(sets)) return map;
-    for (const set of sets) {
-      if (Array.isArray(set?.options)) {
-        for (const option of set.options) {
-          if (option?.id) {
-            map.set(option.id, option.propertyDefinitionId);
-          }
-        }
+    for (const set of tagSets()) {
+      for (const option of set.options) {
+        map.set(option.id, option.propertyDefinitionId);
       }
     }
     return map;
   });
 
-  const options = createMemo<SearchableOption[]>(() => {
-    const sets = tagSets();
-    if (!Array.isArray(sets)) return [];
-    return sets.flatMap((set) =>
-      Array.isArray(set?.options)
-        ? set.options.map((option) => ({
-            id: option.id,
-            label:
-              option.value?.type === 'string' ? option.value.value : option.id,
-            icon: () => <TagDot color={option.color ?? undefined} />,
-          }))
-        : []
-    );
-  });
+  const options = createMemo<SearchableOption[]>(() =>
+    tagSets().flatMap((set) =>
+      set.options.map((option) => ({
+        id: option.id,
+        label: option.value.type === 'string' ? option.value.value : option.id,
+        icon: () => <TagDot color={option.color ?? undefined} />,
+      }))
+    )
+  );
 
   const optionsById = createMemo(() => {
     const map = new Map<string, SearchableOption>();

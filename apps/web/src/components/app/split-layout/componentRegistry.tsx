@@ -243,7 +243,7 @@ function LegacyInboxView() {
   const preset = getViewPreset('inbox');
   return (
     <SoupView
-      viewName="Notifications"
+      viewName="Home"
       initialFilters={preset?.filters}
       initialClientFilters={preset?.clientFilters}
       initialGroupBy={preset?.groupBy}
@@ -322,11 +322,8 @@ function MyActivityViewWrapper() {
   const activityFeedEnabled = useActivityFeedFlag();
   const posthog = usePosthog();
 
-  // Registered even when the flag is off so a bookmarked /activity or a
-  // restored split recovers to the inbox instead of an empty split, and the
-  // data-owning feed view is never mounted. The redirect replaces the split
-  // irreversibly, so it must wait for PostHog to actually answer — on a
-  // fresh reload the flag reads false until flags load.
+  // Wait for flags before replacing a bookmarked or restored activity split.
+  // While disabled, never mount the feed or issue its queries.
   return (
     <Show
       when={activityFeedEnabled()}
@@ -446,7 +443,9 @@ registerComponent(
   'documents',
   withAuth((params: DocumentsComponentParams = {}) => {
     usePageViewTracking('documents');
-    const newAppViews = useNewAppViews();
+    const newAppViews = useNewAppViews({
+      enabledLayout: () => (isTouchDevice() ? 'legacy' : 'composable'),
+    });
     const user = useUserContext();
     const preset = getViewPreset('documents', undefined, {
       userId: user.userId(),
@@ -463,7 +462,7 @@ registerComponent(
     return (
       <Show when={newAppViews.ready()} fallback={<LoadingBlock />}>
         <Show
-          when={newAppViews.enabled()}
+          when={newAppViews.enabled() && !isTouchDevice()}
           fallback={
             <SoupView
               viewName="Files"
@@ -500,11 +499,9 @@ function LegacyTasksView() {
   );
 }
 
-// PRIVATE-HOOK: tasks-view:enable-new-app-views
-function FeatureGatedTasksView() {
-  const newAppViews = useNewAppViews({
-    enabledLayout: () => (isTouchDevice() ? 'legacy' : 'composable'),
-  });
+function RegisteredTasksView() {
+  usePageViewTracking('tasks');
+  const newAppViews = useNewAppViews();
 
   return (
     <Show when={newAppViews.ready()} fallback={<LoadingBlock />}>
@@ -513,11 +510,6 @@ function FeatureGatedTasksView() {
       </Show>
     </Show>
   );
-}
-
-function RegisteredTasksView() {
-  usePageViewTracking('tasks');
-  return <FeatureGatedTasksView />;
 }
 
 registerComponent('tasks', withAuth(RegisteredTasksView));
@@ -557,9 +549,6 @@ function RegisteredChannelsView() {
 
 registerComponent('channels', withAuth(RegisteredChannelsView));
 
-// 架构说明: calls (通话记录) / folders (文件夹) / reminders (待办提醒) / recent (最近) 等辅助模块
-// 官方底层依托通用的成熟 SoupView 实体引擎与列表过滤器，并未设计独立 Composable View，
-// 在外层统一由新版 SidebarRail 窄边导轨直接导航和呼出。
 registerComponent(
   'calls',
   withAuth(() => {
@@ -603,7 +592,8 @@ registerComponent(
         initialCrmView={initialCrmView}
       />
     );
-  })
+  }),
+  { splitPanelLayout: 'composable' }
 );
 
 registerComponent(
