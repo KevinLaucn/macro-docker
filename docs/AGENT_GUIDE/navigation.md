@@ -6,6 +6,8 @@
 | --- | --- |
 | `/app` | Redirects to inbox |
 | `/app/welcome` | Login page (when unauthenticated) |
+| `/app/invite?token=<token>` | GTM invite welcome page ("Welcome, <first name>", Continue → signup). Links come from the staff portal, last 48h, and grant the first month of Premium free once the account is created |
+| `/app/internal/invite-links` | Macro staff only (`@macro.com`): create GTM invite links and track opens, signups, and subscriptions |
 | `/app/component/inbox` | Home (notifications + recent activity) |
 | `/app/component/mail` | Email client |
 | `/app/component/channels` | Channels list |
