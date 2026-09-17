@@ -204,6 +204,38 @@ async fn run() -> anyhow::Result<()> {
         .await
         .context("failed to connect to macrodb")?;
 
+    // Local-only demo: reuse the local Cursor KMS key, but cryptographically
+    // separate Claude grants by purpose and owner. Never enables hosted writes.
+    let claude_credentials = if matches!(config.environment, Environment::Local) {
+        Some(
+            claude_cloud_agents::domain::credentials::AccountCredentials::new(
+                Arc::new(
+                    claude_cloud_agents::outbound::postgres::PgClaudeGrants::new(
+                        pool.clone(),
+                        AwsKmsCiphertexts::new(
+                            aws_sdk_kms::Client::new(&aws_config),
+                            "alias/macro-local-cursor-api-key".into(),
+                        ),
+                    ),
+                ),
+                Arc::new(claude_cloud_agents::outbound::credentials::ClaudeRefresh::new()?),
+            ),
+        )
+    } else if !config.claude_cloud_credentials_path.is_empty() {
+        anyhow::ensure!(
+            !matches!(config.environment, Environment::Production),
+            "Claude Cloud demo credentials are forbidden in production"
+        );
+        Some(
+            claude_cloud_agents::outbound::credentials::FileCredentials::open(
+                std::path::PathBuf::from(&config.claude_cloud_credentials_path),
+            )
+            .await?,
+        )
+    } else {
+        None
+    };
+
     // Built before the sessions rather than beside the other channel plumbing
     // below: this service owns the live actors, so it is where a session's
     // frames are streamed from.
@@ -592,10 +624,23 @@ async fn run() -> anyhow::Result<()> {
         environment = %config.environment,
         "agent harness serving bots"
     );
+    let claude_provider = Arc::new(claude_cloud_agents::outbound::http::Provider(
+        claude_credentials.clone(),
+    ));
+    let claude_manager = agent_harness::outbound::claude::ClaudeContainerManager::new(
+        agent_harness::domain::claude::ClaudeSessions::new(
+            claude_provider.clone(),
+            session_repo.clone(),
+            session_repo.clone(),
+        ),
+        EgressProvisioner::new(Arc::clone(&mcp_connections), egress_base_url.clone()),
+        claude_cloud_agents::inbound::acp::attach,
+    );
     let containers = RoutedContainerManager::new(
         sandbox_and_inmem,
         cursor_manager,
         codex_manager,
+        claude_manager,
         session_repo.clone(),
     );
 
@@ -765,13 +810,18 @@ async fn run() -> anyhow::Result<()> {
     .with_harness_authorizer(PgHarnessAuthorizer::new(PgHarnessAuthorizationRepo::new(
         pool.clone(),
     )));
-    let model_service = Arc::new(AgentModelsServiceImpl::new(
-        VisibleHarnessAccess::new(PgHarnessRepo::new(pool.clone())),
-        InMemoryModels::new(Some(inmem_model_engine), config.inmem_model.clone()),
-        CursorModels::new(cursor_keys, cursor_api_base_url()),
-        macrod_models,
-        model_probe_timeout,
-    ));
+    let model_service = Arc::new(
+        AgentModelsServiceImpl::new(
+            VisibleHarnessAccess::new(PgHarnessRepo::new(pool.clone())),
+            InMemoryModels::new(Some(inmem_model_engine), config.inmem_model.clone()),
+            CursorModels::new(cursor_keys, cursor_api_base_url()),
+            macrod_models,
+            model_probe_timeout,
+        )
+        .with_claude(Arc::new(agent_harness::outbound::claude::ClaudeModels(
+            claude_provider,
+        ))),
+    );
     let model_state = AgentModelsRouterState::new(
         model_service,
         MacroAuthorizationState::new(Arc::new(authorization_service.clone())),
@@ -805,6 +855,20 @@ async fn run() -> anyhow::Result<()> {
         MacroAuthorizationState::new(Arc::new(authorization_service.clone())),
     );
     let http_runtime_commands_readiness = runtime_commands_readiness.clone();
+    let claude_auth = claude_cloud_agents::inbound::auth::router(
+        claude_cloud_agents::inbound::auth::ClaudeAuthState::new(
+            Arc::new(claude_cloud_agents::domain::auth::AuthService::new(
+                claude_cloud_agents::outbound::oauth::ClaudeOAuth::new()?,
+                if matches!(config.environment, Environment::Local) {
+                    claude_credentials
+                } else {
+                    None
+                },
+                false,
+            )),
+            MacroAuthorizationState::new(Arc::new(authorization_service.clone())),
+        ),
+    );
     let http_port = config.port;
     let http = tokio::spawn(async move {
         if let Err(error) = api::setup_and_serve(
@@ -814,7 +878,8 @@ async fn run() -> anyhow::Result<()> {
                 create_state,
                 gateway_state,
                 model_state,
-            ),
+            )
+            .with_claude_auth(claude_auth),
             http_runtime_commands_readiness,
             http_port,
             shutdown_signal(),
