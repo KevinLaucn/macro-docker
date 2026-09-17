@@ -39,8 +39,13 @@
 - Selecting a coding agent reveals a repository drawer directly under the input
   with a short slide and fade; selecting a chat agent retracts it. Reduced-motion
   preferences disable the animation. The hidden drawer is inert. **Repository**
-  offers **No repository**, recent repositories, or `owner/repo` / URL entry.
-  The chosen repository survives agent changes and is sent only to coding agents.
+  offers **Choose automatically**, recent repositories, or GitHub `owner/repo` /
+  URL entry confirmed with **Use repository**. Once selected, **Branch** opens
+  a starting-branch field confirmed with **Use branch** (initially `main`).
+  Both controls open above the drawer without clipping. The selections survive
+  agent changes and are sent only to coding agents. Cursor honors the explicit
+  repository and branch instead of choosing a repository from the prompt;
+  the owner must have access through the connected GitHub App.
 - Sending starts a session with the chosen agent's configured default model;
   a model selected from its submenu overrides that default for the next send
   only. Sending or choosing another agent clears the override. This does not
@@ -64,7 +69,10 @@
   tab includes runtime setup. The create/edit dialog has sharing, name,
   `@tag`, runtime, default model, connections, channels, and instructions.
 - **Session**: the header has the sidebar reopen control, a linked PR status chip,
-  favorite, Share, Side panel, and a More menu
+  favorite, Share, and Side panel. The top-left title uses the same provider icon,
+  saved-title precedence, and title menu as `/app/agent/<id>`; click the caret
+  beside the title for shared block actions such as Rename, Copy link, Favorite,
+  and Delete
   (Rename, Copy link, Delete). A metadata strip lists the agent, runtime,
   model, repository, and status. Chat and Code session inputs
   use the same growing, initially single-line input with the model selector on
@@ -210,6 +218,16 @@ Leaving Macro selected uses the backend's in-memory default in every
 environment, including production; it does not provision a Daytona container.
 Explicit coding-agent selections still use their configured runtimes.
 
+## Starting from Home
+
+Home's composer follows the existing `enable-chat-v3-agents` flag: disabled keeps
+legacy chat; enabled mounts the same new-conversation composer as the Agents page.
+The greeting, agent/model selector, coding repository/branch drawer, and send flow
+are shared. Sending opens the new session inside Agents with the matching URL.
+Home suggestions and document/project context populate this same draft as markdown
+mentions. A failed suggestion conversion preserves the text and shows an error.
+Session creation and prompt delivery use the shared pending-session flow.
+
 ## Sharing a chat
 
 A standalone chat (`/app/chat/<uuid>`) has **Share** and **Copy Share Link** in
@@ -233,8 +251,7 @@ documents:
 Open a doc → side panel `Actions` → `Ask Macro`. Opens a chat pane with the document already
 attached as context (it appears as a link chip in the composer). New-chat pane shows tips:
 `@mention anything` to attach entities, `Ctrl+Enter` to send in the background (you get
-notified when the AI responds). Background sends from Home preserve the submitted
-tool selection.
+notified when the AI responds). Legacy Home background sends preserve the submitted tool selection.
 
 ## Composer anatomy (a11y)
 

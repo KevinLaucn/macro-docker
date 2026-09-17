@@ -1,14 +1,9 @@
 import { ViewShell } from '@app/components/view-shell/ViewShell';
-import CopyIcon from '@phosphor/copy.svg';
-import DotsIcon from '@phosphor/dots-three.svg';
-import PencilIcon from '@phosphor/pencil-simple.svg';
 import ShareIcon from '@phosphor/share.svg';
 import SidebarIcon from '@phosphor/sidebar.svg';
 import SparkleIcon from '@phosphor/sparkle.svg';
-import TrashIcon from '@phosphor/trash.svg';
 import SparkleFillIcon from '@phosphor-fill/sparkle-fill.svg';
 import { type JSX, Show } from 'solid-js';
-import { MenuAnchor } from './Menu';
 
 /** What the toolbar can do to the open session. */
 export type SessionActions = {
@@ -16,9 +11,6 @@ export type SessionActions = {
   onToggleFavorite: () => void;
   onShare: () => void;
   onSidePanel: () => void;
-  onRename: () => void;
-  onCopyLink: () => void;
-  onDelete: () => void;
 };
 
 /**
@@ -27,14 +19,19 @@ export type SessionActions = {
  */
 export function Topbar(props: {
   title: string;
+  titleContent?: JSX.Element;
   session?: SessionActions;
   children?: JSX.Element;
 }) {
   return (
     <ViewShell.TopBar class="touch:flex">
-      <h1 class="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
-        {props.title}
-      </h1>
+      <div class="flex min-w-0 flex-1 items-center">
+        {props.titleContent ?? (
+          <h1 class="min-w-0 truncate text-sm font-semibold text-ink">
+            {props.title}
+          </h1>
+        )}
+      </div>
       <div class="flex shrink-0 items-center gap-2">
         {props.children}
         <div class="bbar" role="toolbar" aria-label="Session actions">
@@ -76,88 +73,6 @@ export function Topbar(props: {
           >
             <SidebarIcon class="ph" />
           </button>
-          <span class="sep session-only" />
-          <MenuAnchor
-            class="session-only"
-            menuLabel="Session actions"
-            menuClass="below"
-            role="menu"
-            style={{ width: '220px' }}
-            trigger={(menu) => (
-              <button
-                type="button"
-                class="icon-btn"
-                aria-label="More"
-                aria-haspopup="menu"
-                aria-expanded={menu.open()}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  menu.toggle();
-                }}
-              >
-                <DotsIcon class="ph" />
-              </button>
-            )}
-          >
-            {(close) => (
-              <>
-                <button
-                  type="button"
-                  class="opt"
-                  role="menuitem"
-                  onClick={() => {
-                    close();
-                    props.session?.onRename();
-                  }}
-                >
-                  <PencilIcon class="ph" />
-                  <span class="nm">Rename</span>
-                </button>
-                <button
-                  type="button"
-                  class="opt"
-                  role="menuitem"
-                  onClick={() => {
-                    close();
-                    props.session?.onCopyLink();
-                  }}
-                >
-                  <CopyIcon class="ph" />
-                  <span class="nm">Copy link</span>
-                </button>
-                <button
-                  type="button"
-                  class="opt"
-                  role="menuitem"
-                  onClick={() => {
-                    close();
-                    props.session?.onToggleFavorite();
-                  }}
-                >
-                  <SparkleIcon class="ph" />
-                  <span class="nm">
-                    {props.session?.favorite
-                      ? 'Remove from favorites'
-                      : 'Add to favorites'}
-                  </span>
-                </button>
-                <div class="grp" style={{ padding: '4px 0 0' }} />
-                <button
-                  type="button"
-                  class="opt"
-                  role="menuitem"
-                  style={{ color: 'var(--red)' }}
-                  onClick={() => {
-                    close();
-                    props.session?.onDelete();
-                  }}
-                >
-                  <TrashIcon class="ph" />
-                  <span class="nm">Delete session</span>
-                </button>
-              </>
-            )}
-          </MenuAnchor>
         </div>
       </div>
     </ViewShell.TopBar>
