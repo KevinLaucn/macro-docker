@@ -315,6 +315,20 @@ latest turn.
 access and get an `agent_session_mentioned` notification that opens the session; a viewer's
 mention only notifies people who could already open it.
 
+In Home, a new Agents conversation, and an existing agent session, files can be
+attached to a prompt three ways: drop them anywhere on the composer (a
+"Drop files here to send them to the agent" overlay appears), paste them from the
+clipboard, or use the paperclip **`Attach files`** button. Every file uploads to the
+static file service and shows as a chip above the text (media thumbnails, document
+pills with a remove `×`); **Send** is disabled while an upload is pending. The agent
+receives each file as an ACP `resource_link` (a URL it can fetch) after the prompt text,
+and the sent prompt renders its files in the transcript (image thumbnails, video
+previews, file chips that open the file). A prompt may be files only, including the
+first message in a new conversation. Uploading attachments survive switching the
+agent or opening repository settings; sending clears the attachment previews.
+Queued prompts
+list their attached file names under the text; editing a queued prompt keeps them.
+
 On mobile the composer (and any queued prompts above it) floats in the bottom
 accessory region above the dock — same placement as channel and AI chat — so it
 stays tappable and clear of the home indicator. The box is full width; the text

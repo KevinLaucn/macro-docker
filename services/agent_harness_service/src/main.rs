@@ -32,7 +32,7 @@ use agent_egress::outbound::session_authority::StoredTokenSessionAuthority;
 use agent_fold::domain::service::FoldedMessageService;
 use agent_harness::domain::model::{
     AgentKind, AgentRuntimeConfig, HarnessCommand, HarnessDefaults, SessionDefaults,
-    SessionRepository,
+    SessionRepository, StaticFileLinks,
 };
 use agent_harness::domain::model_load::AgentModelsServiceImpl;
 use agent_harness::domain::ports::AgentRuntimeDirectory as _;
@@ -116,6 +116,7 @@ use macro_event_broker::{
 };
 use macro_service_urls::{
     AgentHarnessEgressUrl, ConnectionGatewayUrl, LexicalServiceUrl, McpServiceUrl,
+    StaticFileServiceUrl,
 };
 use model_providers::{CursorModels, InMemoryModels, MacrodModels, VisibleHarnessAccess};
 use pipedream_mcp::outbound::api::{PipedreamClient, PipedreamConfig};
@@ -339,6 +340,10 @@ async fn run() -> anyhow::Result<()> {
         ))
     };
     let container_shutdown = sandbox.clone();
+
+    // Channel attachments reach a prompt as links the agent can fetch, so
+    // the trigger router needs to know where static files are served from.
+    let static_file_links = StaticFileLinks::new(StaticFileServiceUrl::new()?.to_string());
 
     // Tracks event publishes the in-memory agent's tool context starts;
     // closed and drained on shutdown so nothing is dropped mid-publish.
@@ -1077,7 +1082,7 @@ async fn run() -> anyhow::Result<()> {
                         Some(bot_id) => runtime_directory.runtime_for(bot_id).await?,
                         None => None,
                     };
-                    let routed = match route_agent_trigger(trigger_event, runtime) {
+                    let routed = match route_agent_trigger(trigger_event, runtime, &static_file_links) {
                         Ok(routed) => routed,
                         Err(skipped) => {
                             // Info, not debug: a skip is the last visible trace

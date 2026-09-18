@@ -536,7 +536,7 @@ where
             session_id,
             DeliverAction {
                 id: AgentActionId::mint(),
-                action: AgentAction::prompt(origin.content),
+                action: AgentAction::prompt_with_attachments(origin.content, origin.attachments),
                 actor: Some(origin.sender),
                 announce: Some(AnnounceOrigin {
                     parent: origin.parent,
