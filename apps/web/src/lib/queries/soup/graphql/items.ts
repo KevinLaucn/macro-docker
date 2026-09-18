@@ -57,6 +57,10 @@ import {
 import { makeGraphqlSoupInput } from './ast';
 import { isCachedMailView, materializeMailView } from './mail-view';
 import {
+  usePendingGraphqlSoupDeleteIds,
+  withoutPendingGraphqlSoupDeletes,
+} from './optimistic-deletions';
+import {
   materializeReconciledSoup,
   soupItemKey,
   soupReconciliationBaseline,
@@ -98,6 +102,7 @@ export function createGraphqlSoupAstItemsQuery(
   options: Accessor<GraphqlSoupAstItemsQueryOptions>
 ): GraphqlSoupAstItemsQuery {
   const instructionsIdQuery = useInstructionsMdIdQuery();
+  const pendingDeleteIds = usePendingGraphqlSoupDeleteIds();
   const [offline, setOffline] = createSignal(
     typeof navigator !== 'undefined' && !navigator.onLine
   );
@@ -622,11 +627,12 @@ export function createGraphqlSoupAstItemsQuery(
   return {
     data: createMemo(() => {
       const data = displayData();
-      return (
+      return withoutPendingGraphqlSoupDeletes(
         data && {
           ...data,
           oldestFetchedTimestamp: query.data?.data.oldestFetchedTimestamp,
-        }
+        },
+        pendingDeleteIds()
       );
     }),
     error,

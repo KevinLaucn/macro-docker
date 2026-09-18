@@ -68,7 +68,17 @@ vi.mock('../transform-utils', () => ({
   mapSoupPageToEntityList: mapSoupPageToEntityListMock,
 }));
 
+vi.mock('@queries/client', async () => {
+  const { QueryClient } = await import('@tanstack/solid-query');
+  return { queryClient: new QueryClient() };
+});
+
+import { queryClient } from '@queries/client';
 import { createGraphqlSoupAstItemsQuery } from './items';
+import {
+  createGraphqlSoupDeletion,
+  GRAPHQL_SOUP_DELETE_MUTATION_KEY,
+} from './optimistic-deletions';
 
 type FakeExecution = {
   variables: Record<string, unknown>;
@@ -147,6 +157,7 @@ function makeFakeClient(): {
 
 describe('createGraphqlSoupAstItemsQuery', () => {
   beforeEach(() => {
+    queryClient.clear();
     vi.clearAllMocks();
     useInstructionsMdIdQueryMock.mockReturnValue({ isSuccess: false });
     mapSoupPageToEntityListMock.mockImplementation((page) => page.items);
@@ -212,6 +223,64 @@ describe('createGraphqlSoupAstItemsQuery', () => {
       }
     }
   );
+
+  it('hides pending deletes across loaded pages and restores fresh data on failure', async () => {
+    const fake = makeFakeClient();
+    getGraphqlSoupClientMock.mockReturnValue(fake.client);
+    const { query, dispose } = createRoot((dispose) => ({
+      dispose,
+      query: createGraphqlSoupAstItemsQuery(
+        () => ({ params: { sort_method: 'updated_at' }, body: {} }),
+        () => ({ enabled: true })
+      ),
+    }));
+    try {
+      fake.executions[0].next(
+        graphqlSoupPage({ items: [{ id: 'a' }], next_cursor: 'next' })
+      );
+      const next = query.fetchNextPage();
+      await vi.waitFor(() => expect(fake.executions).toHaveLength(2));
+      fake.executions[1].next(
+        graphqlSoupPage({
+          items: [{ id: 'b' }, { id: 'keep' }],
+          next_cursor: null,
+        })
+      );
+      await next;
+      let reject!: (error: Error) => void;
+      const mutation = queryClient.getMutationCache().build(queryClient, {
+        mutationKey: GRAPHQL_SOUP_DELETE_MUTATION_KEY,
+        onMutate: () => ({
+          graphqlDeletion: createGraphqlSoupDeletion(['a', 'b']),
+        }),
+        onSettled: (_data, _error, _vars, context) =>
+          context?.graphqlDeletion.release(),
+        mutationFn: () =>
+          new Promise<void>((_resolve, fail) => {
+            reject = fail;
+          }),
+      });
+      const failed = expect(mutation.execute(undefined)).rejects.toThrow(
+        'rejected'
+      );
+      const ids = () => query.data()?.entities.map((entity) => entity.id);
+      await vi.waitFor(() => expect(ids()).toEqual(['keep']));
+      // A late query response must neither resurrect pending deletes nor be
+      // overwritten by a whole-page snapshot rollback.
+      fake.executions[1].next(
+        graphqlSoupPage({
+          items: [{ id: 'b', name: 'updated' }, { id: 'new' }],
+          next_cursor: null,
+        })
+      );
+      expect(ids()).toEqual(['new']);
+      reject(new Error('rejected'));
+      await failed;
+      await vi.waitFor(() => expect(ids()).toEqual(['a', 'b', 'new']));
+    } finally {
+      dispose();
+    }
+  });
 
   it('retains the page projection when only query activity changes', () => {
     const fake = makeFakeClient();
