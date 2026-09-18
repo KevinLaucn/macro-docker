@@ -4,7 +4,9 @@
 
 import { Model } from '@core/component/AI/constant/model';
 import { useAgentModelsQueries } from '@queries/agents/models';
+import { useHarnessesQuery } from '@queries/harnesses/harnesses';
 import type { LoadAgentModelsResponse } from '@service-agent-harness/generated/schemas';
+import type { Harness } from '@service-storage/client';
 import {
   fireEvent,
   render,
@@ -155,7 +157,7 @@ const harnessMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@queries/harnesses/harnesses', () => ({
-  useHarnessesQuery: () => harnessMocks.query,
+  useHarnessesQuery: vi.fn(() => harnessMocks.query),
 }));
 
 vi.mock('@queries/agents/agents', () => ({
@@ -307,7 +309,7 @@ const MACROD_HARNESS = {
   updated_at: '2026-08-27T12:00:00Z',
   connected: true,
   last_connected_at: '2026-08-27T12:34:00Z',
-};
+} satisfies Harness;
 
 describe('Agents', () => {
   it.each([false, true])(
@@ -992,6 +994,69 @@ describe('Agents', () => {
     ).toBeTruthy();
   });
 
+  it('preserves the selected harness and submission when the harness list refetches', async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const queryKey = ['refreshed-harnesses'];
+    const fetchHarnesses = vi.fn(
+      async (): Promise<Harness[]> => [{ ...MACROD_HARNESS }]
+    );
+    vi.mocked(useHarnessesQuery).mockImplementationOnce(() =>
+      useQuery(() => ({
+        queryKey,
+        queryFn: fetchHarnesses,
+        initialData: [MACROD_HARNESS],
+      }))
+    );
+    modelMocks.queries[`macrod:${MACROD_HARNESS.id}`] = successfulModels([
+      { id: 'codex-model', name: 'Codex model' },
+    ]);
+    const view = render(() => (
+      <QueryClientProvider client={client}>
+        <Suspense>
+          <Agents />
+        </Suspense>
+      </QueryClientProvider>
+    ));
+    await waitFor(() => expect(fetchHarnesses).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole('button', { name: 'Create agent' }));
+    const dialog = screen.getByRole('dialog');
+    const harness = within(dialog).getByRole('combobox', { name: 'Harness' });
+    await waitFor(() =>
+      expect(
+        within(harness).getByRole('option', { name: 'Dev box' })
+      ).toBeTruthy()
+    );
+    fireEvent.change(harness, { target: { value: MACROD_HARNESS.id } });
+    fireEvent.input(within(dialog).getByLabelText('Name'), {
+      target: { value: 'Coding agent' },
+    });
+
+    for (let refresh = 0; refresh < 2; refresh++) {
+      await client.refetchQueries({ queryKey });
+      expect(harness).toHaveProperty('value', MACROD_HARNESS.id);
+      expect(
+        within(dialog).getByRole('combobox', { name: 'Default model' })
+      ).toHaveProperty('value', 'codex-model');
+    }
+    expect(fetchHarnesses).toHaveBeenCalledTimes(3);
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Create agent' })
+    );
+    await waitFor(() =>
+      expect(agentMocks.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          harness: 'macrod',
+          harnessId: MACROD_HARNESS.id,
+          defaultModel: 'codex-model',
+        })
+      )
+    );
+    view.unmount();
+    client.clear();
+  });
+
   it('keeps loading, error, and unsupported states independent per harness', () => {
     cursorMocks.status.data = {
       registered: true,
@@ -1193,6 +1258,54 @@ describe('Agents', () => {
         name: 'retired-model (saved, unavailable)',
       })
     ).toBeTruthy();
+  });
+
+  it('keeps a saved Claude harness visible when model discovery fails', async () => {
+    modelMocks.queries['claude-cloud:'] = {
+      isPending: false,
+      isError: true,
+      isSuccess: false,
+      refetch: vi.fn(),
+    };
+    agentMocks.query.data = [
+      {
+        bot: {
+          id: 'agent-1',
+          kind: 'owned',
+          owner: { type: 'user', user_id: 'macro|user@example.com' },
+          name: 'Bug fixer',
+          handle: 'bug-fixer',
+          has_agent: true,
+          created_at: '2026-08-27T12:00:00Z',
+          updated_at: '2026-08-27T12:00:00Z',
+        },
+        instructions: 'Fix the root cause.',
+        harness: 'claude-cloud',
+        default_model: 'saved-claude-model',
+        channel_scope: 'all',
+        channel_ids: [],
+      },
+    ];
+
+    render(() => <Agents />);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Bug fixer' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByLabelText('Harness')).toHaveProperty(
+      'value',
+      'claude-cloud'
+    );
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Save changes' })
+    );
+    await waitFor(() => {
+      expect(agentMocks.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          harness: 'claude-cloud',
+          defaultModel: 'saved-claude-model',
+        })
+      );
+    });
   });
 
   it('preselects the bound macrod harness when editing', () => {

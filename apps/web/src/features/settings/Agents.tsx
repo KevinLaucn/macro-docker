@@ -866,7 +866,6 @@ function AgentDialog(props: {
                   <span class="text-xs font-medium text-ink">Harness</span>
                   <select
                     class="settings-input w-full"
-                    value={harnessId()}
                     onChange={(event) =>
                       handleHarnessChange(event.currentTarget.value)
                     }
@@ -881,7 +880,12 @@ function AgentDialog(props: {
                       )}
                     >
                       {(harness) => (
-                        <option value={harness.id}>{harness.name}</option>
+                        <option
+                          value={harness.id}
+                          selected={harness.id === harnessId()}
+                        >
+                          {harness.name}
+                        </option>
                       )}
                     </For>
                   </select>

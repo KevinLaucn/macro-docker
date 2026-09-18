@@ -708,7 +708,9 @@ but unconnected app gets a tool result saying so, and the agent's reply renders 
 
 `Agents` → `Create agent` (or edit an existing agent) opens runtime selectors.
 The model list is loaded live and independently for In-memory, connected Cursor, and every
-registered macrod harness. A harness can show `Loading models…`, an unsupported message, or
+registered macrod harness. The selected harness stays selected when the list refreshes.
+A paired macrod connects on startup, so models can load before any agents are bound.
+A harness can show `Loading models…`, an unsupported message, or
 a retryable error without hiding the other harnesses. Editing preserves a saved model that
 is no longer offered and labels it `saved, unavailable`. A macrod with no responding runtime
 can remain loading until the 10-second discovery timeout; use Retry after reconnecting it.
