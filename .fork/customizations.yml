@@ -251,6 +251,9 @@ customizations:
       - apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
       - apps/web/src/features/auth/GmailReauthenticationPrompt.tsx
       - apps/web/src/features/settings/ConnectedAccounts.tsx
+      - apps/web/src/features/block-email/component/TopBar.tsx
+      - apps/web/src/features/email-view/components/EmailHeader.tsx
+      - apps/web/src/features/email-view/components/EmailSidebar.tsx
       - apps/web/src/features/settings/Integrations.tsx
       - apps/web/src/features/companies/Company/Company.tsx
       - apps/web/src/features/companies/Company/CompanyContactsSection.tsx
