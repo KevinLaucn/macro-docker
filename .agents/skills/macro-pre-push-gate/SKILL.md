@@ -1,41 +1,42 @@
 ---
 name: macro-pre-push-gate
-description: Push and release gatekeeper for Macro. Selects proportional checks and requires the repository's unified fork gate without prescribing a push target.
+description: Push and release gatekeeper for the private Macro fork. Use before push, PR, upstream-sync completion, release, or explicit build-contract validation.
 ---
 
 # Macro Pre-push & Release Gate
 
-Use this Skill only for a push, PR, release, or explicit build-contract check.
-Fork structure is defined by the maintainer Skill and `docs/FORK_DEVELOPMENT.md`.
+Use repository-native checks and keep the gate proportional to changed scope.
 
-## Required gates
+## Required gate
 
-1. Run `just fork-gate`. This is the sole machine source for private hooks,
-   overrides, retirements, zero-cloud, telemetry privacy, and overlap checks.
-2. For changed Rust SQL, verify SQLx cache parity with the repository's
-   documented prepare flow and `SQLX_OFFLINE=true cargo check -p <crate>`.
-3. For changed frontend code, run the scoped `just check`; use `just check full`
-   only for core types, shared infrastructure, or broad changes.
-4. Run targeted tests for affected packages. Sync/release work additionally
-   requires the applicable production/image build and workflow checks.
+Run `just fork-gate` first. It is the sole machine source for fork governance,
+including hook/override/retirement checks, zero-cloud/privacy rules, upstream
+overlap, upstream Skill parity, and unexplained core drift.
 
-Do not copy the Ruby commands behind `just fork-gate` into this Skill or a
-workflow. Do not treat a local targeted check as production parity.
+A sync/release is blocked when:
+- an upstream-provided Skill differs from the selected upstream target;
+- an upstream-owned source diff has no explicit fork classification;
+- a PRIVATE-HOOK is missing, duplicated, stale, or detached from its owner;
+- a temporary upstream fix has reached its retirement condition.
 
-## Branch and push rules
+For changed Rust SQL verify SQLx offline parity. For frontend changes run scoped
+`just check`; use full checks for shared/core or broad changes. Run targeted
+tests for every affected customization. Release/production work additionally
+requires the applicable production/image validation.
 
-普通开发推送当前 feature branch；upstream sync 使用 `sync/upstream-*` 分支和
-PR。Sync branch must preserve the upstream merge commit; do not rebase it away.
-The default target is the current branch/PR, never a direct push to `main`.
-External push, PR, merge, or release actions still require explicit user intent.
+## Branch rules
+
+Normal development targets the current feature branch. Upstream sync uses
+`sync/upstream-*` and preserves upstream merge ancestry. Never use a direct
+main push for sync work.
 
 ## Failure handling
 
-Stop on a failed gate. Attribute failures to upstream, fork, or interaction
-before changing code. Do not repair a failed check by disabling it, hiding an
-error, weakening a permission, adding a cloud fallback, or deleting a feature.
+Stop on gate failure. Classify it as upstream, fork, or interaction before
+editing. Do not pass by disabling validation, weakening permissions, swallowing
+errors, adding cloud fallback, deleting a feature, or blessing unexplained drift.
 
 ## Report
 
-Report the branch/PR target, exact checks run, results, and any blocked
-production or environment-dependent verification.
+Report branch/PR target, upstream target SHA when relevant, exact checks run,
+results, and blocked environment-dependent verification.
