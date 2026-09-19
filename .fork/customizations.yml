@@ -37,6 +37,7 @@ customizations:
       - apps/web/src/features/entity/extractors/entity-email-participants.tsx
       - apps/web/src/features/entity/queries/email.ts
       - apps/web/src/features/entity/types/entity.ts
+      - apps/web/src/lib/core/component/UserIcon.tsx
       - apps/web/src/features/email-view/queries/use-email-query.ts
       - crates/models_email/src/email/service/contact.rs
       - apps/web/tsconfig.json
