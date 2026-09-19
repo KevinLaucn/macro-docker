@@ -19,6 +19,19 @@ abort "private hook manifest not found: #{options[:manifest]}" unless File.file?
 manifest = YAML.safe_load(File.read(options[:manifest]), permitted_classes: [], aliases: false)
 abort "manifest version must be 1" unless manifest.is_a?(Hash) && manifest["version"] == 1
 
+customization_manifest = YAML.safe_load(File.read(".fork/customizations.yml"), permitted_classes: [], aliases: false)
+customizations = customization_manifest.fetch("customizations")
+
+def customization_covers?(entries, path)
+  entries.any? do |entry|
+    entry.fetch("paths").any? do |pattern|
+      prefix = pattern.end_with?("/**") ? pattern.delete_suffix("/**") : nil
+      File.fnmatch?(pattern, path, File::FNM_PATHNAME | File::FNM_EXTGLOB) ||
+        (prefix && (path == prefix || path.start_with?("#{prefix}/")))
+    end
+  end
+end
+
 hooks = manifest["hooks"]
 abort "hooks must be an array" unless hooks.is_a?(Array)
 
@@ -53,6 +66,10 @@ hooks.each_with_index do |hook, index|
   unless File.file?(file)
     errors << "#{id}: file missing: #{file}"
     next
+  end
+
+  unless customization_covers?(customizations, file)
+    errors << "#{id}: hook file is not owned by any .fork/customizations.yml entry: #{file}"
   end
 
   content = File.read(file)
