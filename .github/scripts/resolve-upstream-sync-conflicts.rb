@@ -295,23 +295,12 @@ rewrite("apps/web/src/features/entity/extractors/entity-icon.tsx") do |c|
     "  // PRIVATE-HOOK: read_receipts:list-envelope\n  const envelopeHighlight = useEmailListEnvelopeHighlight(() => props.entity);\n",
     "entity-icon receipt hook"
   )
-  old = <<~'TSX'.strip
-    <CoreEntityIcon
-          targetType={iconType()}
-          size="fill"
-          class={props.class}
-          weight={props.weight}
-        />
-  TSX
-  new_value = <<~'TSX'.strip
-    <CoreEntityIcon
-          targetType={iconType()}
-          size="fill"
-          class={cn(props.class, envelopeHighlight() && '!text-orange')}
-          weight={props.weight}
-        />
-  TSX
-  replace_once!(c, old, new_value, "entity-icon highlighted fallback")
+  c = replace_once!(
+    c,
+    "        <CoreEntityIcon\n          targetType={iconType()}\n          size=\"fill\"\n          class={props.class}\n          weight={props.weight}\n        />",
+    "        <CoreEntityIcon\n          targetType={iconType()}\n          size=\"fill\"\n          class={cn(props.class, envelopeHighlight() && '!text-orange')}\n          weight={props.weight}\n        />",
+    "entity-icon highlighted fallback"
+  )
 end
 
 rewrite("apps/web/src/features/settings/ConnectedAccounts.tsx") do |c|
@@ -453,7 +442,7 @@ rewrite("apps/web/src/lib/core/constant/settingsTabsConfig.tsx") do |c|
 end
 
 rewrite("apps/web/src/lib/queries/sync/SyncProvider.tsx") do |c|
-  c = insert_after!(c, "import { handleCommsTyping } from '@queries/channel/typing';\n", "import { queryClient } from '@queries/client';\n", "SyncProvider query client")
+  c = insert_after!(c, "import { WebsocketEvent } from '@macro-inc/collaboration/websocket';\n", "import { queryClient } from '@queries/client';\n", "SyncProvider query client")
   c = insert_after!(c, "import { invalidateContacts } from '@queries/contacts/contacts';\n", "import { handleReadReceiptOpenedEvent } from '@queries/email/readReceipts';\n", "SyncProvider receipt import")
   hook = <<~'TS'
     
@@ -483,28 +472,12 @@ rewrite("services/authentication_service/Cargo.toml") do |c|
 end
 
 rewrite("services/authentication_service/src/api.rs") do |c|
-  old = <<~'RS'.strip
-    .nest(
-            "/webhooks",
-            webhooks::router().layer(axum::middleware::from_fn(
-                macro_middleware::connection_drop_prevention_handler,
-            )),
-        )
-  RS
-  new_value = <<~'RS'.strip
-    .nest(
-            "/webhooks",
-            webhooks::router().layer(axum::middleware::from_fn(
-                macro_middleware::connection_drop_prevention_handler,
-            )),
-        )
-        // PRIVATE-HOOK: self_host_health:admin_route
-        .nest(
-            "/admin",
-            crate::features::self_host_health::router(state.clone()),
-        )
-  RS
-  replace_once!(c, old, new_value, "auth health admin route")
+  c = replace_once!(
+    c,
+    "        .nest(\n            \"/webhooks\",\n            webhooks::router().layer(axum::middleware::from_fn(\n                macro_middleware::connection_drop_prevention_handler,\n            )),\n        )",
+    "        .nest(\n            \"/webhooks\",\n            webhooks::router().layer(axum::middleware::from_fn(\n                macro_middleware::connection_drop_prevention_handler,\n            )),\n        )\n        // PRIVATE-HOOK: self_host_health:admin_route\n        .nest(\n            \"/admin\",\n            crate::features::self_host_health::router(state.clone()),\n        )",
+    "auth health admin route"
+  )
 end
 
 rewrite("services/authentication_service/src/main.rs") do |c|
