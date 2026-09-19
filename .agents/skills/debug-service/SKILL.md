@@ -5,13 +5,10 @@ description: Debug local Rust services in this repository by starting the crate'
 
 # Debug Service
 
-First determine whether the complete local stack is already running. If it is,
-use `../live-debug/SKILL.md` for traces, logs, and browser reproduction instead
-of starting a second service. Use this Skill for a standalone Rust binary or
-when the relevant service is not available in the local stack.
+You are going to help me interactively debug the rust binary
+that's in this crate.
 
-Start the binary with debug logging only after checking the existing stack and
-the crate's `justfile`:
+Use this command to start the service with debug logging
 
 RUST_LOG=<name_of_bin>=debug,info
   just run > /tmp/<name_of_bin>.log 2>&1 & tail -f /tmp/<name_of_bin>.log
