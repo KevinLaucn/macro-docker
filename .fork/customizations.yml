@@ -3,6 +3,21 @@ version: 1
 # Keep paths narrow enough to identify the fork feature that needs review.
 # Test group names are implemented by .github/workflows/upstream-sync.yml.
 customizations:
+  - id: FORK-GOVERNANCE-001
+    title: Private fork governance and upstream parity gates
+    rationale: Keep fork policy in private Skills and machine gates while upstream-provided Skills remain byte-identical to the selected upstream target.
+    risk: high
+    paths:
+      - .agents/skills/macro-private-maintainer/**
+      - .agents/skills/macro-pre-push-gate/**
+      - .github/scripts/check-core-drift.rb
+      - .github/scripts/check-private-hooks.rb
+      - tooling/just/check.just
+      - docs/FORK_DEVELOPMENT.md
+    tests:
+      - conventions
+      - workflow-lint
+
   - id: FORK-PACKAGES-001
     title: Isolated private fork feature packages
     rationale: Keep fork-owned feature implementations together and minimize upstream source changes.
