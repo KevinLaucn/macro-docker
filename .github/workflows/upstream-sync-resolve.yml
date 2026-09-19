@@ -67,6 +67,11 @@ jobs:
             git diff --name-only --diff-filter=U | tee .sync-artifacts/conflicts.txt
             git status --short > .sync-artifacts/status.txt
             git diff --cc > .sync-artifacts/conflict.diff || true
+            mapfile -t conflict_paths < .sync-artifacts/conflicts.txt
+            echo "===== FORK LOCAL DIFF (baseline -> fork) ====="
+            git diff --no-color --unified=8 "$BASELINE" "$PREMERGE" -- "${conflict_paths[@]}" || true
+            echo "===== UPSTREAM DIFF (baseline -> target) ====="
+            git diff --no-color --unified=8 "$BASELINE" "$TARGET" -- "${conflict_paths[@]}" || true
             echo "registered fork overlay has semantic conflicts"
             exit "$status"
           fi
