@@ -299,6 +299,8 @@ customizations:
       - .github/workflows/self-host-images.yml
       - .github/workflows/nix-cache-health.yml
       - .github/workflows/release.yml
+      - .github/workflows/upstream-sync.yml
+      - .github/workflows/upstream-sync-test-group.yml
       - .github/actions/setup-nix/**
       - .github/scripts/**
       - .fork/**
