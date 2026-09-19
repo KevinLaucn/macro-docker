@@ -399,6 +399,45 @@ The display choice survives reload and copying; expansion still references the
 same session and does not invoke a bot. Compact mentions do not load transcripts.
 Existing announcement chips remain locked to the turn they announced.
 
+### Reviewing a linked GitHub pull request
+
+Sessions with a linked GitHub pull request capture that PR's diff when each
+turn ends, regardless of the agent runtime. Unpushed workspace changes and
+branches without a PR are not included. The session header gains a **Changes**
+toggle (`aria-pressed`) with green additions and red deletions (`+N −M`); it opens a resizable
+**Changes** pane beside the transcript (drag the 1px divider between them).
+The URL's `diff` query parameter stores each session's pane state and diff
+layout (`session-id:split:unified`, or `changes-only` / `agent-only` and
+`split` for side-by-side diffs). Copying the URL preserves that view; reload
+and Back/Forward restore it. A plain session URL starts with Changes closed.
+Divider width, collapsed files, and review notes stay local.
+The pane header shows a `head → base` branch pill, a **Unified / Split**
+segmented control (`aria-label="Diff layout"`), a refresh button, the
+**View pull request** button (opens GitHub), and **Expand changes to the full width**
+(spotlight; **Bring the session back** returns to the split) and **Close the
+changes pane**. Below it is a **Collapse all / Expand all** button.
+The body is a file tree (`nav[aria-label="Changed files"]`, directories
+compressed along single-child chains, status letters A/M/D/R and +/− counts)
+next to a scrollable stack of file cards. Expanded cards keep their full height;
+**Collapse all / Expand all** hides or restores their bodies. Each card's header has a disclosure
+caret, the path, `+adds −dels`, and **Copy path**. Diffs render with Pierre; hover a
+line and click the accent **+** in the gutter (drag for a range) to leave a
+review note for the agent (`aria-label="Review note"`; `Cmd/Ctrl+Enter` adds,
+`Escape` cancels). Notes hang under their line as "queued for the agent" and a
+**N review notes queued · Send to agent** chip appears above the composer;
+sending posts one prompt listing every note by file and line and marks them
+"sent to agent". Notes never go to GitHub. Collapsed files and unsent notes
+persist per session in localStorage; a new capture expands all files.
+
+While the pane is closed and a capture has files, a **Changes ready to
+review** card sits above the composer with **Review changes**, **Pull request
+#N** (opens GitHub), and **Dismiss**. With no linked PR, the pane explains
+that a GitHub PR is required. Ask the agent to open one and register its URL
+with `set_pull_request`, then use **Refresh changes**. An unavailable or
+oversized PR is explained in the pane; there is no branch or container fallback.
+Refresh request failures show a retry banner while keeping the last diff visible.
+The pane does not create PRs or generate their descriptions.
+
 ### Transcript navigation
 
 Agent sessions reuse the channel's TanStack `ThreadList`. Opening a session lands

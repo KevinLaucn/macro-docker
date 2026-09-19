@@ -23,6 +23,12 @@ mod test;
 
 use std::{future::Future, pin::Pin, sync::Arc};
 
+use agent_changes::domain::pull_request::PullRequestChanges;
+use agent_changes::domain::service::{AgentChangesService, CaptureOnTurnEnd};
+use agent_changes::inbound::axum_router::AgentChangesRouterState;
+use agent_changes::outbound::github_pull_request::GithubPullRequestDiff;
+use agent_changes::outbound::postgres::PgChangesetRepo;
+use agent_changes::outbound::s3::S3ChangesetBlobStore;
 use agent_egress::domain::service::EgressServiceImpl;
 use agent_egress::outbound::forwarder::ReqwestForwarder;
 use agent_egress::outbound::github_tokens::GithubAppTokens;
@@ -827,12 +833,37 @@ async fn run() -> anyhow::Result<()> {
         )
         .with_repositories(open_repositories),
     );
-    // Close the loop: turn ends observed by the session actors drain the
-    // harness's prompt queue.
-    turn_observer.bind(harness.clone());
     let model_probe_timeout = std::time::Duration::from_secs(10);
     let macrod_models =
         MacrodModels::new(Arc::clone(&runtimes), redis.clone(), model_probe_timeout);
+
+    // Capture only the session's linked GitHub pull request, for every harness.
+    let changes_extractor =
+        PullRequestChanges::new(GithubPullRequestDiff::new(InstallationTokenService::new(
+            InstallationTokenConfig {
+                client_id: config.github_sync_app_client_id.clone(),
+                private_key_pem: config.github_sync_app_pem_secret_key.as_ref().to_owned(),
+            },
+            PgGithubSyncRepo::new(pool.clone()),
+            GithubSyncClientImpl::default(),
+        )));
+    let changes = AgentChangesService::new(
+        session_repo.clone(),
+        changes_extractor,
+        PgChangesetRepo::new(pool.clone()),
+        S3ChangesetBlobStore::new(
+            macro_aws_config::s3_client().await,
+            config.agent_session_changes_bucket.clone(),
+        ),
+        ConnectionGatewayAgentSessionRealtime::new(
+            connection_gateway.clone(),
+            session_repo.clone(),
+        ),
+    );
+
+    // Close the loop: turn ends observed by the session actors drain the
+    // harness's prompt queue, and capture what the turn changed.
+    turn_observer.bind((harness.clone(), CaptureOnTurnEnd::new(changes.clone())));
     let runtime_command_models = macrod_models.clone();
     let runtime_command_redis = redis.clone();
     let runtime_command_harness = harness.clone();
@@ -923,6 +954,11 @@ async fn run() -> anyhow::Result<()> {
         entity_access.clone(),
         MacroAuthorizationState::new(Arc::new(authorization_service.clone())),
     );
+    let changes_state = AgentChangesRouterState::new(
+        changes,
+        entity_access.clone(),
+        MacroAuthorizationState::new(Arc::new(authorization_service.clone())),
+    );
     let control_state = AgentSessionControlState::new(
         harness.clone(),
         entity_access,
@@ -964,6 +1000,7 @@ async fn run() -> anyhow::Result<()> {
                 gateway_state,
                 model_state,
                 repositories_state,
+                changes_state,
             )
             .with_claude_auth(claude_auth),
             http_runtime_commands_readiness,
