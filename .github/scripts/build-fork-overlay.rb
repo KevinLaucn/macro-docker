@@ -89,8 +89,8 @@ File.open(options[:patch], "wb") do |io|
     options[:baseline], options[:head], "--", *selected
   ]
   pid = Process.spawn(*args, out: io, err: $stderr)
-  Process.wait(pid)
-  abort "git diff failed" unless $CHILD_STATUS.success?
+  _waited_pid, status = Process.wait2(pid)
+  abort "git diff failed" unless status.success?
 end
 
 puts "Fork overlay built"
