@@ -108,7 +108,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git push origin "HEAD:\${GITHUB_REF_NAME}"
+          git push origin "HEAD:$GITHUB_REF_NAME"
 
       - name: Upload sync diagnostics
         if: always()
