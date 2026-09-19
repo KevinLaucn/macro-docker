@@ -96,13 +96,7 @@ rewrite("apps/web/src/features/block-unknown/component/Block.tsx") do |c|
     "// PRIVATE-HOOK: adobe_preview:fallback_preview\nimport { AdobePreviewContainer, getAdobeFormatFromFileName } from '@macro/adobe-preview';\n",
     "Adobe preview import"
   )
-  old = <<~'TSX'.strip
-    <UnknownContent
-                fileName={fileName()}
-                onShare={shareCtx.open}
-                onDownload={() => void downloadDocument()}
-              />
-  TSX
+  pattern = /<UnknownContent\n\s+fileName=\{fileName\(\)\}\n\s+onShare=\{shareCtx\.open\}\n\s+onDownload=\{\(\) => void downloadDocument\(\)\}\n\s+\/>/m
   new_value = <<~'TSX'.strip
     <Show
                 when={getAdobeFormatFromFileName(fileName())}
@@ -123,7 +117,7 @@ rewrite("apps/web/src/features/block-unknown/component/Block.tsx") do |c|
                 )}
               </Show>
   TSX
-  replace_once!(c, old, new_value, "Adobe preview fallback")
+  replace_regex_once!(c, pattern, new_value, "Adobe preview fallback")
 end
 
 rewrite("apps/web/src/features/companies/Company/Company.tsx") do |c|
