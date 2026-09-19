@@ -375,4 +375,23 @@ hooks:
     context:
       - "members = ["
 
+  - id: email_translation_view_provider
+    file: apps/web/src/features/email-view/email-view.tsx
+    marker: "{/* PRIVATE-HOOK: email_translation:view-provider */}"
+    expected: "<EmailListTranslationProvider>"
+    context:
+      - "<EmailViewProvider>"
 
+  - id: selfhost_runtime_feature_flag_overrides
+    file: apps/web/src/lib/core/constant/featureFlags.ts
+    marker: "// PRIVATE-HOOK: selfhost_runtime:feature-flag-overrides"
+    expected: "window as unknown as { __MACRO_ENV__?: Record<string, unknown> }"
+    context:
+      - "export function getFeatureFlagOverride(flagName: string): boolean | undefined {"
+
+  - id: selfhost_runtime_capabilities
+    file: apps/web/src/lib/core/constant/featureFlags.ts
+    marker: "// PRIVATE-HOOK: selfhost_runtime:capabilities"
+    expected: "export interface AppCapabilities"
+    context:
+      - "export function getAppCapabilities(): AppCapabilities {"
