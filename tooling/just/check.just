@@ -21,6 +21,7 @@ fork-gate:
     ruby .github/scripts/check-zero-cloud.rb --base "${CHECK_BASE:-upstream/main}" --head HEAD
     ruby .github/scripts/check-telemetry-privacy.rb --base "${CHECK_BASE:-upstream/main}" --head HEAD
     ruby .github/scripts/check-upstream-overlap.rb --base "${CHECK_BASE:-upstream/main}" --head HEAD
+    ruby .github/scripts/check-core-drift.rb "${CHECK_BASE:-upstream/main}"
 
 check *ARGS:
     #!/usr/bin/env bash
