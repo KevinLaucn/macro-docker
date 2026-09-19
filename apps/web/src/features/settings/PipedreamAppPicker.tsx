@@ -3,7 +3,6 @@ import {
   createPipedreamCatalogConnect,
   createPipedreamCatalogSearch,
 } from '@core/pipedream/catalog';
-import { t } from '@macro/i18n';
 import SpinnerIcon from '@phosphor/spinner-gap.svg';
 import XIcon from '@phosphor/x.svg';
 import type { PipedreamCatalogEntryResponse } from '@service-cognition/client';
@@ -27,7 +26,7 @@ import { IntegrationRow } from './primitives';
  * same agent sees their own dots, because a session spends the connections
  * of whoever runs it. So an unconnected pick is never an error here - it is
  * the agent's author saying "this agent uses Linear", and each person
- * connects Linear on their own, from this row or from Settings → Connections.
+ * connects Linear on their own, from this row or from Settings → Integrations.
  */
 export function PipedreamAppPicker(props: {
   selected: readonly AgentMcpServer[];
@@ -56,9 +55,9 @@ export function PipedreamAppPicker(props: {
     <div class="flex flex-col gap-3">
       <input
         type="search"
-        aria-label={t('Search connectors')}
+        aria-label="Search connectors"
         class="settings-input w-full"
-        placeholder={t('Search all connectors…')}
+        placeholder="Search all connectors…"
         value={catalog.searchInput()}
         onInput={(event) => catalog.onSearchInput(event.currentTarget.value)}
       />

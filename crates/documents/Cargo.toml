@@ -67,6 +67,8 @@ outbound = [
   "dep:aws-sdk-s3",
   "dep:base64",
   "dep:entity_access_db_utils",
+  "dep:entity_registry_db_utils",
+  "dep:model_owner",
   "dep:hex",
   "dep:share_permission_db_utils",
   "dep:sqlx",
@@ -95,7 +97,7 @@ connection = { path = "../connection", default-features = false, features = [
   "ports",
 ] }
 document_sub_type = { path = "../document_sub_type" }
-entity_access = { path = "../entity_access", default-features = false, features = ["ports"] }
+entity_access = { path = "../entity_access" }
 entity_mutation = { path = "../entity_mutation" }
 entity_access_management = { path = "../entity_access_management", default-features = false, features = [
   "outbound",
@@ -117,7 +119,7 @@ macro_sync_service_jwt = { path = "../macro_sync_service_jwt" }
 macro_user_id = { path = "../macro_user_id" }
 macro_uuid = { path = "../macro_uuid" }
 system_skills = { path = "../system_skills" }
-model = { path = "../model", default-features = false }
+model = { path = "../model" }
 model-entity = { path = "../model-entity" }
 models_permissions = { path = "../models_permissions" }
 models_properties = { path = "../models_properties" }
@@ -142,11 +144,13 @@ base64 = { workspace = true, optional = true }
 cloudfront_sign = { workspace = true }
 comms_db_client = { path = "../comms_db_client", optional = true }
 entity_access_db_utils = { path = "../entity_access_db_utils", optional = true }
+entity_registry_db_utils = { path = "../entity_registry/entity_registry_db_utils", optional = true }
+model_owner = { path = "../model_owner", optional = true }
 futures = { workspace = true }
 share_permission_db_utils = { path = "../share_permission_db_utils", optional = true }
 hex = { workspace = true, optional = true }
 sqlx = { workspace = true, optional = true }
-sync_service_client = { path = "../sync_service_client", default-features = false }
+sync_service_client = { path = "../sync_service_client" }
 task_dedup = { path = "../task_dedup", optional = true }
 urlencoding = { workspace = true }
 

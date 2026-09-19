@@ -1,4 +1,3 @@
-import { getAppCapabilities } from '@core/constant/featureFlags';
 import { SERVER_HOSTS } from '@core/constant/servers';
 import {
   type FetchWithTokenErrorCode,
@@ -6,7 +5,7 @@ import {
 } from '@core/util/fetchWithToken';
 import type { ObjectLike, ResultError } from '@core/util/result';
 import type { SafeFetchInit } from '@core/util/safeFetch';
-import { err, ok, type Result } from 'neverthrow';
+import type { Result } from 'neverthrow';
 import type {
   ActionExecutionRecord,
   CreateScheduledAction,
@@ -31,22 +30,6 @@ function scheduledActionFetch<T extends ObjectLike = never>(
 ):
   | Promise<Result<T, ResultError<FetchWithTokenErrorCode>[]>>
   | Promise<Result<void, ResultError<FetchWithTokenErrorCode>[]>> {
-  const capabilities = getAppCapabilities();
-  if (!capabilities.scheduledActions) {
-    const isGet = !init?.method || init.method.toUpperCase() === 'GET';
-    if (url.includes('/scheduled-actions') && isGet) {
-      return Promise.resolve(ok([] as unknown as T));
-    }
-    return Promise.resolve(
-      err([
-        {
-          type: 'FetchWithTokenError',
-          code: 'NETWORK_ERROR',
-          message: 'Scheduled action service is disabled in this profile',
-        },
-      ]) as Result<T, ResultError<FetchWithTokenErrorCode>[]>
-    );
-  }
   return fetchWithToken<T>(`${scheduledActionHost}${url}`, init);
 }
 
@@ -56,32 +39,11 @@ export const scheduledActionClient = {
       method: 'GET',
     }),
 
-  createSchedule: async (body: CreateScheduledAction) => {
-    const result = await scheduledActionFetch<ScheduledAction>(
-      '/scheduled-actions',
-      {
-        method: 'POST',
-        body: JSON.stringify(body),
-      }
-    );
-    return result.andThen((schedule) => {
-      if (
-        !schedule ||
-        typeof schedule !== 'object' ||
-        Array.isArray(schedule) ||
-        !schedule.id
-      ) {
-        return err([
-          {
-            code: 'HTTP_ERROR',
-            message:
-              'Invalid schedule returned from server: missing schedule.id',
-          },
-        ] as ResultError<FetchWithTokenErrorCode>[]);
-      }
-      return ok(schedule);
-    });
-  },
+  createSchedule: async (body: CreateScheduledAction) =>
+    scheduledActionFetch<ScheduledAction>('/scheduled-actions', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 
   updateSchedule: async (args: {
     scheduleId: string;

@@ -5,6 +5,8 @@ import {
 } from '@core/component/LexicalMarkdown/theme';
 import { UserIcon } from '@core/component/UserIcon';
 import { DisplayName } from '@entity/components/DisplayName';
+import PhoneIcon from '@phosphor/phone-call.svg';
+import { useActiveCallsQuery } from '@queries/call/call';
 import { useJoinChannelMutation } from '@queries/channel/join-links';
 import { Button } from '@ui';
 import { Show } from 'solid-js';
@@ -44,8 +46,20 @@ export function ChannelJoinButton(props: {
   );
 }
 
-export function ChannelActiveCallBadge(_props: { channelId: string }) {
-  return null;
+/**
+ * Accent phone icon shown on a channel row while a call is live in it. Reads
+ * the shared all-active-calls query, so every row dedupes into one request.
+ */
+export function ChannelActiveCallBadge(props: { channelId: string }) {
+  const activeCallsQuery = useActiveCallsQuery();
+  const hasActiveCall = () =>
+    (activeCallsQuery.data ?? []).some((c) => c.channelId === props.channelId);
+
+  return (
+    <Show when={hasActiveCall()}>
+      <PhoneIcon class="size-4 shrink-0 text-accent fill-accent" />
+    </Show>
+  );
 }
 
 function ChannelMessage(props: {

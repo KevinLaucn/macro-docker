@@ -49,6 +49,7 @@ import type { ObjectLike, ResultError } from './util/result';
  * List of valid block types that can be used in the application.
  */
 export const BlockRegistry = [
+  'call',
   'calendar',
   'chat',
   'write',
@@ -57,8 +58,8 @@ export const BlockRegistry = [
   'code',
   'image',
   'canvas',
+  'spreadsheet',
   'channel',
-  'call',
   'project',
   'unknown',
   'video',
@@ -70,8 +71,8 @@ export const BlockRegistry = [
   'agent',
 ] as const;
 
-/** Block names that resolve through another concrete block implementation or have been retired from concrete block loading. */
-export const VirtualBlockRegistry = ['write', 'call'] as const;
+/** Block names that resolve through another concrete block implementation. */
+export const VirtualBlockRegistry = ['write'] as const;
 const virtualBlockNames = new Set<string>(VirtualBlockRegistry);
 export const ConcreteBlockRegistry = BlockRegistry.filter(
   (name) => !virtualBlockNames.has(name)
@@ -88,13 +89,7 @@ export type BlockName = (typeof BlockRegistry)[BlockNameKeys];
  * List of strongly-typed, valid aliases that can be used as pseudo-differentiated
  * block types.
  */
-export const BlockAliasRegistry = [
-  'csv',
-  'task',
-  'snippet',
-  'skill',
-  'agent',
-] as const;
+export const BlockAliasRegistry = ['csv', 'task', 'snippet', 'skill'] as const;
 
 type BlockAliasKeys = keyof typeof BlockAliasRegistry & number;
 
@@ -108,10 +103,10 @@ export type BlockAlias = (typeof BlockAliasRegistry)[BlockAliasKeys];
  * Represents the block types that do not correspond to a document type.
  */
 export const NonDocumentBlockTypes = [
+  'call',
   'calendar',
   'chat',
   'channel',
-  'call',
   'project',
   'email',
   'contact',
@@ -165,6 +160,7 @@ const _ValidBlockCombinations: BlockCombinationRules = {
   channel: allBlockNames,
   email: allBlockNames,
   canvas: allBlockNames,
+  spreadsheet: allBlockNames,
   project: allBlockNames,
   unknown: allBlockNames,
   video: allBlockNames,
@@ -184,6 +180,7 @@ export const ValidNestingCombinations: BlockCombinationRules = {
   call: new Set([]),
   calendar: new Set([]),
   canvas: new Set(['md']),
+  spreadsheet: new Set([]),
   chat: new Set([]),
   pdf: new Set(['md']),
   write: new Set([]),

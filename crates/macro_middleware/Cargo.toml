@@ -28,7 +28,7 @@ macro_env = { path = "../macro_env" }
 macro_env_var = { path = "../macro_env_var" }
 macro_user_id = { path = "../macro_user_id", optional = true }
 macro_uuid = { path = "../macro_uuid" }
-model = { path = "../model", default-features = false }
+model = { path = "../model" }
 model-entity = { path = "../model-entity" }
 model_user = { path = "../model_user", optional = true }
 models_permissions = { path = "../models_permissions" }

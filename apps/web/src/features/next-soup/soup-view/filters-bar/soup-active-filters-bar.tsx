@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import Plus from '@phosphor/plus.svg';
 import XIcon from '@phosphor/x.svg';
 import { Button, cn, Dropdown, Layer } from '@ui';
@@ -23,7 +22,7 @@ const AddFilterButton = () => (
   <Dropdown.Trigger
     variant="ghost"
     size="icon-sm"
-    tooltip={t('Add filters')}
+    tooltip="Add filters"
     class="p-1 rounded-full"
   >
     <Plus class="size-3" />
@@ -56,12 +55,10 @@ export function SoupActiveFiltersBar(props: SoupActiveFiltersBarProps) {
                 variant="outline"
                 size="sm"
                 class="h-7 rounded-md"
-                tooltip={t('Clear active filters')}
+                tooltip="Clear active filters"
               >
                 <XIcon />
-                <span class="hidden @min-[300px]/split:inline">
-                  {t('Clear all')}
-                </span>
+                <span class="hidden @min-[300px]/split:inline">Clear all</span>
               </Button>
             </div>
           </div>

@@ -4,8 +4,8 @@
 //! Third-party actions are pinned to a SHA with the human-readable version in a
 //! trailing comment, matching the rest of the repo's workflows.
 
-use gh_workflow::{Expression, Job, Run, Step, Use};
-use xtask_paths::RepoDir;
+use gh_workflow::{Env, Expression, Job, Run, Step, Use};
+use xtask_paths::{RepoDir, RuntimePath};
 
 use crate::workflows::vars;
 
@@ -46,6 +46,17 @@ pub(crate) fn uses_local(name: &str, path: RepoDir<'_>) -> Step<Use> {
     let mut step = Step::new(name).uses("local", "local", "0");
     step.value.uses = Some(format!("./{}", path.as_str()));
     step
+}
+
+/// Namespace remote BuildKit, pinned. Multi-arch `docker buildx --push` goes
+/// through it so nix-in-Docker work does not land on a Small runner's local
+/// daemon.
+pub fn setup_namespace_buildx() -> Step<Use> {
+    Step::new("Set up Namespace Docker builder").uses(
+        "namespacelabs",
+        "nscloud-setup-buildx-action",
+        "d059ed7184f0bc7c8b27e8810cea153d02bcc6dd",
+    ) // v0.0.23
 }
 
 /// `actions/checkout`, pinned. `full_history` fetches the full history, which
@@ -105,6 +116,55 @@ pub fn setup_nix() -> Step<Use> {
     )
 }
 
+/// [`setup_nix`] with the private S3 binary cache configured as a substituter,
+/// so a /nix cache-volume miss degrades to a download instead of a rebuild.
+/// Only for trusted jobs with access to the AWS secrets (never PR-triggered
+/// jobs). No-ops back to plain [`setup_nix`] behavior while the
+/// `NIX_CACHE_*` repo variables are unset.
+pub fn setup_nix_with_cache() -> Step<Use> {
+    setup_nix()
+        .add_with(("nix-cache-url", vars::NIX_CACHE_URL))
+        .add_with(("nix-cache-public-key", vars::NIX_CACHE_PUBLIC_KEY))
+        .add_with(("aws-access-key-id", vars::AWS_ACCESS_KEY))
+        .add_with(("aws-secret-access-key", vars::AWS_SECRET_ACCESS_KEY))
+}
+
+/// Push built store paths to the private S3 binary cache, signing on upload —
+/// the `cachix watch-store` role. `targets` lands in the step's `TARGETS` env
+/// (space-separated flake refs or store paths; GH expressions fine) and is
+/// word-split on purpose. Skips silently while the cache vars/secret are
+/// unset, and never fails the job: the cache is an optimization, and the paths
+/// were already handed off via Namespace artifacts.
+pub fn push_nix_cache(targets: &str) -> Step<Run> {
+    Step::new("Push to nix cache")
+        .run(indoc::indoc! {r#"
+            set -uo pipefail
+            if [[ -z "${NIX_CACHE_URL:-}" || -z "${NIX_CACHE_SIGNING_KEY:-}" ]]; then
+              echo "nix cache not configured; skipping push"
+              exit 0
+            fi
+            key="$RUNNER_TEMP/nix-cache-signing-key"
+            printf '%s\n' "$NIX_CACHE_SIGNING_KEY" > "$key"
+            sep='?'; [[ "$NIX_CACHE_URL" == *\?* ]] && sep='&'
+            # shellcheck disable=SC2086 # TARGETS is a list on purpose
+            nix copy --to "${NIX_CACHE_URL}${sep}secret-key=${key}" $TARGETS \
+              || echo "::warning::nix cache push failed (non-fatal)"
+            rm -f "$key"
+        "#})
+        .shell("bash")
+        .add_env(Env::new("TARGETS", targets))
+        .add_env(Env::new("NIX_CACHE_URL", vars::NIX_CACHE_URL))
+        .add_env(Env::new(
+            "NIX_CACHE_SIGNING_KEY",
+            vars::NIX_CACHE_SIGNING_KEY,
+        ))
+        .add_env(Env::new("AWS_ACCESS_KEY_ID", vars::AWS_ACCESS_KEY))
+        .add_env(Env::new(
+            "AWS_SECRET_ACCESS_KEY",
+            vars::AWS_SECRET_ACCESS_KEY,
+        ))
+}
+
 /// Enter the repo's Nix dev shell (toolchain, mold, just, the sccache binary,
 /// and `RUSTC_WRAPPER=sccache`) without selecting an sccache provider or
 /// configuring an external Nix binary cache. Jobs that compile Rust can follow
@@ -119,7 +179,6 @@ pub fn setup_dev_shell() -> Step<Use> {
 }
 
 /// [`setup_dev_shell`] for a named `devShells.<name>` flake output.
-#[allow(dead_code)]
 pub fn setup_dev_shell_named(name: &str) -> Step<Use> {
     setup_dev_shell().add_with(("shell", name))
 }
@@ -146,6 +205,23 @@ fn nscloud_cache_action(name: &str) -> Step<Use> {
             "15799a6b54e5765f85b2aac25b3f0df43ed571c0", // v1.4.3
         )
         .continue_on_error(true)
+}
+
+/// [`mount_cache_volume`] for the wasm worker build. `target/` is listed
+/// explicitly so cargo fingerprints survive across runs. The last two paths
+/// are what wrangler's `[build]` line otherwise redoes every run: the pinned
+/// `worker-build` binary and wasm-pack's downloaded `wasm-opt`.
+pub fn mount_wasm_cache_volume() -> Step<Use> {
+    nscloud_cache_action("Mount Namespace cache volume")
+        .add_with(("cache", "rust"))
+        .add_with((
+            "path",
+            format!(
+                "${{{{ github.workspace }}}}/target\n{}\n{}",
+                xtask_paths::runtime_path!("/home/runner/.cargo/bin").as_str(),
+                xtask_paths::runtime_path!("/home/runner/.cache/.wasm-pack").as_str(),
+            ),
+        ))
 }
 
 /// Configure Namespace's official artifact-backed remote sccache. Call this
@@ -249,10 +325,149 @@ pub fn gated_job() -> Job {
     ))
 }
 
+// ---------------------------------------------------------------------------
+// Deploy family (deploy_all_services / reusable_deploy_service) shared steps
+// ---------------------------------------------------------------------------
+
+/// `actions/checkout` pinned to the v4 SHA the deploy pipelines use. Compose
+/// options at the call site (`clean: false` on jobs reusing a mounted /nix
+/// volume, `sparse-checkout` for action-only jobs).
+pub fn checkout_v4() -> Step<Use> {
+    Step::new("Checkout Repo")
+        .uses(
+            "actions",
+            "checkout",
+            "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+        ) // v4
+        .add_with(("persist-credentials", false))
+}
+
+/// Build Nix targets using Namespace's mounted `/nix` cache volume.
+pub fn nix_build(name: &str, targets: &str, done_msg: &str) -> Step<Run> {
+    Step::new(name)
+        .run(format!(
+            "set -euo pipefail\nnix build --print-build-logs {targets}\necho \"{done_msg}\""
+        ))
+        .shell("bash")
+}
+
+/// Upload a build's handoff tarball to Namespace artifact storage: strongly
+/// consistent object storage that rides Namespace's network rather than the
+/// GitHub artifacts API. Attempt-scoped path so re-runs never collide with
+/// stale uploads; the deploy job logs the same hash on read.
+pub fn upload_handoff_artifact(file: &str, service_expr: &str) -> Step<Run> {
+    Step::new("Upload handoff artifact")
+        .run(format!("nsc artifact upload {file} \"$DEST\" --expires_in=24h"))
+        .shell("bash")
+        .add_env(Env::new(
+            "DEST",
+            format!("handoff/${{{{ github.run_id }}}}-${{{{ github.run_attempt }}}}/{service_expr}/{file}"),
+        ))
+}
+
+/// Mount Pulumi's provider-plugin dir on a Namespace cache volume. Plugins are
+/// version-pinned by infra/ and identical across services; a cold volume just
+/// re-downloads (~45s). Requires the job to pin `PULUMI_HOME: /pulumi`.
+pub fn cache_pulumi_plugins() -> Step<Use> {
+    nscloud_cache_action("Cache Pulumi plugins").add_with(("path", "/pulumi/plugins"))
+}
+
+/// Make PULUMI_HOME (/pulumi) and its mounted plugins subdir writable so
+/// pulumi can write credentials + plugins as the runner (no-op when already
+/// root). `mkdir -p` first: the plugin cache mount is continue-on-error, so on
+/// a mount failure /pulumi may not exist yet — create it so the cold-cache
+/// fallback works instead of the chown hard-failing the deploy.
+pub fn ensure_pulumi_home_writable() -> Step<Run> {
+    Step::new("Ensure Pulumi home is writable")
+        .run(indoc::indoc! {r#"
+            set -euo pipefail
+            sudo mkdir -p /pulumi
+            if [ "$(id -u)" -ne 0 ]; then sudo chown -R "$(id -u):$(id -g)" /pulumi; fi
+        "#})
+        .shell("bash")
+}
+
+// ---------------------------------------------------------------------------
+// Desktop (AppImage / DMG) shared steps
+// ---------------------------------------------------------------------------
+
+/// `actions/checkout` with a dynamic ref (for tag-triggered builds). Uses the
+/// same pinned SHA as [`checkout`].
+pub fn checkout_ref(ref_expr: &str) -> Step<Use> {
+    Step::new("Checkout Repo")
+        .uses(
+            "actions",
+            "checkout",
+            "df4cb1c069e1874edd31b4311f1884172cec0e10",
+        ) // v6
+        .add_with(("ref", ref_expr))
+        .add_with(("persist-credentials", false))
+}
+
 /// Mount only the `/nix` store cache volume (no cargo/sccache). Used by the
-/// jobs that delegate entirely to Nix.
+/// desktop builds that delegate entirely to Nix.
 pub fn mount_nix_cache_volume() -> Step<Use> {
     nscloud_cache_action("Mount /nix cache volume").add_with(("cache", "nix"))
+}
+
+/// Derive a safe tag name from the git ref for use in artifact names.
+pub fn derive_artifact_metadata(raw_ref_expr: &str) -> Step<Run> {
+    Step::new("Derive artifact metadata")
+        .run(indoc::indoc! {r#"
+            set -euo pipefail
+            tag="${RAW_REF#refs/tags/}"
+            if [ -z "$tag" ]; then
+              tag="${GITHUB_REF_NAME:-untagged}"
+            fi
+            safe_tag=$(printf '%s' "$tag" | sed 's#[/\\:*?"<>|]#-#g' | tr -d '\r\n')
+            echo "tag=$tag" >> "$GITHUB_OUTPUT"
+            echo "safe_tag=$safe_tag" >> "$GITHUB_OUTPUT"
+        "#})
+        .id("metadata")
+        .shell("bash")
+        .add_env(("RAW_REF", raw_ref_expr))
+}
+
+/// Upload build artifacts within the workflow run for a later publish job.
+pub fn upload_artifact(name: &str, path: RuntimePath<'_>) -> Step<Use> {
+    Step::new(format!("Upload {name} artifact"))
+        .uses(
+            "actions",
+            "upload-artifact",
+            "ea165f8d65b6e75b540449e92b4886f43607fa02",
+        ) // v4
+        .add_with(("name", name))
+        .add_with(("path", path.as_str()))
+        .add_with(("if-no-files-found", "error"))
+        .add_with(("retention-days", 30))
+}
+
+/// Download all build artifacts into one directory for release publishing.
+pub fn download_artifacts(path: RuntimePath<'_>) -> Step<Use> {
+    Step::new("Download Build Artifacts")
+        .uses(
+            "actions",
+            "download-artifact",
+            "634f93cb2916e3fdff6788551b99b062d0335ce0",
+        ) // v5
+        .add_with(("path", path.as_str()))
+        .add_with(("merge-multiple", true))
+}
+
+/// Attach build artifacts to the GitHub release for the resolved release tag.
+pub fn upload_release_artifacts(path: RuntimePath<'_>) -> Step<Use> {
+    Step::new("Upload Release Artifacts")
+        .uses(
+            "softprops",
+            "action-gh-release",
+            "3bb12739c298aeb8a4eeaf626c5b8d85266b0e65",
+        ) // v2
+        .if_condition(Expression::new(
+            "startsWith(steps.metadata.outputs.tag, 'v')",
+        ))
+        .add_with(("tag_name", "${{ steps.metadata.outputs.tag }}"))
+        .add_with(("files", path.as_str()))
+        .add_with(("fail_on_unmatched_files", true))
 }
 
 /// Teardown Nix (always runs).

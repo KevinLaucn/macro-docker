@@ -1,4 +1,3 @@
-import { __t } from '@macro/i18n';
 import { cn, Layer } from '@ui';
 import { createContext, type JSX, Show, useContext } from 'solid-js';
 
@@ -62,15 +61,11 @@ export function SettingsPage(props: {
           <div class="flex flex-col gap-1.5 min-w-0">
             <Show when={!inSheet}>
               <h1 class="text-2xl/tight font-semibold text-ink">
-                {typeof props.title === 'string' ? __t(props.title) : props.title}
+                {props.title}
               </h1>
             </Show>
             <Show when={props.description}>
-              <p class="text-sm text-ink-muted">
-                {typeof props.description === 'string'
-                  ? __t(props.description)
-                  : props.description}
-              </p>
+              <p class="text-sm text-ink-muted">{props.description}</p>
             </Show>
           </div>
           <Show when={props.actions}>
@@ -105,18 +100,10 @@ export function SettingsSection(props: {
         <div class="flex items-end justify-between gap-4 px-6">
           <div class="flex flex-col gap-0.5 min-w-0">
             <Show when={props.title}>
-              <h2 class="text-sm font-semibold text-ink">
-                {typeof props.title === 'string'
-                  ? __t(props.title)
-                  : props.title}
-              </h2>
+              <h2 class="text-sm font-semibold text-ink">{props.title}</h2>
             </Show>
             <Show when={props.description}>
-              <p class="text-sm text-ink-muted">
-                {typeof props.description === 'string'
-                  ? __t(props.description)
-                  : props.description}
-              </p>
+              <p class="text-sm text-ink-muted">{props.description}</p>
             </Show>
           </div>
           <Show when={props.actions}>
@@ -197,9 +184,7 @@ export function SettingsRow(props: {
       )}
     >
       <div class="flex flex-col gap-0.5 min-w-0">
-        <div class="text-sm text-ink">
-          {typeof props.label === 'string' ? __t(props.label) : props.label}
-        </div>
+        <div class="text-sm text-ink">{props.label}</div>
         <Show when={props.description}>
           <div
             class={cn(
@@ -207,9 +192,7 @@ export function SettingsRow(props: {
               props.hideDescriptionOnMobile && 'mobile:hidden'
             )}
           >
-            {typeof props.description === 'string'
-              ? __t(props.description)
-              : props.description}
+            {props.description}
           </div>
         </Show>
       </div>
@@ -263,13 +246,9 @@ export function ChoiceRow(props: {
         class="mt-0.5 accent-accent"
       />
       <span class="min-w-0">
-        <span class="block text-sm font-medium text-ink">
-          {typeof props.title === 'string' ? __t(props.title) : props.title}
-        </span>
+        <span class="block text-sm font-medium text-ink">{props.title}</span>
         <span class="mt-0.5 block text-xs text-ink-muted">
-          {typeof props.description === 'string'
-            ? __t(props.description)
-            : props.description}
+          {props.description}
         </span>
       </span>
     </label>
@@ -298,17 +277,11 @@ export function IntegrationRow(props: {
       </div>
       <div class="flex-1 min-w-0 flex flex-col gap-0.5">
         <div class="flex items-center gap-2 min-w-0">
-          <div class="text-sm font-medium text-ink truncate">
-            {typeof props.title === 'string' ? __t(props.title) : props.title}
-          </div>
+          <div class="text-sm font-medium text-ink truncate">{props.title}</div>
           <Show when={props.status}>{props.status}</Show>
         </div>
         <Show when={props.description}>
-          <div class="text-sm text-ink-muted truncate">
-            {typeof props.description === 'string'
-              ? __t(props.description)
-              : props.description}
-          </div>
+          <div class="text-sm text-ink-muted truncate">{props.description}</div>
         </Show>
       </div>
       <Show when={props.children}>

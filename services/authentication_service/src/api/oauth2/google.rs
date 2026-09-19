@@ -150,24 +150,11 @@ async fn link_user(
     Ok(())
 }
 
-#[cfg(feature = "full-saas")]
 fn resolved_granted_scopes(returned: &str, requested: Vec<String>) -> Vec<String> {
     if returned.trim().is_empty() {
         requested
     } else {
         calendar_events::domain::models::GoogleScopeSet::parse(returned).into_vec()
-    }
-}
-
-#[cfg(not(feature = "full-saas"))]
-fn resolved_granted_scopes(returned: &str, requested: Vec<String>) -> Vec<String> {
-    if returned.trim().is_empty() {
-        requested
-    } else {
-        returned
-            .split_ascii_whitespace()
-            .map(ToOwned::to_owned)
-            .collect()
     }
 }
 

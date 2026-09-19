@@ -81,7 +81,7 @@ describe('PR gateway updates', () => {
   it('refetches mounted queries after connection recovery', async () => {
     queryClient.setQueryData(byKey, null);
     const fetch = vi.fn().mockResolvedValue(entity);
-    const observer = new QueryObserver(queryClient as any, {
+    const observer = new QueryObserver(queryClient, {
       queryKey: byKey,
       queryFn: fetch,
       staleTime: Infinity,

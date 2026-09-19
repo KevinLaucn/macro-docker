@@ -4,7 +4,6 @@ export interface EmailThreadKeyboardHandlers {
   replyToFocusedMessage: () => boolean;
   replyAllToFocusedMessage?: () => boolean;
   forwardFocusedMessage: () => boolean;
-  translateThread: () => boolean;
   blockSender: () => boolean;
   markDone: () => boolean;
   markNotDone: () => boolean;

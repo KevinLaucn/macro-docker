@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import { Property } from '@property';
 import { usePropertiesContext } from '@property/context/PropertiesContext';
 import type { Property as PropertyT } from '@property/types';
@@ -60,11 +59,7 @@ export const InlinePropertyValue: Component<InlinePropertyValueProps> = (
             property={props.property}
             fallback={
               <Property.Empty
-                label={
-                  typeof props.emptyLabel === 'string'
-                    ? t(props.emptyLabel)
-                    : (props.emptyLabel ?? t(props.property.displayName))
-                }
+                label={props.emptyLabel ?? props.property.displayName}
               />
             }
           />

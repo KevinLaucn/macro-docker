@@ -24,7 +24,6 @@ import {
 } from '@core/signal/profilePicture';
 import { createStaticFile } from '@core/util/create';
 import { openFilePicker } from '@core/util/upload';
-import { __t } from '@macro/i18n';
 import { type BundleUpdateStatus, useTauri } from '@macro/tauri';
 import {
   type SupportedNotificationSettings,
@@ -649,7 +648,7 @@ export function Account() {
 function Row(props: { label: string; children?: any }) {
   return (
     <div class="bg-surface flex items-center justify-between gap-4 min-h-15.25 px-6 py-3">
-      <div class="text-sm">{__t(props.label)}</div>
+      <div class="text-sm">{props.label}</div>
       <div class="text-right">{props.children}</div>
     </div>
   );

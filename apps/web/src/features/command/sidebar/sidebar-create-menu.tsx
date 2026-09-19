@@ -5,8 +5,7 @@ import { useHotkeyInterceptor } from '@app/signal/hotkeyRoot';
 import { setActiveScope } from '@core/hotkey/state';
 import { TOKENS } from '@core/hotkey/tokens';
 import { activateClosestDOMScope } from '@core/hotkey/utils';
-import CreateIcon from '@icon/square-pen-create.svg';
-import { t } from '@macro/i18n';
+import CreateIcon from '@phosphor/note-pencil.svg';
 import PlusIcon from '@phosphor/plus.svg';
 import { Button, Dropdown, Hotkey, NavRow } from '@ui';
 import {
@@ -37,7 +36,6 @@ export type SidebarCreateMenuProps = {
 export const SidebarCreateMenu = (props: SidebarCreateMenuProps) => {
   const analytics = useAnalytics();
   const [open, setOpen] = createSignal(false);
-  const [focusedIndex, setFocusedIndex] = createSignal(-1);
   const blocks = useCreateMenuBlocks();
 
   const isSlim = () => props.isSlim?.() ?? false;
@@ -104,7 +102,7 @@ export const SidebarCreateMenu = (props: SidebarCreateMenuProps) => {
                 fullWidth
                 tooltipPlacement="right"
                 tooltipDisabled={!isSlim()}
-                label={t('Create', { context: 'menu' })}
+                label="Create"
                 hotkey={TOKENS.global.createCommand}
                 onMouseDown={(e: MouseEvent) => {
                   if (e.button !== 0) return;
@@ -115,7 +113,7 @@ export const SidebarCreateMenu = (props: SidebarCreateMenuProps) => {
                   <PlusIcon class="size-4" />
                 </div>
                 <span class="whitespace-nowrap group-data-[slim=true]/sidebar:hidden">
-                  {t('Create', { context: 'menu' })}
+                  Create
                 </span>
                 <Show when={open()}>
                   <div class="text-xxs text-ink-extra-muted/50 rounded-sm ml-auto border border-ink/5 px-1.5 py-px -my-1 group-data-[slim=true]/sidebar:hidden">
@@ -134,7 +132,7 @@ export const SidebarCreateMenu = (props: SidebarCreateMenuProps) => {
               size="icon-sm"
               depth={1}
               class="size-[26px] rounded-full bg-surface shadow-md shadow-drop-shadow [&_svg]:size-4!"
-              label={t('Create', { context: 'menu' })}
+              label="Create"
               hotkey={TOKENS.global.createCommand}
               onMouseDown={(e: MouseEvent) => {
                 if (e.button !== 0) return;
@@ -162,23 +160,18 @@ export const SidebarCreateMenu = (props: SidebarCreateMenuProps) => {
       <Dropdown.Content class="min-w-52">
         <Dropdown.Group>
           <For each={blocks()}>
-            {(block, index) => (
+            {(block) => (
               <Dropdown.Item
                 class="min-h-9 gap-2 px-2.5"
-                onFocus={() => setFocusedIndex(index())}
-                onMouseEnter={() => setFocusedIndex(index())}
                 onSelect={() => {
                   setOpen(false);
                   block.keyDownHandler();
                 }}
               >
                 <div class="size-4 shrink-0 flex items-center rounded-sm text-ink-muted [&_svg]:size-4">
-                  <Dynamic
-                    component={block.animatedIcon ?? block.icon}
-                    triggerAnimation={focusedIndex() === index()}
-                  />
+                  <Dynamic component={block.icon} />
                 </div>
-                <span class="flex-1 text-ink">{t(block.label)}</span>
+                <span class="flex-1 text-ink">{block.label}</span>
                 <Hotkey token={block.hotkeyToken} theme="subtle" class="ml-6" />
               </Dropdown.Item>
             )}

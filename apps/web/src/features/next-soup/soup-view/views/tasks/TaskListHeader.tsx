@@ -3,7 +3,6 @@ import { useSoupView } from '@app/features/next-soup/soup-view/soup-view-context
 import { useListLayout } from '@entity/composed/list-entity/shared';
 import StatusInProgress from '@icon/square-task-in-progress-circle.svg';
 import PriorityHigh from '@icon/wide-priority-high.svg';
-import { t } from '@macro/i18n';
 import ArrowDownIcon from '@phosphor/arrow-down.svg';
 import UsersIcon from '@phosphor/users.svg';
 import { Tooltip } from '@ui';
@@ -83,7 +82,7 @@ function TaskListHeader(props: { class?: string }) {
     >
       <div style={{ 'grid-area': 'indicator' }} />
       <div style={{ 'grid-area': 'content' }} class="truncate">
-        {t('Task')}
+        Task
       </div>
       <For each={TASK_GRID_COLUMNS}>
         {(col) => {
@@ -158,14 +157,14 @@ function HeaderCell(props: {
           >
             <Show when={props.narrowIcon}>
               <span class="truncate @max-[840px]/u-list:hidden">
-                {t(props.label)}
+                {props.label}
               </span>
               <span class="hidden @max-[840px]/u-list:flex @max-[840px]/u-list:px-1.5">
                 {props.narrowIcon?.()}
               </span>
             </Show>
             <Show when={!props.narrowIcon}>
-              <span class="truncate">{t(props.label)}</span>
+              <span class="truncate">{props.label}</span>
             </Show>
           </div>
         }
@@ -183,10 +182,10 @@ function HeaderCell(props: {
             )}
           >
             <Show when={props.narrowIcon}>
-              <Tooltip label={t(props.label)}>{props.narrowIcon?.()}</Tooltip>
+              <Tooltip label={props.label}>{props.narrowIcon?.()}</Tooltip>
             </Show>
             <span class="truncate @max-[840px]/u-list:hidden">
-              {t(props.label)}
+              {props.label}
             </span>
             <ArrowDownIcon
               class={cn(

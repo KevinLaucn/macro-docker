@@ -2,10 +2,8 @@ use axum::extract::FromRef;
 use macro_authorization::{
     MacroAuthorizationServiceImpl, MacroAuthorizationState, NoopMacroAuthJwtValidator,
 };
-#[cfg(feature = "full-processing")]
 use macro_event_broker::{KafkaEventPublisher, MacroEventBrokerService};
 use std::sync::Arc;
-#[cfg(feature = "full-processing")]
 use tokio_util::task::TaskTracker;
 
 use crate::BackfillServiceImpl;
@@ -13,7 +11,6 @@ use crate::config::Config;
 use crate::domain::jobs::BackfillJobs;
 
 pub(crate) type AuthorizationService = MacroAuthorizationServiceImpl<NoopMacroAuthJwtValidator>;
-#[cfg(feature = "full-processing")]
 pub(crate) type SpsEventBroker = MacroEventBrokerService<KafkaEventPublisher, TaskTracker>;
 
 #[derive(Clone, FromRef)]
@@ -25,6 +22,5 @@ pub(crate) struct ApiContext {
     pub config: Arc<Config>,
     pub backfill_service: Arc<BackfillServiceImpl>,
     pub backfill_jobs: BackfillJobs,
-    #[cfg(feature = "full-processing")]
     pub macro_event_broker: SpsEventBroker,
 }

@@ -7,7 +7,6 @@ pub struct SearchProcessingContext {
     pub document_storage_bucket: String,
     pub s3_client: Arc<s3_client::S3>,
     pub opensearch_client: Arc<opensearch_client::OpensearchClient>,
-    #[cfg(feature = "full-processing")]
     pub lexical_client: Arc<lexical_client::LexicalClient>,
     /// Whether calendar events are written to the search index.
     pub calendar_search_enabled: bool,

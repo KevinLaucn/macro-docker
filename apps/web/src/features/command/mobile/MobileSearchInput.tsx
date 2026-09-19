@@ -5,7 +5,6 @@ import {
 } from '@components/app/mobile/use-mobile-nav';
 import { hapticImpact } from '@core/mobile/haptics';
 import { usePreserveFocusOnButtonTaps } from '@core/mobile/usePreserveFocusOnButtonTaps';
-import { t } from '@macro/i18n';
 import XIcon from '@phosphor/x.svg';
 import { cn } from '@ui';
 import { createEffect, on } from 'solid-js';
@@ -108,7 +107,7 @@ export function MobileSearchInput() {
         type="text"
         enterkeyhint="search"
         class="h-full min-w-0 flex-1 border-0 bg-transparent text-ink outline-none ring-0 placeholder:text-ink-placeholder focus:outline-none focus:ring-0"
-        placeholder={t('Search or ask AI...')}
+        placeholder="Search or ask AI..."
         value={SearchState.query()}
         onFocus={() => {
           if (!SearchState.isOpen()) SearchState.open();
@@ -132,7 +131,7 @@ export function MobileSearchInput() {
       <button
         type="button"
         class="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-muted"
-        aria-label={t('Close search')}
+        aria-label="Close search"
         onPointerDown={(e) => {
           e.preventDefault();
           hapticImpact('light');

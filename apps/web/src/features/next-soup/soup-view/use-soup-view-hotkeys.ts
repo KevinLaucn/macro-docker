@@ -15,6 +15,7 @@ import { createHotkeyGroup, registerHotkey } from '@core/hotkey/hotkeys';
 import { TOKENS } from '@core/hotkey/tokens';
 import { isScopeInActiveBranch } from '@core/hotkey/utils';
 import {
+  type EntityData,
   filterNotDoneNotifications,
   filterValidNotifications,
   isEmailEntity,
@@ -34,6 +35,7 @@ import {
 
 type UseSoupViewHotkeysOptions = {
   onOpenProject?: (id: string) => void;
+  onOpenEntity?: (entity: EntityData, event?: KeyboardEvent) => boolean;
   disableTabHotkeys?: boolean;
   scopeId: string;
   soup: SoupState;
@@ -182,7 +184,7 @@ export const useSoupViewHotkeys = (options: UseSoupViewHotkeysOptions) => {
     scopeId,
     description: 'Open',
     hide: true,
-    keyDownHandler: () => {
+    keyDownHandler: (event) => {
       const focusedRow = soup.focus.row();
       if (!focusedRow) return false;
 
@@ -213,6 +215,7 @@ export const useSoupViewHotkeys = (options: UseSoupViewHotkeysOptions) => {
         options.onOpenProject(entity.id);
         return true;
       }
+      if (options.onOpenEntity?.(entity, event)) return true;
 
       const contentHitData = isSearchEntity(entity)
         ? entity.search.contentHitData

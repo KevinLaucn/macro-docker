@@ -12,7 +12,6 @@ path = "src/main.rs"
 [[bin]]
 name = "document_storage_service_openapi"
 path = "src/openapi.rs"
-required-features = ["full-product"]
 
 [[bin]]
 name = "document_storage_service_doppler_config"
@@ -21,77 +20,18 @@ path = "src/doppler_config.rs"
 
 [features]
 connection_gateway = []
-default = [
-  "connection_gateway",
-  "delete_document_worker",
-  "full-product",
-  "location_check",
-]
+default = ["connection_gateway", "delete_document_worker", "location_check"]
 delete_document_worker = []
-full-product = [
-  "dep:ai_tools",
-  "dep:ai_usage",
-  "dep:analytics_client",
-  "dep:bots",
-  "dep:calendar_events",
-  "dep:cal",
-  "dep:call",
-  "dep:channel_bots",
-  "dep:channels",
-  "dep:chat",
-  "dep:collab_surface",
-  "dep:complete_graph",
-  "dep:comms_db_client",
-  "dep:crm",
-  "dep:email",
-  "dep:entity_access",
-  "dep:favorites",
-  "dep:github",
-  "dep:graphql_soup",
-  "dep:harnesses",
-  "dep:lexical_client",
-  "dep:lexical_mention_extractor",
-  "dep:macro_db_client",
-  "dep:macro_middleware",
-  "dep:macro_sha_count_client",
-  "dep:model_notifications",
-  "dep:models_soup",
-  "dep:notification",
-  "dep:properties",
-  "dep:properties_service",
-  "dep:projects_hex",
-  "dep:reminders",
-  "dep:search_service",
-  "dep:soup",
-  "dep:soup_realtime",
-  "dep:sqs_client",
-  "dep:sync_service_hex",
-  "dep:task_dedup",
-  "dep:user_api_key",
-  "dep:webhook",
-  "documents_hex/ai_tools",
-  "documents_hex/axum",
-  "documents_hex/inbound",
-  "foreign_entity/inbound",
-  "projects_hex/ai_tools",
-  "projects_hex/axum",
-  "projects_hex/inbound",
-  "activity/consumer",
-  "activity/outbound",
-  "macro_event_broker/outbound",
-  "properties/default",
-  "task_dedup/backfill",
-]
 local = ["local_auth"]
 local_auth = ["macro_authorization/local_auth"]
 location_check = []
 
 [dependencies]
-activity = { path = "../../crates/activity", default-features = false }
 agent_session = { path = "../../crates/agent_session", features = ["outbound"] }
-ai_tools = { path = "../../crates/ai_tools", optional = true }
-ai_usage = { path = "../../crates/ai_usage", optional = true }
-analytics_client = { path = "../../crates/analytics_client", optional = true }
+activity = { path = "../../crates/activity" }
+ai_tools = { path = "../../crates/ai_tools" }
+ai_usage = { path = "../../crates/ai_usage" }
+analytics_client = { path = "../../crates/analytics_client" }
 anyhow = { workspace = true }
 async-graphql = { workspace = true }
 async-graphql-axum = "7.0.17"
@@ -108,70 +48,61 @@ axum = { workspace = true, features = [
 ] }
 axum-extra = { workspace = true }
 base64 = { workspace = true }
-bots = { path = "../../crates/bots", optional = true }
+bots = { path = "../../crates/bots" }
 bot_id = { path = "../../crates/bot_id" }
 bytes = { workspace = true }
-calendar_events = { path = "../../crates/calendar_events", features = ["dispatch-sqs", "inbound", "notify", "postgres"], optional = true }
+calendar_events = { path = "../../crates/calendar_events", features = ["dispatch-sqs", "inbound", "notify", "postgres"] }
 bzip2 = { workspace = true, default-features = false, features = [
   "libbz2-rs-sys",
 ] }
-cal = { path = "../../crates/cal", features = ["axum", "outbound"], optional = true }
-call = { path = "../../crates/call", optional = true }
-channel_bots = { path = "../../crates/channel_bots", optional = true }
+cal = { path = "../../crates/cal", features = ["axum", "outbound"] }
+call = { path = "../../crates/call" }
+channel_bots = { path = "../../crates/channel_bots" }
+messages = { path = "../../crates/messages", features = ["broker", "delivery", "inbound"] }
 channels = { path = "../../crates/channels", features = [
   "entity_mutation",
   "inbound",
   "kafka_consumer",
   "list",
   "outbound",
-], optional = true }
+] }
 chat = { path = "../../crates/chat", default-features = false, features = [
   "outbound",
-], optional = true }
+] }
 chrono = { workspace = true }
 clap = { workspace = true }
 collab_surface = { path = "../../crates/collab_surface", features = [
   "inbound",
   "postgres",
-], optional = true }
+] }
 cloudfront_sign = { workspace = true }
-comms_db_client = { path = "../../crates/comms_db_client", optional = true }
-complete_graph = { path = "../../crates/complete_graph", optional = true }
+comms_db_client = { path = "../../crates/comms_db_client" }
+complete_graph = { path = "../../crates/complete_graph" }
 connection = { path = "../../crates/connection", default-features = false, features = [
   "outbound",
 ] }
 connection_gateway_client = { path = "../../crates/connection_gateway_client" }
 contacts = { path = "../../crates/contacts" }
 cowlike = { path = "../../crates/cowlike" }
-crm = { path = "../../crates/crm", default-features = false, features = [
-  "outbound",
-  "ports",
-], optional = true }
+crm = { path = "../../crates/crm" }
 document_sub_type = { path = "../../crates/document_sub_type" }
-documents_hex = { path = "../../crates/documents", package = "documents", default-features = false, features = [
-  "document_create",
-  "outbound",
-  "ports",
-  "service",
-] }
+documents_hex = { path = "../../crates/documents", package = "documents" }
 doppler-config = { workspace = true }
 dynamodb_client = { path = "../../crates/dynamodb_client" }
-email = { path = "../../crates/email", default-features = false, features = ["outbound", "ports"], optional = true }
+email = { path = "../../crates/email", features = ["outbound", "ports"] }
 embedding = { path = "../../crates/embedding" }
 entity_access = { path = "../../crates/entity_access", features = [
   "inbound",
   "schema",
-], optional = true }
+] }
 entity_access_management = { path = "../../crates/entity_access_management" }
 entity_mutation = { path = "../../crates/entity_mutation" }
 favorites = { path = "../../crates/favorites", features = [
   "inbound",
   "postgres",
-], optional = true }
+] }
 foreign_entity = { path = "../../crates/foreign_entity", features = [
-  "outbound",
-  "ports",
-  "service",
+  "inbound",
 ] }
 frecency = { path = "../../crates/frecency", features = ["postgres"] }
 futures = { workspace = true }
@@ -180,16 +111,17 @@ github = { path = "../../crates/github", default-features = false, features = [
   "inbound",
   "outbound",
   "sync",
-], optional = true }
-graphql_soup = { path = "../../crates/graphql_soup", optional = true }
-harnesses = { path = "../../crates/harnesses", optional = true }
+] }
+graphql_soup = { path = "../../crates/graphql_soup" }
+harnesses = { path = "../../crates/harnesses" }
 hex = { workspace = true }
 http-body-util = { workspace = true }
+initiative = { path = "../../crates/initiative", features = ["inbound", "postgres"] }
 jsonwebtoken = { workspace = true }
 last_online_tracker = { path = "../../crates/last_online_tracker" }
 lazy_static = { workspace = true }
-lexical_client = { path = "../../crates/lexical_client", optional = true }
-lexical_mention_extractor = { path = "../../crates/lexical_mention_extractor", optional = true }
+lexical_client = { path = "../../crates/lexical_client" }
+lexical_mention_extractor = { path = "../../crates/lexical_mention_extractor" }
 macro_auth = { path = "../../crates/macro_auth" }
 macro_authorization = { path = "../../crates/macro_authorization", features = [
   "postgres",
@@ -198,25 +130,25 @@ macro_aws_config = { path = "../../crates/macro_aws_config", features = ["s3"] }
 macro_axum_utils = { path = "../../crates/macro_axum_utils" }
 macro_config = { path = "../../crates/macro_config" }
 macro_cors = { path = "../../crates/macro_cors" }
-macro_db_client = { path = "../../crates/macro_db_client", optional = true }
+macro_db_client = { path = "../../crates/macro_db_client" }
 macro_entrypoint = { path = "../../crates/macro_entrypoint" }
 macro_env = { path = "../../crates/macro_env" }
 macro_env_var = { path = "../../crates/macro_env_var" }
-macro_event_broker = { path = "../../crates/macro_event_broker", default-features = false }
+macro_event_broker = { path = "../../crates/macro_event_broker" }
 macro_middleware = { path = "../../crates/macro_middleware", default-features = false, features = [
   "cloud_storage",
-], optional = true }
+] }
 macro_queues = { path = "../../crates/macro_queues" }
 macro_service_urls = { path = "../../crates/macro_service_urls" }
-macro_sha_count_client = { path = "../../crates/macro_sha_count_client", optional = true }
+macro_sha_count_client = { path = "../../crates/macro_sha_count_client" }
 macro_sync_service_jwt = { path = "../../crates/macro_sync_service_jwt" }
 macro_tower_layers = { path = "../../crates/macro_tower_layers" }
 macro_user_id = { path = "../../crates/macro_user_id" }
 macro_uuid = { path = "../../crates/macro_uuid" }
 mockall = { workspace = true }
-model = { path = "../../crates/model", default-features = false }
+model = { path = "../../crates/model" }
 model-entity = { path = "../../crates/model-entity" }
-model_notifications = { path = "../../crates/model_notifications", optional = true }
+model_notifications = { path = "../../crates/model_notifications" }
 model_user = { path = "../../crates/model_user" }
 models_bulk_upload = { path = "../../crates/models_bulk_upload" }
 models_dcs = { path = "../../crates/models_dcs" }
@@ -226,16 +158,12 @@ models_pagination = { path = "../../crates/models_pagination", features = [
 ] }
 models_permissions = { path = "../../crates/models_permissions" }
 models_properties = { path = "../../crates/models_properties" }
-models_soup = { path = "../../crates/models_soup", features = ["schema"], optional = true }
-notification = { path = "../../crates/notification", optional = true }
+models_soup = { path = "../../crates/models_soup", features = ["schema"] }
+notification = { path = "../../crates/notification" }
 opensearch_client = { path = "../../crates/opensearch_client" }
-projects_hex = { path = "../../crates/projects", package = "projects", default-features = false, features = [
-  "outbound",
-  "ports",
-  "service",
-], optional = true }
-properties = { path = "../../crates/properties", optional = true }
-properties_service = { path = "../../crates/properties_service", optional = true }
+projects_hex = { path = "../../crates/projects", package = "projects" }
+properties = { path = "../../crates/properties" }
+properties_service = { path = "../../crates/properties_service" }
 rate_limit = { path = "../../crates/rate_limit", default-features = false, features = [
   "axum",
 ] }
@@ -252,13 +180,13 @@ reminders = { path = "../../crates/reminders", features = [
   "inbound",
   "notify",
   "postgres",
-], optional = true }
+] }
 reqwest = { workspace = true }
 rootcause = { workspace = true }
 s3_key = { path = "../../crates/s3_key" }
 saved_views = { path = "../../crates/saved_views" }
 schemars = { workspace = true }
-search_service = { path = "../../crates/search_service", optional = true }
+search_service = { path = "../../crates/search_service" }
 secretsmanager_client = { path = "../../crates/secretsmanager_client" }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -266,24 +194,25 @@ soup = { path = "../../crates/soup", features = [
   "axum",
   "inbound",
   "outbound",
-], optional = true }
+] }
 soup_realtime = { path = "../../crates/soup_realtime", default-features = false, features = [
   "consumer",
   "outbound",
-], optional = true }
+] }
 sqlx = { workspace = true }
 sqs_client = { path = "../../crates/sqs_client", default-features = false, features = [
   "document",
   "email",
   "search",
-], optional = true }
+] }
 sqs_worker = { path = "../../crates/sqs_worker" }
+static_file_service_client = { path = "../../crates/static_file_service_client" }
 sync_service_client = { path = "../../crates/sync_service_client" }
 sync_service_hex = { path = "../../crates/sync_service", package = "sync_service_hex", features = [
   "inbound",
-], optional = true }
+] }
 system_properties = { path = "../../crates/system_properties" }
-task_dedup = { path = "../../crates/task_dedup", default-features = false, optional = true }
+task_dedup = { path = "../../crates/task_dedup" }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["signal"] }
 tokio-util = { workspace = true, features = ["rt"] }
@@ -295,7 +224,7 @@ urlencoding = { workspace = true }
 user_api_key = { path = "../../crates/user_api_key", features = [
   "inbound",
   "postgres",
-], optional = true }
+] }
 utoipa = { workspace = true, features = ["axum_extras"] }
 utoipa-swagger-ui = { workspace = true, features = ["axum"] }
 uuid = { workspace = true }
@@ -303,7 +232,7 @@ webhook = { path = "../../crates/webhook", features = [
   "inbound",
   "outbound",
   "worker",
-], optional = true }
+] }
 workspace-hack = { version = "0.1", path = "../../crates/workspace-hack" }
 zip = { workspace = true }
 

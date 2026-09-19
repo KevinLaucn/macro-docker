@@ -1,0 +1,227 @@
+# DO NOT EDIT — regenerate with `cargo x workflows` (from the repository root).
+# Source: tooling/xtask/crates/xtask_workflows/src/workflows/pulumi_preview_pr.rs
+name: Pulumi Preview on PR
+on:
+  pull_request:
+    branches:
+    - main
+    paths:
+    - Cargo.toml
+    - Cargo.lock
+    - Cross.toml
+    - clippy.toml
+    - rust-toolchain.toml
+    - .cargo/**
+    - .config/**
+    - .sqlx/**
+    - crates/**
+    - services/**
+    - tooling/just/**
+    - static_assets/**
+    - docker/**
+    - flake.nix
+    - flake.lock
+    - nix/**
+    - nix-support/**
+    - infra/**
+    - .github/workflows/pulumi_preview_pr.yml
+    - .github/workflows/reusable_preview_service.yml
+    - .github/actions/preview-cloud-storage-pulumi/**
+    - .github/actions/setup-nix/**
+    - .github/actions/teardown-nix/**
+    - .github/scripts/build-cloud-storage-lambdas-nix.sh
+    - .github/services-config.json
+    - .github/workspace-dep-closures.json
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+jobs:
+  detect-changes:
+    name: Detect Changed Services
+    runs-on: namespace-profile-linux-small
+    outputs:
+      services: ${{ steps.detect.outputs.services }}
+      has-changes: ${{ steps.detect.outputs.has-changes }}
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+    - id: changed-files
+      name: Get changed files
+      uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62
+      with:
+        files: |-
+          Cargo.toml
+          Cargo.lock
+          Cross.toml
+          clippy.toml
+          rust-toolchain.toml
+          .cargo/**
+          .config/**
+          .sqlx/**
+          crates/**
+          services/**
+          tooling/just/**
+          static_assets/**
+          docker/**
+          flake.nix
+          flake.lock
+          nix/**
+          nix-support/**
+          infra/**
+          .github/workflows/pulumi_preview_pr.yml
+          .github/workflows/reusable_preview_service.yml
+          .github/actions/preview-cloud-storage-pulumi/**
+          .github/actions/setup-nix/**
+          .github/actions/teardown-nix/**
+          .github/scripts/build-cloud-storage-lambdas-nix.sh
+          .github/services-config.json
+          .github/workspace-dep-closures.json
+        write_output_files: 'true'
+    - id: detect
+      name: Detect affected services
+      run: |
+        services=()
+
+        # Read service config
+        config=$(cat .github/services-config.json)
+
+        # Check each service for changes
+        for service in $(echo "$config" | jq -r '.services | keys[]'); do
+          service_changed=false
+
+          # Workspace/build-system changes can affect every deployable.
+          # `.sqlx/` lives at the repo root, so a snapshot-only edit would
+          # otherwise match no service path or dependency-closure entry.
+          # A crate source edit is not in this list: those preview only the
+          # services whose deploy binaries depend on the crate.
+          while IFS= read -r file; do
+            if [[ "$file" == "Cargo.toml" || "$file" == "Cargo.lock" || \
+                  "$file" == "Cross.toml" || \
+                  "$file" == "rust-toolchain.toml" || "$file" == .cargo/* || \
+                  "$file" == .config/* || "$file" == .sqlx/* || \
+                  "$file" == tooling/just/* || "$file" == static_assets/* || \
+                  "$file" == docker/* || "$file" == "flake.nix" || \
+                  "$file" == "flake.lock" || "$file" == nix/* || \
+                  "$file" == nix-support/* || "$file" == infra/packages/* ]]; then
+              service_changed=true
+              break
+            fi
+            # Root infra manifests/configuration are shared by every stack.
+            if [[ "$file" == infra/* && "${file#infra/}" != */* ]]; then
+              service_changed=true
+              break
+            fi
+            if [[ "$file" == ".github/services-config.json" || \
+                  "$file" == ".github/workflows/pulumi_preview_pr.yml" || \
+                  "$file" == ".github/workflows/reusable_preview_service.yml" || \
+                  "$file" == .github/actions/preview-cloud-storage-pulumi/* || \
+                  "$file" == .github/actions/setup-nix/* || \
+                  "$file" == .github/actions/teardown-nix/* || \
+                  "$file" == ".github/scripts/build-cloud-storage-lambdas-nix.sh" || \
+                  "$file" == ".github/workspace-dep-closures.json" ]]; then
+              service_changed=true
+              break
+            fi
+          done < .github/outputs/all_changed_files.txt
+
+          # Get all source and stack globs for this service.
+          service_paths=$(echo "$config" | jq -r --arg s "$service" \
+            '(.services[$s].source_paths // [])[], (.services[$s].stack_path // empty)')
+
+          # Check if any changed files match service paths. The action writes
+          # the list to disk so very large PRs cannot exceed the runner's
+          # environment/argument-size limit.
+          if [[ "$service_changed" != "true" ]]; then
+            while IFS= read -r file; do
+              while IFS= read -r path; do
+                if [[ -n "$path" && "$file" == $path ]]; then
+                  service_changed=true
+                  break 2
+                fi
+              done <<< "$service_paths"
+            done < .github/outputs/all_changed_files.txt
+          fi
+
+          # Match crate/service source against each deployable's workspace
+          # dependency closure so `crates/foo` previews foo's consumers, not
+          # every stack. Binary names that are not package names are mapped
+          # onto the crate that contains them.
+          if [[ "$service_changed" != "true" ]]; then
+            crates=$(echo "$config" | jq -r --arg s "$service" '
+              [(.services[$s].deploy_binaries // [])[], (.services[$s].deploy_lambdas // [])[]]
+              | map(
+                  if . == "connection_gateway_service" then "connection_gateway"
+                  elif . == "service" then "scheduled_action"
+                  elif . == "pubsub_workers" then "email_service"
+                  else . end
+                )
+              | unique | .[]
+            ')
+            while IFS= read -r crate; do
+              [[ -z "$crate" ]] && continue
+              while IFS= read -r dir; do
+                [[ -z "$dir" ]] && continue
+                while IFS= read -r file; do
+                  if [[ "$file" == "$dir" || "$file" == "$dir"/* ]]; then
+                    service_changed=true
+                    break 3
+                  fi
+                done < .github/outputs/all_changed_files.txt
+              done < <(jq -r --arg c "$crate" '.closures[$c] // empty | .[]' .github/workspace-dep-closures.json)
+            done <<< "$crates"
+          fi
+
+          if [[ "$service_changed" == "true" ]]; then
+            services+=("$service")
+          fi
+        done
+
+        if [ ${#services[@]} -eq 0 ]; then
+          echo "has-changes=false" >> $GITHUB_OUTPUT
+          echo "services=[]" >> $GITHUB_OUTPUT
+          echo "No services affected by changes"
+        else
+          echo "has-changes=true" >> $GITHUB_OUTPUT
+          services_json=$(printf '%s\n' "${services[@]}" | jq -R . | jq -s -c .)
+          echo "services=${services_json}" >> $GITHUB_OUTPUT
+          echo "Services to preview: ${services[@]}"
+        fi
+  preview-services:
+    needs:
+    - detect-changes
+    if: ${{ needs.detect-changes.outputs.has-changes == 'true' }}
+    name: Preview ${{ matrix.service }}
+    uses: ./.github/workflows/reusable_preview_service.yml
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+      fail-fast: false
+    with:
+      environment: dev
+      service-name: ${{ matrix.service }}
+      github-token: ${{ github.token }}
+    secrets: inherit
+  preview-status:
+    needs:
+    - detect-changes
+    - preview-services
+    if: always()
+    name: Preview Status
+    runs-on: namespace-profile-linux-small
+    steps:
+    - name: Summary
+      run: |
+        if [[ "${{ needs.detect-changes.outputs.has-changes }}" == "false" ]]; then
+          echo "ℹ️ No services were affected by the changes in this PR"
+        elif [[ "${{ needs.preview-services.result }}" == "failure" ]]; then
+          echo "❌ One or more Pulumi previews failed"
+          exit 1
+        elif [[ "${{ needs.preview-services.result }}" == "success" ]]; then
+          echo "✅ All Pulumi previews completed successfully"
+        elif [[ "${{ needs.preview-services.result }}" == "skipped" ]]; then
+          echo "ℹ️ No services were affected by the changes in this PR"
+        fi
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true

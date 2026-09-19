@@ -26,6 +26,9 @@ pub enum Runner {
     /// cache volume, isolated from the deploy profiles so deploy's churn can't
     /// evict the CI Cargo/Nix caches.
     RustCi,
+    /// Apple Silicon, for jobs that need a real Apple SDK. A machine label
+    /// rather than a dashboard profile, so it needs no setup outside this file.
+    MacOsArm,
 }
 
 impl fmt::Display for Runner {
@@ -35,6 +38,7 @@ impl fmt::Display for Runner {
             Runner::Small => "namespace-profile-linux-small",
             Runner::Mid => "namespace-profile-linux-mid",
             Runner::RustCi => "namespace-profile-linux-rust-ci",
+            Runner::MacOsArm => "nscloud-macos-sequoia-arm64-6x14",
         })
     }
 }

@@ -4,15 +4,13 @@ import { createWebTracingProvider } from '@macro-inc/observability/web';
 // This static import loads the zone.js Promise patch before application modules run.
 import { ZoneContextManager } from '@macro-inc/observability/zone';
 
-async function browserTelemetryEnabled(
-  _hasExporter: boolean
-): Promise<boolean> {
+async function browserTelemetryEnabled(hasExporter: boolean): Promise<boolean> {
   const override = import.meta.env.VITE_ENABLE_BROWSER_OTEL;
 
   if (override === 'false') return false;
   if (override === 'true') return true;
 
-  if (import.meta.hot) return Boolean(import.meta.env.VITE_OTEL_EXPORTER_URL);
+  if (import.meta.hot) return hasExporter;
 
   if (!import.meta.env.VITE_POSTHOG_API_KEY) return false;
 
@@ -48,9 +46,7 @@ async function browserTelemetryEnabled(
 export async function initializeBrowserObservability(): Promise<void> {
   const tracesUrl =
     import.meta.env.VITE_OTEL_EXPORTER_URL ??
-    (import.meta.env.VITE_ENABLE_BROWSER_OTEL === 'true' && import.meta.hot
-      ? 'http://localhost:8098/i/otlp/v1/traces'
-      : undefined);
+    (import.meta.hot ? 'http://localhost:8098/i/otlp/v1/traces' : undefined);
   const telemetryConfig = {
     serviceName: 'web-app',
     environment:
@@ -71,8 +67,6 @@ export async function initializeBrowserObservability(): Promise<void> {
 
   window.addEventListener('pagehide', () => void Telemetry.flush());
   window.addEventListener('error', (event) => {
-    const msg = String(event.error?.message || event.message || '');
-    if (msg.includes('ResizeObserver')) return;
     Telemetry.error(event.error ?? event.message, {
       'error.source': 'window',
     });

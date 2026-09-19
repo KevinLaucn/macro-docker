@@ -2,7 +2,6 @@ import { useMaybeSoup } from '@app/features/next-soup/soup-context';
 import { restoreSoupFocus } from '@app/features/next-soup/utils';
 import { useGlobalNotificationSource } from '@components/app/GlobalAppState';
 import { toast } from '@core/component/Toast/Toast';
-import { t } from '@macro/i18n';
 import type { NotificationStack, UnifiedNotification } from '@notifications';
 import {
   executeMarkNotificationsDone,
@@ -35,23 +34,23 @@ export function useNotificationStackActions(props: NotificationActionsProps) {
     () => ({
       mutationFn: (vars) => executeMarkNotificationsDone(vars.notificationIds),
       onError: () => {
-        toast.failure(t('Failed to mark as done'));
+        toast.failure('Failed to mark as done');
       },
       undoFn: (vars) => executeMarkNotificationsUndone(vars.notificationIds),
       redoFn: (vars) => executeMarkNotificationsDone(vars.notificationIds),
-      undoLabel: t('Mark Done'),
+      undoLabel: 'Mark Done',
       onPushed: (handle) => {
         let toastId: number | undefined;
 
         const showToast = () => {
-          toastId = toast.success(t('Marked as done'), {
+          toastId = toast.success('Marked as done', {
             actions: [
               {
-                label: t('Undo'),
+                label: 'Undo',
                 icon: ArrowCounterClockwise,
                 onClick: () => {
                   handle.undo({
-                    onError: () => toast.failure(t('Failed to undo')),
+                    onError: () => toast.failure('Failed to undo'),
                   });
                   if (props.entityId) soup?.focus.set(props.entityId);
                   restoreSoupFocus(props.entityId);

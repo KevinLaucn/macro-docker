@@ -8,11 +8,10 @@
 import { type PortalScope, ScopedPortal } from '@core/component/ScopedPortal';
 import { isMobile } from '@core/mobile/isMobile';
 import { debouncedDependent } from '@core/util/debounce';
-import DotsThreeLarge from '@icon/dots-three-large.svg';
-import { t } from '@macro/i18n';
 import CaretDown from '@phosphor/caret-down.svg';
 import TextCode from '@phosphor/code.svg';
 import CodeBlock from '@phosphor/code-block.svg';
+import DotsThreeLarge from '@phosphor/dots-three.svg';
 import BrokenLinkIcon from '@phosphor/link-break.svg';
 import LinkIcon from '@phosphor/link-simple.svg';
 import ListBullets from '@phosphor/list-bullets.svg';
@@ -89,8 +88,8 @@ type InlineOption = {
 
 // Bold/italic always get their own buttons (cmd+b/i via Lexical rich text).
 const PrimaryInlineOptions: InlineOption[] = [
-  { format: 'bold', icon: TextBold, label: t('Bold'), shortcut: 'cmd+b' },
-  { format: 'italic', icon: TextItalic, label: t('Italic'), shortcut: 'cmd+i' },
+  { format: 'bold', icon: TextBold, label: 'Bold', shortcut: 'cmd+b' },
+  { format: 'italic', icon: TextItalic, label: 'Italic', shortcut: 'cmd+i' },
 ];
 
 // Markdown-safe inline formats, shown in the "..." menu. Shortcuts mirror the
@@ -99,14 +98,14 @@ const MoreInlineOptions: InlineOption[] = [
   {
     format: 'strikethrough',
     icon: TextStriketrough,
-    label: t('Strikethrough'),
+    label: 'Strikethrough',
     shortcut: 'shift+cmd+x',
   },
-  { format: 'code', icon: TextCode, label: t('Inline code'), shortcut: 'cmd+e' },
+  { format: 'code', icon: TextCode, label: 'Inline code', shortcut: 'cmd+e' },
   {
     format: 'highlight',
     icon: TextHighlight,
-    label: t('Highlight'),
+    label: 'Highlight',
     shortcut: 'shift+cmd+h',
   },
 ];
@@ -117,11 +116,11 @@ const ExtendedInlineOptions: InlineOption[] = [
   {
     format: 'underline',
     icon: TextUnderline,
-    label: t('Underline'),
+    label: 'Underline',
     shortcut: 'cmd+u',
   },
-  { format: 'superscript', icon: TextSuper, label: t('Superscript') },
-  { format: 'subscript', icon: TextSub, label: t('Subscript') },
+  { format: 'superscript', icon: TextSuper, label: 'Superscript' },
+  { format: 'subscript', icon: TextSub, label: 'Subscript' },
 ];
 
 type ElementOption = {
@@ -131,15 +130,15 @@ type ElementOption = {
 };
 
 const HeadingOptions: ElementOption[] = [
-  { format: 'heading1', icon: TextH1, label: t('Heading 1') },
-  { format: 'heading2', icon: TextH2, label: t('Heading 2') },
-  { format: 'heading3', icon: TextH3, label: t('Heading 3') },
+  { format: 'heading1', icon: TextH1, label: 'Heading 1' },
+  { format: 'heading2', icon: TextH2, label: 'Heading 2' },
+  { format: 'heading3', icon: TextH3, label: 'Heading 3' },
 ];
 
 const ListOptions: ElementOption[] = [
-  { format: 'list-bullet', icon: ListBullets, label: t('Bullet List') },
-  { format: 'list-number', icon: ListNumbers, label: t('Numbered List') },
-  { format: 'list-check', icon: ListChecks, label: t('Checklist') },
+  { format: 'list-bullet', icon: ListBullets, label: 'Bullet List' },
+  { format: 'list-number', icon: ListNumbers, label: 'Numbered List' },
+  { format: 'list-check', icon: ListChecks, label: 'Checklist' },
 ];
 
 // The full block-style list, surfaced through the single "Text" dropdown.
@@ -371,7 +370,7 @@ export function FloatingFormatMenu(props: {
       <ScopedPortal scope={props.portalScope}>
         <div
           ref={setMenuRef}
-          class="fixed top-0 left-0 z-highlight-menu w-fit"
+          class="fixed top-0 left-0 z-action-menu w-fit"
           use:floatWithSelection={{
             selection: domSelection(),
             reactiveOnContainer: editor.getRootElement(),

@@ -66,15 +66,6 @@ type NotificationsByEntity = Record<CompositeEntity, UnifiedNotification[]>;
 type UnsubscribeFn = () => void;
 type SubscribeFn = (newNotification: UnifiedNotification) => void;
 
-type BrowserNewEmailNotificationPayload = {
-  readonly sender?: string | null;
-  readonly toEmail: string;
-  readonly threadId: string;
-  readonly subject: string;
-  readonly snippet: string;
-  readonly sentAt?: string;
-};
-
 export type NotificationSource = {
   readonly notificationsByEntity: Accessor<NotificationsByEntity>;
   readonly notifications: Accessor<UnifiedNotification[]>;
@@ -103,13 +94,16 @@ export type NotificationSource = {
   /** subscribe to entity notifications */
   unmuteEntity: (entity: Entity) => Promise<void>;
 
+  /** Apply local seen/done intent to a GraphQL edge without replacing its data. */
+  withLocalOverrides?: (
+    notification: UnifiedNotification
+  ) => UnifiedNotification;
+
   /** subscribe to new notifications */
   subscribe: (subscribe: SubscribeFn) => UnsubscribeFn;
 };
 
 const NOTIFICATION_EVENT_TYPE = 'notification';
-const BROWSER_NEW_EMAIL_NOTIFICATION_EVENT_TYPE =
-  'browser_new_email_notification';
 
 const QUERY_LIMIT = 500;
 
@@ -165,8 +159,9 @@ export function setDoneOverride(
 // snapshot may present the notification as unread: a full refetch reads its
 // pages over several seconds and a page read before the mark's POST commits
 // resurrects pre-write state when it lands. Entries are removed on mutation
-// failure (that rollback is deliberate) and pruned once the cache confirms
-// the seen state at a quiet moment.
+// failure (that rollback is deliberate). REST-only overrides can be pruned
+// once the feed confirms the seen state at a quiet moment; GraphQL Soup edges
+// can still hold older snapshots independently of that feed.
 type SeenOverride = { viewedAt: string; token: symbol };
 const [seenOverrides, setSeenOverrides] = createRoot(() =>
   createStore<Record<string, SeenOverride | undefined>>({})
@@ -200,6 +195,35 @@ function setSeenOverride(ids: readonly string[], viewedAt: string | undefined) {
     });
 }
 
+function withNotificationOverrides(
+  notification: UnifiedNotification
+): UnifiedNotification {
+  const doneOverride = doneOverrides().get(notification.id);
+  if (notification.state !== 'unseen' && doneOverride === undefined) {
+    return notification;
+  }
+  return {
+    ...notification,
+    get state() {
+      const state = doneOverride?.done
+        ? 'done'
+        : doneOverride?.reopened
+          ? 'seen'
+          : doneOverride
+            ? nextNotificationState(notification.state, 'MARK_UNDONE')
+            : notification.state;
+      return state === 'unseen' && seenOverrides[notification.id]
+        ? 'seen'
+        : state;
+    },
+    // Only the affected id's seen state is a dependency of this row.
+    get viewed_at() {
+      if (notification.viewed_at) return notification.viewed_at;
+      return seenOverrides[notification.id]?.viewedAt ?? notification.viewed_at;
+    },
+  };
+}
+
 export function createNotificationSource(
   ws: ConnectionGatewayWebsocket,
   onNotification?: (notification: UnifiedNotification) => void
@@ -228,52 +252,20 @@ export function createNotificationSource(
   const notifications = createMemo(() => {
     const raw = notificationsQuery.data;
     if (!raw) return [];
-    const done = doneOverrides();
-    return raw.map((notification) => {
-      const doneOverride = done.get(notification.id);
-      if (notification.state !== 'unseen' && doneOverride === undefined) {
-        return notification;
-      }
-
-      return {
-        ...notification,
-        get state() {
-          const state = doneOverride?.done
-            ? 'done'
-            : doneOverride?.reopened
-              ? 'seen'
-              : doneOverride
-                ? nextNotificationState(notification.state, 'MARK_UNDONE')
-                : notification.state;
-          return state === 'unseen' && seenOverrides[notification.id]
-            ? 'seen'
-            : state;
-        },
-        // Keep seen overrides granular. Reading one notification's state/viewed_at
-        // subscribes only to that id instead of invalidating the complete
-        // notifications array and every channel/favorite consumer.
-        get viewed_at() {
-          if (notification.viewed_at) return notification.viewed_at;
-          return (
-            seenOverrides[notification.id]?.viewedAt ?? notification.viewed_at
-          );
-        },
-      };
-    });
+    return raw.map(withNotificationOverrides);
   });
 
-  // Prune overrides for notifications that are no longer in the query cache
-  // (aged out of QUERY_LIMIT, deleted server-side) so the map doesn't grow
-  // unbounded. Overrides whose value happens to match the cache are NOT
-  // pruned — during an in-flight mutation the cache may still hold the
-  // pre-mutation value and a stale fetch could flip it back before the
-  // API lands.
+  // Only the REST feed owns all notification readers. In GraphQL mode an id
+  // leaving (or being confirmed by) this feed says nothing about still-mounted
+  // Soup edges. Keep their intent until explicitly cleared, replaced, or rolled
+  // back rather than letting pagination resurrect stale edge state.
   createEffect(() => {
+    if (isFeatureEnabled(enableGraphqlSoup)) return;
     const raw = notificationsQuery.data;
     if (!raw) return;
+    const presentIds = new Set(raw.map((n) => n.id));
     const overrides = doneOverrides();
     if (overrides.size === 0) return;
-    const presentIds = new Set(raw.map((n) => n.id));
     const toPrune: string[] = [];
     for (const id of overrides.keys()) {
       if (!presentIds.has(id)) toPrune.push(id);
@@ -287,6 +279,7 @@ export function createNotificationSource(
   // a fetch that is still running may hold a pre-write snapshot that will
   // land later; in both cases the override must survive.
   createEffect(() => {
+    if (isFeatureEnabled(enableGraphqlSoup)) return;
     const raw = notificationsQuery.data;
     if (!raw) return;
     const seenIds = Object.keys(seenOverrides);
@@ -298,8 +291,7 @@ export function createNotificationSource(
     const toPrune: string[] = [];
     for (const id of seenIds) {
       const row = byId.get(id);
-      if (!row) toPrune.push(id);
-      else if (row.state !== 'unseen' && quiet) toPrune.push(id);
+      if (!row || (row.state !== 'unseen' && quiet)) toPrune.push(id);
     }
     if (toPrune.length > 0) setSeenOverride(toPrune, undefined);
   });
@@ -418,64 +410,7 @@ export function createNotificationSource(
     };
   };
 
-  const isBrowserNewEmailNotificationPayload = (
-    raw: unknown
-  ): raw is BrowserNewEmailNotificationPayload => {
-    if (!raw || typeof raw !== 'object') return false;
-    const payload = raw as Partial<BrowserNewEmailNotificationPayload>;
-    return (
-      typeof payload.threadId === 'string' &&
-      typeof payload.toEmail === 'string' &&
-      typeof payload.subject === 'string' &&
-      typeof payload.snippet === 'string'
-    );
-  };
-
-  const mapBrowserNewEmailNotification = (
-    raw: BrowserNewEmailNotificationPayload
-  ): UnifiedNotification => {
-    const now = raw.sentAt ?? new Date().toISOString();
-    return {
-      id: `browser-new-email:${raw.threadId}:${now}`,
-      entity_id: raw.threadId,
-      entity_type: 'email_thread',
-      notification_event_type: 'new_email',
-      notification_metadata: {
-        tag: 'new_email',
-        content: {
-          sender: raw.sender ?? null,
-          toEmail: raw.toEmail,
-          threadId: raw.threadId,
-          subject: raw.subject,
-          snippet: raw.snippet,
-        },
-      } as NotifEvent,
-      sent: true,
-      state: 'unseen',
-      created_at: now,
-      updated_at: now,
-    };
-  };
-
   createSocketEffect(ws, (wsData) => {
-    if (wsData.type === BROWSER_NEW_EMAIL_NOTIFICATION_EVENT_TYPE) {
-      try {
-        const raw = JSON.parse(wsData.data) as unknown;
-        if (!isBrowserNewEmailNotificationPayload(raw)) {
-          console.warn('Failed to parse browser new email notification', raw);
-          return;
-        }
-        dispatchIncomingNotification(mapBrowserNewEmailNotification(raw));
-      } catch (e) {
-        console.error(
-          'Failed to parse browser new email notification',
-          wsData.data,
-          e
-        );
-      }
-      return;
-    }
-
     if (
       wsData.type !== NOTIFICATION_EVENT_TYPE ||
       isFeatureEnabled(enableGraphqlSoup)
@@ -585,5 +520,10 @@ export function createNotificationSource(
     muteEntity,
     unmuteEntity,
     subscribe,
+    get withLocalOverrides() {
+      return isFeatureEnabled(enableGraphqlSoup)
+        ? withNotificationOverrides
+        : undefined;
+    },
   };
 }

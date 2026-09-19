@@ -11,7 +11,6 @@ import { floatWithSelection } from '@core/component/LexicalMarkdown/directive/fl
 import { ScopedPortal } from '@core/component/ScopedPortal';
 import { isMobile } from '@core/mobile/isMobile';
 import { debouncedDependent } from '@core/util/debounce';
-import { t } from '@macro/i18n';
 import Quote from '@phosphor/quotes.svg';
 import { createSignal, onCleanup, Show } from 'solid-js';
 import { readReplyableSelection } from '../state/reply-selection';
@@ -73,7 +72,7 @@ export function ReplyToSelection(props: {
             onClick={reply}
           >
             <Quote class="size-3.5 shrink-0" />
-            {t('Reply to this')}
+            Reply to this
           </button>
         </ScopedPortal>
       )}

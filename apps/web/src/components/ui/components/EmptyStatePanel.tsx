@@ -1,5 +1,4 @@
 import { openExternalUrl } from '@core/util/url';
-import { t } from '@macro/i18n';
 import { type Component, type JSXElement, Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { cn } from '../utils/classname';
@@ -130,7 +129,7 @@ export function EmptyStatePanel(props: EmptyStatePanelProps) {
                   icon={props.documentationIcon}
                   onClick={() => openExternalUrl(url())}
                 >
-                  {props.documentationLabel ?? t('Documentation')}
+                  {props.documentationLabel ?? 'Documentation'}
                 </PillButton>
               )}
             </Show>

@@ -9,7 +9,6 @@ import { DEFAULT_THREAD_MESSAGES_LIMIT } from '@core/constant/pagination';
 import { catchToResult, throwOnErr } from '@core/util/result';
 import { Telemetry } from '@macro-inc/observability';
 import ArrowCounterClockwise from '@phosphor-icons/core/regular/arrow-counter-clockwise.svg?component-solid';
-import { queryClient } from '@queries/client';
 import { emailClient } from '@service-email/client';
 import type {
   ApiDraftInput,
@@ -18,13 +17,23 @@ import type {
   UpsertScheduledResponse,
 } from '@service-email/generated/schemas';
 import {
+  markGraphqlEmailThreadSeen,
+  markGraphqlEmailThreadUnread,
+} from '@service-storage/graphql-email-read-state';
+import { getGraphqlSoupClient } from '@service-storage/graphql-soup';
+import {
   type InfiniteData,
   useInfiniteQuery,
   useMutation,
 } from '@tanstack/solid-query';
 import { err, ok } from 'neverthrow';
 import type { Accessor } from 'solid-js';
+import { queryClient } from '../client';
 import { optimisticUpdateSoupEntity, refetchSoupEntity } from '../soup/cache';
+import {
+  getActiveGraphqlSoupRevalidations,
+  refreshActiveGraphqlSoupQueries,
+} from '../soup/graphql/active-queries';
 import { invalidateAllSoup } from '../soup/normalized-cache';
 import { type UndoHandle, useUndoableMutation } from '../undo';
 import { type MutationCallbacks, withCallbacks } from '../utils';
@@ -79,26 +88,6 @@ function flattenThreadPages(
 }
 
 /**
- * Reconcile list membership after the server has committed a workflow state
- * change. The single-entity refresh updates REST normalized data and the
- * GraphQL refresh covers mounted GraphQL Soup views; invalidating the REST
- * lists also makes an already-cached destination view refetch on next mount.
- * This is intentionally server-confirmed rather than optimistic so it cannot
- * race the mark-done rollback path.
- */
-async function reconcileThreadListMembership(threadId: string): Promise<void> {
-  try {
-    await refetchSoupEntity(threadId, 'emailThread', {
-      refreshGraphql: true,
-    });
-  } catch (error) {
-    console.error('[email] failed to reconcile thread list membership', error);
-  } finally {
-    invalidateAllSoup();
-  }
-}
-
-/**
  * Imperatively fetch a thread through GraphQL and merge it into the normalized
  * cache. Network failures fall back to a complete cached first page.
  */
@@ -111,9 +100,7 @@ export async function fetchAndCacheThread(
     );
     if (result.isErr()) return err(result.error as any);
 
-    const thread = flattenThreadPages(
-      result.value as InfiniteData<Thread, number>
-    );
+    const thread = flattenThreadPages(result.value);
     if (!thread) {
       return err([{ code: 'NOT_FOUND', message: 'Email thread not found' }]);
     }
@@ -291,6 +278,7 @@ type MarkThreadAsSeenParams = {
  * email view anyway - only the soup/list view needs it.
  */
 function threadSeenOnMutate(params: MarkThreadAsSeenParams): void {
+  if (isFeatureEnabled(enableGraphqlSoup)) return;
   optimisticUpdateSoupEntity({
     tag: 'emailThread',
     data: { id: params.threadId, isRead: true },
@@ -306,6 +294,16 @@ export function useMarkThreadAsSeenMutation(
 ) {
   return useMutation(() => ({
     mutationFn: async (params: MarkThreadAsSeenParams) => {
+      if (isFeatureEnabled(enableGraphqlSoup)) {
+        const disposition = await markGraphqlEmailThreadSeen(
+          getGraphqlSoupClient(),
+          params.threadId,
+          getActiveGraphqlSoupRevalidations()
+        );
+        if (disposition === 'committed')
+          await refreshActiveGraphqlSoupQueries();
+        return;
+      }
       await throwOnErr(() =>
         emailClient.markThreadAsSeen(
           { thread_id: params.threadId },
@@ -347,9 +345,9 @@ async function fetchUnreadLabelId(linkId?: string): Promise<string> {
   const unreadLabel =
     (linkId
       ? labels.find(
-          (l: any) => l.providerLabelId === 'UNREAD' && l.linkId === linkId
+          (l) => l.providerLabelId === 'UNREAD' && l.linkId === linkId
         )
-      : undefined) ?? labels.find((l: any) => l.providerLabelId === 'UNREAD');
+      : undefined) ?? labels.find((l) => l.providerLabelId === 'UNREAD');
   if (!unreadLabel) {
     throw new Error('UNREAD label not found');
   }
@@ -362,6 +360,7 @@ async function fetchUnreadLabelId(linkId?: string): Promise<string> {
  * threadSeenOnMutate.
  */
 function threadUnreadOnMutate(params: MarkThreadAsUnreadParams): void {
+  if (isFeatureEnabled(enableGraphqlSoup)) return;
   optimisticUpdateSoupEntity({
     tag: 'emailThread',
     data: { id: params.threadId, isRead: false },
@@ -378,6 +377,16 @@ export function useMarkThreadAsUnreadMutation(
 ) {
   return useMutation(() => ({
     mutationFn: async (params: MarkThreadAsUnreadParams) => {
+      if (isFeatureEnabled(enableGraphqlSoup)) {
+        const disposition = await markGraphqlEmailThreadUnread(
+          getGraphqlSoupClient(),
+          params.threadId,
+          getActiveGraphqlSoupRevalidations()
+        );
+        if (disposition === 'committed')
+          await refreshActiveGraphqlSoupQueries();
+        return;
+      }
       const labelId = await fetchUnreadLabelId(params.linkId);
       await throwOnErr(() =>
         emailClient.updateThreadLabel({
@@ -416,16 +425,17 @@ async function threadArchiveOnMutate(params: ArchiveThreadParams) {
   await queryClient.cancelQueries({
     queryKey: emailKeys.threadMessages(params.threadId).queryKey,
   });
+
   const previousData = queryClient.getQueryData<InfiniteData<Thread, number>>(
     emailKeys.threadMessages(params.threadId).queryKey
   );
 
   queryClient.setQueryData<InfiniteData<Thread, number>>(
     emailKeys.threadMessages(params.threadId).queryKey,
-    (old: InfiniteData<Thread, number> | undefined) =>
+    (old) =>
       old && {
         ...old,
-        pages: old.pages.map((page: Thread) => ({
+        pages: old.pages.map((page) => ({
           ...page,
           inbox_visible: !params.archive,
         })),
@@ -439,8 +449,8 @@ async function threadArchiveOnMutate(params: ArchiveThreadParams) {
  * Cache bookkeeping for an archive/unarchive performed by another mutation
  * (e.g. the mark-done and mark-not-done actions, which issue their own
  * /archived requests): optimistically flips `inbox_visible`, rolls back if
- * the request fails, and reconciles thread + list membership once the server
- * commits. Mirrors useUndoableArchiveThreadMutation's cache handling without
+ * the request fails, and invalidates the thread + preview queries once it
+ * settles. Mirrors useUndoableArchiveThreadMutation's cache handling without
  * firing a second request or pushing an undo entry.
  */
 export async function trackExternalThreadArchive(
@@ -452,10 +462,8 @@ export async function trackExternalThreadArchive(
     threadId,
     archive,
   });
-  let committed = false;
   try {
     await archived;
-    committed = true;
   } catch {
     if (previousData) {
       queryClient.setQueryData(
@@ -468,9 +476,6 @@ export async function trackExternalThreadArchive(
       queryKey: emailKeys.threadMessages(threadId).queryKey,
     });
     queryClient.invalidateQueries({ queryKey: emailKeys.previews._def });
-    if (committed) {
-      await reconcileThreadListMembership(threadId);
-    }
   }
 }
 
@@ -489,7 +494,6 @@ async function replayThreadArchive(params: ArchiveThreadParams): Promise<void> {
           params.linkId
         )
     );
-    await reconcileThreadListMembership(params.threadId);
   } catch (err) {
     if (previousData) {
       queryClient.setQueryData(
@@ -537,7 +541,6 @@ export function useUndoableArchiveThreadMutation(options: {
             params.linkId
           )
       );
-      await reconcileThreadListMembership(params.threadId);
     },
     onMutate: async (params) => await threadArchiveOnMutate(params),
     onError: (_err, params, context) => {

@@ -1,5 +1,4 @@
 import { TabsInset } from '@core/component/TabsInset';
-import { __t } from '@macro/i18n';
 import TagIcon from '@phosphor/tag-simple.svg';
 import TrashIcon from '@phosphor/trash.svg';
 import XIcon from '@phosphor/x.svg';
@@ -57,7 +56,7 @@ function EditorRow(props: { label: string; children: JSX.Element }) {
   return (
     <div class="flex min-h-12 items-center gap-5 px-4 py-3">
       <div class="w-22 shrink-0 text-xs font-medium text-ink-extra-muted">
-        {__t(props.label)}
+        {props.label}
       </div>
       <div class="min-w-0 flex-1">{props.children}</div>
     </div>
@@ -194,7 +193,7 @@ export function TagEditorDialog(props: {
             as="span"
             class="min-w-0 flex-1 truncate text-sm font-semibold text-ink-extra-muted"
           >
-            {__t(title())}
+            {title()}
           </Dialog.Title>
           <Dialog.CloseButton
             as={Button}

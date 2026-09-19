@@ -1,7 +1,7 @@
 import { InlineTitleEditor } from '@core/component/InlineTitleEditor';
 import { getInitialsFromName } from '@core/user';
-import { AnimatedContactIcon } from '@icon/wide-contact';
 import { t } from '@macro/i18n';
+import ContactIcon from '@phosphor/address-book.svg';
 import { useSetContactNameMutation } from '@queries/crm/contacts';
 import type { CrmContactResponse } from '@service-storage/generated/schemas/crmContactResponse';
 import { Avatar } from '@ui';
@@ -48,7 +48,7 @@ export function ContactHeader(props: { contact?: CrmContactResponse }) {
           when={initials()}
           fallback={
             <Avatar.Fallback>
-              <AnimatedContactIcon class="size-5 text-ink-muted" />
+              <ContactIcon class="size-5 text-ink-muted" />
             </Avatar.Fallback>
           }
           keyed

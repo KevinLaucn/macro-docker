@@ -1,16 +1,17 @@
+import { useFeatureFlag } from '@app/lib/analytics/posthog';
 import { ModelCatalogPicker } from '@core/component/AI/component/input/ModelCatalogPicker';
 import { isLargeModelCatalog } from '@core/component/AI/component/input/modelCatalog';
 import { MODEL_PRETTYNAME, Model } from '@core/component/AI/constant/model';
 import { toast } from '@core/component/Toast/Toast';
+import { claudeCloud } from '@core/constant/featureFlags';
 import { MACRO_AGENT_BOT_ID } from '@core/constant/macroAgent';
 import { useChannelsContext } from '@core/context/channels';
 import { useUserId } from '@core/context/user';
 import { usePipedreamMcpFlag } from '@core/pipedream/flag';
 import MacroLogo from '@icon/macro-logo.svg';
-import { __t, t } from '@macro/i18n';
 import PencilIcon from '@phosphor/pencil-simple.svg';
 import PlusIcon from '@phosphor/plus.svg';
-import RobotIcon from '@phosphor/robot.svg';
+import AgentIcon from '@phosphor/sparkle.svg';
 import TrashIcon from '@phosphor/trash.svg';
 import UploadIcon from '@phosphor/upload-simple.svg';
 import XIcon from '@phosphor/x.svg';
@@ -68,6 +69,7 @@ type ConnectedHarness = {
   id: string;
   name: string;
   kind: 'builtin' | 'macrod';
+  allowPermissionBypass: boolean;
   target: AgentModelTarget;
   connected?: boolean;
 };
@@ -78,6 +80,7 @@ const IN_MEMORY_HARNESS: ConnectedHarness = {
   id: 'in-memory',
   name: 'In-memory',
   kind: 'builtin',
+  allowPermissionBypass: true,
   target: { harness: 'in-memory' },
 };
 
@@ -94,6 +97,7 @@ const MACRO_AGENT: AgentSummary = {
 
 /** Settings page for viewing and creating persistent agents. */
 export function Agents() {
+  const claudeCloudFlag = useFeatureFlag(claudeCloud);
   const [creating, setCreating] = createSignal(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const creatingFromLink = () => searchParams.createAgent === 'true';
@@ -119,33 +123,46 @@ export function Agents() {
   const harnessesQuery = useHarnessesQuery();
   const connectedHarnesses = (): readonly ConnectedHarness[] => {
     const harnesses = harnessesQuery.isSuccess ? harnessesQuery.data : [];
-    return buildAgentModelTargets(cursorConnected(), harnesses).map(
-      (target) => {
-        if (target.harness === 'in-memory') return IN_MEMORY_HARNESS;
-        if (target.harness === 'cursor') {
-          return {
-            id: 'cursor',
-            name: 'Cursor',
-            kind: 'builtin',
-            target,
-          };
-        }
-
-        const harness = harnesses.find(
-          (candidate) => candidate.id === target.harnessId
-        );
+    return buildAgentModelTargets(
+      cursorConnected(),
+      harnesses,
+      claudeCloudFlag().enabled
+    ).map((target) => {
+      if (target.harness === 'in-memory') return IN_MEMORY_HARNESS;
+      if (target.harness === 'claude-cloud') {
         return {
-          id: target.harnessId ?? '',
-          name:
-            harness?.owner.type === 'team'
-              ? `${harness.name} · Team`
-              : (harness?.name ?? 'macrod'),
-          kind: 'macrod',
+          id: 'claude-cloud',
+          name: 'Claude Cloud',
+          kind: 'builtin',
+          allowPermissionBypass: true,
           target,
-          connected: harness?.connected,
         };
       }
-    );
+      if (target.harness === 'cursor') {
+        return {
+          id: 'cursor',
+          name: 'Cursor',
+          kind: 'builtin',
+          allowPermissionBypass: true,
+          target,
+        };
+      }
+
+      const harness = harnesses.find(
+        (candidate) => candidate.id === target.harnessId
+      );
+      return {
+        id: target.harnessId ?? '',
+        name:
+          harness?.owner.type === 'team'
+            ? `${harness.name} · Team`
+            : (harness?.name ?? 'macrod'),
+        kind: 'macrod',
+        allowPermissionBypass: harness?.allow_permission_bypass ?? false,
+        target,
+        connected: harness?.connected,
+      };
+    });
   };
   const channelOptions = createMemo(() =>
     botAssignableChannelOptions(channelsContext.channels())
@@ -380,6 +397,7 @@ function summarizeAgent(
 function harnessName(id: string): string {
   if (id === 'in-memory') return 'In-memory';
   if (id === 'cursor') return 'Cursor';
+  if (id === 'claude-cloud') return 'Claude Cloud';
   // Any other id is a registered macrod harness uuid; if it is not in the
   // connected list any more, the harness has been removed.
   return 'Disconnected harness';
@@ -402,19 +420,12 @@ function AgentRow(props: {
             @{props.agent.tag}
           </span>
           <span class="shrink-0 rounded-full border border-edge-muted px-2 py-0.5 text-xxs font-medium uppercase text-ink-extra-muted">
-            {typeof props.agent.share === 'string'
-              ? __t(props.agent.share)
-              : props.agent.share}
+            {props.agent.share}
           </span>
         </div>
         <p class="mt-0.5 text-xs text-ink-extra-muted">
-          {typeof props.agent.harness === 'string'
-            ? __t(props.agent.harness)
-            : props.agent.harness}{' '}
-          · {props.agent.defaultModel} ·{' '}
-          {typeof props.agent.channelSummary === 'string'
-            ? __t(props.agent.channelSummary)
-            : props.agent.channelSummary}
+          {props.agent.harness} · {props.agent.defaultModel} ·{' '}
+          {props.agent.channelSummary}
         </p>
       </div>
       <div class="flex shrink-0 items-center gap-1">
@@ -459,7 +470,7 @@ function AgentAvatar(props: { agent: AgentSummary }) {
           <Avatar.Fallback>
             <Show
               when={props.agent.id === MACRO_AGENT_BOT_ID}
-              fallback={<RobotIcon class="size-5" />}
+              fallback={<AgentIcon class="size-5" />}
             >
               <MacroLogo class="size-5" />
             </Show>
@@ -653,6 +664,14 @@ function AgentDialog(props: {
     rememberedMcpServers = servers;
     setMcp({ scope: 'selected', servers });
   };
+  const [autoAcceptChoice, setAutoAcceptChoice] = createSignal(
+    props.agent?.auto_accept_permissions === true
+  );
+  const allowPermissionBypass = () =>
+    selectedHarness()?.allowPermissionBypass === true;
+  const autoAcceptPermissions = () =>
+    selectedHarness()?.kind === 'builtin' ||
+    (allowPermissionBypass() && autoAcceptChoice());
   let avatarInputRef: HTMLInputElement | undefined;
   let dialogContentRef: HTMLDivElement | undefined;
 
@@ -666,6 +685,7 @@ function AgentDialog(props: {
   const handleHarnessChange = (id: string) => {
     setHarnessId(id);
     setDefaultModelId(preferredModelId(id));
+    setAutoAcceptChoice(false);
   };
 
   const handleAvatarInput = (file: File | undefined) => {
@@ -715,6 +735,7 @@ function AgentDialog(props: {
       // section never wipes a selection somebody else made.
       mcp: mcp(),
       teamId: selectedTeamId(),
+      autoAcceptPermissions: autoAcceptPermissions(),
     });
     if (saved) close();
   };
@@ -733,7 +754,7 @@ function AgentDialog(props: {
       <Panel depth={2} class="max-h-[88vh] rounded-xl text-ink">
         <Panel.Header class="justify-between px-3">
           <Dialog.Title as="span" class="m-0 p-0 text-sm font-medium">
-            {props.agent ? __t('Edit agent') : __t('Create agent')}
+            {props.agent ? 'Edit agent' : 'Create agent'}
           </Dialog.Title>
           <Dialog.CloseButton as={Button} variant="ghost" size="icon-sm">
             <XIcon />
@@ -775,11 +796,9 @@ function AgentDialog(props: {
                   />
                 </button>
                 <div class="min-w-0 flex-1">
-                  <div class="text-sm font-medium text-ink">
-                    {__t('Avatar')}
-                  </div>
+                  <div class="text-sm font-medium text-ink">Avatar</div>
                   <div class="mt-0.5 text-xs text-ink-muted">
-                    {__t('Optional · square images work best')}
+                    Optional · square images work best
                   </div>
                 </div>
                 <input
@@ -798,19 +817,17 @@ function AgentDialog(props: {
                   onClick={() => avatarInputRef?.click()}
                 >
                   <UploadIcon />
-                  {__t('Upload')}
+                  Upload
                 </Button>
               </div>
 
               <div class="mt-4 grid grid-cols-2 gap-3 mobile:grid-cols-1">
                 <label class="flex flex-col gap-1.5">
-                  <span class="text-xs font-medium text-ink">
-                    {t('Name', { context: 'agents' })}
-                  </span>
+                  <span class="text-xs font-medium text-ink">Name</span>
                   <input
                     autofocus
                     class="settings-input w-full"
-                    placeholder={__t('Bug fixer')}
+                    placeholder="Bug fixer"
                     value={name()}
                     onInput={(event) =>
                       handleNameInput(event.currentTarget.value)
@@ -842,15 +859,11 @@ function AgentDialog(props: {
               description="Instructions the agent receives at the start of every conversation."
             >
               <label class="flex flex-col gap-1.5">
-                <span class="text-xs font-medium text-ink">
-                  {__t('System prompt')}
-                </span>
+                <span class="text-xs font-medium text-ink">System prompt</span>
                 <textarea
                   rows={5}
                   class="settings-input h-auto min-h-30 w-full resize-y px-3 py-2.5 font-mono text-xs leading-5"
-                  placeholder={__t(
-                    'You are a bug-fixing agent. Reproduce issues, identify root causes, and make focused, tested fixes…'
-                  )}
+                  placeholder="You are a bug-fixing agent. Reproduce issues, identify root causes, and make focused, tested fixes…"
                   value={instructions()}
                   onInput={(event) =>
                     setSystemPrompt(event.currentTarget.value)
@@ -865,32 +878,42 @@ function AgentDialog(props: {
             >
               <div class="grid grid-cols-2 gap-3 mobile:grid-cols-1">
                 <label class="flex flex-col gap-1.5">
-                  <span class="text-xs font-medium text-ink">
-                    {__t('Harness')}
-                  </span>
+                  <span class="text-xs font-medium text-ink">Harness</span>
                   <select
                     class="settings-input w-full"
-                    value={harnessId()}
                     onChange={(event) =>
                       handleHarnessChange(event.currentTarget.value)
                     }
                   >
-                    <For each={props.connectedHarnesses}>
+                    <For
+                      each={props.connectedHarnesses.filter(
+                        (harness) =>
+                          harness.id !== 'claude-cloud' ||
+                          harness.id === harnessId() ||
+                          modelDataForHarness(harness.id)?.status ===
+                            'available'
+                      )}
+                    >
                       {(harness) => (
-                        <option value={harness.id}>{harness.name}</option>
+                        <option
+                          value={harness.id}
+                          selected={harness.id === harnessId()}
+                        >
+                          {harness.name}
+                        </option>
                       )}
                     </For>
                   </select>
                 </label>
                 <label class="flex flex-col gap-1.5">
                   <span class="text-xs font-medium text-ink">
-                    {__t('Default model')}
+                    Default model
                   </span>
                   <Show
                     when={selectedModelQuery()}
                     fallback={
                       <p class="settings-input text-ink-muted">
-                        {t('Model discovery unavailable')}
+                        Model discovery unavailable
                       </p>
                     }
                     keyed
@@ -904,7 +927,7 @@ function AgentDialog(props: {
                             class="settings-input w-full"
                             disabled
                           >
-                            <option>{t('Loading models…')}</option>
+                            <option>Loading models…</option>
                           </select>
                         }
                       >
@@ -913,8 +936,8 @@ function AgentDialog(props: {
                           fallback={
                             <div class="flex items-center gap-2">
                               <p class="min-w-0 flex-1 text-xs text-negative">
-                                {t('Could not load models for')}{' '}
-                                {selectedHarness()?.name ?? t('this harness')}.
+                                Could not load models for{' '}
+                                {selectedHarness()?.name ?? 'this harness'}.
                               </p>
                               <Button
                                 type="button"
@@ -932,9 +955,7 @@ function AgentDialog(props: {
                             when={selectedModelData()?.status === 'available'}
                             fallback={
                               <p class="settings-input text-ink-muted">
-                                {t(
-                                  'Model selection is unsupported by this harness.'
-                                )}
+                                Model selection is unsupported by this harness.
                               </p>
                             }
                           >
@@ -942,7 +963,7 @@ function AgentDialog(props: {
                               when={selectedModelOptions().length > 0}
                               fallback={
                                 <p class="settings-input text-ink-muted">
-                                  {t('This harness did not return any models.')}
+                                  This harness did not return any models.
                                 </p>
                               }
                             >
@@ -986,6 +1007,38 @@ function AgentDialog(props: {
                   </Show>
                 </label>
               </div>
+              <Show when={selectedHarness()?.kind === 'macrod'}>
+                <fieldset class="mt-4 grid gap-2 border-t border-ink/[0.06] pt-4">
+                  <legend class="text-xs font-medium text-ink">
+                    Permission requests
+                  </legend>
+                  <ChoiceRow
+                    name="agent-permission-policy"
+                    value="prompt"
+                    title="Always prompt"
+                    description="Session editors approve or reject each permission request."
+                    checked={!autoAcceptPermissions()}
+                    onChange={() => setAutoAcceptChoice(false)}
+                  />
+                  <Show
+                    when={allowPermissionBypass()}
+                    fallback={
+                      <p class="text-xs text-ink-muted">
+                        This harness requires permission prompts.
+                      </p>
+                    }
+                  >
+                    <ChoiceRow
+                      name="agent-permission-policy"
+                      value="bypass"
+                      title="Always bypass"
+                      description="Approve tool calls without asking."
+                      checked={autoAcceptPermissions()}
+                      onChange={() => setAutoAcceptChoice(true)}
+                    />
+                  </Show>
+                </fieldset>
+              </Show>
             </AgentFormSection>
 
             <Show when={pipedreamMcp()}>
@@ -1028,7 +1081,7 @@ function AgentDialog(props: {
                 <Show when={share() === 'Team'}>
                   <p class="mt-3 border-t border-edge-muted pt-3 text-xs text-ink-extra-muted">
                     Connections are personal. Teammates who use this agent
-                    connect these apps under Settings → Connections; the
+                    connect these apps under Settings → Integrations; the
                     indicators here show only your own.
                   </p>
                 </Show>
@@ -1114,7 +1167,7 @@ function AgentDialog(props: {
 
         <Panel.Footer class="justify-end gap-2 px-3 py-2">
           <Button type="button" variant="ghost" size="sm" onClick={close}>
-            {t('Cancel', { context: 'agents' })}
+            Cancel
           </Button>
           <Button
             type="submit"
@@ -1125,11 +1178,11 @@ function AgentDialog(props: {
           >
             {props.pending
               ? props.agent
-                ? __t('Saving…')
-                : __t('Creating…')
+                ? 'Saving…'
+                : 'Creating…'
               : props.agent
-                ? __t('Save changes')
-                : __t('Create agent')}
+                ? 'Save changes'
+                : 'Create agent'}
           </Button>
         </Panel.Footer>
       </Panel>
@@ -1145,8 +1198,8 @@ function AgentFormSection(props: {
   return (
     <section>
       <div class="mb-2 px-1">
-        <h2 class="text-sm font-semibold text-ink">{__t(props.title)}</h2>
-        <p class="mt-0.5 text-xs text-ink-muted">{__t(props.description)}</p>
+        <h2 class="text-sm font-semibold text-ink">{props.title}</h2>
+        <p class="mt-0.5 text-xs text-ink-muted">{props.description}</p>
       </div>
       <div class="rounded-xl border border-ink/[0.06] bg-surface-2 p-4">
         {props.children}

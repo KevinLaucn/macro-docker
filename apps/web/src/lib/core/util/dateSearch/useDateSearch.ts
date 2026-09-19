@@ -1,4 +1,3 @@
-import { locale, t } from '@macro/i18n';
 import {
   addDays,
   addYears,
@@ -8,7 +7,6 @@ import {
   parse,
   setYear,
 } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
 import { type Accessor, createMemo } from 'solid-js';
 import {
   formatDuration,
@@ -250,47 +248,18 @@ function formatDateWithContext(
     (dateOnly.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
   );
 
-  const isZh = locale() === 'zh-CN';
-
   if (diffDays === 0) {
-    if (isZh)
-      return showTime
-        ? `今天 ${format(date, 'aa h:mm', { locale: zhCN })}`
-        : '今天';
     return showTime ? `Today, ${format(date, 'h:mm a')}` : 'Today';
   } else if (diffDays === 1) {
-    if (isZh)
-      return showTime
-        ? `明天 ${format(date, 'aa h:mm', { locale: zhCN })}`
-        : '明天';
     return showTime ? `Tomorrow, ${format(date, 'h:mm a')}` : 'Tomorrow';
   } else if (diffDays === -1) {
-    if (isZh)
-      return showTime
-        ? `昨天 ${format(date, 'aa h:mm', { locale: zhCN })}`
-        : '昨天';
     return showTime ? `Yesterday, ${format(date, 'h:mm a')}` : 'Yesterday';
   } else if (diffDays > 0 && diffDays <= 7) {
-    if (isZh) {
-      return showTime
-        ? format(date, 'EEEE M月d日 aa h:mm', { locale: zhCN })
-        : format(date, 'EEEE M月d日', { locale: zhCN });
-    }
     return showTime
       ? format(date, "EEEE, MMM d 'at' h:mm a")
       : format(date, 'EEEE, MMM d');
   } else {
     const sameYear = date.getFullYear() === now.getFullYear();
-    if (isZh) {
-      if (showTime) {
-        return sameYear
-          ? format(date, 'M月d日 aa h:mm', { locale: zhCN })
-          : format(date, 'yyyy年M月d日 aa h:mm', { locale: zhCN });
-      }
-      return sameYear
-        ? format(date, 'M月d日', { locale: zhCN })
-        : format(date, 'yyyy年M月d日', { locale: zhCN });
-    }
     if (showTime) {
       return sameYear
         ? format(date, "MMM d 'at' h:mm a")
@@ -323,7 +292,7 @@ export function useDateSearch(params: {
           }
           return {
             id: preset.id,
-            displayText: t(preset.label),
+            displayText: preset.label,
             secondaryText: formatDateWithContext(
               date,
               baseDate,

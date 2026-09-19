@@ -12,14 +12,12 @@ import { editorFocusSignal } from '@core/component/LexicalMarkdown/utils';
 import { toast } from '@core/component/Toast/Toast';
 import { ENABLE_MARKDOWN_COMMENTS } from '@core/constant/featureFlags';
 import type { ValidHotkey } from '@core/hotkey/types';
-import DotsThreeLarge from '@icon/dots-three-large.svg';
 import {
   $isTableCellNode,
   $isTableSelection,
   $mergeCells,
   $unmergeCell,
 } from '@lexical/table';
-import { t } from '@macro/i18n';
 import type { ElementName } from '@macro-inc/lexical-core';
 import CaretDown from '@phosphor/caret-down.svg';
 import CaretRight from '@phosphor/caret-right.svg';
@@ -29,6 +27,7 @@ import TextCode from '@phosphor/code.svg';
 import CodeBlock from '@phosphor/code-block.svg';
 import CornersIn from '@phosphor/corners-in.svg';
 import CornersOut from '@phosphor/corners-out.svg';
+import DotsThreeLarge from '@phosphor/dots-three.svg';
 import ThreeDots from '@phosphor/dots-three.svg';
 import MathIcon from '@phosphor/function.svg';
 import Grid from '@phosphor/grid-four.svg';
@@ -101,61 +100,56 @@ type DropdownItemProps = {
 
 export const NodeMenuOptions: Record<ElementName, DropdownItemProps> = {
   paragraph: {
-    label: t('Body'),
+    label: 'Body',
     icon: TextT,
     show: false,
     themeClass: '',
   },
   heading1: {
-    label: t('Heading 1'),
+    label: 'Heading 1',
     icon: TextH1,
     show: true,
     themeClass: 'text-[1.15em] font-bold',
   },
   heading2: {
-    label: t('Heading 2'),
+    label: 'Heading 2',
     icon: TextH2,
     show: true,
     themeClass: 'text-[1.07em] font-bold',
   },
   heading3: {
-    label: t('Heading 3'),
+    label: 'Heading 3',
     icon: TextH3,
     show: true,
     themeClass: 'text-[1.03em] font-bold',
   },
-  quote: { label: t('Quote'), icon: Quote, show: true, themeClass: 'italic' },
-  code: {
-    label: t('Code'),
-    icon: CodeBlock,
-    show: true,
-    themeClass: 'font-mono',
-  },
+  quote: { label: 'Quote', icon: Quote, show: true, themeClass: 'italic' },
+  code: { label: 'Code', icon: CodeBlock, show: true, themeClass: 'font-mono' },
   'custom-code': {
-    label: t('Code'),
+    label: 'Code',
     icon: CodeBlock,
     show: false,
     themeClass: 'font-mono',
   },
   'list-bullet': {
-    label: t('Bullet List'),
+    label: 'Bullet List',
     icon: ListBullets,
     show: true,
     before: <div class="bg-ink size-1.5 rounded-full ml-1.5 mr-3" />,
   },
   'list-number': {
-    label: t('Numbered List'),
+    label: 'Numbered List',
     icon: ListNumbers,
     show: true,
     before: <One class="size-4 mr-2" />,
   },
   'list-check': {
-    label: t('Checklist'),
+    label: 'Checklist',
     icon: ListChecks,
     show: true,
     before: <Check class="size-4 mr-2" />,
   },
-  link: { label: t('Link'), icon: LinkIcon, show: false, themeClass: '' },
+  link: { label: 'Link', icon: LinkIcon, show: false, themeClass: '' },
 } as const;
 
 type InlineFormat =
@@ -192,14 +186,14 @@ const InlineShortcuts: Partial<Record<InlineFormat, ValidHotkey>> = {
 } as const;
 
 const InlineLabels: Record<InlineFormat, string> = {
-  bold: t('Bold'),
-  italic: t('Italic'),
-  underline: t('Underline'),
-  strikethrough: t('Strikethrough'),
-  highlight: t('Highlight'),
-  code: t('Inline code'),
-  superscript: t('Superscript'),
-  subscript: t('Subscript'),
+  bold: 'Bold',
+  italic: 'Italic',
+  underline: 'Underline',
+  strikethrough: 'Strikethrough',
+  highlight: 'Highlight',
+  code: 'Inline code',
+  superscript: 'Superscript',
+  subscript: 'Subscript',
 } as const;
 
 const isInlineFormatActive = (

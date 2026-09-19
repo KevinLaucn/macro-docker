@@ -1,5 +1,4 @@
 import { LoginButton } from '@core/component/TopBar/LoginButton';
-import { t } from '@macro/i18n';
 import { Surface } from '@ui';
 
 export default function Banner() {
@@ -8,7 +7,7 @@ export default function Banner() {
       <Surface>
         <div class="flex md:flex-row flex-col justify-baseline items-center gap-2 md:gap-6 p-2 text-ink text-center whitespace-nowrap">
           <span class="text-sm text-ink-muted px-2">
-            {t('Create an account to get started.')}
+            Create an account to get started.
           </span>
           <LoginButton />
         </div>

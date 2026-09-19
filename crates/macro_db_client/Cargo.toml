@@ -6,12 +6,11 @@ version = "0.1.0"
 
 [features]
 account_merge_request = ["dep:rand"]
-chat = ["dep:agent", "model/chat_messages"]
-default = ["account_merge_request", "team", "chat"]
+default = ["account_merge_request", "team"]
 team = ["dep:models_team"]
 
 [dependencies]
-agent = { path = "../agent", optional = true }
+agent = { path = "../agent" }
 anyhow = { workspace = true }
 async-recursion = "1.1.1"
 async-trait = { workspace = true }
@@ -23,7 +22,7 @@ entity_registry_db_utils = { path = "../entity_registry/entity_registry_db_utils
 futures = { workspace = true }
 macro_user_id = { path = "../macro_user_id" }
 macro_uuid = { path = "../macro_uuid" }
-model = { path = "../model", default-features = false }
+model = { path = "../model" }
 model-entity = { path = "../model-entity" }
 model_owner = { path = "../model_owner" }
 model_file_type = { path = "../model_file_type" }

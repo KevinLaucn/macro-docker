@@ -1,37 +1,15 @@
 import { ShowFeatureFlag } from '@app/lib/analytics/posthog';
 import { FloatRegionOrInline } from '@components/app/mobile/float-regions/FloatRegion';
-import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { DragDropWrapper } from '@core/component/AI/component/DragDrop';
-import { buildChatEditor } from '@core/component/AI/component/input/buildChatEditor';
-import type { ChatSendInput } from '@core/component/AI/component/input/buildRequest';
-import { ChatInput } from '@core/component/AI/component/input/ChatInput';
-import {
-  ChatInputProvider,
-  useChatInputContext,
-} from '@core/component/AI/context';
-import { useGetChatAttachmentInfo } from '@core/component/AI/signal/attachment';
-import { createMentionAttachmentCallbacks } from '@core/component/AI/signal/mention-attachment-callbacks';
-import { setPendingSendData } from '@core/component/AI/signal/pendingSend';
-import { deriveChatName } from '@core/component/AI/util/deriveName';
+import { ChatInputProvider } from '@core/component/AI/context';
 import {
   enableHomeRecommendations,
   enableHomeView,
-  getAppCapabilities,
 } from '@core/constant/featureFlags';
-import { PaywallKey, usePaywallState } from '@core/constant/PaywallState';
 import { useUserContext } from '@core/context/user';
-import { registerHotkey } from '@core/hotkey/hotkeys';
-import { TOKENS } from '@core/hotkey/tokens';
-import { isPaymentError } from '@core/util/handlePaymentError';
-import { createRenameDssEntityMutation } from '@entity';
-import { t } from '@macro/i18n';
-import { createChat, sendStreamChatMessage } from '@queries/chat';
-import { invalidateAllSoup } from '@queries/soup/normalized-cache';
 import { Navigate } from '@solidjs/router';
-import { $getRoot } from 'lexical';
-import { createEffect } from 'solid-js';
 import { HomeBackfillProgress } from './home-backfill-progress';
-import { replaceHomeComposerDraft } from './home-composer-selection';
+import { HomeChatInput } from './home-chat-input';
 import { HomeExamples } from './home-examples';
 import { GettingStartedSection, RecommendedSection } from './home-hub';
 import { createHomePreferences } from './home-prefs';
@@ -71,9 +49,9 @@ function AnimatedHeroLogo(props: { class?: string }) {
 
 function getGreeting() {
   const hour = new Date().getHours();
-  if (hour < 12) return t('Good morning');
-  if (hour < 18) return t('Good afternoon');
-  return t('Good evening');
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
 }
 
 export function Home() {
@@ -91,14 +69,13 @@ export function Home() {
 function HomeContent() {
   const user = useUserContext();
   const preferences = createHomePreferences();
-  const capabilities = getAppCapabilities();
 
   const firstName = () => {
     const name = user.author();
     return name.includes('@') ? name.split('@')[0] : name.split(' ')[0];
   };
 
-  const greeting = () => getGreeting();
+  const greeting = getGreeting();
 
   return (
     <main class="relative flex h-full flex-col bg-surface">
@@ -129,7 +106,7 @@ function HomeContent() {
           <header class="flex items-center gap-2.5">
             <AnimatedHeroLogo class="size-6 shrink-0 text-accent" />
             <h1 class="text-xl font-normal tracking-tight text-ink">
-              {greeting()}, <span class="capitalize">{firstName()}</span>
+              {greeting}, <span class="capitalize">{firstName()}</span>
             </h1>
           </header>
 
@@ -155,129 +132,9 @@ function HomeContent() {
 
       <FloatRegionOrInline region="accessory">
         <div class="mx-auto w-full max-w-3xl shrink-0 px-4 pb-3 pointer-events-auto touch:px-(--mobile-chrome-gutter) touch:pb-0">
-          {capabilities.cognition ? (
-            <HomeChatInput />
-          ) : (
-            <div class="rounded-md border border-edge-muted bg-surface px-3 py-2 text-xs text-ink-muted">
-              Chat is unavailable in this profile.
-            </div>
-          )}
+          <HomeChatInput />
         </div>
       </FloatRegionOrInline>
     </main>
   );
 }
-
-export const HomeChatInput = () => {
-  const splitPanelContext = useSplitPanelOrThrow();
-  const input = useChatInputContext();
-
-  const { getAttachmentFromMention } = useGetChatAttachmentInfo();
-  const attachmentMentionCallbacks = createMentionAttachmentCallbacks(
-    input.attachments,
-    getAttachmentFromMention
-  );
-  const editor = buildChatEditor().withMentions({
-    ...attachmentMentionCallbacks,
-    block: 'chat',
-    showOpenTabs: true,
-  });
-
-  const applyDraft = (text: string) => {
-    replaceHomeComposerDraft(editor.controls, text);
-    requestAnimationFrame(() => {
-      editor.controls.focus();
-      // Focus lands at the start of the document; drafts are prompt prefixes,
-      // so the caret belongs at the end, ready to complete the sentence.
-      editor.controls.getLexical().update(() => {
-        $getRoot().selectEnd();
-      });
-    });
-  };
-
-  // Drafts requested from elsewhere on the home (e.g. a suggested action row).
-  createEffect(() => {
-    const draft = input.pendingDraft();
-    if (draft != null) {
-      applyDraft(draft);
-      input.setPendingDraft(null);
-    }
-  });
-
-  registerHotkey({
-    hotkey: 'enter',
-    scopeId: splitPanelContext.splitHotkeyScope,
-    description: 'Focus Chat Input',
-    keyDownHandler: () => {
-      editor.controls.focus();
-      return true;
-    },
-    hotkeyToken: TOKENS.block.focus,
-    hide: true,
-  });
-
-  const renameMutation = createRenameDssEntityMutation();
-
-  const handleSend = async (request: ChatSendInput) => {
-    const backgroundSend = request.metaKey;
-
-    // Create a new persistent chat
-    const response = await createChat({});
-    if (response.isErr()) {
-      if (isPaymentError(response)) {
-        const { showPaywall } = usePaywallState();
-        showPaywall(PaywallKey.CHAT_LIMIT);
-      }
-      return;
-    }
-    const { id: chatId } = response.value;
-
-    // Rename via mutation for optimistic cache updates (history, preview, soup)
-    const name = deriveChatName(request.content);
-    if (name) {
-      renameMutation.mutate({
-        entity: { type: 'chat', id: chatId, name: '', ownerId: '' },
-        newName: name,
-      });
-    }
-
-    if (backgroundSend) {
-      // Send the message in the background without navigating
-      sendStreamChatMessage({
-        content: request.content,
-        model: request.model,
-        chat_id: chatId,
-        attachments:
-          request.attachments.length > 0 ? request.attachments : undefined,
-        toolset: { type: 'all' },
-      });
-      invalidateAllSoup();
-    } else {
-      // Store the pending send data for the chat to pick up
-      setPendingSendData({
-        content: request.content,
-        attachments: request.attachments,
-        model: request.model,
-      });
-
-      // Replace the soup split with the chat split
-      splitPanelContext.handle.replace({
-        next: { type: 'chat', id: chatId },
-      });
-    }
-  };
-
-  return (
-    <ChatInput
-      variant="default"
-      editor={editor}
-      onSend={handleSend}
-      onEscape={() => {
-        splitPanelContext.panelRef()?.focus();
-        return true;
-      }}
-      isPersistent={true}
-      autoFocusOnMount={true}
-    />
-  );
-};

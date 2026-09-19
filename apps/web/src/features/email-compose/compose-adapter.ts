@@ -52,7 +52,6 @@ import {
 import { invalidateSoupEntity, refetchSoupEntity } from '@queries/soup/cache';
 import type { ApiThread } from '@service-email/generated/schemas';
 import type { InfiniteData } from '@tanstack/solid-query';
-import { createMemo } from 'solid-js';
 import type {
   ComposeNoticeOptions,
   EmailComposeContext,
@@ -98,15 +97,7 @@ export function createEmailComposeContext(): EmailComposeContext {
     },
     accounts: {
       ...inboxSource,
-      primaryId: (() => {
-        const primaryId = usePrimaryEmailLinkId();
-        return createMemo(() => {
-          const preferred = accounts.data?.links.find(
-            (link) => link.email_address.toLowerCase() === 'etsy@chnprints.com'
-          )?.id;
-          return preferred ?? primaryId();
-        });
-      })(),
+      primaryId: usePrimaryEmailLinkId(),
     },
     viewerEmail,
     recipients: users,

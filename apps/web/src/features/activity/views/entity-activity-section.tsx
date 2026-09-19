@@ -1,5 +1,4 @@
 import { SidePanel } from '@components/app/side-panel/SidePanel';
-import { t } from '@macro/i18n';
 import CaretUpDownIcon from '@phosphor/caret-up-down.svg';
 import type { EntityType } from '@service-properties/generated/schemas/entityType';
 import { cn } from '@ui';
@@ -65,17 +64,17 @@ export function EntityActivitySection(props: EntityActivitySectionProps) {
 
   return (
     <Show when={state.isEnabled()}>
-      <SidePanel.Section id="activity" title={t('Activity')} order={props.order}>
+      <SidePanel.Section id="activity" title="Activity" order={props.order}>
         <Suspense fallback={<SidePanel.Loading />}>
           <Switch>
             <Match when={state.view().t === 'loading'}>
               <SidePanel.Loading />
             </Match>
             <Match when={state.view().t === 'error'}>
-              <SidePanel.EmptyPill label={t('Activity is unavailable')} />
+              <SidePanel.EmptyPill label="Activity is unavailable" />
             </Match>
             <Match when={state.view().t === 'empty'}>
-              <SidePanel.EmptyPill label={t('No activity yet')} />
+              <SidePanel.EmptyPill label="No activity yet" />
             </Match>
             <Match when={ready()}>
               {(current) => <ReadyActivityList events={current().events} />}
@@ -175,7 +174,7 @@ function FoldToggle(props: { expanded: boolean; onToggle: () => void }) {
         />
       </span>
       <span class="flex min-h-8 min-w-0 flex-1 items-center rounded-lg px-1 text-ink hover:bg-hover/30">
-        {props.expanded ? t('Show less') : t('View all activities')}
+        {props.expanded ? 'Show less' : 'View all activities'}
       </span>
     </button>
   );

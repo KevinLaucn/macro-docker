@@ -36,8 +36,8 @@ upload_extractor = []
 anyhow = { workspace = true }
 aws-sdk-sqs = { workspace = true }
 chrono = { workspace = true, optional = true }
-email = { path = "../email", default-features = false, features = ["ports"], optional = true }
-model = { path = "../model", optional = true, default-features = false }
+email = { path = "../email", features = ["ports"], optional = true }
+model = { path = "../model", optional = true }
 models_ai_projection = { path = "../models_ai_projection", optional = true }
 s3_key = { path = "../s3_key" }
 models_email = { path = "../models_email", optional = true }

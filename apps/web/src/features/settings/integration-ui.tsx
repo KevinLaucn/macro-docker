@@ -1,8 +1,18 @@
-import { __t } from '@macro/i18n';
 import ArrowUpRightIcon from '@phosphor/arrow-up-right.svg';
 import SpinnerIcon from '@phosphor/spinner-gap.svg';
 import { cn } from '@ui';
-import { Show } from 'solid-js';
+import { type JSX, Show } from 'solid-js';
+
+export function HarnessIcon(props: { children: JSX.Element }) {
+  return (
+    <div
+      aria-hidden="true"
+      class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-ink/4 text-ink-muted [&_svg]:size-5"
+    >
+      {props.children}
+    </div>
+  );
+}
 
 /*
  * Shared bits for the Connected accounts integration cards: the trailing
@@ -43,7 +53,7 @@ export function ConnectAction(props: {
       <Show when={props.loading}>
         <SpinnerIcon class="size-4 animate-spin" />
       </Show>
-      {typeof props.label === 'string' ? __t(props.label) : props.label}
+      {props.label}
       <Show when={variant() === 'connect' && !props.loading}>
         <ArrowUpRightIcon class="size-3.5 opacity-70" />
       </Show>
@@ -57,12 +67,11 @@ export function ConnectAction(props: {
  * stays legible at any width — including mobile, where a text label wouldn't fit.
  */
 export function StatusDot(props: { state: ConnectionState; label?: string }) {
-  const displayLabel = () => (props.label ? __t(props.label) : undefined);
   return (
     <span
       role="img"
-      title={displayLabel()}
-      aria-label={displayLabel()}
+      title={props.label}
+      aria-label={props.label}
       class={cn(
         'inline-block size-2 shrink-0 rounded-full',
         props.state === 'connected' && 'bg-success',

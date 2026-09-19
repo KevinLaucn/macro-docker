@@ -15,8 +15,17 @@ pub(in crate::api) mod password;
 pub(in crate::api) mod passwordless;
 pub(in crate::api) mod sso;
 
-pub fn router(_state: ApiContext) -> Router<ApiContext> {
-    let router = Router::new()
+pub fn router(state: ApiContext) -> Router<ApiContext> {
+    Router::new()
+        .route(
+            "/passwordless",
+            post(passwordless::handler).layer(ServiceBuilder::new().layer(
+                axum::middleware::from_fn_with_state(
+                    state.clone(),
+                    middleware::rate_limit::passwordless::handler,
+                ),
+            )),
+        )
         .route(
             "/password",
             post(password::handler).layer(ServiceBuilder::new().layer(CookieManagerLayer::new())),
@@ -26,15 +35,4 @@ pub fn router(_state: ApiContext) -> Router<ApiContext> {
             post(apple::handler).layer(ServiceBuilder::new().layer(CookieManagerLayer::new())),
         )
         .route("/sso", get(sso::handler))
-        .route(
-            "/passwordless",
-            post(passwordless::handler).layer(ServiceBuilder::new().layer(
-                axum::middleware::from_fn_with_state(
-                    _state.clone(),
-                    middleware::rate_limit::passwordless::handler,
-                ),
-            )),
-        );
-
-    router
 }

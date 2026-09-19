@@ -5,7 +5,6 @@ import {
 } from '@app/features/next-soup/utils';
 import { toast } from '@core/component/Toast/Toast';
 import type { EntityData } from '@entity';
-import { t } from '@macro/i18n';
 import type { NotificationSource } from '@notifications';
 import { threadCanBeMarkedNotDone } from '@queries/email/thread';
 import { fetchDoneNotificationIdsByEventItemIds } from '@queries/notification/user-notifications';
@@ -36,15 +35,13 @@ const uncompleteReminders = async (reminders: EntityData[]) => {
     });
     toast.success(
       reminderIds.length > 1
-        ? t('Marked {count} reminders as not done', {
-            count: reminderIds.length,
-          })
-        : t('Marked as not done'),
+        ? `Marked ${reminderIds.length} reminders as not done`
+        : 'Marked as not done',
       { duration: 3_000, stack: true, hideOnMobile: true }
     );
   } catch {
     optimistic.rollback();
-    toast.failure(t('Failed to mark as not done'));
+    toast.failure('Failed to mark as not done');
   }
 };
 
@@ -118,8 +115,8 @@ export const makeMarkNotDoneAction = (options: MakeMarkNotDoneOptions) => {
       // unarchive fallback's toast in EmailContext).
       toast.success(
         targets.length > 1
-          ? t('Marked {count} items as not done', { count: targets.length })
-          : t('Marked as not done'),
+          ? `Marked ${targets.length} items as not done`
+          : 'Marked as not done',
         { duration: 3_000, stack: true, hideOnMobile: true }
       );
       // Restore the rows deterministically: refetch each thread's soup item
@@ -132,7 +129,7 @@ export const makeMarkNotDoneAction = (options: MakeMarkNotDoneOptions) => {
       invalidateAllSoup();
     } catch (err) {
       optimistic.rollback();
-      toast.failure(t('Failed to mark as not done'));
+      toast.failure('Failed to mark as not done');
       // Rethrow (matching makeMarkDoneAction's mutateAsync) so wrappers like
       // trackExternalThreadArchive can restore their own caches; UI feedback
       // is already handled above.

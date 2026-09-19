@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import ClockIcon from '@phosphor/clock.svg';
 import XIcon from '@phosphor/x.svg';
 import { Button, cn, Layer } from '@ui';
@@ -36,7 +35,7 @@ export const SidebarPromoCard = (props: SidebarPromoCardProps) => {
                 <Button
                   variant="ghost"
                   class="shrink-0 size-5 rounded-sm p-0 [&_svg]:size-3"
-                  label={t('Dismiss')}
+                  label="Dismiss"
                   onClick={(e) => {
                     e.stopPropagation();
                     onDismiss()();
@@ -182,7 +181,7 @@ export const SidebarPromoHint = (props: SidebarPromoHintProps) => {
                 )}
               </Show>
               <Button variant="cta" size="sm" onClick={props.onDone}>
-                {t('Got it')}
+                Got it
               </Button>
             </div>
           </div>

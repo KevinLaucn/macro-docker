@@ -2,7 +2,6 @@ import type { GroupHeaderProps } from '@app/features/next-soup/create-soup-state
 import { SoupSectionHeader } from '@app/features/next-soup/soup-view/section-header';
 import { SOUP_ROW_CLASS } from '@entity/composed/list-entity/row-geometry';
 import { useListLayout } from '@entity/composed/list-entity/shared';
-import { t } from '@macro/i18n';
 import { cn } from '@ui';
 
 export const DateGroupHeader = (props: GroupHeaderProps) => {
@@ -31,7 +30,7 @@ export const DateGroupHeader = (props: GroupHeaderProps) => {
         !props.isFirst && 'pt-5'
       )}
     >
-      <span class="truncate">{t(props.group.label)}</span>
+      <span class="truncate">{props.group.label}</span>
     </SoupSectionHeader>
   );
 };

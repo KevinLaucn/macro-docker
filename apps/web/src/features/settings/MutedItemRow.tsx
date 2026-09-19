@@ -11,7 +11,6 @@ import {
   muteItemPreviewEntity,
   normalizeMuteItemType,
 } from '@entity/utils/notification';
-import { t } from '@macro/i18n';
 import { mutedEntityTypeLabel } from '@notifications/notification-event-catalog';
 import {
   type ItemEntity,
@@ -116,7 +115,7 @@ function MutedItemLayout(props: {
         class="shrink-0 text-sm text-ink-muted hover:text-ink"
         onClick={props.onUnmute}
       >
-        {t('Unmute')}
+        Unmute
       </button>
     </div>
   );

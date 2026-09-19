@@ -4,8 +4,7 @@ import { toast } from '@core/component/Toast/Toast';
 import { useCombinedRecipients } from '@core/signal/useCombinedRecipient';
 import type { WithCustomUserInput } from '@core/user';
 import { getDestinationFromOptions } from '@core/util/destination';
-import PhoneCallIcon from '@icon/wide-call.svg';
-import { t } from '@macro/i18n';
+import PhoneCallIcon from '@phosphor/phone-call.svg';
 import PlusCircleIcon from '@phosphor/plus-circle.svg';
 import XIcon from '@phosphor/x.svg';
 import {
@@ -60,7 +59,7 @@ export function NewCallButton() {
                 });
           channelId = result.channel_id;
         } catch {
-          toast.failure(t('Failed to create channel for call'));
+          toast.failure('Failed to create channel for call');
           setIsSubmitting(false);
           return;
         }
@@ -72,7 +71,7 @@ export function NewCallButton() {
       await joinChannelCall(channelId);
     } catch (err) {
       console.error('Failed to start call', err);
-      toast.failure(t('Failed to start call'));
+      toast.failure('Failed to start call');
       setIsSubmitting(false);
     }
   }
@@ -86,7 +85,7 @@ export function NewCallButton() {
         onClick={() => setIsOpen(true)}
       >
         <PlusCircleIcon class="size-3.5 text-accent" />
-        <span>{t('Call')}</span>
+        <span>Call</span>
       </Button>
       <Dialog
         open={isOpen()}
@@ -104,7 +103,7 @@ export function NewCallButton() {
                   <XIcon />
                 </Dialog.CloseButton>
                 <Dialog.Title as="span" class="text-sm font-medium p-0 m-0">
-                  {t('New Call')}
+                  New Call
                 </Dialog.Title>
               </div>
               <div class="flex flex-col p-4 gap-4">
@@ -112,7 +111,7 @@ export function NewCallButton() {
                   options={destinationOptions}
                   selectedOptions={selectedOptions()}
                   setSelectedOptions={setSelectedOptions}
-                  placeholder={t('To: Macro users or email addresses')}
+                  placeholder="To: Macro users or email addresses"
                   triedToSubmit={triedToSubmit}
                   focusOnMount
                   triggerMode="input"
@@ -125,7 +124,7 @@ export function NewCallButton() {
                     onClick={handleStartCall}
                   >
                     <PhoneCallIcon class="size-3.5" />
-                    {isSubmitting() ? t('Starting...') : t('Start Call')}
+                    {isSubmitting() ? 'Starting...' : 'Start Call'}
                   </Button>
                 </div>
               </div>

@@ -3,7 +3,6 @@ import { isLargeModelCatalog } from '@core/component/AI/component/input/modelCat
 import { toast } from '@core/component/Toast/Toast';
 import { ThrownResultError } from '@core/util/result';
 import CursorIcon from '@icon/wide-cursor-ide.svg';
-import { t } from '@macro/i18n';
 import ArrowUpRightIcon from '@phosphor/arrow-up-right.svg';
 import HardDrivesIcon from '@phosphor/hard-drives.svg';
 import TerminalWindowIcon from '@phosphor/terminal-window.svg';
@@ -21,9 +20,11 @@ import {
 import type { Harness as RegisteredHarness } from '@service-storage/client';
 import { useSearchParams } from '@solidjs/router';
 import { Button, Dialog, Panel } from '@ui';
-import { createSignal, For, type JSX, onMount, Show } from 'solid-js';
+import { createSignal, For, onMount, Show } from 'solid-js';
+import { ClaudeConnection } from '../claude-connection/claude-connection';
+import { CodexHarness } from './codex/views/CodexHarness';
 import { HarnessPairingDialog } from './HarnessPairingDialog';
-import { ConnectAction, StatusDot } from './integration-ui';
+import { ConnectAction, HarnessIcon, StatusDot } from './integration-ui';
 import { SettingsCard, SettingsPage } from './primitives';
 
 const BYOA_DOCS_URL = 'https://docs.macro.com/AI/bring-your-own';
@@ -35,10 +36,8 @@ function failureMessage(error: unknown, fallback: string): string {
 
 function lastConnectedText(harness: RegisteredHarness): string {
   return harness.last_connected_at
-    ? t('Last connected {date}', {
-        date: new Date(harness.last_connected_at).toLocaleString(),
-      })
-    : t('Never connected');
+    ? `Last connected ${new Date(harness.last_connected_at).toLocaleString()}`
+    : 'Never connected';
 }
 
 /** Settings UI for choosing and configuring the available agent harnesses. */
@@ -73,9 +72,9 @@ export function Harness() {
     try {
       await deleteHarnessMutation.mutateAsync({ harnessId: current.id });
       setRemovingHarness(undefined);
-      toast.success(t('Harness removed'));
+      toast.success('Harness removed');
     } catch (error) {
-      toast.failure(t(failureMessage(error, 'Failed to remove harness')));
+      toast.failure(failureMessage(error, 'Failed to remove harness'));
     }
   };
 
@@ -96,7 +95,7 @@ export function Harness() {
       ...data.models,
       {
         id: saved,
-        name: t('{model} (saved, unavailable)', { model: saved }),
+        name: `${saved} (saved, unavailable)`,
         description: undefined,
         group: undefined,
       },
@@ -118,26 +117,26 @@ export function Harness() {
   const handleCursorModelChange = async (modelId: string) => {
     try {
       await setCursorDefaultModel.mutateAsync(modelId);
-      toast.success(t('Default model updated'));
+      toast.success('Default model updated');
     } catch (error) {
-      toast.failure(t(failureMessage(error, 'Failed to set your default model')));
+      toast.failure(failureMessage(error, 'Failed to set your default model'));
     }
   };
 
   const handleSaveCursorApiKey = async () => {
     const apiKey = cursorApiKey().trim();
     if (!apiKey.startsWith(CURSOR_KEY_PREFIX)) {
-      toast.failure(t('Cursor API keys start with {prefix}', { prefix: CURSOR_KEY_PREFIX }));
+      toast.failure(`Cursor API keys start with ${CURSOR_KEY_PREFIX}`);
       return;
     }
 
     try {
       await saveCursorApiKey.mutateAsync(apiKey);
       setCursorApiKey('');
-      toast.success(t('Cursor connected'));
+      toast.success('Cursor connected');
     } catch (error) {
       toast.failure(
-        t(failureMessage(error, 'Failed to save your Cursor API key'))
+        failureMessage(error, 'Failed to save your Cursor API key')
       );
     }
   };
@@ -146,16 +145,16 @@ export function Harness() {
     try {
       await disconnectCursor.mutateAsync();
       setCursorApiKey('');
-      toast.success(t('Cursor disconnected'));
+      toast.success('Cursor disconnected');
     } catch (error) {
-      toast.failure(t(failureMessage(error, 'Failed to disconnect Cursor')));
+      toast.failure(failureMessage(error, 'Failed to disconnect Cursor'));
     }
   };
 
   return (
     <SettingsPage
-      title={t('Harness')}
-      description={t('Configure how agents run for your Macro workspace.')}
+      title="Harness"
+      description="Configure how agents run for your Macro workspace."
     >
       <SettingsCard>
         <section class="flex gap-4 px-6 py-5">
@@ -164,18 +163,20 @@ export function Harness() {
           </HarnessIcon>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
-              <h2 class="text-sm font-medium text-ink">{t('In-memory')}</h2>
+              <h2 class="text-sm font-medium text-ink">In-memory</h2>
               <span class="rounded-full bg-success-bg px-2 py-0.5 text-[11px] font-medium text-success">
-                {t('Built in')}
+                Built in
               </span>
             </div>
             <p class="mt-1 text-sm text-ink-muted">
-              {t(
-                "Macro's in-memory harness runs agents directly in your workspace. It is ready to use and does not require any configuration. This is not a coding harness."
-              )}
+              Macro's in-memory harness runs agents directly in your workspace.
+              It is ready to use and does not require any configuration. This is
+              not a coding harness.
             </p>
           </div>
         </section>
+
+        <ClaudeConnection />
 
         <section class="flex gap-4 px-6 py-5">
           <HarnessIcon>
@@ -183,15 +184,15 @@ export function Harness() {
           </HarnessIcon>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
-              <h2 class="text-sm font-medium text-ink">{t('Cursor')}</h2>
+              <h2 class="text-sm font-medium text-ink">Cursor</h2>
               <Show when={cursorRegistered()}>
                 <span class="rounded-full bg-success-bg px-2 py-0.5 text-[11px] font-medium text-success">
-                  {t('Connected')}
+                  Connected
                 </span>
               </Show>
             </div>
             <p class="mt-1 text-sm text-ink-muted">
-              {t('Use your Cursor account to run agent sessions in Macro.')}
+              Use your Cursor account to run agent sessions in Macro.
             </p>
 
             <Show
@@ -199,8 +200,8 @@ export function Harness() {
               fallback={
                 <p class="mt-4 text-xs text-ink-muted">
                   {cursorStatus.isError
-                    ? t('Could not load your Cursor connection. Try refreshing this page.')
-                    : t('Loading…')}
+                    ? 'Could not load your Cursor connection. Try refreshing this page.'
+                    : 'Loading…'}
                 </p>
               }
             >
@@ -212,7 +213,7 @@ export function Harness() {
                       for="cursor-harness-api-key"
                       class="text-xs text-ink"
                     >
-                      {t('API key')}
+                      API key
                     </label>
                     <div class="flex items-center gap-2 mobile:flex-col mobile:items-stretch">
                       <input
@@ -243,18 +244,19 @@ export function Harness() {
                         }
                         onClick={handleSaveCursorApiKey}
                       >
-                        {t('Save')}
+                        Save
                       </Button>
                     </div>
                     <p class="text-xs text-ink-extra-muted">
-                      {t('Create an API key in Cursor and paste it here. Macro stores it encrypted.')}
+                      Create an API key in Cursor and paste it here. Macro
+                      stores it encrypted.
                     </p>
                   </div>
                 }
               >
                 <div class="mt-4 flex flex-col gap-1.5">
                   <label for="cursor-default-model" class="text-xs text-ink">
-                    {t('Default model')}
+                    Default model
                   </label>
                   <Show
                     when={!cursorModels.isPending}
@@ -264,7 +266,7 @@ export function Harness() {
                         class="settings-input w-56"
                         disabled
                       >
-                        <option>{t('Loading models…')}</option>
+                        <option>Loading models…</option>
                       </select>
                     }
                   >
@@ -273,7 +275,7 @@ export function Harness() {
                       fallback={
                         <div class="flex items-center gap-2">
                           <p class="text-xs text-negative">
-                            {t('Could not load Cursor models.')}
+                            Could not load Cursor models.
                           </p>
                           <Button
                             type="button"
@@ -281,7 +283,7 @@ export function Harness() {
                             size="sm"
                             onClick={() => void cursorModels.refetch()}
                           >
-                            {t('Retry')}
+                            Retry
                           </Button>
                         </div>
                       }
@@ -290,7 +292,7 @@ export function Harness() {
                         when={cursorModelData()?.status === 'available'}
                         fallback={
                           <p class="text-xs text-ink-muted">
-                            {t('Cursor does not support model selection.')}
+                            Cursor does not support model selection.
                           </p>
                         }
                       >
@@ -326,7 +328,7 @@ export function Harness() {
                             options={cursorCatalogOptions()}
                             onSelect={(id) => void handleCursorModelChange(id)}
                             disabled={setCursorDefaultModel.isPending}
-                            ariaLabel={t('Default model')}
+                            ariaLabel="Default model"
                             triggerClass="w-72 max-w-full justify-between"
                           />
                         </Show>
@@ -334,13 +336,15 @@ export function Harness() {
                     </Show>
                   </Show>
                   <p class="text-xs text-ink-extra-muted">
-                    {t('The model new `@cursor` sessions start on. Recommended models stay up top; everything else is behind More models.')}
+                    The model new `@cursor` sessions start on. Recommended
+                    models stay up top; everything else is behind More models.
                   </p>
                 </div>
 
                 <div class="mt-4 flex items-center justify-between gap-4 mobile:items-start">
                   <p class="text-xs text-ink-extra-muted">
-                    {t("Disconnecting removes Macro's copy of the key but does not revoke it in Cursor.")}
+                    Disconnecting removes Macro's copy of the key but does not
+                    revoke it in Cursor.
                   </p>
                   <Button
                     type="button"
@@ -351,7 +355,7 @@ export function Harness() {
                     disabled={disconnectCursor.isPending}
                     onClick={handleDisconnectCursor}
                   >
-                    {t('Disconnect')}
+                    Disconnect
                   </Button>
                 </div>
               </Show>
@@ -359,13 +363,15 @@ export function Harness() {
           </div>
         </section>
 
+        <CodexHarness />
+
         <section class="flex gap-4 px-6 py-5">
           <HarnessIcon>
             <TerminalWindowIcon />
           </HarnessIcon>
           <div class="min-w-0 flex-1">
             <div class="flex items-center justify-between gap-4">
-              <h2 class="text-sm font-medium text-ink">{t('Bring your own agent')}</h2>
+              <h2 class="text-sm font-medium text-ink">Bring your own agent</h2>
               <div class="flex shrink-0 items-center gap-1">
                 <Button
                   type="button"
@@ -374,7 +380,7 @@ export function Harness() {
                   depth={3}
                   onClick={() => setPairingDialog({})}
                 >
-                  {t('Enter pairing code')}
+                  Enter pairing code
                 </Button>
                 <a
                   href={BYOA_DOCS_URL}
@@ -382,18 +388,19 @@ export function Harness() {
                   rel="noopener noreferrer"
                   class="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-ink-muted outline-none transition-colors hover:bg-ink/4 hover:text-ink focus-visible:bg-ink/6"
                 >
-                  {t('Setup guide')}
+                  Setup guide
                   <ArrowUpRightIcon class="size-3.5 opacity-70" />
                 </a>
               </div>
             </div>
             <p class="mt-1 text-sm text-ink-muted">
-              {t('Install macrod on your computer to connect Claude or another compatible agent.')}
+              Install macrod on your computer to connect Claude or another
+              compatible agent.
             </p>
 
             <div class="mt-5">
               <div class="text-xs font-medium text-ink-muted">
-                {t('Connected agents')}
+                Connected agents
               </div>
               <For
                 each={harnessesQuery.isSuccess ? harnessesQuery.data : []}
@@ -401,13 +408,13 @@ export function Harness() {
                   <div class="flex flex-col items-center py-6 text-center">
                     <p class="text-sm text-ink">
                       {harnessesQuery.isPending
-                        ? t('Loading connected agents…')
+                        ? 'Loading connected agents…'
                         : harnessesQuery.isError
-                          ? t('Could not load connected agents.')
-                          : t('No agents connected')}
+                          ? 'Could not load connected agents.'
+                          : 'No agents connected'}
                     </p>
                     <p class="mt-1 text-xs text-ink-extra-muted">
-                      {t('Agents connected through macrod will appear here.')}
+                      Agents connected through macrod will appear here.
                     </p>
                     <Button
                       type="button"
@@ -417,7 +424,7 @@ export function Harness() {
                       class="mt-3"
                       onClick={() => setPairingDialog({})}
                     >
-                      {t('Enter pairing code')}
+                      Enter pairing code
                     </Button>
                   </div>
                 }
@@ -428,14 +435,14 @@ export function Harness() {
                       <div class="flex min-w-0 items-center gap-2">
                         <p class="truncate text-sm text-ink">{harness.name}</p>
                         <span class="shrink-0 rounded-full border border-edge-muted px-2 py-0.5 text-xxs font-medium uppercase text-ink-extra-muted">
-                          {harness.owner.type === 'team' ? t('Team') : t('Private')}
+                          {harness.owner.type === 'team' ? 'Team' : 'Private'}
                         </span>
                         <StatusDot
                           state={
                             harness.connected ? 'connected' : 'disconnected'
                           }
                           label={
-                            harness.connected ? t('Connected') : t('Disconnected')
+                            harness.connected ? 'Connected' : 'Disconnected'
                           }
                         />
                       </div>
@@ -444,7 +451,7 @@ export function Harness() {
                       </p>
                     </div>
                     <ConnectAction
-                      label={t('Remove')}
+                      label="Remove"
                       variant="danger"
                       onClick={() => setRemovingHarness(harness)}
                     />
@@ -453,7 +460,7 @@ export function Harness() {
               </For>
               <Show when={harnessesQuery.isError}>
                 <p class="px-4 py-3 text-xs text-negative">
-                  {t('Could not load your harnesses. Try refreshing this page.')}
+                  Could not load your harnesses. Try refreshing this page.
                 </p>
               </Show>
             </div>
@@ -500,14 +507,13 @@ function HarnessRemoveDialog(props: {
       <Panel depth={2} class="rounded-xl text-ink">
         <Panel.Header class="px-5 py-3">
           <Dialog.Title class="text-sm font-semibold">
-            {t('Remove {harnessName}?', { harnessName: props.harnessName })}
+            Remove {props.harnessName}?
           </Dialog.Title>
         </Panel.Header>
         <Panel.Body class="p-5">
           <Dialog.Description class="text-sm leading-5 text-ink-muted">
-            {t(
-              "Agents using this harness will stop running until it's reconnected. macrod on that machine will need to pair again."
-            )}
+            Agents using this harness will stop running until it's reconnected.
+            macrod on that machine will need to pair again.
           </Dialog.Description>
         </Panel.Body>
         <Panel.Footer class="justify-end gap-2 px-5 py-3">
@@ -518,7 +524,7 @@ function HarnessRemoveDialog(props: {
             disabled={props.pending}
             onClick={props.onClose}
           >
-            {t('Cancel')}
+            Cancel
           </Button>
           <Button
             type="button"
@@ -527,18 +533,10 @@ function HarnessRemoveDialog(props: {
             disabled={props.pending}
             onClick={props.onConfirm}
           >
-            {props.pending ? t('Removing…') : t('Remove harness')}
+            {props.pending ? 'Removing…' : 'Remove harness'}
           </Button>
         </Panel.Footer>
       </Panel>
     </Dialog>
-  );
-}
-
-function HarnessIcon(props: { children: JSX.Element }) {
-  return (
-    <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-ink/4 text-ink-muted [&_svg]:size-5">
-      {props.children}
-    </div>
   );
 }

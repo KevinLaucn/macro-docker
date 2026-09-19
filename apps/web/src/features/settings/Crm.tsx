@@ -10,7 +10,6 @@ import { toast } from '@core/component/Toast/Toast';
 import { SERVER_HOSTS } from '@core/constant/servers';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { throwOnErr } from '@core/util/result';
-import { t } from '@macro/i18n';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import CaretUpIcon from '@phosphor/caret-up.svg';
 import CheckIcon from '@phosphor/check.svg';
@@ -305,11 +304,9 @@ function CrmEnablementSection() {
         onClose={() => setShowDisableModal(false)}
       >
         <p>
-          {t('Disabling the CRM')}{' '}
-          <span class="font-medium">{t('permanently purges')}</span>{' '}
-          {t(
-            "your team's CRM data — companies, contacts, and their history. Re-enabling later lets you backfill again or start fresh."
-          )}
+          Disabling the CRM <span class="font-medium">permanently purges</span>{' '}
+          your team's CRM data — companies, contacts, and their history.
+          Re-enabling later lets you backfill again or start fresh.
         </p>
         <p class="text-sm text-ink-muted">
           Type <span class="font-medium text-ink">{DISABLE_CRM_PHRASE}</span> to
@@ -433,13 +430,10 @@ function StageEditorRow(props: {
       )}
     >
       <Show when={sortable && !props.disabled} fallback={<StageDot />}>
-        <Tooltip label={t('Drag to reorder, or use the arrow keys')}>
+        <Tooltip label="Drag to reorder, or use the arrow keys">
           <Button
             {...(sortable?.dragActivators ?? {})}
-            aria-label={t(
-              'Reorder {label}. Press the up or down arrow keys to move it.',
-              { label: props.label }
-            )}
+            aria-label={`Reorder ${props.label}. Press the up or down arrow keys to move it.`}
             variant="ghost"
             size="icon-sm"
             class="rounded-xs -ml-1.5 cursor-grab touch-none active:cursor-grabbing"
@@ -462,13 +456,13 @@ function StageEditorRow(props: {
             e.currentTarget.blur();
           }
         }}
-        placeholder={t('Stage name')}
+        placeholder="Stage name"
         class="settings-input flex-1 min-w-0"
       />
       <Show when={isEditing()}>
         <Tooltip label="Save">
           <Button
-            aria-label={t('Save stage name')}
+            aria-label="Save stage name"
             variant="accent"
             size="icon-sm"
             class="rounded-xs shrink-0"
@@ -482,7 +476,7 @@ function StageEditorRow(props: {
         </Tooltip>
         <Tooltip label="Cancel">
           <Button
-            aria-label={t('Cancel rename')}
+            aria-label="Cancel rename"
             variant="ghost"
             size="icon-sm"
             class="rounded-xs shrink-0"
@@ -497,7 +491,7 @@ function StageEditorRow(props: {
         <Show when={reorderMode === 'buttons'}>
           <Tooltip label="Move up">
             <Button
-              aria-label={t('Move {label} up', { label: props.label })}
+              aria-label={`Move ${props.label} up`}
               variant="ghost"
               size="icon-sm"
               class="rounded-xs"
@@ -509,7 +503,7 @@ function StageEditorRow(props: {
           </Tooltip>
           <Tooltip label="Move down">
             <Button
-              aria-label={t('Move {label} down', { label: props.label })}
+              aria-label={`Move ${props.label} down`}
               variant="ghost"
               size="icon-sm"
               class="rounded-xs"
@@ -526,7 +520,7 @@ function StageEditorRow(props: {
           }
         >
           <Button
-            aria-label={t('Delete {label}', { label: props.label })}
+            aria-label={`Delete ${props.label}`}
             variant="ghost"
             size="icon-sm"
             class="rounded-xs"
@@ -699,7 +693,7 @@ function DealStagesSection() {
     resetMutation.mutate(undefined, {
       onSuccess: () => {
         setShowResetModal(false);
-        toast.success(t('Stages reset to Macro defaults'));
+        toast.success('Stages reset to Macro defaults');
       },
     });
   };
@@ -717,10 +711,8 @@ function DealStagesSection() {
 
   return (
     <SettingsSection
-      title={t('Deal stages')}
-      description={t(
-        'The pipeline stages deals move through on the CRM board.'
-      )}
+      title="Deal stages"
+      description="The pipeline stages deals move through on the CRM board."
       actions={
         <Show when={dealStages.isCustomized() && canEdit()}>
           <Button
@@ -730,7 +722,7 @@ function DealStagesSection() {
             disabled={blocked()}
             onClick={() => setShowResetModal(true)}
           >
-            {t('Reset to defaults')}
+            Reset to defaults
           </Button>
         </Show>
       }
@@ -746,7 +738,7 @@ function DealStagesSection() {
               }
             >
               <div class="px-6 py-4 text-sm text-ink-muted">
-                {t('Deal stages could not be loaded. Reload to try again.')}
+                Deal stages could not be loaded. Reload to try again.
               </div>
             </Show>
           </SettingsCard>
@@ -768,9 +760,7 @@ function DealStagesSection() {
               </div>
               <div class="flex items-center justify-between gap-4 px-6 py-3.5">
                 <p class="text-xs text-ink-muted">
-                  {t(
-                    "Stages are Macro's defaults. Customize them for your team."
-                  )}
+                  Stages are Macro's defaults. Customize them for your team.
                 </p>
                 <Show when={canEdit()}>
                   <Button
@@ -780,7 +770,7 @@ function DealStagesSection() {
                     disabled={busy()}
                     onClick={handleCustomize}
                   >
-                    <Show when={pending()} fallback={t('Customize stages')}>
+                    <Show when={pending()} fallback="Customize stages">
                       <SpinnerIcon class="size-4 animate-spin" />
                     </Show>
                   </Button>
@@ -819,7 +809,7 @@ function DealStagesSection() {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleAddStage();
                   }}
-                  placeholder={t('Add stage')}
+                  placeholder="Add stage"
                   class="settings-input flex-1 min-w-0"
                 />
                 <Button
@@ -842,10 +832,8 @@ function DealStagesSection() {
         <SettingsCard>
           <SettingsRow
             align="start"
-            label={t('Closed stages')}
-            description={t(
-              'Stages that count as closed deals. Moving deals out of a closed stage can be restricted under Permissions.'
-            )}
+            label="Closed stages"
+            description="Stages that count as closed deals. Moving deals out of a closed stage can be restricted under Permissions."
           >
             <div class="flex flex-col items-start gap-1.5">
               <For each={orderedStages()}>
@@ -872,38 +860,35 @@ function DealStagesSection() {
 
       <ConfirmDialog
         open={!!stageToDelete()}
-        title={t('Delete Stage')}
-        confirmLabel={t('Delete Stage')}
+        title="Delete Stage"
+        confirmLabel="Delete Stage"
         pending={replaceMutation.isPending}
         onConfirm={handleDeleteStage}
         onClose={() => setStageToDelete(null)}
       >
         <p>
-          {t('Are you sure you want to delete')}{' '}
-          <span class="font-medium">{stageToDelete()?.label ?? ''}</span>
-          {t(
-            '? Companies currently in this stage lose it and show under No stage on the board.'
-          )}
+          Are you sure you want to delete{' '}
+          <span class="font-medium">{stageToDelete()?.label ?? ''}</span>?
+          Companies currently in this stage lose it and show under No stage on
+          the board.
         </p>
       </ConfirmDialog>
 
       <ConfirmDialog
         open={showResetModal()}
-        title={t('Reset Stages')}
-        confirmLabel={t('Reset to Defaults')}
+        title="Reset Stages"
+        confirmLabel="Reset to Defaults"
         pending={resetMutation.isPending}
         onConfirm={handleReset}
         onClose={() => setShowResetModal(false)}
       >
         <p>
-          {t(
-            "This removes your team's custom stage set and returns everyone to Macro's default stages."
-          )}
+          This removes your team's custom stage set and returns everyone to
+          Macro's default stages.
         </p>
         <p class="text-sm text-ink-muted">
-          {t(
-            'Companies keep their stored stage values, and stages whose names match a default continue to display as before.'
-          )}
+          Companies keep their stored stage values, and stages whose names match
+          a default continue to display as before.
         </p>
       </ConfirmDialog>
     </SettingsSection>
@@ -935,7 +920,7 @@ function CrmContent() {
     <Show when={teamQuery.data} fallback={<NoTeamState />}>
       <SettingsPage
         title="CRM"
-        description={t("Enable your team's CRM and shape its deal pipeline.")}
+        description="Enable your team's CRM and shape its deal pipeline."
       >
         <CrmEnablementSection />
         <Show when={teamQuery.data?.team.crm_enabled}>

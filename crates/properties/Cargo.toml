@@ -12,7 +12,6 @@ ai_tools = [
   "ports",
 ]
 default = ["ai_tools", "inbound", "outbound", "ports"]
-index_read = ["dep:macro_uuid", "dep:sqlx"]
 inbound = [
   "dep:axum",
   "dep:macro_authorization",
@@ -24,11 +23,12 @@ inbound = [
 outbound = [
   "dep:entity_access_db_utils",
   "dep:futures",
-  "index_read",
+  "dep:macro_uuid",
   "dep:model-entity",
   "dep:model_notifications",
   "dep:models_permissions",
   "dep:notification",
+  "dep:sqlx",
   "ports",
 ]
 ports = []

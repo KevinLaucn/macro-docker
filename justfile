@@ -3,7 +3,6 @@ set positional-arguments
 # Freeze Docker Compose resources across checkouts/worktrees. Local setup is
 # single-instance by design; do not derive resource names from the directory.
 export COMPOSE_PROJECT_NAME := "macro"
-export PATH := env_var('HOME') + "/.cargo/bin:" + env_var('PATH')
 
 compose := "docker compose --project-directory . -f docker/docker-compose.yml"
 database_compose := "docker compose -f docker/docker-compose-databases.yml"
@@ -74,40 +73,6 @@ seed-scenario *ARGS:
 # Start only the services needed by the local E2E suites. Avoid unrelated
 # local services with extra env/dependency requirements blocking E2E.
 local-e2e-services := "authentication-service connection_gateway contacts_service document_storage_service email_service notification_service static_file_service static_file_cdn sync_service websocket_service"
-
-# Verify the checked-in self-host artifacts still match the service inventory.
-self-host-check:
-  python3 self-host/scripts/check-drift.py
-
-# Fast local contract checks for the self-host Email production profile.
-email-contract-check: email-profile-check
-
-# Verify Compose/Caddy/resource/profile drift and the Nix self-host Email graph.
-email-profile-check:
-  #!/usr/bin/env bash
-  set -euo pipefail
-  command -v nix >/dev/null || {
-    echo "nix is required for Email profile contract checks" >&2
-    exit 127
-  }
-  python3 self-host/scripts/check-drift.py
-  python3 self-host/scripts/affected-services.py --all
-  nix build --dry-run .#self-host-email-source-check
-  nix build --dry-run .#self-host-email-binaries
-
-# Focused backend compile contract for the Email production aggregate.
-email-backend-check:
-  #!/usr/bin/env bash
-  set -euo pipefail
-  command -v nix >/dev/null || {
-    echo "nix is required for Email backend contract checks" >&2
-    exit 127
-  }
-  nix build .#self-host-email-binaries
-
-# Frontend test contract for Email UI and shared web code.
-email-web-check:
-  just apps/web/test
 
 # Update the fixed-output js node_modules hash after bun.lock changes.
 update-node-modules-hash:
@@ -209,4 +174,4 @@ setup:
 
 destroy:
   just infra/stacks/fusionauth-instance/destroy
-  {{ compose }} down --remove-orphans
+  {{ compose }} down -v

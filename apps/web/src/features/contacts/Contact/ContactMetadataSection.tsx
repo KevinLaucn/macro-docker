@@ -16,16 +16,21 @@ function Field(props: { label: string; children: JSX.Element }) {
 
 export function ContactMetadataSection(props: {
   contact?: CrmContactResponse;
+  onOpenCompany?: (companyId: string) => boolean;
 }) {
-  const { replaceOrInsertSplit } = useSplitLayout();
+  const { openWithSplit } = useSplitLayout();
   // NIL while the contact is loading — useCompanyQuery's `enabled` gate
   // excludes it, so no doomed 404 fires before the real companyId arrives.
   const { company } = useCompanyQuery(
     () => props.contact?.companyId ?? NIL_UUID
   );
 
-  const openCompany = (companyId: string) => {
-    replaceOrInsertSplit({ type: 'company', id: companyId });
+  const openCompany = (companyId: string, event: MouseEvent) => {
+    if (!event.shiftKey && props.onOpenCompany?.(companyId)) return;
+    openWithSplit(
+      { type: 'company', id: companyId },
+      { activate: true, preferNewSplit: event.shiftKey }
+    );
   };
 
   return (
@@ -41,7 +46,7 @@ export function ContactMetadataSection(props: {
           <Field label={t('Company')}>
             <button
               type="button"
-              onClick={() => openCompany(contact().companyId)}
+              onClick={(event) => openCompany(contact().companyId, event)}
               class="text-left text-sm text-link hover:text-link-hover hover:underline"
             >
               {company()?.name ?? t('Open company')}

@@ -2,7 +2,6 @@ import { CredentialField } from '@channel/Bots/CredentialField';
 import { LoadingSpinner } from '@core/component/LoadingSpinner';
 import { toast } from '@core/component/Toast/Toast';
 import { formatRelativeTimestamp } from '@entity';
-import { t } from '@macro/i18n';
 import KeyIcon from '@phosphor/key.svg';
 import PlusIcon from '@phosphor/plus.svg';
 import SpinnerIcon from '@phosphor/spinner.svg';
@@ -45,18 +44,17 @@ export function ApiKeys() {
 
   return (
     <SettingsPage
-      title={t('API Keys')}
-      description={t(
-        'Authenticate as yourself from scripts and integrations. Send the key in the {header} header. The secret is shown only once when you create a key.',
-        {
-          header: USER_API_KEY_HEADER,
-        }
-      )}
+      title="API Keys"
+      description={
+        <>
+          Authenticate as yourself from scripts and integrations. Send the key
+          in the <code class="font-mono text-xs">{USER_API_KEY_HEADER}</code>{' '}
+          header. The secret is shown only once when you create a key.
+        </>
+      }
       actions={
         <Tooltip
-          label={t('You can have at most {max} API keys', {
-            max: MAX_USER_API_KEYS,
-          })}
+          label={`You can have at most ${MAX_USER_API_KEYS} API keys`}
           disabled={!atLimit()}
         >
           <Button
@@ -66,17 +64,14 @@ export function ApiKeys() {
             onClick={openCreate}
           >
             <PlusIcon />
-            {t('Create key')}
+            Create key
           </Button>
         </Tooltip>
       }
     >
       <SettingsSection
-        title={t('Your keys')}
-        description={t(
-          'Up to {max} keys. Anyone with a key can act as you, so treat them like passwords.',
-          { max: MAX_USER_API_KEYS }
-        )}
+        title="Your keys"
+        description={`Up to ${MAX_USER_API_KEYS} keys. Anyone with a key can act as you, so treat them like passwords.`}
       >
         <SettingsCard>
           <Show
@@ -91,7 +86,7 @@ export function ApiKeys() {
               when={!keysQuery.isError}
               fallback={
                 <div class="px-6 py-8 text-center text-sm text-ink-muted">
-                  {t('Couldn’t load API keys.')}
+                  Couldn’t load API keys.
                 </div>
               }
             >
@@ -103,12 +98,11 @@ export function ApiKeys() {
                       <KeyIcon class="size-6" />
                     </div>
                     <div class="mt-3 text-sm font-medium text-ink">
-                      {t('Create your first API key')}
+                      Create your first API key
                     </div>
                     <div class="mt-1 max-w-80 text-xs text-ink-muted">
-                      {t(
-                        'Use a key to call Macro on your behalf. The full secret is shown only at creation.'
-                      )}
+                      Use a key to call Macro on your behalf. The full secret is
+                      shown only at creation.
                     </div>
                     <Button
                       class="mt-4"
@@ -117,7 +111,7 @@ export function ApiKeys() {
                       onClick={openCreate}
                     >
                       <PlusIcon />
-                      {t('Create key')}
+                      Create key
                     </Button>
                   </div>
                 }
@@ -149,7 +143,7 @@ export function ApiKeys() {
             toast.failure(
               error instanceof Error
                 ? error.message
-                : t('Failed to create API key')
+                : 'Failed to create API key'
             );
             return undefined;
           }
@@ -159,8 +153,8 @@ export function ApiKeys() {
 
       <ConfirmDialog
         open={pendingDelete() !== null}
-        title={t('Delete API key')}
-        confirmLabel={t('Delete key')}
+        title="Delete API key"
+        confirmLabel="Delete key"
         pending={deleteKey.isPending}
         danger
         onConfirm={async () => {
@@ -168,23 +162,21 @@ export function ApiKeys() {
           if (!key) return;
           try {
             await deleteKey.mutateAsync({ id: key.id });
-            toast.success(t('API key deleted'));
+            toast.success('API key deleted');
             setPendingDelete(null);
           } catch {
-            toast.failure(t('Failed to delete API key'));
+            toast.failure('Failed to delete API key');
           }
         }}
         onClose={() => !deleteKey.isPending && setPendingDelete(null)}
       >
         <Show when={pendingDelete()}>
-          {(key) =>
-            t(
-              'Delete {name}? This cannot be undone. Anything using this key will stop working.',
-              {
-                name: key().name,
-              }
-            )
-          }
+          {(key) => (
+            <>
+              Delete <span class="font-medium text-ink">{key().name}</span>?
+              This cannot be undone. Anything using this key will stop working.
+            </>
+          )}
         </Show>
       </ConfirmDialog>
     </SettingsPage>
@@ -206,15 +198,13 @@ function ApiKeyRow(props: {
           class="mt-0.5 text-xs text-ink-extra-muted"
           title={props.keyInfo.createdAt}
         >
-          {t('Created {time}', {
-            time: formatRelativeTimestamp(props.keyInfo.createdAt),
-          })}
+          Created {formatRelativeTimestamp(props.keyInfo.createdAt)}
         </div>
       </div>
-      <Tooltip label={t('Delete key')}>
+      <Tooltip label="Delete key">
         <button
           type="button"
-          aria-label={t('Delete {name}', { name: props.keyInfo.name })}
+          aria-label={`Delete ${props.keyInfo.name}`}
           class="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-extra-muted outline-none hover:bg-failure/10 hover:text-failure focus-visible:border focus-visible:border-failure disabled:opacity-30"
           disabled={props.deleting}
           onClick={props.onDelete}
@@ -273,14 +263,14 @@ function CreateApiKeyDialog(props: {
       <Panel depth={2} active class="rounded-xl text-ink">
         <Panel.Header class="px-5">
           <Dialog.Title class="text-sm font-semibold">
-            {created() ? t('API key created') : t('New API key')}
+            {created() ? 'API key created' : 'New API key'}
           </Dialog.Title>
           <div class="ml-auto">
             <Button
               variant="ghost"
               size="icon-sm"
-              label={t('Close')}
-              aria-label={t('Close')}
+              label="Close"
+              aria-label="Close"
               disabled={props.pending}
               onClick={close}
             >
@@ -294,11 +284,11 @@ function CreateApiKeyDialog(props: {
             fallback={
               <div class="flex flex-col gap-5">
                 <label class="flex flex-col gap-1.5">
-                  <span class="text-xs font-medium text-ink">{t('Name')}</span>
+                  <span class="text-xs font-medium text-ink">Name</span>
                   <input
                     autofocus
                     value={name()}
-                    placeholder={t('e.g. CI, local scripts')}
+                    placeholder="e.g. CI, local scripts"
                     class="settings-input w-full"
                     aria-invalid={nameError() ? true : undefined}
                     onInput={(event) => {
@@ -313,7 +303,7 @@ function CreateApiKeyDialog(props: {
                     when={nameError()}
                     fallback={
                       <span class="text-xs text-ink-muted">
-                        {t('A label so you can tell keys apart later.')}
+                        A label so you can tell keys apart later.
                       </span>
                     }
                   >
@@ -324,7 +314,7 @@ function CreateApiKeyDialog(props: {
                 </label>
                 <div class="flex justify-end gap-2 border-t border-edge-muted pt-4">
                   <Button variant="ghost" size="sm" onClick={close}>
-                    {t('Cancel')}
+                    Cancel
                   </Button>
                   <Button
                     variant="cta"
@@ -332,7 +322,7 @@ function CreateApiKeyDialog(props: {
                     disabled={props.pending}
                     onClick={() => void submit()}
                   >
-                    {props.pending ? t('Creating…') : t('Create key')}
+                    {props.pending ? 'Creating…' : 'Create key'}
                   </Button>
                 </div>
               </div>
@@ -341,19 +331,17 @@ function CreateApiKeyDialog(props: {
             {(key) => (
               <div class="flex flex-col gap-5">
                 <CredentialField
-                  label={t('API key')}
+                  label="API key"
                   value={key().key}
-                  help={t('Shown only once')}
+                  help="Shown only once"
                 />
                 <div class="rounded-lg border border-alert/30 bg-alert-bg px-3 py-2.5 text-xs text-alert-ink">
-                  {t(
-                    'Store this key somewhere secure before closing. Send it as {header}.',
-                    { header: USER_API_KEY_HEADER }
-                  )}
+                  Store this key somewhere secure before closing. Send it as{' '}
+                  <code class="font-mono">{USER_API_KEY_HEADER}</code>.
                 </div>
                 <div class="flex justify-end border-t border-edge-muted pt-4">
                   <Button variant="cta" size="sm" onClick={close}>
-                    {t('Done')}
+                    Done
                   </Button>
                 </div>
               </div>
@@ -403,7 +391,7 @@ function ConfirmDialog(props: {
               disabled={props.pending}
               onClick={props.onClose}
             >
-              {t('Cancel')}
+              Cancel
             </Button>
             <Button
               variant={props.danger ? 'danger' : 'accent'}

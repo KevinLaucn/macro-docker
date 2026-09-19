@@ -62,7 +62,7 @@ type Servers = Record<keyof typeof serverHostRemote, string>;
 // exists in both windows and workers.)
 const rawLocalBackendOrigin: string | undefined = import.meta.env
   .VITE_LOCAL_BACKEND_ORIGIN;
-export const proxyOrigin: string | undefined =
+const proxyOrigin: string | undefined =
   rawLocalBackendOrigin === 'same-origin'
     ? globalThis.location?.origin
     : resolveProxyOrigin(rawLocalBackendOrigin);
@@ -84,22 +84,15 @@ function resolveProxyOrigin(configured: string | undefined) {
 }
 
 export const SERVER_HOSTS: Servers =
-  proxyServers() ??
-  (import.meta.env.MODE === 'development'
+  import.meta.env.MODE === 'development'
     ? selectLocalServers()
-    : serverHostRemote);
+    : serverHostRemote;
 
 function proxyServers(): Servers | undefined {
   if (!proxyOrigin || !wsProxyOrigin) return undefined;
   return {
     'auth-service': `${proxyOrigin}/auth`,
-    // Logout has already torn the session down server-side by the time this is
-    // used (see useLogout), so this is only where the browser lands afterwards.
-    // Single-origin deployments — the headless local stack, a tunnel, a
-    // self-hosted install — have no FusionAuth logout URL of their own to send
-    // it to, and the fixed localhost:3000 default stranded the user on a dead
-    // page anywhere the app was not served from that port.
-    'auth-logout': `${proxyOrigin}/app/login`,
+    'auth-logout': serverHostLocal['auth-logout'],
     'pdf-service': serverHostLocal['pdf-service'], // no local container
     'document-storage-service': `${proxyOrigin}/dss`,
     'websocket-service': `${wsProxyOrigin}/websocket`,
@@ -155,17 +148,18 @@ function selectLocalServers(): Servers {
   return servers;
 }
 
+const syncServiceSuffix =
+  import.meta.env.MODE === 'development' ? '-dev3' : '-prod2';
+
 const syncServiceHostLocal = {
   worker: 'http://localhost:8787',
   ws: 'ws://localhost:8787',
 } as const;
 
-const syncServiceHostRemote: { worker: string; ws: string } = (() => {
-  const host = import.meta.env.VITE_SYNC_SERVICE_REMOTE_HOST;
-  if (host) return { worker: `https://${host}`, ws: `wss://${host}` };
-  // Fallback: proxy-based sync (no external SaaS endpoint).
-  return syncServiceHostLocal;
-})();
+const syncServiceHostRemote = {
+  worker: `https://sync-service${syncServiceSuffix}.macroverse.workers.dev`,
+  ws: `wss://sync-service${syncServiceSuffix}.macroverse.workers.dev`,
+} as const;
 
 function selectSyncServiceHost():
   | typeof syncServiceHostRemote
@@ -179,11 +173,19 @@ function selectSyncServiceHost():
       ws: `wss://${overrideHost}`,
     };
   }
-  if (proxyOrigin && wsProxyOrigin) {
-    return { worker: `${proxyOrigin}/sync`, ws: `${wsProxyOrigin}/sync` };
-  }
   if (import.meta.env.MODE !== 'development') {
     return syncServiceHostRemote;
+  }
+  const selectedLocalServers: string = import.meta.env.VITE_LOCAL_SERVERS;
+  if (
+    selectedLocalServers === 'ALL' ||
+    selectedLocalServers?.includes('sync-service')
+  ) {
+    // Route sync through the single-origin proxy when it is in use.
+    if (proxyOrigin && wsProxyOrigin) {
+      return { worker: `${proxyOrigin}/sync`, ws: `${wsProxyOrigin}/sync` };
+    }
+    return syncServiceHostLocal;
   }
   return syncServiceHostRemote;
 }

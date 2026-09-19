@@ -399,6 +399,7 @@ pub async fn insert_new_document(
         sub_type: requested_sub_type,
         skip_history,
         attribution: _,
+        initial_link_share: _,
     } = args;
 
     let now = chrono::Utc::now();
@@ -453,6 +454,17 @@ pub async fn insert_new_document(
         entity_access_db_utils::AccessLevel::Owner,
     )
     .await?;
+
+    entity_registry_db_utils::insert_entity(
+        transaction,
+        entity_registry_db_utils::NewEntityRecord::new(
+            document_id,
+            entity_registry_db_utils::RegisteredEntityType::Document,
+            model_owner::Owner::User(user_id.clone()),
+        ),
+    )
+    .await
+    .map_err(|error| DocumentError::Internal(error.into()))?;
 
     if share_with_team {
         let document_id_string = document_id.to_string();

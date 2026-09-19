@@ -16,13 +16,13 @@ runs:
         for unit in \
           nix-daemon.service nix-daemon.socket \
           determinate-nixd.service determinate-nixd.socket; do
-          timeout 8s sudo systemctl stop "$unit" 2>/dev/null || true
+          sudo systemctl stop "$unit" 2>/dev/null
         done
         # Non-systemd runners (e.g. Namespace): the daemon was started
         # directly by setup-nix; stop it the same way.
-        timeout 5s sudo pkill -x nix-daemon 2>/dev/null || true
-        timeout 5s sudo pkill -x determinate-nixd 2>/dev/null || true
+        sudo pkill -x nix-daemon 2>/dev/null
+        sudo pkill -x determinate-nixd 2>/dev/null
         # Backstop: free any remaining handles so the umount can succeed.
-        timeout 10s sudo fuser -km /nix 2>/dev/null || true
-        timeout 15s sync 2>/dev/null || true
+        sudo fuser -km /nix 2>/dev/null
+        sync
         exit 0

@@ -14,14 +14,17 @@ import {
   applyInlineFormat,
   applyNodeFormat,
 } from '@channel/Input/utils/formatting';
-import { MarkdownShell } from '@core/component/LexicalMarkdown/builder/MarkdownShell';
+import { ComposerEditor } from '@core/component/LexicalMarkdown/component/ComposerEditor';
 import { StaticMarkdown } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import type { ItemMention } from '@core/component/LexicalMarkdown/plugins';
 import { addMediaFromFile } from '@core/component/LexicalMarkdown/plugins/media';
 import { singleLineMarkdownTheme } from '@core/component/LexicalMarkdown/theme';
+import { createComposerLayout } from '@core/component/LexicalMarkdown/utils/create-composer-layout';
+import { toast } from '@core/component/Toast/Toast';
 import { isMobile } from '@core/mobile/isMobile';
+import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import type { IUser } from '@core/user/types';
-import PaperclipIcon from '@phosphor-icons/core/regular/paperclip.svg?component-solid';
+import PaperclipIcon from '@phosphor/paperclip.svg';
 import { isIOS } from '@solid-primitives/platform';
 import { CollapsedInput, ComposerSurface } from '@ui';
 import {
@@ -85,22 +88,25 @@ function AttachImagesAction() {
 
 function DefaultActions(props: { input: InputData; isSending: boolean }) {
   return (
-    <Input.Actions>
-      <Input.Actions.Left>
+    <>
+      <Input.Layout.ActionsLeft>
         <AttachImagesAction />
-        <Input.ToggleFormatAction />
+        <Show when={isTouchDevice()}>
+          <Input.ToggleFormatAction />
+        </Show>
         <Show when={isReplyInput(props.input)}>
           <Input.CloseReplyAction />
         </Show>
-      </Input.Actions.Left>
-      <Input.Actions.Right>
+      </Input.Layout.ActionsLeft>
+      <Input.Layout.ActionsRight>
         <Input.SendAction tooltip="Send comment" disabled={props.isSending} />
-      </Input.Actions.Right>
-    </Input.Actions>
+      </Input.Layout.ActionsRight>
+    </>
   );
 }
 
 export function DiscussionInput(props: DiscussionInputProps) {
+  const [layout, setLayout] = createSignal<HTMLDivElement>();
   const [scrollContainer, setScrollContainer] = createSignal<HTMLElement>();
   const [value, setValue] = createSignal(props.input.value ?? '');
   const [mentions, setMentions] = createSignal<ItemMention[]>([]);
@@ -152,6 +158,13 @@ export function DiscussionInput(props: DiscussionInputProps) {
 
   // Build the editor handle immediately to ensure lexical is available for commands
   markdownEditor.buildHandle();
+  const { isCompact: oneLineInput } = createComposerLayout(
+    markdownEditor.lexical,
+    {
+      container: layout,
+      mode: () => (isTouchDevice() || showFormatRibbon() ? 'expanded' : 'auto'),
+    }
+  );
 
   const commands = {
     send: async () => {
@@ -166,6 +179,13 @@ export function DiscussionInput(props: DiscussionInputProps) {
           collapsedInput.collapse();
         }
         return true;
+      } catch (error) {
+        toast.failure(
+          error instanceof Error
+            ? error.message
+            : 'Unable to send comment. Your draft has been kept.'
+        );
+        return false;
       } finally {
         setIsSending(false);
       }
@@ -280,45 +300,45 @@ export function DiscussionInput(props: DiscussionInputProps) {
           collapsedInput.collapse();
         }}
       >
-        <Input.Layout>
-          <Input.FormatRibbon>
-            <FormatButtons
-              selectionState={() => markdownEditor.selection}
-              onInlineFormat={(format) =>
-                applyInlineFormat(markdownEditor.lexical, format)
-              }
-              onNodeFormat={(format) =>
-                applyNodeFormat(markdownEditor.lexical, format)
-              }
-            />
-          </Input.FormatRibbon>
-          <Input.EditorShell
-            ref={setScrollContainer}
-            onClick={(event) => {
-              if (!isMobile()) {
-                event.stopPropagation();
-                markdownEditor.controls.focus();
-              }
-            }}
-          >
-            <Input.Editor>
-              <MarkdownShell
-                config={markdownEditor}
-                placeholder={inputView().placeholder}
-                initialValue={inputView().value}
-                autofocus={!isMobile() && (props.autofocus ?? true)}
-                class="text-sm"
+        <Input.Layout ref={setLayout} oneLineInput={oneLineInput()}>
+          <Input.Layout.Body>
+            <Input.FormatRibbon>
+              <FormatButtons
+                selectionState={() => markdownEditor.selection}
+                onInlineFormat={(format) =>
+                  applyInlineFormat(markdownEditor.lexical, format)
+                }
+                onNodeFormat={(format) =>
+                  applyNodeFormat(markdownEditor.lexical, format)
+                }
               />
-            </Input.Editor>
-          </Input.EditorShell>
-          <Input.Footer>
-            <Switch>
-              <Match when={props.children}>{props.children}</Match>
-              <Match when>
-                <DefaultActions input={inputView()} isSending={isSending()} />
-              </Match>
-            </Switch>
-          </Input.Footer>
+            </Input.FormatRibbon>
+            <Input.Layout.Editor
+              ref={setScrollContainer}
+              onClick={(event) => {
+                if (!isMobile()) {
+                  event.stopPropagation();
+                  markdownEditor.controls.focus();
+                }
+              }}
+            >
+              <Input.Editor>
+                <ComposerEditor
+                  config={markdownEditor}
+                  placeholder={inputView().placeholder}
+                  initialValue={inputView().value}
+                  autofocus={!isMobile() && (props.autofocus ?? true)}
+                  class="text-base"
+                />
+              </Input.Editor>
+            </Input.Layout.Editor>
+          </Input.Layout.Body>
+          <Switch>
+            <Match when={props.children}>{props.children}</Match>
+            <Match when>
+              <DefaultActions input={inputView()} isSending={isSending()} />
+            </Match>
+          </Switch>
         </Input.Layout>
       </ComposerSurface>
     </Input.Root>

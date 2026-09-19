@@ -2,9 +2,7 @@ use anyhow::Context;
 use document_sub_type::DocumentSubType;
 use macro_user_id::{cowlike::CowLike, user_id::MacroUserIdStr};
 
-#[cfg(feature = "chat")]
-use crate::chat::get_basic_chat;
-use crate::projects::get_project::get_basic_project::get_basic_project;
+use crate::{chat::get_basic_chat, projects::get_project::get_basic_project::get_basic_project};
 
 pub mod document;
 pub mod project;
@@ -62,7 +60,6 @@ pub async fn get_basic_cloud_storage_item_metadata(
                 sub_type: row.sub_type.map(|st| st.to_string()),
             })
         }
-        #[cfg(feature = "chat")]
         "chat" => {
             tracing::trace!("getting chat metadata");
             let basic_chat_metadata = get_basic_chat(db, item_id)

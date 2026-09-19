@@ -2,7 +2,6 @@ import { useSplitLayout } from '@components/app/split-layout/layout';
 import { isMobile } from '@core/mobile/isMobile';
 import { useFocusLock } from '@core/util/createControlledOpenSignal';
 import { ThrownResultError } from '@core/util/result';
-import { t } from '@macro/i18n';
 import BuildingsIcon from '@phosphor/buildings.svg';
 import XIcon from '@phosphor/x.svg';
 import { useCreateCompanyMutation } from '@queries/crm/companies';
@@ -24,13 +23,13 @@ const DOMAIN_PATTERN = /^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/i;
 function createErrorMessage(cause: unknown): string {
   if (cause instanceof ThrownResultError) {
     if (cause.errors.some((e) => e.code === 'CONFLICT')) {
-      return t('A company with this domain already exists.');
+      return 'A company with this domain already exists.';
     }
     if (cause.errors.some((e) => e.code === 'FORBIDDEN')) {
-      return t("CRM isn't enabled for your team.");
+      return "CRM isn't enabled for your team.";
     }
   }
-  return t('Failed to create company. Try again.');
+  return 'Failed to create company. Try again.';
 }
 
 export function CreateCompanyModal() {
@@ -68,11 +67,11 @@ export function CreateCompanyModal() {
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     if (!companyName()) {
-      setError(t('Enter a company name'));
+      setError('Enter a company name');
       return;
     }
     if (!DOMAIN_PATTERN.test(companyDomain())) {
-      setError(t('Enter a valid domain like acme.com'));
+      setError('Enter a valid domain like acme.com');
       return;
     }
 
@@ -106,8 +105,8 @@ export function CreateCompanyModal() {
             <Dialog.CloseButton
               as={Button}
               size="icon-sm"
-              label={t('Close')}
-              aria-label={t('Close company creation')}
+              label="Close"
+              aria-label="Close company creation"
               class="self-end"
               tabIndex={-1}
               disabled={createCompanyMutation.isPending}
@@ -117,11 +116,9 @@ export function CreateCompanyModal() {
 
             <div class="flex flex-col gap-4">
               <div class="flex items-center gap-2 px-2">
-                <Dialog.Title class="sr-only">
-                  {t('Create a company')}
-                </Dialog.Title>
+                <Dialog.Title class="sr-only">Create a company</Dialog.Title>
                 <label for="new-company-name" class="sr-only">
-                  {t('Name')}
+                  Name
                 </label>
                 <BuildingsIcon
                   aria-hidden="true"
@@ -135,10 +132,10 @@ export function CreateCompanyModal() {
                     setName(event.currentTarget.value);
                     setError(undefined);
                   }}
-                  placeholder={t('Company name')}
+                  placeholder="Company name"
                   autocomplete="off"
                   data-1p-ignore
-                  aria-invalid={error() === t('Enter a company name')}
+                  aria-invalid={error() === 'Enter a company name'}
                   class="h-10 w-full border-none bg-transparent px-0 text-xl font-medium text-ink outline-none placeholder:text-ink-placeholder focus:ring-0"
                 />
               </div>
@@ -148,7 +145,7 @@ export function CreateCompanyModal() {
                   for="new-company-domain"
                   class="text-xs font-medium text-ink-muted"
                 >
-                  {t('Domain')}
+                  Domain
                 </label>
                 <input
                   id="new-company-domain"
@@ -163,12 +160,12 @@ export function CreateCompanyModal() {
                   spellcheck={false}
                   data-1p-ignore
                   aria-invalid={
-                    error() === t('Enter a valid domain like acme.com')
+                    error() === 'Enter a valid domain like acme.com'
                   }
                   class="h-9 w-full rounded-lg border border-edge-muted bg-transparent px-3 text-sm text-ink outline-none placeholder:text-ink-placeholder focus:border-edge"
                 />
                 <span class="text-xs text-ink-extra-muted">
-                  {t('Emails with this domain will be linked to the company.')}
+                  Emails with this domain will be linked to the company.
                 </span>
               </div>
             </div>
@@ -192,8 +189,8 @@ export function CreateCompanyModal() {
                 disabled={!canSubmit()}
               >
                 {createCompanyMutation.isPending
-                  ? t('Creating…')
-                  : t('Create Company')}
+                  ? 'Creating…'
+                  : 'Create Company'}
               </Button>
             </div>
           </form>

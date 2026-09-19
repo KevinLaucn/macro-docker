@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import { cn } from '@ui';
 import type { Property } from '../types';
 
@@ -13,7 +12,7 @@ type Props = {
 export function PropertyLabel(props: Props) {
   return (
     <span class={cn('truncate', props.class)}>
-      {t(props.property.displayName)}
+      {props.property.displayName}
     </span>
   );
 }

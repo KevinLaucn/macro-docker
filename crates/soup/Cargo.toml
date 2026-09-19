@@ -37,7 +37,6 @@ outbound = [
   "dep:properties",
   "dep:readonly_pool",
   "dep:sqlx",
-  "email/outbound",
   "ports",
   "properties/outbound",
 ]
@@ -77,7 +76,7 @@ model-error-response = { path = "../model-error-response", optional = true }
 models_grouping = { path = "../models_grouping" }
 models_pagination = { path = "../models_pagination" }
 models_properties = { path = "../models_properties" }
-models_soup = { path = "../models_soup", features = ["call"] }
+models_soup = { path = "../models_soup" }
 non_empty = { path = "../non_empty" }
 properties = { path = "../properties", default-features = false, optional = true }
 readonly_pool = { path = "../readonly_pool", optional = true }

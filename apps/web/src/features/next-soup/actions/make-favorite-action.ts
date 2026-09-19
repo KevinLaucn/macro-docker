@@ -1,5 +1,4 @@
 import { toast } from '@core/component/Toast/Toast';
-import { t } from '@macro/i18n';
 import type { EntityData } from '@entity';
 import {
   favoriteEntityType,
@@ -45,8 +44,8 @@ export const makeFavoriteAction = () => {
     if (addMutation.isPending || removeMutation.isPending) return;
 
     const shouldRemove = favoritable.every((entity) => isFavorited(entity));
-    const verb = shouldRemove ? t('Removed') : t('Added');
-    const preposition = shouldRemove ? t('from') : t('to');
+    const verb = shouldRemove ? 'Removed' : 'Added';
+    const preposition = shouldRemove ? 'from' : 'to';
 
     // On add, skip entities already favorited so counts reflect real work.
     const targets = shouldRemove

@@ -1,7 +1,6 @@
 import { useSelectedFirst } from '@core/util/useSelectedFirst';
 import type { CollectionNode } from '@kobalte/core';
 import { Combobox } from '@kobalte/core/combobox';
-import { t } from '@macro/i18n';
 import CheckIcon from '@phosphor/check.svg';
 import SearchIcon from '@phosphor/magnifying-glass.svg';
 import { cn, Layer } from '@ui';
@@ -97,7 +96,7 @@ const SearchableMultiSelectItem = (itemProps: {
       )}
     </Show>
     <Combobox.ItemLabel class="flex-1 truncate text-ink">
-      {t(itemProps.item.rawValue.label)}
+      {itemProps.item.rawValue.label}
     </Combobox.ItemLabel>
     <Show
       when={
@@ -119,8 +118,8 @@ const SearchableMultiSelectItem = (itemProps: {
           }}
         >
           {itemProps.isSoleActive?.(itemProps.item.rawValue.id)
-            ? t('All')
-            : t('Only')}
+            ? 'All'
+            : 'Only'}
         </button>
       )}
     </Show>
@@ -291,9 +290,7 @@ export const SearchableMultiSelect = (props: SearchableMultiSelectProps) => {
               <SearchIcon class="size-3.5 text-ink-muted shrink-0" />
               <Combobox.Input
                 class="flex-1 min-w-0 text-sm bg-transparent outline-none caret-accent placeholder:text-ink-placeholder"
-                placeholder={
-                  props.placeholder ? t(props.placeholder) : t('Search...')
-                }
+                placeholder={props.placeholder ?? 'Search...'}
               />
             </div>
             <div class="p-1">
@@ -302,10 +299,8 @@ export const SearchableMultiSelect = (props: SearchableMultiSelectProps) => {
                 fallback={
                   <div class="py-3 px-2 text-center text-xs text-ink-muted">
                     {searchQuery().trim()
-                      ? t('No options match "{query}"', {
-                          query: searchQuery(),
-                        })
-                      : t('No options available')}
+                      ? `No options match "${searchQuery()}"`
+                      : 'No options available'}
                   </div>
                 }
               >
@@ -419,9 +414,7 @@ export const SearchableMultiSelectInline = (
           ref={props.inputRef}
           onKeyDown={handleInputKeyDown}
           class="flex-1 min-w-0 text-sm bg-transparent outline-none caret-accent placeholder:text-ink-placeholder"
-          placeholder={
-            props.placeholder ? t(props.placeholder) : t('Search...')
-          }
+          placeholder={props.placeholder ?? 'Search...'}
         />
       </div>
       <div class="p-1">
@@ -429,9 +422,7 @@ export const SearchableMultiSelectInline = (
           when={hasMatches()}
           fallback={
             <div class="py-3 px-2 text-center text-xs text-ink-muted">
-              {props.placeholder
-                ? t('No options match "{query}"', { query: searchQuery() })
-                : t('No options match "{query}"', { query: searchQuery() })}
+              No options match "{searchQuery()}"
             </div>
           }
         >

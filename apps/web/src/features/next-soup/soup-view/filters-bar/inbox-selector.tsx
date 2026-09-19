@@ -4,7 +4,6 @@ import { CollapsibleHeaderItem } from '@components/app/split-layout/components/C
 import { enableMultiInbox } from '@core/constant/featureFlags';
 import { useAddInboxFlow } from '@core/email-link';
 import { Combobox } from '@kobalte/core/combobox';
-import { t } from '@macro/i18n';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import PlusIcon from '@phosphor/plus.svg';
 import TrayIcon from '@phosphor/tray.svg';
@@ -46,12 +45,12 @@ export function InboxSelector() {
       activeIds={picker.activeIds}
       onChange={(ids) => (ids.length ? picker.onChange(ids) : picker.reset())}
       onOnly={picker.selectOnly}
-      placeholder={t('Search inboxes...')}
+      placeholder="Search inboxes..."
       preserveOrder
       action={
         multiInboxFlag().enabled
           ? {
-              label: t('Connect another account'),
+              label: 'Connect another account',
               icon: () => <PlusIcon class="size-4" />,
               onSelect: () => addInbox(),
             }
@@ -83,16 +82,14 @@ export function InboxSelector() {
       variant="outline"
       size="sm"
       depth={2}
-      aria-label={
-        buttonProps.hideLabel ? t('Connect another account') : undefined
-      }
-      tooltip={buttonProps.hideLabel ? t('Connect another account') : undefined}
+      aria-label={buttonProps.hideLabel ? 'Connect another account' : undefined}
+      tooltip={buttonProps.hideLabel ? 'Connect another account' : undefined}
       class={cn('bg-surface gap-1', buttonProps.hideLabel && 'px-1')}
       onClick={() => addInbox()}
     >
       <TrayIcon />
       <Show when={!buttonProps.hideLabel}>
-        <span class="truncate">{t('Connect another account')}</span>
+        <span class="truncate">Connect another account</span>
       </Show>
     </Button>
   );

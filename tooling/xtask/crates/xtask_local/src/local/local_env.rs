@@ -19,44 +19,6 @@ use std::collections::BTreeMap;
 use super::instance::{Instance, Port};
 use super::{Mode, identity, resources};
 
-const LOCAL_MACRO_API_TOKEN_PRIVATE_KEY: &str = r#"-----BEGIN RSA PRIVATE KEY-----
-MIIEogIBAAKCAQEAlR0tDzyTkQuUyGg1zHKyvR5O2h2oQQV61MbaqojLL9G1VNQL
-flHcqLI0XBglzRR0el21pRaNZYgguf78DpOF08KvWmKSpcqLM4P/F0GG5T4fT08a
-kkXJH0+nejy4oa8CvnbDT/1C0H6gONQHzLFlzydtAlk2bjeXWaWrro0X9YTILRZS
-QmPkN/4A/9xDdI2LTHP8VdcopYh1Uj+VFtFF9x7qpjXRkRlOHzD2Lj0qtmFY68v7
-8aFtMbrCp8OmE5sg/6vOFTjz/dcjpdHPa++ab4zZbyQjbfy7RQdG/2zki8N3znMP
-aa5JO4R5/Ot48vLAOowM9GR0FVYMBPqT0voECwIDAQABAoIBADX//mDtsY0N8iAP
-aSg0g1ksoCaqJdQCPYTPzMGET3zuR2pEbjMdRzlKa97MGehmV3Y2+ICkJamWvi9N
-UY+fyg+xidpEJ1JmAroxu4/6+XSMZj9M6NT+88JkkMSaN8zJuccq8DlIAMnLiY96
-7aYpujJmVzpJ/4WzmRpsfjt0ui/9i9fefnZBFPFnNK16jrJ2RQBokglMKmpUg+yL
-lVdPp57RS38LcBKEbMb6C20iMtZ+ZNxPF4rgzXEJyNRjl0Gh9ukjbnxm8aDkj/Xy
-MHizGM0SnZ7VIkclu5CgtOM59V3HSG6ilifj9JkfkEe1pHHp71hVSHz8RF2NjfXa
-rLRnuCkCgYEAzu97s4VMKXG5IvX2/m64sUJL/rB4WmtCl4x6Ru+gM+vUEmpmE1VF
-FimOF0U10CsSKkJ51ZVVcdldQCO8uZD52N0iBJSVkzXcMUQUQs25NrAkmhqdqwQk
-qm7KXXDBO1to3cMKeVUkrb5/uJpzsxOtctqYdqRkGsEGrGJJ+w8ByvkCgYEAuHgO
-tgH5dI9wnyV1MlRlFT/60rvJq4GRD6zkR59/kGx6pvUfjl0s3+OoOi2Fco7girt2
-1gznpfYgFRzE8Q9LKZCl3kdquNEEadoyRpERhYYKWW20FyYqFAPVrjdnjebrD/D1
-wYzBsQyylzpwsgOCUX9raQczb2Ua+9L8EwCCZCMCgYAjyzjSbJQn9wvXCESY7f30
-a0tJ2qx2t2blX98mtfw3/urH5K+TWISCuN1jGQ2d3FVgCe+ZCiOldbuzhHr4fiM5
-Z8ailDDrLb3Qp735cCxBUWaDYWc0VZsh/9fxIbfK1Jzm/v2ozxlxFCpzfAPXTegK
-ndURcI4AMrM8ziON0aK1wQKBgEj8Z4Wn3lU586tkHKyfK6duuwTp++75wrVbCK81
-8jjoUtcAIU4om3qyDnuGS0h6M2lwpqImVPkbGrJ/wYRHMsvtSVNbGmSpfn+LL10w
-RKh50lpzx09pcDifE8psbXJ9rP+PrQy5bmFozrh7DN/B96vbKFpT2Qv4CuccIVQ7
-XVvVAoGAahMpYHYDr+BsB2On8xd5rzkDpUeDwiWCyCaZTb7BjrpWhv5K35GOWkYh
-rS9MdSsDAdjiHGRRkX9C6oTx4w4pfxKSN65wAO6gI22oVrcWAMIR7CACmJHnIMxV
-wuFWLzXAeE7o05XSvntpugiYm2fkekCTRoJM9OdIfrxLC4fTIeA=
------END RSA PRIVATE KEY-----"#;
-
-const LOCAL_MACRO_API_TOKEN_PUBLIC_KEY: &str = r#"-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlR0tDzyTkQuUyGg1zHKy
-vR5O2h2oQQV61MbaqojLL9G1VNQLflHcqLI0XBglzRR0el21pRaNZYgguf78DpOF
-08KvWmKSpcqLM4P/F0GG5T4fT08akkXJH0+nejy4oa8CvnbDT/1C0H6gONQHzLFl
-zydtAlk2bjeXWaWrro0X9YTILRZSQmPkN/4A/9xDdI2LTHP8VdcopYh1Uj+VFtFF
-9x7qpjXRkRlOHzD2Lj0qtmFY68v78aFtMbrCp8OmE5sg/6vOFTjz/dcjpdHPa++a
-b4zZbyQjbfy7RQdG/2zki8N3znMPaa5JO4R5/Ot48vLAOowM9GR0FVYMBPqT0voE
-CwIDAQAB
------END PUBLIC KEY-----"#;
-
 /// The full local environment for one instance.
 pub struct LocalEnv {
     environment: &'static str,
@@ -69,6 +31,13 @@ pub struct LocalEnv {
     frontend_port: u16,
     /// Browser-facing route to document cognition's MCP OAuth callback.
     mcp_public_url: String,
+    /// Browser-facing base the static file service stamps into permalinks.
+    /// Only the service itself reads `STATIC_FILE_SERVICE_URL`; callers
+    /// reach it in-network through the `OVERRIDE_` form below. Without this
+    /// a named instance mints `http://localhost:8100/file/...`, the
+    /// single-instance CDN port, which nothing on a named instance serves;
+    /// the proxy's `/static-file/*` block is what does.
+    static_file_public_url: String,
     infra: InfraEnv,
     storage: StorageEnv,
     queues: QueueEnv,
@@ -104,7 +73,11 @@ impl LocalEnv {
                 instance.port(Port::Frontend)
             },
             mcp_public_url: format!("http://localhost:{}/cognition", instance.port(Port::Proxy)),
-            infra: InfraEnv::local(),
+            static_file_public_url: format!(
+                "http://localhost:{}/static-file",
+                instance.port(Port::Proxy)
+            ),
+            infra: InfraEnv::local(instance),
             storage: StorageEnv::local(),
             queues: QueueEnv::local(),
             mail: MailEnv::local(),
@@ -123,6 +96,10 @@ impl LocalEnv {
         env.insert("PORT".into(), "8080".into());
         env.insert("FRONTEND_PORT".into(), self.frontend_port.to_string());
         env.insert("MCP_PUBLIC_URL".into(), self.mcp_public_url.clone());
+        env.insert(
+            "STATIC_FILE_SERVICE_URL".into(),
+            self.static_file_public_url.clone(),
+        );
         // Pipedream's hosted Connect UI refuses to be opened from an origin
         // outside this list, and document_cognition's own local default only
         // names port 3000 - a named instance's frontend lives on a derived
@@ -138,9 +115,6 @@ impl LocalEnv {
         // Calendar search ships dark too: off in deployed envs until each has
         // its calendar index created and backfilled.
         env.insert("CALENDAR_SEARCH_ENABLED".into(), "true".into());
-        // Local self-host development has no Google Pub/Sub push delivery, so
-        // keep the Gmail profile poller enabled only in generated local env.
-        env.insert("LOCAL_GMAIL_POLLER_ENABLED".into(), "true".into());
         self.infra.write(&mut env);
         self.storage.write(&mut env);
         self.queues.write(&mut env);
@@ -169,16 +143,18 @@ struct InfraEnv {
     redis_uri: String,
     opensearch_url: String,
     local_aws_url: String,
+    local_aws_public_url: String,
     kafka_brokers: String,
 }
 
 impl InfraEnv {
-    fn local() -> Self {
+    fn local(instance: &Instance) -> Self {
         InfraEnv {
             database_url: "postgres://user:password@postgres:5432/macrodb".into(),
             redis_uri: "redis://redis:6379".into(),
             opensearch_url: "http://search:9200".into(),
             local_aws_url: "http://localstack:4566".into(),
+            local_aws_public_url: format!("http://localhost:{}", instance.port(Port::LocalStack)),
             // The broker's in-network listener (see docker/docker-compose-databases.yml);
             // host processes use localhost:9092 instead.
             kafka_brokers: "kafka:29092".into(),
@@ -196,6 +172,10 @@ impl InfraEnv {
         env.insert("LAST_ONLINE_REDIS_URI".into(), self.redis_uri.clone());
         env.insert("OPENSEARCH_URL".into(), self.opensearch_url.clone());
         env.insert("LOCAL_AWS_URL".into(), self.local_aws_url.clone());
+        env.insert(
+            "LOCAL_AWS_PUBLIC_URL".into(),
+            self.local_aws_public_url.clone(),
+        );
         env.insert("KAFKA_BROKERS".into(), self.kafka_brokers.clone());
         // In-network services resolve the gateway through the OVERRIDE_ var;
         // without it the resolver's Environment::Local default
@@ -222,6 +202,11 @@ impl InfraEnv {
             "OVERRIDE_LEXICAL_SERVICE_URL".into(),
             "http://lexical-service:8096".into(),
         );
+        // Channel picture authorization reads file metadata from inside DSS.
+        env.insert(
+            "OVERRIDE_STATIC_FILE_SERVICE_URL".into(),
+            "http://static-file-service:8080".into(),
+        );
         // Same failure mode for the email connect flows: without these,
         // first-inbox provisioning (auth-service → `/email/init`) and Gmail
         // token fetches (email-service → `/internal/google_access_token`)
@@ -235,15 +220,14 @@ impl InfraEnv {
             "OVERRIDE_AUTH_SERVICE_URL".into(),
             "http://authentication-service:8080".into(),
         );
+        // Same split for the static file service: without this a service
+        // storing a file (the agent harness re-hosting a Cursor artifact)
+        // asks http://localhost:8100, the host port of the single-instance
+        // CDN, which inside a container is the caller itself.
         env.insert(
             "OVERRIDE_STATIC_FILE_SERVICE_URL".into(),
-            "http://static_file_service:8080".into(),
+            "http://static-file-service:8080".into(),
         );
-        // Calibrated Gmail API rate limits: Google Cloud's strict quota is 6,000 units/min.
-        // Cap backfill at 4,000 to reserve 1,500+ units for interactive live operations (attachments/read/send).
-        env.insert("REDIS_RATE_LIMIT_REQS".into(), "5200".into());
-        env.insert("REDIS_RATE_LIMIT_REQS_BACKFILL".into(), "4000".into());
-        env.insert("BACKFILL_QUEUE_WORKERS".into(), "6".into());
         // The alias LocalStack provisions for the Cursor API key CMK. Named by
         // alias rather than key id because `CreateKey` mints a random id every
         // run, and KMS accepts an alias anywhere a key id goes. Required by
@@ -254,6 +238,10 @@ impl InfraEnv {
         env.insert(
             "CURSOR_API_KEY_KMS_KEY_ID".into(),
             resources::CURSOR_API_KEY_KMS_ALIAS.into(),
+        );
+        env.insert(
+            "CODEX_OAUTH_KMS_KEY_ID".into(),
+            resources::CODEX_OAUTH_KMS_ALIAS.into(),
         );
         // Dummy creds: the SDK talks to LocalStack, never real AWS.
         env.insert("AWS_ACCESS_KEY_ID".into(), "test".into());
@@ -306,6 +294,11 @@ impl QueueEnv {
                 env.insert(key.into(), form.value(queue.name));
             }
         }
+        // Without these the `ai_tools` SQS client is built with no queue name
+        // and every enqueue fails, so an agent session can neither send email
+        // nor sync thread labels. Deployed environments set them in Doppler.
+        env.insert("ENABLE_EMAIL_SCHEDULED_QUEUE".into(), "true".into());
+        env.insert("ENABLE_GMAIL_OPS_QUEUE".into(), "true".into());
     }
 }
 
@@ -616,11 +609,11 @@ impl BootStubEnv {
         env.insert("MACRO_API_TOKEN_ISSUER".into(), "local".into());
         env.insert(
             "MACRO_API_TOKEN_PUBLIC_KEY".into(),
-            LOCAL_MACRO_API_TOKEN_PUBLIC_KEY.into(),
+            "local-macro-api-token-public-key".into(),
         );
         env.insert(
             "MACRO_API_TOKEN_PRIVATE_SECRET_KEY".into(),
-            LOCAL_MACRO_API_TOKEN_PRIVATE_KEY.into(),
+            "local-macro-api-token-private-key".into(),
         );
         env.insert("MACRO_API_TOKEN_EXPIRY_SECONDS".into(), "3600".into());
         // email_service's GCP pubsub queue (gmail watch notifications) and
@@ -670,18 +663,6 @@ impl BootStubEnv {
             "SLACK_MCP_CLIENT_SECRET".into(),
             "local-slack-mcp-secret".into(),
         );
-        // Pipedream MCP is inert with local credentials, but both
-        // document_cognition_service and agent_harness_service load the same
-        // required config keys at boot.
-        env.insert(
-            "PIPEDREAM_CLIENT_ID".into(),
-            "local-pipedream-client".into(),
-        );
-        env.insert(
-            "PIPEDREAM_CLIENT_SECRET".into(),
-            "local-pipedream-secret".into(),
-        );
-        env.insert("PIPEDREAM_PROJECT_ID".into(), "proj_local".into());
         // document_storage_service's GitHub sync + LiveKit + LLM + Cal config.
         // All boot-required; the integrations they back are inert locally.
         env.insert("GITHUB_SYNC_APP_URL".into(), "http://localhost:8080".into());

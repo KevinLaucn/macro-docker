@@ -21,7 +21,6 @@ import EmptyStateInboxZeroGraphic from '@design/empty-state-inbox-zero.svg';
 import EmptyStateNoFilterMatchGraphic from '@design/empty-state-no-filter-match.svg';
 import EmptyStateNoSearchMatchGraphic from '@design/empty-state-no-search-match.svg';
 import EmptyStateTasksGraphic from '@design/empty-state-tasks.svg';
-import { t } from '@macro/i18n';
 import PlusIcon from '@phosphor/plus.svg';
 import { useCurrentTeamQuery, useIsTeamAdmin } from '@queries/team/teams';
 import { EmptyStatePanel, FilteredHiddenBanner } from '@ui';
@@ -58,18 +57,16 @@ const FALLBACK_CONTENT: Partial<Record<ListView, FallbackContent>> = {
   documents: {
     plural: 'documents',
     graphic: EmptyStateDocGraphic,
-    description: t(
-      'Write, collaborate, and share documents right inside Macro. Create notes, specs, or any long-form content and keep it alongside your conversations.'
-    ),
+    description:
+      'Write, collaborate, and share documents right inside Macro. Create notes, specs, or any long-form content and keep it alongside your conversations.',
     create: { label: 'New document', blockName: 'md' },
     documentationUrl: `${DOCS_BASE}/product/docs`,
   },
   channels: {
     plural: 'channels',
     graphic: EmptyStateChannelsGraphic,
-    description: t(
-      'Channels are shared spaces for team conversations organized by topic, project, or team. Create a channel to start collaborating with your team.'
-    ),
+    description:
+      'Channels are shared spaces for team conversations organized by topic, project, or team. Create a channel to start collaborating with your team.',
     create: { label: 'New channel', blockName: 'channel' },
     documentationUrl: `${DOCS_BASE}/product/channels`,
   },
@@ -77,16 +74,9 @@ const FALLBACK_CONTENT: Partial<Record<ListView, FallbackContent>> = {
     plural: 'reminders',
     description: (
       <>
-        {t(
-          'Set a reminder on anything in Macro by selecting it and pressing {key}, or write one about nothing in particular from the Create menu.',
-          { key: '__KEY__' }
-        )
-          .split('__KEY__')
-          .reduce<JSXElement[]>(
-            (acc, part, idx) =>
-              idx === 0 ? [part] : [...acc, <HotkeyCap>h</HotkeyCap>, part],
-            []
-          )}
+        Set a reminder on anything in Macro by selecting it and pressing{' '}
+        <HotkeyCap>h</HotkeyCap>, or write one about nothing in particular from
+        the Create menu.
       </>
     ),
     create: { label: 'New reminder', blockName: 'reminder' },
@@ -96,9 +86,9 @@ const FALLBACK_CONTENT: Partial<Record<ListView, FallbackContent>> = {
     graphic: EmptyStateCallsGraphic,
     description: (
       <>
-        {t('See recordings, transcriptions and summaries of your Macro calls.')}
+        See recordings, transcriptions and summaries of your Macro calls.
         <br />
-        {t('Calls are available to agents.')}
+        Calls are available to agents.
       </>
     ),
     documentationUrl: `${DOCS_BASE}/product/calls`,
@@ -141,12 +131,10 @@ export function EmptyState(props: {
           graphic={EmptyStateNoSearchMatchGraphic}
           title={
             soup.searchText().trim().length > 0
-              ? t('No results for "{query}"', { query: soup.searchText() })
-              : t('No results')
+              ? `No results for "${soup.searchText()}"`
+              : 'No results'
           }
-          description={t(
-            'Search across messages, documents, tasks, and more. Try a different query or broaden your filters.'
-          )}
+          description="Search across messages, documents, tasks, and more. Try a different query or broaden your filters."
           documentationUrl={`${DOCS_BASE}/product/search`}
         />
       </Match>
@@ -155,10 +143,8 @@ export function EmptyState(props: {
         <EmptyStatePanel
           centered
           graphic={EmptyStateNoFilterMatchGraphic}
-          title={t('No items matching the filters')}
-          description={t(
-            'Try adjusting or clearing your filters to see more results.'
-          )}
+          title="No items matching the filters"
+          description="Try adjusting or clearing your filters to see more results."
         >
           {props.onClearFilters && (
             <FilteredHiddenBanner
@@ -177,24 +163,22 @@ export function EmptyState(props: {
       >
         <EmptyStatePanel
           graphic={EmptyStateInboxTrayGraphic}
-          title={t('No scheduled reminders')}
-          description={t(
-            'Reminders you schedule wait here until they fire into Signal. Set one on anything in Macro by selecting it and pressing {key}, or write one about nothing in particular.',
-            { key: '__KEY__' }
-          )
-            .split('__KEY__')
-            .reduce<JSXElement[]>(
-              (acc, part, idx) =>
-                idx === 0 ? [part] : [...acc, <HotkeyCap>h</HotkeyCap>, part],
-              []
-            )}
+          title="No scheduled reminders"
+          description={
+            <>
+              Reminders you schedule wait here until they fire into Signal. Set
+              one on anything in Macro by selecting it and pressing{' '}
+              <HotkeyCap>h</HotkeyCap>, or write one about nothing in
+              particular.
+            </>
+          }
           // Gated like every other reminder affordance. The tab itself is
           // already hidden when the flag is off, so this is belt and braces
           // rather than the only thing standing in the way.
           primaryAction={
             isCreatableEnabled('reminder')
               ? {
-                  label: t('New reminder'),
+                  label: 'New reminder',
                   onClick: () => runCreateAction('reminder'),
                 }
               : undefined
@@ -206,12 +190,10 @@ export function EmptyState(props: {
       <Match when={props.listView === 'inbox' && !emailActive()}>
         <EmptyStatePanel
           graphic={EmptyStateInboxTrayGraphic}
-          title={t('Your inbox is empty')}
-          description={t(
-            'Bring your inbox into Macro to triage signal from noise, reply faster, and let agents work alongside your mail.'
-          )}
+          title="Your inbox is empty"
+          description="Bring your inbox into Macro to triage signal from noise, reply faster, and let agents work alongside your mail."
           primaryAction={{
-            label: t('Connect email'),
+            label: 'Connect email',
             onClick: onConnectEmail,
           }}
           documentationUrl={`${DOCS_BASE}/product/inbox`}
@@ -221,12 +203,10 @@ export function EmptyState(props: {
       <Match when={props.listView === 'mail' && !emailActive()}>
         <EmptyStatePanel
           graphic={EmptyStateEmailGraphic}
-          title={t('Connect your email')}
-          description={t(
-            'Bring your inbox into Macro to triage signal from noise, reply faster, and let agents work alongside your mail.'
-          )}
+          title="Connect your email"
+          description="Bring your inbox into Macro to triage signal from noise, reply faster, and let agents work alongside your mail."
           primaryAction={{
-            label: t('Connect email'),
+            label: 'Connect email',
             onClick: onConnectEmail,
           }}
           documentationUrl={`${DOCS_BASE}/product/email`}
@@ -242,29 +222,26 @@ export function EmptyState(props: {
           const { title, description } =
             tab === 'noise'
               ? {
-                  title: t('No noise'),
+                  title: 'No noise',
                   description: (
                     <>
-                      {t(
-                        'Low-priority items like newsletters and notifications collect here.'
-                      )}
+                      Low-priority items like newsletters and notifications
+                      collect here.
                       <br />
-                      {t('Nothing to clear right now.')}
+                      Nothing to clear right now.
                     </>
                   ),
                 }
               : tab === 'all'
                 ? {
-                    title: t('Inbox zero'),
-                    description: t(
-                      "You're all caught up. New items will appear here as they arrive."
-                    ),
+                    title: 'Inbox zero',
+                    description:
+                      "You're all caught up. New items will appear here as they arrive.",
                   }
                 : {
-                    title: t('Inbox zero'),
-                    description: t(
-                      "You're all caught up. Important items will appear here as they arrive."
-                    ),
+                    title: 'Inbox zero',
+                    description:
+                      "You're all caught up. Important items will appear here as they arrive.",
                   };
           return (
             <EmptyStatePanel
@@ -280,10 +257,8 @@ export function EmptyState(props: {
       <Match when={props.listView === 'mail' && emailActive()}>
         <EmptyStatePanel
           graphic={EmptyStateInboxTrayGraphic}
-          title={t('Inbox zero')}
-          description={t(
-            "You're all caught up. New email will appear here as it arrives."
-          )}
+          title="Inbox zero"
+          description="You're all caught up. New email will appear here as it arrives."
           documentationUrl={`${DOCS_BASE}/product/email`}
         />
       </Match>
@@ -291,12 +266,10 @@ export function EmptyState(props: {
       <Match when={props.listView === 'tasks'}>
         <EmptyStatePanel
           graphic={EmptyStateTasksGraphic}
-          title={t('Nothing to do')}
-          description={t(
-            'Tasks you create or that get assigned to you will show up here.'
-          )}
+          title="Nothing to do"
+          description="Tasks you create or that get assigned to you will show up here."
           primaryAction={{
-            label: t('New task'),
+            label: 'New task',
             icon: PlusIcon,
             onClick: () => runCreateAction('task'),
           }}
@@ -309,12 +282,10 @@ export function EmptyState(props: {
       >
         <EmptyStatePanel
           graphic={EmptyStateAutomationsGraphic}
-          title={t('No automations to show')}
-          description={t(
-            'Automations run in the background to handle repetitive work for you — like triaging messages, updating tasks, or sending follow-ups.'
-          )}
+          title="No automations to show"
+          description="Automations run in the background to handle repetitive work for you — like triaging messages, updating tasks, or sending follow-ups."
           primaryAction={{
-            label: t('New automation'),
+            label: 'New automation',
             icon: PlusIcon,
             onClick: () => runCreateAction('automation'),
           }}
@@ -327,12 +298,10 @@ export function EmptyState(props: {
       >
         <EmptyStatePanel
           graphic={EmptyStateAiGraphic}
-          title={t('No skills yet')}
-          description={t(
-            'Skills are markdown documents with instructions AI follows. Reference one with / in any AI input.'
-          )}
+          title="No skills yet"
+          description="Skills are markdown documents with instructions AI follows. Reference one with / in any AI input."
           primaryAction={{
-            label: t('New skill'),
+            label: 'New skill',
             icon: PlusIcon,
             onClick: () => runCreateAction('skill'),
           }}
@@ -343,12 +312,10 @@ export function EmptyState(props: {
       <Match when={props.listView === 'agents'}>
         <EmptyStatePanel
           graphic={EmptyStateAiGraphic}
-          title={t('Get started with agents')}
-          description={t(
-            'Create an agent, or use Macro with your favorite AI chat client or code editor via MCP.'
-          )}
+          title="Get started with agents"
+          description="Create an agent, or use Macro with your favorite AI chat client or code editor via MCP."
           primaryAction={{
-            label: t('New agent'),
+            label: 'New agent',
             icon: PlusIcon,
             onClick: () => runCreateAction('chat'),
           }}
@@ -365,10 +332,10 @@ export function EmptyState(props: {
             <EmptyStatePanel
               centered
               graphic={EmptyStateCompaniesGraphic}
-              title={t('Join a team to enable CRM')}
-              description={t('Create or join a team in Settings > Team.')}
+              title="Join a team to enable CRM"
+              description="Create or join a team in Settings > Team."
               primaryAction={{
-                label: t('Open team settings'),
+                label: 'Open team settings',
                 onClick: () => openSettings('Team'),
               }}
             />
@@ -377,20 +344,16 @@ export function EmptyState(props: {
             <EmptyStatePanel
               centered
               graphic={EmptyStateCompaniesGraphic}
-              title={t('CRM is disabled')}
+              title="CRM is disabled"
               description={
                 isTeamAdmin()
-                  ? t(
-                      'Enable CRM in Settings > CRM to start tracking your customers.'
-                    )
-                  : t(
-                      'Team owners and admins can enable CRM in Settings > CRM.'
-                    )
+                  ? 'Enable CRM in Settings > CRM to start tracking your customers.'
+                  : 'Team owners and admins can enable CRM in Settings > CRM.'
               }
               primaryAction={
                 isTeamAdmin()
                   ? {
-                      label: t('Open CRM settings'),
+                      label: 'Open CRM settings',
                       onClick: () => openSettings('CRM'),
                     }
                   : undefined
@@ -400,8 +363,20 @@ export function EmptyState(props: {
           <Match when={true}>
             <EmptyStatePanel
               graphic={EmptyStateCompaniesGraphic}
-              title={t('No customers yet')}
-              description={t('Customers your team emails will appear here.')}
+              title={
+                !soup.activeTab() || soup.activeTab() === 'active'
+                  ? 'No customers yet'
+                  : soup.activeTab()?.startsWith('list:')
+                    ? 'No companies in this list'
+                    : 'No companies in this view'
+              }
+              description={
+                !soup.activeTab() || soup.activeTab() === 'active'
+                  ? 'Customers your team emails will appear here.'
+                  : soup.activeTab()?.startsWith('list:')
+                    ? 'Use Edit list to add companies to this collection.'
+                    : 'Companies that match this view will appear here.'
+              }
             />
           </Match>
         </Switch>
@@ -418,12 +393,10 @@ export function EmptyState(props: {
       >
         <EmptyStatePanel
           graphic={EmptyStateFolderGraphic}
-          title={t('No folders')}
-          description={t(
-            'Folders let you organize conversations, documents, and tasks into projects. Create a folder or drop files below to get started.'
-          )}
+          title="No folders"
+          description="Folders let you organize conversations, documents, and tasks into projects. Create a folder or drop files below to get started."
           primaryAction={{
-            label: t('New folder'),
+            label: 'New folder',
             icon: PlusIcon,
             onClick: () => runCreateAction('project'),
           }}
@@ -437,8 +410,8 @@ export function EmptyState(props: {
         <EmptyStatePanel
           centered
           graphic={EmptyStateNoSearchMatchGraphic}
-          title={t('No items to show')}
-          description={t('Search across messages, documents, tasks, and more.')}
+          title="No items to show"
+          description="Search across messages, documents, tasks, and more."
           documentationUrl={`${DOCS_BASE}/product/search`}
         />
       </Match>
@@ -458,7 +431,7 @@ export function EmptyState(props: {
               return undefined;
             }
             return {
-              label: t(create.label),
+              label: create.label,
               icon: PlusIcon,
               onClick: () => {
                 if (props.listView === 'channels') {
@@ -472,7 +445,7 @@ export function EmptyState(props: {
           return (
             <EmptyStatePanel
               graphic={fallback.graphic ?? EmptyStateInboxZeroGraphic}
-              title={t('No {item} to show', { item: t(fallback.plural) })}
+              title={`No ${fallback.plural} to show`}
               description={fallback.description}
               primaryAction={createAction()}
               documentationUrl={fallback.documentationUrl}

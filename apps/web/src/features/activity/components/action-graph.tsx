@@ -1,5 +1,4 @@
 import { createElementSize } from '@solid-primitives/resize-observer';
-import { t } from '@macro/i18n';
 import { cn, Layer, Tooltip } from '@ui';
 import { format } from 'date-fns';
 import { createEffect, createMemo, createSignal, For, Show } from 'solid-js';
@@ -33,10 +32,8 @@ function dateLabel(date: string): string {
 }
 
 function actionLabel(day: ContributionDay): string {
-  return t(day.count === 1 ? '{count} action on {date}' : '{count} actions on {date}', {
-    count: day.count.toLocaleString(),
-    date: dateLabel(day.date),
-  });
+  const noun = day.count === 1 ? 'action' : 'actions';
+  return `${day.count.toLocaleString()} ${noun} on ${dateLabel(day.date)}`;
 }
 
 function monthLetter(label: string): string {
@@ -134,7 +131,7 @@ function ActionGraphHeader(props: { total: number; skeleton: boolean }) {
         id="activity-actions-heading"
         class="font-semibold text-ink-muted text-xs"
       >
-        {t('Actions')}{' '}
+        Actions{' '}
         <Show when={!props.skeleton} fallback={<SkeletonText class="w-8" />}>
           <span class="text-ink-extra-muted tabular-nums">
             ({props.total.toLocaleString()})
@@ -149,13 +146,13 @@ function ActionGraphHeader(props: { total: number; skeleton: boolean }) {
 function IntensityLegend() {
   return (
     <div class="ml-auto flex shrink-0 items-center gap-1 text-ink-extra-muted">
-      <span class="@max-md/u-list:hidden">{t('Fewer', { context: 'activity' })}</span>
+      <span class="@max-md/u-list:hidden">Fewer</span>
       <For each={[0, 1, 2, 3, 4] as const}>
         {(level) => (
           <IntensitySwatch level={level} class="size-2.5 rounded-[3px]" />
         )}
       </For>
-      <span class="@max-md/u-list:hidden">{t('More')}</span>
+      <span class="@max-md/u-list:hidden">More</span>
     </div>
   );
 }
@@ -332,22 +329,22 @@ function ActionGraphStats(props: { stats: ActivityStats; skeleton: boolean }) {
   return (
     <dl class="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 @max-2xl/u-list:grid @max-2xl/u-list:grid-cols-2 @max-md/u-list:gap-y-2">
       <Stat
-        label={t('Most active month')}
+        label="Most active month"
         value={monthStat(props.stats.mostActiveMonth)}
         skeleton={props.skeleton}
       />
       <Stat
-        label={t('Most active day')}
+        label="Most active day"
         value={dayStat(props.stats.mostActiveDay)}
         skeleton={props.skeleton}
       />
       <Stat
-        label={t('Longest streak')}
+        label="Longest streak"
         value={formatStreak(props.stats.longestStreak)}
         skeleton={props.skeleton}
       />
       <Stat
-        label={t('Current streak')}
+        label="Current streak"
         value={formatStreak(props.stats.currentStreak)}
         skeleton={props.skeleton}
       />

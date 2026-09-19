@@ -3,27 +3,19 @@
     reason = "cipher wiring is consumed by Microsoft grant persistence in the follow-up task"
 )]
 
-#[cfg(feature = "full-saas")]
 use std::collections::HashMap;
 
-#[cfg(feature = "full-saas")]
 use aes_gcm::{
     Aes256Gcm, Nonce,
     aead::{Aead, AeadCore, KeyInit, OsRng, Payload},
 };
-#[cfg(feature = "full-saas")]
 use aws_sdk_kms::{Client, primitives::Blob, types::DataKeySpec};
 use zeroize::Zeroizing;
 
-#[cfg(feature = "full-saas")]
 const ENCRYPTION_VERSION: i16 = 1;
-#[cfg(feature = "full-saas")]
 const AES_256_KEY_LENGTH: usize = 32;
-#[cfg(feature = "full-saas")]
 const AES_GCM_NONCE_LENGTH: usize = 12;
-#[cfg(feature = "full-saas")]
 const AES_GCM_TAG_LENGTH: usize = 16;
-#[cfg(feature = "full-saas")]
 const ENCRYPTION_PURPOSE: &str = "microsoft-refresh-token";
 
 /// An encrypted Microsoft refresh-token envelope suitable for persistence.
@@ -68,19 +60,16 @@ pub(crate) trait MicrosoftTokenCipher: Send + Sync {
 }
 
 /// AES-256-GCM envelope cipher backed by an external data-key provider.
-#[cfg(feature = "full-saas")]
 pub(crate) struct EnvelopeMicrosoftTokenCipher<P> {
     data_key_provider: P,
 }
 
-#[cfg(feature = "full-saas")]
 impl<P> EnvelopeMicrosoftTokenCipher<P> {
     pub(crate) fn new(data_key_provider: P) -> Self {
         Self { data_key_provider }
     }
 }
 
-#[cfg(feature = "full-saas")]
 #[async_trait::async_trait]
 impl<P> MicrosoftTokenCipher for EnvelopeMicrosoftTokenCipher<P>
 where
@@ -199,14 +188,12 @@ pub(crate) enum DataKeyProviderError {
     MalformedResponse,
 }
 
-#[cfg(feature = "full-saas")]
 struct GeneratedDataKey {
     plaintext: Zeroizing<Vec<u8>>,
     encrypted: Vec<u8>,
     key_id: String,
 }
 
-#[cfg(feature = "full-saas")]
 #[async_trait::async_trait]
 trait DataKeyProvider: Send + Sync {
     async fn generate_data_key(
@@ -223,20 +210,17 @@ trait DataKeyProvider: Send + Sync {
 }
 
 /// KMS implementation of the envelope data-key provider.
-#[cfg(feature = "full-saas")]
 pub(crate) struct KmsDataKeyProvider {
     client: Client,
     key_id: String,
 }
 
-#[cfg(feature = "full-saas")]
 impl KmsDataKeyProvider {
     pub(crate) fn new(client: Client, key_id: String) -> Self {
         Self { client, key_id }
     }
 }
 
-#[cfg(feature = "full-saas")]
 #[async_trait::async_trait]
 impl DataKeyProvider for KmsDataKeyProvider {
     async fn generate_data_key(
@@ -297,13 +281,11 @@ impl DataKeyProvider for KmsDataKeyProvider {
     }
 }
 
-#[cfg(feature = "full-saas")]
 struct EncryptionIdentity {
     fusionauth_user_id: String,
     email_address: String,
 }
 
-#[cfg(feature = "full-saas")]
 impl EncryptionIdentity {
     fn new(
         fusionauth_user_id: &str,
@@ -350,13 +332,11 @@ impl EncryptionIdentity {
     }
 }
 
-#[cfg(feature = "full-saas")]
 fn append_length_prefixed(output: &mut Vec<u8>, value: &[u8]) {
     output.extend_from_slice(&(value.len() as u64).to_be_bytes());
     output.extend_from_slice(value);
 }
 
-#[cfg(feature = "full-saas")]
 fn validate_plaintext_data_key(data_key: &[u8]) -> Result<(), MicrosoftTokenCipherError> {
     if data_key.len() != AES_256_KEY_LENGTH {
         return Err(MicrosoftTokenCipherError::InvalidDataKey);
@@ -364,7 +344,6 @@ fn validate_plaintext_data_key(data_key: &[u8]) -> Result<(), MicrosoftTokenCiph
     Ok(())
 }
 
-#[cfg(feature = "full-saas")]
 fn validate_envelope(envelope: &EncryptedMicrosoftToken) -> Result<(), MicrosoftTokenCipherError> {
     if envelope.encryption_version != ENCRYPTION_VERSION {
         return Err(MicrosoftTokenCipherError::UnsupportedVersion(
@@ -381,5 +360,5 @@ fn validate_envelope(envelope: &EncryptedMicrosoftToken) -> Result<(), Microsoft
     Ok(())
 }
 
-#[cfg(all(test, feature = "full-saas"))]
+#[cfg(test)]
 mod test;

@@ -1,16 +1,19 @@
-import { ViewShell } from '@app/components/view-shell';
+import {
+  useViewShell,
+  ViewBreadcrumbs,
+  ViewShell,
+} from '@app/components/view-shell';
+import { createPreviewSelectionGuard } from '@components/app/createPreviewSelectionGuard';
 import { useGlobalBlockOrchestrator } from '@components/app/GlobalAppState';
 import { PreviewPanel } from '@components/app/PreviewPanel';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { SplitPanel } from '@components/app/split-panel';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
-import EmptyStatePreviewIcon from '@design/empty-state-doc.svg';
 import { type EntityData, ListEntityMetadataQueryProvider } from '@entity';
-import { t } from '@macro/i18n';
 import SpinnerIcon from '@phosphor/spinner.svg';
-import { EmptyStatePanel } from '@ui';
 import { createEffect, createSignal, onMount, Show, Suspense } from 'solid-js';
+import { HomeChatStart } from './components/HomeChatStart';
 import { InboxListLayout } from './components/InboxHeader';
 import { InboxList } from './components/InboxList';
 import { InboxTabs } from './components/InboxTabs';
@@ -25,27 +28,51 @@ export type InboxViewProps = {
 function InboxFallback() {
   return (
     <div class="grid min-h-0 min-w-0 flex-1 place-items-center text-ink-muted">
-      <SpinnerIcon
-        aria-label={t('Loading notifications')}
-        class="size-5 animate-spin"
-      />
+      <SpinnerIcon aria-label="Loading Home" class="size-5 animate-spin" />
     </div>
   );
 }
 
-function NotificationsListPane(props: {
+function HomeListPane(props: {
   previewEntity: EntityData | undefined;
   onPreviewEntityChange: (entity: EntityData | undefined) => void;
+  onNewChat: () => void;
 }) {
+  const shell = useViewShell();
+  const showContent = () => {
+    if (shell.aside.isOverlay()) shell.aside.collapse();
+  };
+
   return (
-    <InboxListLayout tabs={<InboxTabs />}>
+    <InboxListLayout
+      tabs={<InboxTabs />}
+      onNewChat={() => {
+        props.onNewChat();
+        showContent();
+      }}
+    >
       <Suspense fallback={<InboxFallback />}>
         <InboxList
           previewEntity={props.previewEntity}
           onPreviewEntityChange={props.onPreviewEntityChange}
+          onPreviewActivate={showContent}
         />
       </Suspense>
     </InboxListLayout>
+  );
+}
+
+function HomeReturnBreadcrumb(props: { onReturn: () => void }) {
+  return (
+    <nav aria-label="Home location" class="flex items-center gap-0.5">
+      <ViewBreadcrumbs.ReturnButton
+        data-allow-focus-in-preview
+        onClick={props.onReturn}
+      >
+        Home
+      </ViewBreadcrumbs.ReturnButton>
+      <ViewBreadcrumbs.Separator />
+    </nav>
   );
 }
 
@@ -53,24 +80,27 @@ function InboxViewRoot() {
   const panel = useSplitPanelOrThrow();
   const orchestrator = useGlobalBlockOrchestrator();
   const { state, setTab } = useInboxView();
-  const [previewEntity, setPreviewEntity] = createSignal<EntityData>();
+  const [previewEntity, setPreviewEntityState] = createSignal<EntityData>();
+  const selectPreview = createPreviewSelectionGuard();
+  const setPreviewEntity = (entity: EntityData | undefined) => {
+    if (!selectPreview(entity)) return;
+    setPreviewEntityState(entity);
+  };
 
   let activeTab = state.tab;
   createEffect(() => {
     const nextTab = state.tab;
     if (nextTab === activeTab) return;
-
     activeTab = nextTab;
     setPreviewEntity(undefined);
   });
 
   createEffect(() => {
-    if (state.tab !== 'reminders') return;
-
-    setTab('signal');
+    if (state.tab === 'reminders') setTab('signal');
   });
+  const newChat = () => setPreviewEntity(undefined);
 
-  onMount(() => panel.handle.setDisplayName('Notifications'));
+  onMount(() => panel.handle.setDisplayName('Home'));
 
   return (
     <ListEntityMetadataQueryProvider>
@@ -82,33 +112,25 @@ function InboxViewRoot() {
               fallback={
                 <div class="size-full min-h-0 bg-panel">
                   <ViewShell.Root
-                    aside={{
-                      width: 360,
-                      min: 300,
-                      max: 420,
-                      preserveDuringResize: false,
-                    }}
-                    breakpoints={{ collapsed: 0 }}
-                    layoutBreakpoint="collapsed"
-                    main={{ min: 224, preferredWidth: 640 }}
+                    asidePreferenceKey="inbox"
+                    aside={{ preserveDuringResize: false }}
+                    main={{ preferredWidth: 640 }}
                     resizable
                   >
                     <ViewShell.Aside class="flex flex-col bg-panel">
-                      <NotificationsListPane
+                      <HomeListPane
                         previewEntity={previewEntity()}
                         onPreviewEntityChange={setPreviewEntity}
+                        onNewChat={newChat}
                       />
                     </ViewShell.Aside>
                     <ViewShell.Main class="overflow-hidden">
                       <Show
                         when={previewEntity()}
                         fallback={
-                          <EmptyStatePanel
-                            graphic={EmptyStatePreviewIcon}
-                            title={t('No content selected')}
-                            description={t('Select an item from the connected list to preview it here')}
-                            centered
-                          />
+                          <Suspense fallback={<InboxFallback />}>
+                            <HomeChatStart />
+                          </Suspense>
                         }
                       >
                         {(entity) => (
@@ -117,6 +139,9 @@ function InboxViewRoot() {
                               selectedEntity={entity()}
                               orchestrator={orchestrator}
                               splitPanelContext={panel}
+                              headerLeading={
+                                <HomeReturnBreadcrumb onReturn={newChat} />
+                              }
                             />
                           </Suspense>
                         )}
@@ -128,9 +153,10 @@ function InboxViewRoot() {
             >
               <ViewShell.Root aside={false} main={{ min: 224 }}>
                 <ViewShell.Main>
-                  <NotificationsListPane
+                  <HomeListPane
                     previewEntity={previewEntity()}
                     onPreviewEntityChange={setPreviewEntity}
+                    onNewChat={newChat}
                   />
                 </ViewShell.Main>
               </ViewShell.Root>

@@ -1,4 +1,3 @@
-import { getAppCapabilities } from '@core/constant/featureFlags';
 import { SERVER_HOSTS } from '@core/constant/servers';
 import { setCachedInputStore } from '@core/store/cacheChatInput';
 import { cache } from '@core/util/cache';
@@ -48,44 +47,21 @@ type WithChatId = { chat_id: string };
 type WithName = { name: string };
 type WithProjectId = { project_id: string };
 
-async function dcsFetch(
+function dcsFetch(
   url: string,
   init?: SafeFetchInit
 ): Promise<Result<void, ResultError<FetchWithTokenErrorCode>[]>>;
-async function dcsFetch<T extends ObjectLike>(
+function dcsFetch<T extends ObjectLike>(
   url: string,
   init?: SafeFetchInit
 ): Promise<Result<T, ResultError<FetchWithTokenErrorCode>[]>>;
-async function dcsFetch<T extends ObjectLike = never>(
+function dcsFetch<T extends ObjectLike = never>(
   url: string,
   init?: SafeFetchInit
-): Promise<
-  | Result<T, ResultError<FetchWithTokenErrorCode>[]>
-  | Result<void, ResultError<FetchWithTokenErrorCode>[]>
-> {
-  const capabilities = getAppCapabilities();
-  if (!capabilities.cognition) {
-    if (url.includes('/mcp/servers') || url.includes('/pipedream/')) {
-      return ok([] as unknown as T);
-    }
-    return err([
-      {
-        type: 'FetchWithTokenError',
-        code: 'NETWORK_ERROR',
-        message: 'Cognition service is disabled in this profile',
-      },
-    ]) as Result<T, ResultError<FetchWithTokenErrorCode>[]>;
-  }
-  const result = await fetchWithToken<T>(`${dcsHost}${url}`, init);
-  if (result.isErr()) {
-    if (url.includes('/mcp/servers')) {
-      return ok([] as unknown as T);
-    }
-    if (url.includes('/pipedream/')) {
-      return ok([] as unknown as T);
-    }
-  }
-  return result;
+):
+  | Promise<Result<T, ResultError<FetchWithTokenErrorCode>[]>>
+  | Promise<Result<void, ResultError<FetchWithTokenErrorCode>[]>> {
+  return fetchWithToken<T>(`${dcsHost}${url}`, init);
 }
 type Success = { success: boolean };
 

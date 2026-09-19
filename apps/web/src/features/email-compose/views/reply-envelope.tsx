@@ -1,18 +1,17 @@
-import { RecipientSelector } from "@core/component/RecipientSelector";
-import ChevronDown from "@phosphor/caret-down.svg";
-import CaretRight from "@phosphor/caret-right.svg";
-import { Button, cn } from "@ui";
-import { t } from "@macro/i18n";
-import type { Accessor } from "solid-js";
-import { Show } from "solid-js";
-import { FromInboxSelector } from "../components/from-inbox-selector";
-import { RecipientDropRow } from "../components/recipient-drop-row";
-import type { EmailInbox } from "../context/compose-capabilities";
-import type { EmailRecipient, RecipientFieldId } from "../core/email-recipient";
-import { getRecipientDisplayName } from "../core/email-recipient";
-import type { ReplyType } from "../core/reply-type";
-import type { EmailFormRecipients } from "../primitives/email-form-state";
-import type { createReplyRecipientFields } from "../primitives/reply-recipient-fields";
+import { RecipientSelector } from '@core/component/RecipientSelector';
+import ChevronDown from '@phosphor/caret-down.svg';
+import CaretRight from '@phosphor/caret-right.svg';
+import { Button, cn } from '@ui';
+import type { Accessor } from 'solid-js';
+import { Show } from 'solid-js';
+import { FromInboxSelector } from '../components/from-inbox-selector';
+import { RecipientDropRow } from '../components/recipient-drop-row';
+import type { EmailInbox } from '../context/compose-capabilities';
+import type { EmailRecipient, RecipientFieldId } from '../core/email-recipient';
+import { getRecipientDisplayName } from '../core/email-recipient';
+import type { ReplyType } from '../core/reply-type';
+import type { EmailFormRecipients } from '../primitives/email-form-state';
+import type { createReplyRecipientFields } from '../primitives/reply-recipient-fields';
 
 type ReplyEnvelopeProps = {
   fields: ReturnType<typeof createReplyRecipientFields>;
@@ -26,7 +25,7 @@ type ReplyEnvelopeProps = {
   onSubjectChange: (subject: string) => void;
   showSubject: boolean;
   mobile: Accessor<boolean>;
-  portalScope: Accessor<"local" | undefined>;
+  portalScope: Accessor<'local' | undefined>;
   replyType: Accessor<ReplyType | undefined>;
 };
 
@@ -56,27 +55,27 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
     const recipients = [...values.to, ...values.cc, ...values.bcc];
     const first = recipients[0];
     const action =
-      props.replyType() === "forward" ? t("Forwarding") : t("Replying to");
+      props.replyType() === 'forward' ? 'Forwarding' : 'Replying to';
     if (!first) return action;
-    const suffix = recipients.length > 1 ? ` + ${recipients.length - 1}` : "";
+    const suffix = recipients.length > 1 ? ` + ${recipients.length - 1}` : '';
     return `${action} ${getRecipientDisplayName(first)}${suffix}`;
   };
   const RecipientInput = (field: {
     field: RecipientFieldId;
     mobile?: boolean;
   }) => (
-    <RecipientSelector<EmailRecipient["kind"]>
+    <RecipientSelector<EmailRecipient['kind']>
       disabled={props.fields.disabled()}
       openOnFocus={false}
       class={
         field.mobile
-          ? "min-w-0 flex-1 bg-transparent rounded-none! [&_input]:ml-0! [&_input]:min-w-0! [&_input]:text-[17px] [&_input]:leading-6 [&_input]:text-ink [&_input]:placeholder:text-ink-placeholder"
-          : "min-w-0 bg-transparent rounded-none! [&_input]:ml-0!"
+          ? 'min-w-0 flex-1 bg-transparent rounded-none! [&_input]:ml-0! [&_input]:min-w-0! [&_input]:text-[17px] [&_input]:leading-6 [&_input]:text-ink [&_input]:placeholder:text-ink-placeholder'
+          : 'min-w-0 bg-transparent rounded-none! [&_input]:ml-0!'
       }
       inputRef={
-        field.field === "to"
+        field.field === 'to'
           ? setToRef
-          : field.field === "cc"
+          : field.field === 'cc'
             ? setCcRef
             : setBccRef
       }
@@ -104,8 +103,8 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
         <>
           <div
             class={cn(
-              "relative mb-4 min-w-0 text-sm text-ink-muted flex items-center gap-2 wrap",
-              !showExpandedRecipients() && "py-3",
+              'relative mb-4 min-w-0 text-sm text-ink-muted flex items-center gap-2 wrap',
+              !showExpandedRecipients() && 'py-3'
             )}
           >
             <Show
@@ -129,7 +128,7 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
                 <div class="flex items-center gap-2 min-w-0 border-b border-edge-muted">
                   <div class="flex items-center gap-2 min-w-0 flex-1 py-3">
                     <div class="w-14 shrink-0 text-sm text-ink-placeholder">
-                      {t("From")}
+                      From
                     </div>
                     <FromInboxSelector
                       pill
@@ -150,7 +149,7 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
                           queueMicrotask(() => ccRef()?.focus());
                         }}
                       >
-                        {t("Cc")}
+                        Cc
                       </Button>
                     </Show>
                     <Show when={!showBcc()}>
@@ -162,7 +161,7 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
                           queueMicrotask(() => bccRef()?.focus());
                         }}
                       >
-                        {t("Bcc")}
+                        Bcc
                       </Button>
                     </Show>
                   </div>
@@ -170,12 +169,12 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
 
                 <RecipientDropRow
                   field="to"
-                  class="w-full gap-2 py-3 border-b border-edge-muted focus-within:border-accent items-center"
+                  class="w-full gap-2 py-3 border-b border-edge-muted focus-within:border-ink/20 items-center"
                   dragState={recipientDragState}
                   onDrop={handleRecipientDrop}
                 >
                   <div class="w-14 shrink-0 text-sm text-ink-placeholder">
-                    {t("To")}
+                    To
                   </div>
                   <RecipientInput field="to" />
                 </RecipientDropRow>
@@ -183,12 +182,12 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
                 <Show when={showCc() || props.values().cc.length > 0}>
                   <RecipientDropRow
                     field="cc"
-                    class="w-full gap-2 py-3 border-b border-edge-muted focus-within:border-accent items-center"
+                    class="w-full gap-2 py-3 border-b border-edge-muted focus-within:border-ink/20 items-center"
                     dragState={recipientDragState}
                     onDrop={handleRecipientDrop}
                   >
                     <div class="w-14 shrink-0 text-sm text-ink-placeholder">
-                      {t("Cc")}
+                      Cc
                     </div>
                     <RecipientInput field="cc" />
                   </RecipientDropRow>
@@ -197,12 +196,12 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
                 <Show when={showBcc() || props.values().bcc.length > 0}>
                   <RecipientDropRow
                     field="bcc"
-                    class="w-full gap-2 py-3 border-b border-edge-muted focus-within:border-accent items-center"
+                    class="w-full gap-2 py-3 border-b border-edge-muted focus-within:border-ink/20 items-center"
                     dragState={recipientDragState}
                     onDrop={handleRecipientDrop}
                   >
                     <div class="w-14 shrink-0 text-sm text-ink-placeholder">
-                      {t("Bcc")}
+                      Bcc
                     </div>
                     <RecipientInput field="bcc" />
                   </RecipientDropRow>
@@ -212,24 +211,24 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
           </div>
           <div
             class={cn(
-              "flex-row items-center",
-              props.showSubject ? "flex" : "hidden",
+              'flex-row items-center',
+              props.showSubject ? 'flex' : 'hidden'
             )}
           >
-            <div class="text-sm min-w-16 pl-4">{t("Subject")}</div>
+            <div class="text-sm min-w-16 pl-4">Subject</div>
             <input
               type="text"
-              class="flex-1 text-sm bg-transparent outline-none border-0 px-3 py-1"
+              class="flex-1 text-base bg-transparent outline-none border-0 px-3 py-1"
               value={props.subject()}
               onInput={(e) => {
                 props.onSubjectChange(e.currentTarget.value);
               }}
               onKeyDown={(e) => {
-                if (e.key !== "Escape") return;
+                if (e.key !== 'Escape') return;
                 e.preventDefault();
                 e.currentTarget.blur();
               }}
-              placeholder={t("Subject")}
+              placeholder="Subject"
             />
           </div>
         </>
@@ -239,21 +238,19 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
         <RecipientDropRow
           field="to"
           class={cn(
-            "w-full gap-2 min-h-16 border-b border-edge-muted/70 focus-within:border-accent",
-            "items-center py-2",
+            'w-full gap-2 min-h-16 border-b border-edge-muted/70 focus-within:border-ink/20',
+            'items-center py-2'
           )}
           dragState={recipientDragState}
           onDrop={handleRecipientDrop}
         >
-          <div class="shrink-0 text-ink-placeholder">{t("To")}:</div>
+          <div class="shrink-0 text-ink-placeholder">To:</div>
           <RecipientInput field="to" mobile />
           <Button
             variant="ghost"
             size="icon-sm"
             class="shrink-0 rounded-full bg-transparent text-ink-placeholder"
-            tooltip={
-              mobileDrawerCcBccOpen() ? t("Hide Cc/Bcc") : t("Show Cc/Bcc")
-            }
+            tooltip={mobileDrawerCcBccOpen() ? 'Hide Cc/Bcc' : 'Show Cc/Bcc'}
             aria-expanded={mobileDrawerCcBccOpen()}
             onClick={toggleMobileDrawerCcBcc}
           >
@@ -270,13 +267,13 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
           <RecipientDropRow
             field="cc"
             class={cn(
-              "w-full gap-2 min-h-16 border-b border-edge-muted/70 focus-within:border-accent",
-              "items-center py-2",
+              'w-full gap-2 min-h-16 border-b border-edge-muted/70 focus-within:border-ink/20',
+              'items-center py-2'
             )}
             dragState={recipientDragState}
             onDrop={handleRecipientDrop}
           >
-            <div class="shrink-0 text-ink-placeholder">{t("Cc")}:</div>
+            <div class="shrink-0 text-ink-placeholder">Cc:</div>
             <RecipientInput field="cc" mobile />
           </RecipientDropRow>
         </Show>
@@ -285,13 +282,13 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
           <RecipientDropRow
             field="bcc"
             class={cn(
-              "w-full gap-2 min-h-16 border-b border-edge-muted/70 focus-within:border-accent",
-              "items-center py-2",
+              'w-full gap-2 min-h-16 border-b border-edge-muted/70 focus-within:border-ink/20',
+              'items-center py-2'
             )}
             dragState={recipientDragState}
             onDrop={handleRecipientDrop}
           >
-            <div class="shrink-0 text-ink-placeholder">{t("Bcc")}:</div>
+            <div class="shrink-0 text-ink-placeholder">Bcc:</div>
             <RecipientInput field="bcc" mobile />
           </RecipientDropRow>
         </Show>
@@ -300,7 +297,7 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
           class="min-h-14 border-b border-edge-muted/70 flex items-center min-w-0"
           data-corvu-no-drag=""
         >
-          <span class="shrink-0 text-ink-placeholder">{t("From")}:&nbsp;</span>
+          <span class="shrink-0 text-ink-placeholder">From:&nbsp;</span>
           <FromInboxSelector
             compact
             class="min-w-0 truncate text-ink-muted"
@@ -320,11 +317,11 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
               props.onSubjectChange(e.currentTarget.value);
             }}
             onKeyDown={(e) => {
-              if (e.key !== "Escape") return;
+              if (e.key !== 'Escape') return;
               e.preventDefault();
               e.currentTarget.blur();
             }}
-            placeholder={t("Subject:")}
+            placeholder="Subject:"
           />
         </div>
       </div>

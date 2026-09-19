@@ -1,6 +1,5 @@
-import { getAppCapabilities } from '@core/constant/featureFlags';
 import { isTokenExpired } from '@core/signal/token';
-import { createCollabSurfaceToken } from '@queries/storage/collab-surface-token';
+import { storageServiceClient } from '@service-storage/client';
 
 type Token = string;
 
@@ -19,17 +18,14 @@ const surfaceTokenCache = new Map<string, Token>();
 export async function getCollabSurfaceToken(
   surfaceId: string
 ): Promise<string | undefined> {
-  const capabilities = getAppCapabilities();
-  if (!capabilities.docsCollab) {
-    return undefined;
-  }
-
   const cached = surfaceTokenCache.get(surfaceId);
   if (cached && !isTokenExpired(cached)) {
     return cached;
   }
 
-  const response = await createCollabSurfaceToken(surfaceId);
+  const response = await storageServiceClient.collabSurfaces.createToken({
+    id: surfaceId,
+  });
   if (response.isErr()) {
     console.error('failed to mint collab surface token', response.error);
     return undefined;

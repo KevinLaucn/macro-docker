@@ -14,7 +14,6 @@
 
 import { buildConfig } from '@core/component/LexicalMarkdown/builder/MarkdownConfigBuilder';
 import { MarkdownShell } from '@core/component/LexicalMarkdown/builder/MarkdownShell';
-import { t } from '@macro/i18n';
 import XIcon from '@phosphor-icons/core/regular/x.svg?component-solid';
 import { Button, Surface } from '@ui';
 import {
@@ -33,6 +32,8 @@ export type QueuedPromptItem = {
   kind: string;
   /** The prompt's raw text, absent for a compact. */
   prompt?: string;
+  /** Files the prompt refers to; an edit keeps them, only the text changes. */
+  attachments?: { name: string; mimeType?: string | null }[];
   /** Who queued it, when it was somebody other than the current user. */
   queuedBy?: string;
 };
@@ -141,16 +142,16 @@ function QueuedRow(props: QueuedRowProps) {
             <PromptBody {...props} />
           </Show>
           <div class="text-xs text-ink-extra-muted">
-            {t('Queued')}
+            Queued
             <Show when={props.item.queuedBy}>
-              {(name) => <>{t(' by {name}', { name: name() })}</>}
+              {(name) => <> by {name()}</>}
             </Show>
           </div>
         </div>
         <Button
           variant="ghost"
           size="icon-sm"
-          label={t('Remove queued message')}
+          label="Remove queued message"
           onClick={() => props.onRemove()}
           class="shrink-0"
         >
@@ -235,6 +236,22 @@ function PromptBody(props: QueuedRowProps) {
   return (
     <div class="text-sm text-ink" onFocusOut={flush}>
       <MarkdownShell config={editor} initialValue={props.item.prompt} />
+      {/* Attached files ride the prompt as-is: an edit rewrites the text and
+          keeps them, so they are shown but not editable here. */}
+      <Show when={props.item.attachments?.length}>
+        <div
+          class="flex flex-wrap gap-1 pt-1 text-xs text-ink-muted"
+          data-testid="agent-queued-attachments"
+        >
+          <For each={props.item.attachments}>
+            {(attachment) => (
+              <span class="rounded-xs border border-edge-muted px-1.5 py-0.5">
+                {attachment.name}
+              </span>
+            )}
+          </For>
+        </div>
+      </Show>
     </div>
   );
 }
@@ -261,7 +278,7 @@ function CompactBody(props: QueuedRowProps) {
         }
       }}
     >
-      {t('Compact the conversation')}
+      Compact the conversation
     </div>
   );
 }

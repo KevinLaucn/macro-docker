@@ -366,16 +366,7 @@ export class Websocket<Send = WebsocketData, Receive = WebsocketData> {
 
       // The websocket may have been closed by the user while the url was
       // resolving (e.g. a token fetch); don't open a connection nobody owns.
-      if (
-        this._closedByUser ||
-        !url ||
-        url === '' ||
-        url === 'disabled' ||
-        (typeof window !== 'undefined' &&
-          window.location.hostname !== 'app.macro.com' &&
-          url.includes('macro.com'))
-      ) {
-        this.connectionState = WebsocketConnectionState.Closed;
+      if (this._closedByUser) {
         return;
       }
 

@@ -113,7 +113,4 @@ build-local force="":
       exit 0
     fi
     echo "building $tag (native platform; flake has x86_64-linux and aarch64-linux)"
-    docker build \
-      --tag "$tag" \
-      -f crates/agent_harness/container/Dockerfile.local \
-      .
+    docker build --tag "$tag" container

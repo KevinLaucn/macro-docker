@@ -17,7 +17,6 @@ import {
   openFilePicker,
   openFolderPicker,
 } from '@core/util/upload';
-import { t } from '@macro/i18n';
 import BuildingsIcon from '@phosphor/buildings.svg';
 import ChevronDownIcon from '@phosphor/caret-down.svg';
 import PlusCircleIcon from '@phosphor/plus-circle.svg';
@@ -29,7 +28,7 @@ import { useMaybeSoupView } from './soup-view-context';
 
 // Which blocks to show as create options per view, in order
 const VIEW_CREATE_BLOCKNAMES: Partial<Record<ListView, CreatableName[]>> = {
-  documents: ['md', 'snippet', 'canvas', 'code', 'project'],
+  documents: ['md', 'snippet', 'spreadsheet', 'canvas', 'code', 'project'],
   tasks: ['task'],
   agents: ['agent', 'chat', 'automation', 'skill'],
   mail: ['email'],
@@ -45,17 +44,17 @@ type CreateOption = {
 
 const IMPORT_FILE_OPTION: CreateOption = {
   id: 'import-file',
-  label: t('Import file'),
+  label: 'Import file',
 };
 const IMPORT_FOLDER_OPTION: CreateOption = {
   id: 'import-folder',
-  label: t('Import folder'),
+  label: 'Import folder',
 };
 // Companies aren't blocks, so the Customers view gets a bespoke option
 // that opens the create-company modal instead of a create action.
 const CREATE_COMPANY_OPTION: CreateOption = {
   id: 'create-company',
-  label: t('Company'),
+  label: 'Company',
 };
 
 /**
@@ -65,7 +64,6 @@ const CREATE_COMPANY_OPTION: CreateOption = {
  */
 const VIEW_ONLY_BLOCK_LABELS: Partial<Record<CreatableName, string>> = {
   automation: 'Automation',
-  agent: 'Agent',
 };
 
 const VIEW_CREATE_LABELS: Partial<Record<ListView, string>> = {
@@ -85,15 +83,13 @@ function getViewCreateOptions(
 ): CreateOption[] {
   const createNames = VIEW_CREATE_BLOCKNAMES[view] ?? [];
   const options: CreateOption[] = createNames.flatMap((name) => {
-    const block = CREATABLE_BLOCKS.find((b) =>
-      name === 'agent' ? b.blockName === 'chat' : b.blockName === name
-    );
+    const block = CREATABLE_BLOCKS.find((b) => b.blockName === name);
     if (block) {
       // A flagged-off entry is not offered here either, the same as in the
       // create menus — `runCreateAction` would decline it anyway. Asked
       // reactively, so an option appears once its flag resolves.
       if (!isCreatableEnabled(block.blockName)) return [];
-      return [{ id: name, label: name === 'agent' ? 'Agent' : block.label }];
+      return [{ id: block.blockName, label: block.label }];
     }
     const viewOnlyLabel = VIEW_ONLY_BLOCK_LABELS[name];
     if (viewOnlyLabel) return [{ id: name, label: viewOnlyLabel }];
@@ -204,7 +200,7 @@ export const SoupViewCreateButton = () => {
     >
       <PlusCircleIcon class="size-3.5 text-accent" />
       <Show when={!props.hideLabel}>
-        <span>{t(createLabel())}</span>
+        <span>{createLabel()}</span>
       </Show>
     </Button>
   );
@@ -220,7 +216,7 @@ export const SoupViewCreateButton = () => {
       >
         <PlusCircleIcon class="size-3.5" />
         <Show when={!props.hideLabel}>
-          <span>{t(createLabel())}</span>
+          <span>{createLabel()}</span>
         </Show>
         <ChevronDownIcon class="size-2.5" />
       </Dropdown.Trigger>
@@ -232,9 +228,7 @@ export const SoupViewCreateButton = () => {
                 <span class="size-3.5 flex items-center justify-center shrink-0 text-ink-muted">
                   <CreateOptionIcon id={item.id} />
                 </span>
-                <span class="flex-1 truncate text-ink-muted">
-                  {t(item.label)}
-                </span>
+                <span class="flex-1 truncate text-ink-muted">{item.label}</span>
               </Dropdown.Item>
             )}
           </For>

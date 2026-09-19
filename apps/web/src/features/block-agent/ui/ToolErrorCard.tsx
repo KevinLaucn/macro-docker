@@ -9,7 +9,6 @@
  */
 
 import { Collapsible } from '@kobalte/core/collapsible';
-import { t } from '@macro/i18n';
 import CaretRight from '@phosphor/caret-right.svg';
 import Check from '@phosphor/check.svg';
 import Copy from '@phosphor/copy.svg';
@@ -64,9 +63,9 @@ export function ToolErrorCard(props: ToolErrorCardProps) {
   /** First "head: rest" segment of the error, capitalized; "Failed" if none. */
   const subtitle = createMemo(() => {
     const parts = tail().split(': ');
-    if (parts.length <= 1) return t('Failed');
+    if (parts.length <= 1) return 'Failed';
     const head = (parts[0] ?? '').trim();
-    if (!head) return t('Failed');
+    if (!head) return 'Failed';
     return head[0].toUpperCase() + head.slice(1);
   });
 
@@ -118,7 +117,7 @@ export function ToolErrorCard(props: ToolErrorCardProps) {
             size="sm"
             noTouchResize
             class="shrink-0 px-1 text-ink-extra-muted hover:text-ink-muted"
-            aria-label={copied() ? t('Copied') : t('Copy error')}
+            aria-label={copied() ? 'Copied' : 'Copy error'}
             onMouseDown={(event) => event.preventDefault()}
             onClick={(event) => {
               event.stopPropagation();

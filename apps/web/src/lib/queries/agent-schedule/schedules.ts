@@ -1,4 +1,3 @@
-import { getAppCapabilities } from '@core/constant/featureFlags';
 import { throwOnErr } from '@core/util/result';
 import { queryClient } from '@queries/client';
 import { type MutationCallbacks, withCallbacks } from '@queries/utils';
@@ -43,20 +42,13 @@ function removeSchedule(scheduleId: string) {
   );
 }
 
-const NO_SCHEDULES: ScheduledAction[] = [];
-
 export function useSchedulesQuery(enabled: Accessor<boolean>) {
-  const capabilities = getAppCapabilities();
   return useQuery(() => ({
     queryKey: scheduledActionKeys.list.queryKey,
-    enabled: capabilities.scheduledActions && enabled(),
-    queryFn: async () => {
-      if (!capabilities.scheduledActions) return NO_SCHEDULES;
-      return throwOnErr(
-        async () => await scheduledActionClient.listSchedules()
-      );
-    },
-    placeholderData: NO_SCHEDULES,
+    enabled: enabled(),
+    queryFn: async () =>
+      throwOnErr(async () => await scheduledActionClient.listSchedules()),
+    placeholderData: (prev: ScheduledAction[] | undefined) => prev,
     reconcile: 'id',
     ...QUERY_REFETCH_BEHAVIOR,
   }));
@@ -66,7 +58,6 @@ export function useScheduleHistoryQuery(
   scheduleId: Accessor<string | null | undefined>,
   enabled: Accessor<boolean>
 ) {
-  const capabilities = getAppCapabilities();
   return useQuery(() => {
     const currentScheduleId = scheduleId();
 
@@ -74,19 +65,14 @@ export function useScheduleHistoryQuery(
       queryKey: scheduledActionKeys.history({
         scheduleId: currentScheduleId ?? '__none__',
       }).queryKey,
-      enabled:
-        capabilities.scheduledActions &&
-        enabled() &&
-        Boolean(currentScheduleId),
-      queryFn: async () => {
-        if (!capabilities.scheduledActions || !currentScheduleId) return [];
-        return throwOnErr(
+      enabled: enabled() && Boolean(currentScheduleId),
+      queryFn: async () =>
+        throwOnErr(
           async () =>
             await scheduledActionClient.listHistory({
               scheduleId: currentScheduleId!,
             })
-        );
-      },
+        ),
       placeholderData: (prev: ActionExecutionRecord[] | undefined) => prev,
       ...QUERY_REFETCH_BEHAVIOR,
     };

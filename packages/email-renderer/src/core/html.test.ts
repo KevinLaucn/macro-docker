@@ -253,28 +253,6 @@ describe('content and resource policy', () => {
     expect(result.html).toContain('background="https://example.com/table"');
     expect(result.html.match(/proxy\.test/g)).toHaveLength(1);
   });
-  it('allows a caller to bypass the proxy for first-party image URLs', () => {
-    const result = prepareEmailBody(
-      {
-        html: '<img src="https://chat.example/static-file/file/one"><img src="https://external.example/image.png">',
-      },
-      {
-        images: {
-          remote: 'allow',
-          proxyUrl: (url) =>
-            url.includes('/static-file/file/')
-              ? undefined
-              : `https://proxy.test/image?url=${encodeURIComponent(url)}`,
-        },
-      }
-    );
-    expect(result.html).toContain(
-      'src="https://chat.example/static-file/file/one"'
-    );
-    expect(result.html).toContain(
-      'https://proxy.test/image?url=https%3A%2F%2Fexternal.example%2Fimage.png'
-    );
-  });
   it('keeps CID and raster data images, excluding SVG data images', () => {
     const result = sanitizeEmailHtml(
       '<img src="cid:part"><img src="data:image/png;base64,AAAA"><img src="data:image/svg+xml;base64,AAAA">'

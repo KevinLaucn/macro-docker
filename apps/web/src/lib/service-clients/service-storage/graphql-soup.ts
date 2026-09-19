@@ -235,54 +235,21 @@ export async function dssGraphqlFetch(
   input: RequestInfo | URL,
   init?: RequestInit
 ): Promise<Response> {
-  try {
-    const transportInit = graphqlSoupTransportRequest(init);
-    const response = await authorizedDssGraphqlFetch(input, transportInit);
-    if (!response.ok && response.status !== 401) {
-      return new Response(
-        JSON.stringify({
-          data: {
-            soupItems: {
-              edges: [],
-              pageInfo: { hasNextPage: false, endCursor: null },
-            },
-          },
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-    const legacyInit = legacyProjectionRequest(transportInit);
-    if (
-      legacyInit === undefined ||
-      !(await isLegacyProjectionValidationError(response))
-    ) {
-      return response;
-    }
-
-    // A mixed deployment remains network-correct: retry without the additive
-    // metadata field and suppress v2 local authority for this session. Backfill
-    // still refuses to checkpoint missing required Document supplements.
-    soupProjectionServerSupported = false;
-    return await authorizedDssGraphqlFetch(input, legacyInit);
-  } catch {
-    return new Response(
-      JSON.stringify({
-        data: {
-          soupItems: {
-            edges: [],
-            pageInfo: { hasNextPage: false, endCursor: null },
-          },
-        },
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+  const transportInit = graphqlSoupTransportRequest(init);
+  const response = await authorizedDssGraphqlFetch(input, transportInit);
+  const legacyInit = legacyProjectionRequest(transportInit);
+  if (
+    legacyInit === undefined ||
+    !(await isLegacyProjectionValidationError(response))
+  ) {
+    return response;
   }
+
+  // A mixed deployment remains network-correct: retry without the additive
+  // metadata field and suppress v2 local authority for this session. Backfill
+  // still refuses to checkpoint missing required Document supplements.
+  soupProjectionServerSupported = false;
+  return await authorizedDssGraphqlFetch(input, legacyInit);
 }
 
 const graphqlSoupClient = createClient({
@@ -636,6 +603,9 @@ function mapDocumentSubType(subType: GraphqlSoupDocument['subType']) {
     .with({ __typename: 'GraphqlSkillSubType' }, () => ({
       type: 'skill' as const,
     }))
+    .with({ __typename: 'GraphqlInitiativeDescriptionSubType' }, () => {
+      return undefined;
+    })
     .exhaustive();
 }
 
@@ -761,6 +731,8 @@ function mapGraphqlNotificationMetadata(
             text: metadata.mentionedInDocumentCommentText,
             senderProfilePictureUrl:
               metadata.mentionedInDocumentCommentSenderProfilePictureUrl,
+            senderDisplayName:
+              metadata.mentionedInDocumentCommentSenderDisplayName,
           },
         }) satisfies NotifEventMember<'mentioned_in_document_comment'>
     )
@@ -781,6 +753,8 @@ function mapGraphqlNotificationMetadata(
             text: metadata.repliedToDocumentCommentThreadText,
             senderProfilePictureUrl:
               metadata.repliedToDocumentCommentThreadSenderProfilePictureUrl,
+            senderDisplayName:
+              metadata.repliedToDocumentCommentThreadSenderDisplayName,
           },
         }) satisfies NotifEventMember<'replied_to_document_comment_thread'>
     )
@@ -801,6 +775,7 @@ function mapGraphqlNotificationMetadata(
             text: metadata.commentedOnDocumentText,
             senderProfilePictureUrl:
               metadata.commentedOnDocumentSenderProfilePictureUrl,
+            senderDisplayName: metadata.commentedOnDocumentSenderDisplayName,
           },
         }) satisfies NotifEventMember<'commented_on_document'>
     )

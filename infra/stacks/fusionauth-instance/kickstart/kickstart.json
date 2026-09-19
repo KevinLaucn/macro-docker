@@ -18,6 +18,20 @@
           "type": "HMAC"
         }
       }
+    },
+    {
+      "method": "POST",
+      "url": "/api/user/registration",
+      "body": {
+        "user": {
+          "email": "admin@macro.com",
+          "password": "macroIsGreat!"
+        },
+        "registration": {
+          "applicationId": "3c219e58-ed0e-4b18-ad48-f4f92793ae32",
+          "roles": ["admin"]
+        }
+      }
     }
   ]
 }

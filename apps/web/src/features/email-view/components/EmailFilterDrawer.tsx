@@ -1,7 +1,6 @@
 import { MobileFilterDrawer } from '@app/components/view-shell/MobileFilterDrawer';
 import { MobileDrawer } from '@components/app/mobile/MobileDrawer';
 import { Accordion } from '@kobalte/core/accordion';
-import { t } from '@macro/i18n';
 import { batch, For } from 'solid-js';
 import { useEmailView } from '../email-view-context';
 import { useEmailFilters } from '../filters/use-email-filters';
@@ -16,7 +15,7 @@ export function EmailFilterDrawer() {
   return (
     <MobileFilterDrawer
       triggerLabel="Open email filters"
-      label={t('Email filters@@email')}
+      label="Email filters"
       activeCount={
         filters.activeCount() + (state.inboxIds === undefined ? 0 : 1)
       }

@@ -2,19 +2,12 @@ use super::*;
 use sqlx::{Pool, Postgres};
 
 async fn insert_macro_user(pool: &Pool<Postgres>, id: Uuid) -> anyhow::Result<()> {
-    let suffix = id.to_string();
-    let username = format!("tester-{suffix}");
-    let email = format!("tester-{suffix}@example.com");
-    let stripe_customer_id = format!("cus_{suffix}");
     sqlx::query!(
         r#"
         INSERT INTO macro_user (id, username, email, stripe_customer_id)
-        VALUES ($1, $2, $3, $4)
+        VALUES ($1, 'tester', 'tester@example.com', 'cus_test')
         "#,
-        &id,
-        username,
-        email,
-        stripe_customer_id
+        &id
     )
     .execute(pool)
     .await?;
@@ -92,65 +85,6 @@ async fn count_excludes_expired_links(pool: Pool<Postgres>) -> anyhow::Result<()
     assert_eq!(
         count, 1,
         "in-progress links older than 24 hours should not count toward the cap"
-    );
-
-    Ok(())
-}
-
-#[sqlx::test]
-async fn deletes_only_expired_uncompleted_links_for_user(
-    pool: Pool<Postgres>,
-) -> anyhow::Result<()> {
-    let macro_user_id = macro_uuid::generate_uuid_v7();
-    let other_macro_user_id = macro_uuid::generate_uuid_v7();
-    insert_macro_user(&pool, macro_user_id).await?;
-    insert_macro_user(&pool, other_macro_user_id).await?;
-
-    let expired_uncompleted =
-        create_in_progress_user_link(&pool, &macro_user_id.to_string()).await?;
-    let expired_completed = create_in_progress_user_link(&pool, &macro_user_id.to_string()).await?;
-    set_linked_email(&pool, &expired_completed, "linked@example.com").await?;
-    let fresh_uncompleted = create_in_progress_user_link(&pool, &macro_user_id.to_string()).await?;
-    let other_user_expired =
-        create_in_progress_user_link(&pool, &other_macro_user_id.to_string()).await?;
-
-    let stale_created_at = chrono::Utc::now().naive_utc() - chrono::Duration::hours(25);
-    for link_id in [expired_uncompleted, expired_completed, other_user_expired] {
-        sqlx::query!(
-            r#"
-                UPDATE in_progress_user_link
-                SET created_at = $1
-                WHERE id = $2
-            "#,
-            stale_created_at,
-            link_id
-        )
-        .execute(&pool)
-        .await?;
-    }
-
-    delete_expired_uncompleted_in_progress_user_links_for_user(&pool, &macro_user_id.to_string())
-        .await?;
-
-    assert!(
-        get_in_progress_user_link(&pool, &expired_uncompleted)
-            .await
-            .is_err()
-    );
-    assert!(
-        get_in_progress_user_link(&pool, &expired_completed)
-            .await
-            .is_ok()
-    );
-    assert!(
-        get_in_progress_user_link(&pool, &fresh_uncompleted)
-            .await
-            .is_ok()
-    );
-    assert!(
-        get_in_progress_user_link(&pool, &other_user_expired)
-            .await
-            .is_ok()
     );
 
     Ok(())

@@ -1,33 +1,26 @@
 use std::collections::HashMap;
-#[cfg(feature = "full-processing")]
 use std::str::FromStr;
 
+use model::document::FileType;
+use models_properties::EntityType;
 use sqlx::PgPool;
-use sqs_client::search::{SearchQueueMessage, email::EmailThreadBatchMessage};
-#[cfg(feature = "full-processing")]
-use {
-    model::document::FileType,
-    models_properties::EntityType,
-    sqs_client::search::{
-        calendar_event::UpsertCalendarEvent, call::CallRecordMessage,
-        channel::ChannelMessageUpdate, chat::ChatMessage, project::UpsertProject,
-    },
+use sqs_client::search::{
+    SearchQueueMessage, calendar_event::UpsertCalendarEvent, call::CallRecordMessage,
+    channel::ChannelMessageUpdate, chat::ChatMessage, email::EmailThreadBatchMessage,
+    project::UpsertProject,
 };
 
 use crate::config::BackfillPageSizes;
-use crate::domain::models::{BackfillError, EmailBackfillRequest, SourcePage};
-#[cfg(feature = "full-processing")]
 use crate::domain::models::{
-    CalendarEventBackfillCursor, CalendarEventBackfillRequest, CallBackfillCursor,
+    BackfillError, CalendarEventBackfillCursor, CalendarEventBackfillRequest, CallBackfillCursor,
     CallBackfillRequest, ChannelBackfillRequest, ChatBackfillCursor, ChatBackfillRequest,
-    DocumentBackfillCursor, DocumentBackfillRequest, ProjectBackfillCursor, ProjectBackfillRequest,
-    PropertiesBackfillRequest, PropertySourcePage,
+    DocumentBackfillCursor, DocumentBackfillRequest, EmailBackfillRequest, ProjectBackfillCursor,
+    ProjectBackfillRequest, PropertiesBackfillRequest, PropertySourcePage, SourcePage,
 };
 use crate::domain::ports::BackfillSource;
 
 const DEFAULT_EMAIL_BATCH_SIZE: usize = 50;
 
-#[cfg(feature = "full-processing")]
 /// Page size for the properties backfill's distinct-entity-id scan. A fixed
 /// value rather than a config knob: property rows are few and each entity is
 /// reindexed directly.
@@ -48,7 +41,6 @@ impl PgBackfillSource {
 }
 
 impl BackfillSource for PgBackfillSource {
-    #[cfg(feature = "full-processing")]
     async fn fetch_calls(
         &self,
         req: &CallBackfillRequest,
@@ -142,7 +134,6 @@ impl BackfillSource for PgBackfillSource {
         ))
     }
 
-    #[cfg(feature = "full-processing")]
     async fn fetch_chats(
         &self,
         req: &ChatBackfillRequest,
@@ -193,7 +184,6 @@ impl BackfillSource for PgBackfillSource {
         ))
     }
 
-    #[cfg(feature = "full-processing")]
     async fn fetch_channels(
         &self,
         req: &ChannelBackfillRequest,
@@ -226,7 +216,6 @@ impl BackfillSource for PgBackfillSource {
         })
     }
 
-    #[cfg(feature = "full-processing")]
     async fn fetch_documents(
         &self,
         req: &DocumentBackfillRequest,
@@ -348,7 +337,6 @@ impl BackfillSource for PgBackfillSource {
         ))
     }
 
-    #[cfg(feature = "full-processing")]
     async fn fetch_entity_properties(
         &self,
         req: &PropertiesBackfillRequest,
@@ -375,7 +363,6 @@ impl BackfillSource for PgBackfillSource {
         })
     }
 
-    #[cfg(feature = "full-processing")]
     async fn fetch_calendar_events(
         &self,
         req: &CalendarEventBackfillRequest,
@@ -416,7 +403,6 @@ impl BackfillSource for PgBackfillSource {
         ))
     }
 
-    #[cfg(feature = "full-processing")]
     async fn fetch_projects(
         &self,
         req: &ProjectBackfillRequest,

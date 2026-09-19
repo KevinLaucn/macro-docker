@@ -1,9 +1,4 @@
 export {
-  AwaitingReplyTag,
-  type AwaitingReplyTagProps,
-  useAwaitingReplyTagOption,
-} from './AwaitingReplyTag';
-export {
   EntityRowTags,
   InlineEntityTagsPill,
   InlineFetchedEntityTagsPill,

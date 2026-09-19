@@ -1,7 +1,7 @@
 #![recursion_limit = "256"]
 use std::{sync::Arc, time::Duration};
 
-#[cfg(feature = "full-processing")]
+#[cfg(feature = "processing")]
 use crate::inbound::kafka_consumer::{KafkaProcessingContext, run_event_consumer};
 use crate::{
     api::context::{ApiContext, AuthorizationService},
@@ -15,32 +15,29 @@ use crate::{
 };
 use anyhow::Context;
 use config::{Config, Environment};
-#[cfg(feature = "full-processing")]
 use lexical_client::LexicalClient;
 use macro_authorization::{
     InternalAuthConfig, MacroAuthorizationState, NoopMacroAuthJwtValidator,
     PgUserApiKeyAuthorizationRepo, PgUserApiKeyAuthorizer,
 };
 use macro_entrypoint::MacroEntrypoint;
-#[cfg(feature = "full-processing")]
 use macro_event_broker::{KafkaEventPublisher, MacroEventBrokerService};
 use opensearch_client::OpensearchClient;
 #[cfg(feature = "pdf")]
 use rust_embed::RustEmbed;
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
-#[cfg(feature = "full-processing")]
+#[cfg(feature = "processing")]
 use tokio_retry::{Retry, strategy::FixedInterval};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 mod api;
 mod config;
 mod domain;
-#[cfg(feature = "full-processing")]
+#[cfg(feature = "processing")]
 #[allow(dead_code)] // Wired into service startup with the Kafka configuration.
 mod inbound;
 mod outbound;
-#[cfg(feature = "full-processing")]
 mod parsers;
 mod process;
 
@@ -92,12 +89,11 @@ async fn resolve_readonly_pool(read_only_db_url: DatabaseUrlReadonly) -> Option<
 #[folder = "pdfium-lib/linux/"]
 struct PdfiumLib;
 
-#[cfg(feature = "full-processing")]
+#[cfg(feature = "processing")]
 const CONSUMER_RESTART_DELAY: Duration = Duration::from_secs(5);
-#[cfg(feature = "full-processing")]
 const EVENT_BROKER_DRAIN_TIMEOUT: Duration = Duration::from_secs(10);
 
-#[cfg(feature = "full-processing")]
+#[cfg(feature = "processing")]
 async fn supervise_event_consumer(
     brokers: String,
     context: KafkaProcessingContext,
@@ -254,16 +250,14 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     let shutdown_token = CancellationToken::new();
-    #[cfg(feature = "full-processing")]
     let event_broker_tracker = TaskTracker::new();
-    #[cfg(feature = "full-processing")]
     let macro_event_broker = MacroEventBrokerService::new(
         KafkaEventPublisher::new(config.kafka_brokers.as_ref())
             .context("failed to create kafka event publisher")?,
         event_broker_tracker.clone(),
     );
 
-    #[cfg(feature = "full-processing")]
+    #[cfg(feature = "processing")]
     let consumer_supervisor = {
         // Ensures that pdfium binary exists so we can kill the container early on failure
         #[cfg(feature = "pdf")]
@@ -273,7 +267,6 @@ async fn main() -> anyhow::Result<()> {
             tracing::trace!("libpdfium is present");
         }
 
-        #[cfg(feature = "full-processing")]
         let lexical_client = Arc::new(LexicalClient::new(
             config.internal_api_key.to_string(),
             config.lexical_service_url.clone(),
@@ -291,7 +284,6 @@ async fn main() -> anyhow::Result<()> {
             document_storage_bucket: config.document_storage_bucket.to_string(),
             s3_client: s3_client.clone(),
             opensearch_client: opensearch_client.clone(),
-            #[cfg(feature = "full-processing")]
             lexical_client: lexical_client.clone(),
             calendar_search_enabled: config.calendar_search_enabled,
         };
@@ -335,7 +327,6 @@ async fn main() -> anyhow::Result<()> {
             config: Arc::new(config),
             backfill_service,
             backfill_jobs,
-            #[cfg(feature = "full-processing")]
             macro_event_broker,
         },
         shutdown_token.clone(),
@@ -343,28 +334,25 @@ async fn main() -> anyhow::Result<()> {
     .await;
 
     shutdown_token.cancel();
-    #[cfg(feature = "full-processing")]
+    #[cfg(feature = "processing")]
     let consumer_result = consumer_supervisor
         .await
         .context("search processing event consumer supervisor failed");
 
-    #[cfg(feature = "full-processing")]
-    {
-        tracing::info!("waiting for event broker publishes to drain");
-        event_broker_tracker.close();
-        match tokio::time::timeout(EVENT_BROKER_DRAIN_TIMEOUT, event_broker_tracker.wait()).await {
-            Ok(()) => tracing::info!("event broker publishes drained"),
-            Err(error) => {
-                tracing::warn!(
-                    error=?error,
-                    timeout_seconds = EVENT_BROKER_DRAIN_TIMEOUT.as_secs(),
-                    "timed out waiting for event broker publishes to drain"
-                );
-            }
+    tracing::info!("waiting for event broker publishes to drain");
+    event_broker_tracker.close();
+    match tokio::time::timeout(EVENT_BROKER_DRAIN_TIMEOUT, event_broker_tracker.wait()).await {
+        Ok(()) => tracing::info!("event broker publishes drained"),
+        Err(error) => {
+            tracing::warn!(
+                error=?error,
+                timeout_seconds = EVENT_BROKER_DRAIN_TIMEOUT.as_secs(),
+                "timed out waiting for event broker publishes to drain"
+            );
         }
     }
 
-    #[cfg(feature = "full-processing")]
+    #[cfg(feature = "processing")]
     consumer_result?;
     api_result
 }

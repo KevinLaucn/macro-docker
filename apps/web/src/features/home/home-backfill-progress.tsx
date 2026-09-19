@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import ArrowsClockwiseIcon from '@phosphor-icons/core/regular/arrows-clockwise.svg?component-solid';
 import {
   type BackfillProgress,
@@ -56,7 +55,7 @@ export function HomeBackfillProgress() {
         <div class="flex items-center justify-between gap-3">
           <div class="flex min-w-0 items-center gap-2">
             <ArrowsClockwiseIcon class="size-3.5 shrink-0 animate-spin text-ink-muted" />
-            <span class="text-sm text-ink">{t('Importing your inbox')}</span>
+            <span class="text-sm text-ink">Importing your inbox</span>
           </div>
           <Show when={active().length > 0}>
             <span class="shrink-0 text-xs tabular-nums text-ink-muted">

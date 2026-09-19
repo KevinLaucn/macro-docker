@@ -1,7 +1,6 @@
 import { useSplitLayout } from '@components/app/split-layout/layout';
 import { toast } from '@core/component/Toast/Toast';
 import { createControlledOpenSignal } from '@core/util/createControlledOpenSignal';
-import { t } from '@macro/i18n';
 import { useCreateScheduleMutation } from '@queries/agent-schedule/schedules';
 import { debounce } from '@solid-primitives/scheduled';
 import { Button, cn, Dialog, Surface } from '@ui';
@@ -24,9 +23,9 @@ import {
   createEmptyDraft,
   describeSchedule,
   draftToCreateBody,
+  FREQUENCY_OPTIONS,
   getDefaultTimezone,
   getErrorMessage,
-  getFrequencyOptions,
   INPUT_CLASS,
   isValidTime,
   WEEKDAY_OPTIONS,
@@ -88,15 +87,15 @@ export function AutomationComposer() {
   );
 
   const formError = createMemo(() => {
-    if (!draft().prompt.trim()) return t('Prompt is required.');
-    if (!isValidTime(draft().time)) return t('Choose a valid time.');
+    if (!draft().prompt.trim()) return 'Prompt is required.';
+    if (!isValidTime(draft().time)) return 'Choose a valid time.';
     if (draft().frequency === 'week' && draft().daysOfWeek.length === 0) {
-      return t('Select at least one day.');
+      return 'Select at least one day.';
     }
     if (draft().frequency === 'month') {
       const day = Number(draft().dayOfMonth);
       if (!Number.isInteger(day) || day < 1 || day > 31) {
-        return t('Pick a day between 1 and 31.');
+        return 'Pick a day between 1 and 31.';
       }
     }
     return null;
@@ -112,12 +111,12 @@ export function AutomationComposer() {
           { referredFrom: 'launcher' }
         );
       }
-      toast.success(t('Automation created'), {
-        subtext: t('The automation is now scheduled.'),
+      toast.success('Automation created', {
+        subtext: 'The automation is now scheduled.',
       });
     },
     onError: (error) => {
-      toast.alert(t('Failed to create automation'), {
+      toast.alert('Failed to create automation', {
         subtext: getErrorMessage(error),
       });
     },
@@ -150,7 +149,7 @@ export function AutomationComposer() {
           <div class="flex cursor-default flex-col text-ink">
             <div class="flex items-center justify-between border-b border-edge-muted px-3 py-2">
               <Dialog.Title class="m-0 p-0 text-sm font-semibold">
-                {t('New Automation')}
+                New Automation
               </Dialog.Title>
               <Dialog.CloseButton as={Button} variant="ghost" size="icon-sm">
                 &times;
@@ -160,11 +159,11 @@ export function AutomationComposer() {
             <div class="grid max-h-[70vh] gap-3 overflow-y-auto p-3">
               <div class="grid gap-1.5">
                 <label class="text-xs font-medium text-ink-muted cursor-default">
-                  {t('Name', { context: 'automation' })}
+                  Name
                 </label>
                 <input
                   class={INPUT_CLASS}
-                  placeholder={t('e.g. Morning standup summary')}
+                  placeholder="e.g. Morning standup summary"
                   value={draft().name}
                   onInput={(event) =>
                     setDraft((current) => ({
@@ -177,7 +176,7 @@ export function AutomationComposer() {
 
               <div class="grid gap-1.5">
                 <label class="text-xs font-medium text-ink-muted cursor-default">
-                  {t('Instructions')}
+                  Instructions
                 </label>
                 <AutomationPromptEditor
                   initialValue={initialPrompt()}
@@ -192,14 +191,14 @@ export function AutomationComposer() {
 
               <div class="grid gap-3 border border-edge-muted rounded-sm p-3">
                 <div>
-                  <p class="text-sm font-semibold">{t('Schedule')}</p>
+                  <p class="text-sm font-semibold">Schedule</p>
                   <p class="mt-0.5 text-xs text-ink-muted">
                     {currentSummary()}
                   </p>
                 </div>
 
                 <div class="flex flex-wrap gap-1">
-                  <For each={getFrequencyOptions()}>
+                  <For each={FREQUENCY_OPTIONS}>
                     {(option) => (
                       <button
                         type="button"
@@ -220,7 +219,7 @@ export function AutomationComposer() {
                 <Show when={draft().frequency === 'week'}>
                   <div class="grid gap-1.5">
                     <label class="text-xs font-medium text-ink-muted cursor-default">
-                      {t('Days')}
+                      Days
                     </label>
                     <div class="flex flex-wrap gap-1">
                       <For each={WEEKDAY_OPTIONS}>
@@ -247,7 +246,7 @@ export function AutomationComposer() {
                                 })
                               }
                             >
-                              {t(option.label)}
+                              {option.label}
                             </button>
                           );
                         }}
@@ -259,7 +258,7 @@ export function AutomationComposer() {
                 <Show when={draft().frequency === 'month'}>
                   <div class="grid gap-1.5">
                     <label class="text-xs font-medium text-ink-muted cursor-default">
-                      {t('Day of Month')}
+                      Day of Month
                     </label>
                     <input
                       type="number"
@@ -279,7 +278,7 @@ export function AutomationComposer() {
 
                 <div class="grid gap-1.5">
                   <label class="text-xs font-medium text-ink-muted cursor-default">
-                    {t('Time')}
+                    Time
                   </label>
                   <AutomationTimePicker
                     value={draft().time}
@@ -309,7 +308,7 @@ export function AutomationComposer() {
                 class="cursor-default"
                 onClick={() => setAutomationComposerOpen(false, false)}
               >
-                {t('Cancel', { context: 'automation' })}
+                Cancel
               </Button>
               <Button
                 variant="accent"
@@ -318,9 +317,7 @@ export function AutomationComposer() {
                 disabled={createMutation.isPending}
                 onClick={handleCreate}
               >
-                {createMutation.isPending
-                  ? t('Creating…')
-                  : t('Create', { context: 'automation' })}
+                {createMutation.isPending ? 'Creating…' : 'Create'}
               </Button>
             </div>
           </div>

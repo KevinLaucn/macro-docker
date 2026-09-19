@@ -1,30 +1,31 @@
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
-import BotIcon from '@icon/wide-bot.svg';
-import { t } from '@macro/i18n';
 import BellIcon from '@phosphor/bell-simple.svg';
 import BugIcon from '@phosphor/bug.svg';
 import BuildingsIcon from '@phosphor/buildings.svg';
 import CpuIcon from '@phosphor/cpu.svg';
 import CreditCardIcon from '@phosphor/credit-card.svg';
+import DeviceMobileIcon from '@phosphor/device-mobile-speaker.svg';
 import HardDrivesIcon from '@phosphor/hard-drives.svg';
 // PRIVATE-HOOK: self_host_health:settings_icon
 import HeartbeatIcon from '@phosphor/heartbeat.svg';
 import KeyIcon from '@phosphor/key.svg';
 import KeyboardIcon from '@phosphor/keyboard.svg';
 import PlugIcon from '@phosphor/plug.svg';
-import PuzzlePieceIcon from '@phosphor/puzzle-piece.svg';
-import RobotIcon from '@phosphor/robot.svg';
+import BotIcon from '@phosphor/robot.svg';
+import AgentIcon from '@phosphor/sparkle.svg';
 import SwatchesIcon from '@phosphor/swatches.svg';
 import TagIcon from '@phosphor/tag-simple.svg';
 import UserIconPhosphor from '@phosphor/user.svg';
 import UsersThreeIcon from '@phosphor/users-three.svg';
 import { type Component, createMemo } from 'solid-js';
+import { t } from '@macro/i18n';
 import { useHasPermission } from '../context/user';
 import { isNativeMobilePlatform } from '../mobile/isNativeMobilePlatform';
 import { isTouchDevice } from '../mobile/isTouchDevice';
 import {
   botManagement,
   DEV_MODE_ENV,
+  ENABLE_APP_STORE_QR_CODE,
   enableChatV3Agents,
   enableCrm,
   enableNotificationSettings,
@@ -60,8 +61,8 @@ export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
       { tab: 'Notifications', label: 'Notifications', icon: BellIcon },
       { tab: 'Billing', label: 'Billing', icon: CreditCardIcon },
       { tab: 'Appearance', label: 'Appearance', icon: SwatchesIcon },
+      { tab: 'Mobile App', label: 'Mobile App', icon: DeviceMobileIcon },
       { tab: 'Shortcuts', label: 'Shortcuts', icon: KeyboardIcon },
-      { tab: 'Extensions', label: 'Extensions', icon: PuzzlePieceIcon },
     ],
   },
   {
@@ -72,7 +73,7 @@ export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
       { tab: 'CRM', label: 'CRM', icon: BuildingsIcon },
       {
         tab: 'Connected',
-        label: 'Connections',
+        label: 'Integrations',
         icon: CpuIcon,
       },
       { tab: 'Agent', label: 'MCP server', icon: PlugIcon },
@@ -82,7 +83,7 @@ export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
   {
     label: 'Agents',
     items: [
-      { tab: 'Agents', label: 'Agents', icon: RobotIcon },
+      { tab: 'Agents', label: 'Agents', icon: AgentIcon },
       { tab: 'Harness', label: 'Harness', icon: HardDrivesIcon },
     ],
   },
@@ -117,6 +118,7 @@ const SETTINGS_TAB_SLUGS: Record<SettingsTab, string> = {
   'AI Memory': 'ai-memory',
   Inbox: 'inbox',
   Shortcuts: 'shortcuts',
+  'Mobile App': 'mobile-app',
   Agent: 'mcp-server',
   Agents: 'agents',
   Harness: 'harness',
@@ -130,7 +132,6 @@ const SETTINGS_TAB_SLUGS: Record<SettingsTab, string> = {
   Admin: 'admin',
   // PRIVATE-HOOK: self_host_health:settings_slug
   SelfHostHealth: 'health-check',
-  Extensions: 'extensions',
 };
 
 const SETTINGS_SLUG_TO_TAB = new Map<string, SettingsTab>(
@@ -178,7 +179,6 @@ export const useSettingsTabAvailable = () => {
       case 'Account':
       case 'API Keys':
       case 'Billing':
-      case 'Extensions':
         return true;
       case 'Notifications':
         return notificationSettingsFlag().enabled;
@@ -194,8 +194,10 @@ export const useSettingsTabAvailable = () => {
         return true;
       case 'Shortcuts':
         return !isTouchDevice();
+      case 'Mobile App':
+        return ENABLE_APP_STORE_QR_CODE && !isNativeMobilePlatform();
       case 'Agent':
-        return true;
+        return !isNativeMobilePlatform();
       // Configurable agents are still rolling out; keep both tabs behind the
       // same enable-chat-v3-agents gate as the channel mention surfaces, so
       // settings never advertises agents to a user who cannot mention one.

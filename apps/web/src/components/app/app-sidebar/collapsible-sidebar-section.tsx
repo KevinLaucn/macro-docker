@@ -1,5 +1,4 @@
 import type { HotkeyToken } from '@core/hotkey/tokens';
-import { t } from '@macro/i18n';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import { makePersisted } from '@solid-primitives/storage';
 import { cn, Tooltip } from '@ui';
@@ -60,7 +59,7 @@ export function CollapsibleSidebarSection(props: {
       aria-expanded={open()}
       onClick={toggleOpen}
     >
-      <span class="min-w-0 truncate">{t(props.label)}</span>
+      <span class="min-w-0 truncate">{props.label}</span>
       <CaretDownIcon
         class={cn(
           'size-3 shrink-0 transition-transform duration-[120ms] ease-in-out',

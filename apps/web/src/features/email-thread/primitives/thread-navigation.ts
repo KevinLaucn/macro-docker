@@ -604,6 +604,11 @@ export function createThreadNavigation(
     }
     return true;
   };
+  const markDone = () => {
+    if (!host.listNavigation) return context.archiveThread();
+    host.listNavigation.markDone(context.archiveThread);
+    return true;
+  };
   onMount(() =>
     host.registerKeyboard?.({
       replyToFocusedMessage: () => openHotkeyTarget('reply-all'),
@@ -616,7 +621,7 @@ export function createThreadNavigation(
         messages: () => context.messages.unfiltered(),
       }),
       blockSender: context.blockSender,
-      markDone: context.archiveThread,
+      markDone,
       markNotDone: context.markThreadNotDone,
       isThreadDone: context.isThreadDone,
       canMarkNotDone: context.canMarkThreadNotDone,

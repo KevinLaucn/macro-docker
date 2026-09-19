@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   touch: true,
   emitChange: undefined as ((value: string) => void) | undefined,
   root: undefined as HTMLDivElement | undefined,
+  upload: vi.fn(),
   mount: vi.fn(),
   unmount: vi.fn(),
 }));
@@ -15,8 +16,18 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@app/lib/analytics/analytics-context', () => ({
   useAnalytics: () => ({ track: vi.fn() }),
 }));
+vi.mock('@core/component/LexicalMarkdown/utils/create-composer-layout', () => ({
+  createComposerLayout: (
+    _editor: unknown,
+    options: { mode?: () => 'auto' | 'expanded' | 'collapsed' }
+  ) => ({
+    isCompact: () => options.mode?.() === 'collapsed',
+    hasMultilineContent: () => true,
+  }),
+}));
 vi.mock('@core/auth/license', () => ({ useHasPaidAccess: () => () => false }));
 vi.mock('@core/component/AI/constant', () => ({
+  SUPPORTED_ATTACHMENT_EXTENSIONS: ['pdf', 'png'],
   Model: { test: 'test' },
   modelsForPlan: () => ['test'],
   defaultModelForPlan: () => 'test',
@@ -26,7 +37,11 @@ vi.mock('@core/component/AI/context', () => ({
     model: () => 'test',
     setModel: vi.fn(),
     isGenerating: () => false,
-    uploadQueue: { popComplete: () => [], uploading: () => [] },
+    uploadQueue: {
+      popComplete: () => [],
+      uploading: () => [],
+      upload: mocks.upload,
+    },
     attachments: { attached: () => [], setAttached: vi.fn() },
   }),
 }));
@@ -49,16 +64,12 @@ vi.mock('@core/mobile/isNativeMobilePlatform', () => ({
 vi.mock('@core/mobile/useTouchOutsideToDismissKeyboard', () => ({
   useTouchOutsideToDismissKeyboard: () => {},
 }));
-vi.mock('@core/util/getItemBlockName', () => ({}));
 vi.mock('@core/util/upload', () => ({}));
 vi.mock('@solid-primitives/resize-observer', () => ({
   createElementSize: () => ({ width: 44, height: 20 }),
 }));
 vi.mock('./Attachment', () => ({ AttachmentList: () => null }));
 vi.mock('./ModelSelector', () => ({ ModelSelector: () => null }));
-vi.mock('./ChatAttachMenu', () => ({
-  ChatAttachMenu: () => <input aria-label="Search attachments" />,
-}));
 vi.mock('./useAiDataConsent', () => ({
   useAiDataConsentGate: () => ({ ConsentDialog: () => null }),
 }));
@@ -110,6 +121,7 @@ function setup(collapseOnBlur = true) {
   const draft = 'First line\nSecond line of the unsent prompt';
   const onSend = vi.fn();
   const editor = {
+    buildHandle: () => ({ lexical: {} }),
     withFilePaste: () => editor,
     onEnter: () => editor,
     onEscape: () => editor,
@@ -182,7 +194,6 @@ describe('compact mobile chat drafts', () => {
     const attach = screen.getByRole('button', { name: 'Attach files' });
     attach.focus();
     fireEvent.click(attach);
-    screen.getByRole('textbox', { name: 'Search attachments' }).focus();
     expect(wrapper.classList.contains('max-h-5')).toBe(false);
   });
 
@@ -197,3 +208,33 @@ describe('compact mobile chat drafts', () => {
     expect(wrapper.classList.contains('max-h-5')).toBe(false);
   });
 });
+
+it.each([true, false])(
+  'opens the device file picker directly and uploads selected files (touch=%s)',
+  (touch) => {
+    mocks.touch = touch;
+    const { input, draft } = setup();
+    const picker =
+      document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    expect(picker.isConnected).toBe(true);
+    expect(picker.multiple).toBe(true);
+    expect(picker.accept).toBe('.pdf,.png');
+    const click = vi.spyOn(picker, 'click');
+    fireEvent.click(screen.getByRole('button', { name: 'Attach files' }));
+    expect(click).toHaveBeenCalledOnce();
+    click.mockRestore();
+    expect(screen.queryByPlaceholderText('Search Attachments')).toBeNull();
+
+    fireEvent(picker, new Event('cancel'));
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(input.textContent).toBe(draft);
+
+    const file = new File(['pdf'], 'report.PDF', { type: 'application/pdf' });
+    const image = new File(['png'], 'image.png', { type: 'image/png' });
+    const unsupported = new File(['zip'], 'archive.zip');
+    fireEvent.change(picker, { target: { files: [file, image, unsupported] } });
+    expect(mocks.upload).toHaveBeenCalledExactlyOnceWith([file, image]);
+    expect(picker.value).toBe('');
+    expect(input.textContent).toBe(draft);
+  }
+);

@@ -7,22 +7,21 @@ config:
   email-service:fusionauth_issuer: auth.macro.com
   email-service:db_password_secret_key: email-db-password-prod
   email-service:internal_auth_key: document-storage-service-auth-key-prod
-  email-service:document_storage_service_auth_key: document-storage-service-auth-key-prod
   email-service:cf_private_key: email-attachments-private-key-prod
   email-service:notifications_enabled: true
   email-service:use_apollo_crm_enrichment: false
   email-service:apollo_api_key_secret_name: apollo-io-api-key-master
   email-service:sent_undo_delay_secs: 5
-  email-service:redis_rate_limit_reqs: 5200
-  email-service:redis_rate_limit_reqs_backfill: 4000
+  email-service:redis_rate_limit_reqs: 14000
+  email-service:redis_rate_limit_reqs_backfill: 13000
   email-service:redis_rate_limit_window_secs: 60
-  email-service:backfill_queue_workers: 6
+  email-service:backfill_queue_workers: 25
   email-service:backfill_queue_max_messages: 1
-  email-service:inbox_sync_queue_workers: 6
+  email-service:inbox_sync_queue_workers: 25
   email-service:inbox_sync_queue_max_messages: 1
   email-service:inbox_sync_retry_queue_workers: 5
   email-service:inbox_sync_retry_queue_max_messages: 1
-  email-service:gmail_ops_queue_workers: 5
+  email-service:gmail_ops_queue_workers: 25
   email-service:gmail_ops_queue_max_messages: 1
   email-service:gmail_ops_retry_queue_workers: 5
   email-service:gmail_ops_retry_queue_max_messages: 1

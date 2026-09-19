@@ -1,6 +1,5 @@
 import { UserIcon } from '@core/component/UserIcon';
 import { useUnfurl } from '@core/signal/unfurl';
-import { t } from '@macro/i18n';
 import LinkIcon from '@phosphor/link.svg';
 import { usePropertyEntityDisplay } from '@property/hooks';
 import type { Property } from '@property/types';
@@ -78,13 +77,7 @@ const TooltipWrapper = (props: {
   return (
     <Show
       when={hasValue()}
-      fallback={
-        <div class="text-xs">
-          {t('No {property} set', {
-            property: t(props.property.displayName),
-          })}
-        </div>
-      }
+      fallback={<div class="text-xs">No {props.property.displayName} set</div>}
     >
       <div
         classList={{
@@ -102,7 +95,7 @@ const TooltipWrapper = (props: {
             property={props.property}
             class="size-3.5 text-ink-muted"
           />
-          <span class="text-xs">{t(props.property.displayName)}</span>
+          <span class="text-xs">{props.property.displayName}</span>
         </div>
         {props.children}
       </div>

@@ -14,7 +14,6 @@ import {
 } from '@app/features/soup';
 import type { EntityIconSelector } from '@core/component/EntityIcon';
 import type { EmailEntity, EntityData } from '@entity';
-import { t } from '@macro/i18n';
 import type { EmailFilterGroupId, EmailFilterOptionId } from '../types';
 
 type EmailFilterOption = {
@@ -95,7 +94,7 @@ const EMAIL_ATTACHMENT_OPTIONS: EmailFacetOption[] = [
 const EMAIL_CALENDAR_OPTIONS: EmailFacetOption[] = [
   {
     id: 'has-calendar-invite',
-    label: t('Has calendar invite', { context: 'email' }),
+    label: 'Has calendar invite',
     iconType: 'calendar',
     clause: { ef: clause.eq('emailCalendarOnly', true) },
     predicate: hasCalendarInviteFilter,

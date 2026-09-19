@@ -36,10 +36,6 @@ type Args = {
   platform: { family: string; architecture: 'amd64' | 'arm64' };
   serviceContainerPort: number;
   containerEnvVars: { name: string; value: pulumi.Output<string> | string }[];
-  containerSecrets?: {
-    name: string;
-    valueFrom: pulumi.Output<string> | string;
-  }[];
   healthCheckPath: string;
   tags: { [key: string]: string };
   dopplerEcsEnvironment: DopplerEcsEnvironment;
@@ -65,7 +61,6 @@ export class EmailService extends pulumi.ComponentResource {
       serviceContainerPort,
       healthCheckPath,
       containerEnvVars,
-      containerSecrets = [],
       clusterName,
       dopplerEcsEnvironment,
       tags,
@@ -158,10 +153,7 @@ export class EmailService extends pulumi.ComponentResource {
               cpu: stack === 'prod' ? 1024 : 256,
               memory: stack === 'prod' ? 4096 : 717,
               environment: [...containerEnvVars],
-              secrets: [
-                ...dopplerEcsEnvironment.containerSecrets,
-                ...containerSecrets,
-              ],
+              secrets: [...dopplerEcsEnvironment.containerSecrets],
               logConfiguration: {
                 logDriver: 'awsfirelens',
                 options: {

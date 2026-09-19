@@ -2,45 +2,43 @@ import { FileSidePanelSections, SidePanel } from '@components/app/side-panel';
 import { DocumentBlockContainer } from '@core/component/DocumentBlockContainer';
 import { toast } from '@core/component/Toast/Toast';
 import { useShareDialogContext } from '@core/component/TopBar/ShareButton';
+import { blockMetadataSignal } from '@core/signal/load';
 import {
   useBlockDocumentDownloadName,
   useBlockDocumentName,
 } from '@core/util/currentBlockDocumentName';
 import { downloadFile } from '@filesystem/download';
-import ShareFat from '@icon/wide-share.svg';
-import DownloadSimple from '@phosphor/download-simple.svg';
+// PRIVATE-HOOK: adobe_preview:fallback_preview
+import { AdobePreviewContainer, getAdobeFormatFromFileName } from '@macro/adobe-preview';
 import { createCallback } from '@solid-primitives/rootless';
-import { Button } from '@ui';
+import { lazy, Show, Suspense } from 'solid-js';
+import { isUploadedWorkbook } from '../../block-spreadsheet/core/uploaded-workbook';
+import { useSpreadsheetAccess } from '../../block-spreadsheet/primitives/use-spreadsheet-access';
 import { useGetFileBlob } from '../signal/blockData';
 import { ModalsProvider } from './ModalsProvider';
 import { TopBar } from './TopBar';
+import { UnknownContent } from './UnknownContent';
+
+const UploadedWorkbook = lazy(
+  () => import('../../block-spreadsheet/views/UploadedWorkbook')
+);
 
 export default function BlockUnknown() {
   return (
     <DocumentBlockContainer>
       <div class="size-full select-none overscroll-none overflow-hidden flex flex-col relative">
         <ModalsProvider>
-          <SidePanel.Layout>
-            <FileSidePanelSections />
-            <div class="flex size-full min-w-0 flex-col overflow-hidden">
-              <div class="relative">
-                <TopBar />
-              </div>
-              <div class="w-full grow relative overflow-hidden">
-                <Unknown />
-              </div>
-            </div>
-          </SidePanel.Layout>
+          <BlockUnknownContent />
         </ModalsProvider>
       </div>
     </DocumentBlockContainer>
   );
 }
 
-// PRIVATE-HOOK: adobe_preview:fallback_preview
-import { AdobePreviewContainer, getAdobeFormatFromFileName } from '@macro/adobe-preview';
-
-const Unknown = () => {
+function BlockUnknownContent() {
+  const enabled = useSpreadsheetAccess();
+  const spreadsheet = () =>
+    enabled() && isUploadedWorkbook(blockMetadataSignal.get()?.fileType);
   const fileName = useBlockDocumentName();
   const downloadName = useBlockDocumentDownloadName();
   const shareCtx = useShareDialogContext();
@@ -50,59 +48,53 @@ const Unknown = () => {
     try {
       const blob = await getBlob();
       downloadFile(blob, downloadName());
-    } catch (e) {
-      console.error('error downloading file', e);
+    } catch (error) {
+      console.error('error downloading file', error);
       toast.failure('Error downloading file');
     }
   });
 
-  const adobeFormat = () => getAdobeFormatFromFileName(fileName());
-
   return (
-    <div class="h-full flex flex-col justify-center items-center">
-      {(() => {
-        const format = adobeFormat();
-        if (format) {
-          return (
-            <div class="size-full flex flex-col">
-              <div class="grow min-h-0 overflow-hidden">
-                <AdobePreviewContainer
-                  format={format}
-                  fileName={fileName()}
-                  getBlob={getBlob}
-                />
-              </div>
-              <div class="p-3 border-t border-ink-muted/10 flex justify-center gap-2 bg-surface">
-                <Button variant="accent" onClick={shareCtx.open}>
-                  <ShareFat class="size-4" /> Share
-                </Button>
-                <Button variant="accent" onClick={downloadDocument}>
-                  <DownloadSimple class="size-4" /> Download
-                </Button>
-              </div>
-            </div>
-          );
-        }
-
-        return (
-          <div class="w-fit mx-4 p-4 flex flex-col justify-center items-center gap-4">
-            <div class="text-lg text-center">
-              No preview available for{' '}
-              <span class="text-ink-muted">{fileName()}</span>
-            </div>
-
-            <div class="flex flex-row gap-2 items-center">
-              <Button variant="accent" onClick={shareCtx.open}>
-                <ShareFat class="size-4" /> Share
-              </Button>
-
-              <Button variant="accent" onClick={downloadDocument}>
-                <DownloadSimple class="size-4" /> Download
-              </Button>
-            </div>
-          </div>
-        );
-      })()}
-    </div>
+    <SidePanel.Layout defaultOpen={!spreadsheet()}>
+      <FileSidePanelSections />
+      <div class="flex size-full min-w-0 flex-col overflow-hidden">
+        <div class="relative">
+          <TopBar />
+        </div>
+        <div class="w-full grow relative overflow-hidden">
+          <Show
+            when={spreadsheet()}
+            fallback={
+              <Show
+            when={getAdobeFormatFromFileName(fileName())}
+            fallback={
+              <UnknownContent
+                fileName={fileName()}
+                onShare={shareCtx.open}
+                onDownload={() => void downloadDocument()}
+              />
+            }
+          >
+            {(format) => (
+              <AdobePreviewContainer
+                format={format()}
+                fileName={fileName()}
+                getBlob={getBlob}
+              />
+            )}
+          </Show>
+            }
+          >
+            <Suspense
+              fallback={
+                <div class="p-6 text-ink-muted">Opening spreadsheet…</div>
+              }
+            >
+              <UploadedWorkbook />
+            </Suspense>
+          </Show>
+        </div>
+      </div>
+    </SidePanel.Layout>
   );
-};
+}

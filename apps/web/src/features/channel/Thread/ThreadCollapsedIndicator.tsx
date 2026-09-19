@@ -1,6 +1,5 @@
 import { UserIcon } from '@core/component/UserIcon';
 import { formatRelativeDate } from '@core/util/time';
-import { t } from '@macro/i18n';
 import CaretRight from '@phosphor/caret-right.svg';
 import { cn } from '@ui';
 import { For, type JSX, Show, splitProps } from 'solid-js';
@@ -75,7 +74,7 @@ export function ThreadCollapsedIndicator(props: ThreadCollapsedIndicatorProps) {
       <Show when={local.latestReplyAt}>
         {(latestReplyAt) => (
           <span class="text-ink-muted whitespace-nowrap @max-[40rem]:hidden">
-            {t('Last reply')} {formatRelativeDate(latestReplyAt())}
+            Last reply {formatRelativeDate(latestReplyAt())}
           </span>
         )}
       </Show>

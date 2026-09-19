@@ -7,6 +7,7 @@ import {
   getDeletedTree,
   optimisticallyRemoveDeletedItem,
 } from '@queries/storage/deleted';
+import { callServiceClient } from '@service-call/client';
 import { cognitionApiServiceClient } from '@service-cognition/client';
 import { emailClient } from '@service-email/client';
 import { type ItemType, storageServiceClient } from '@service-storage/client';
@@ -107,6 +108,13 @@ export async function renameItem(args: {
       result = await storageServiceClient.patchChannel({
         channel_id: id,
         channel_name: newName,
+      });
+      break;
+    }
+    case 'call': {
+      result = await callServiceClient.editCallRecord({
+        callId: id,
+        customName: newName,
       });
       break;
     }

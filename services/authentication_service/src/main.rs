@@ -1,12 +1,8 @@
 #![recursion_limit = "256"]
-#[cfg(feature = "full-saas")]
 use analytics_client::{
     AnalyticsClient, AnalyticsClientConfig, GoogleAnalyticsConfig, MetaConfig, PostHogConfig,
 };
-use anyhow::Context;
-#[cfg(feature = "full-saas")]
-use anyhow::anyhow;
-#[cfg(feature = "full-saas")]
+use anyhow::{Context, anyhow};
 use channels::{
     domain::{
         service::ChannelServiceImpl,
@@ -21,19 +17,14 @@ use channels::{
     },
 };
 use config::{Config, Environment};
-#[cfg(feature = "full-saas")]
 use connection_gateway_client::ConnectionGatewayClient;
-#[cfg(feature = "full-saas")]
 use contacts::{domain::service::SqsContactsIngress, outbound::ingress::SqsContactsQueue};
-#[cfg(feature = "full-saas")]
 use document_storage_service_client::DocumentStorageServiceClient;
 use entity_access::{domain::service::EntityAccessServiceImpl, outbound::PgAccessRepository};
-#[cfg(feature = "full-saas")]
 use foreign_entity::{
     domain::service::ForeignEntityServiceImpl,
     outbound::pg_foreign_entity_repo::PgForeignEntityRepo,
 };
-#[cfg(feature = "full-saas")]
 use github::{
     domain::service::{GithubLinkConfig, GithubLinkServiceImpl},
     outbound::{
@@ -41,7 +32,6 @@ use github::{
         pg_github_repo::PgGithubRepo,
     },
 };
-#[cfg(feature = "full-saas")]
 use loops_client::LoopsClient;
 use macro_auth::middleware::decode_jwt::JwtValidationArgs;
 use macro_authorization::{
@@ -49,30 +39,24 @@ use macro_authorization::{
     PgUserApiKeyAuthorizationRepo, PgUserApiKeyAuthorizer,
 };
 use macro_entrypoint::MacroEntrypoint;
-#[cfg(feature = "full-saas")]
 use macro_event_broker::{KafkaEventPublisher, MacroEventBrokerService};
-use macro_service_urls::EmailServiceUrl;
-#[cfg(feature = "full-saas")]
-use macro_service_urls::{AppServiceUrl, ConnectionGatewayUrl, DocumentStorageServiceUrl};
-#[cfg(feature = "full-saas")]
+use macro_service_urls::{
+    AppServiceUrl, ConnectionGatewayUrl, DocumentStorageServiceUrl, EmailServiceUrl,
+};
 use native_app_service::{
     domain::{models::PlatformData, service::NativeAppServiceImpl},
     outbound::DefaultBundleFetcher,
 };
-#[cfg(feature = "full-saas")]
 use notification::outbound::queue::SqsQueue;
-#[cfg(feature = "full-saas")]
 use notification::{
     domain::service::SqsNotificationIngress, outbound::rate_limit::RedisRateLimitAdapter,
 };
-#[cfg(feature = "full-saas")]
 use rate_limit::domain::service::RateLimitServiceImpl;
-#[cfg(feature = "full-saas")]
 use roles_and_permissions::{
     domain::service::UserRolesAndPermissionsServiceImpl, outbound::pgpool::MacroDB,
 };
+use secretsmanager_client::SecretManager;
 use sqlx::postgres::PgPoolOptions;
-#[cfg(feature = "full-saas")]
 use teams::{
     domain::team_service::TeamServiceImpl,
     outbound::{
@@ -81,29 +65,24 @@ use teams::{
     },
 };
 
-#[cfg(feature = "full-saas")]
+use gtm_invite::{
+    domain::service::GtmInviteServiceImpl, outbound::pg_gtm_invite_repo::PgGtmInviteRepo,
+};
 use referral::{
     domain::service::ReferralServiceImpl,
     outbound::{pg_referral_repo::PgReferralRepo, stripe_discount_client::StripeDiscountClient},
 };
-use remote_env_var::SecretManager;
 
-#[cfg(feature = "full-saas")]
-use crate::{
-    api::context::StripeWebhookSecretKey,
-    microsoft_token_cipher::{EnvelopeMicrosoftTokenCipher, KmsDataKeyProvider},
-};
 use crate::{
     api::context::{
         ApiContext, AuthorizationService, MacroApiTokenContext, MacroApiTokenExpirySeconds,
-        MacroApiTokenIssuer, MacroApiTokenPrivateSecretKey,
+        MacroApiTokenIssuer, MacroApiTokenPrivateSecretKey, StripeWebhookSecretKey,
     },
-    microsoft_token_cipher::MicrosoftTokenCipher,
+    microsoft_token_cipher::{
+        EnvelopeMicrosoftTokenCipher, KmsDataKeyProvider, MicrosoftTokenCipher,
+    },
 };
-use std::sync::Arc;
-#[cfg(feature = "full-saas")]
-use std::time::Duration;
-#[cfg(feature = "full-saas")]
+use std::{sync::Arc, time::Duration};
 use tokio_util::task::TaskTracker;
 
 mod api;
@@ -118,7 +97,6 @@ mod rate_limit_config;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     MacroEntrypoint::default().init();
-    #[cfg(feature = "full-saas")]
     let env = Environment::new_or_prod();
 
     // One SDK config is sufficient for every AWS client in this process.
@@ -134,13 +112,12 @@ async fn main() -> anyhow::Result<()> {
             .signup_policy()
             .context("invalid signup policy configuration")?,
     );
-    #[cfg(feature = "full-saas")]
+    let gtm_invite_config = config
+        .gtm_invite_config()
+        .context("invalid GTM invite link configuration")?;
     let microsoft_credentials = config
         .microsoft_credentials()
         .context("invalid Microsoft OAuth configuration")?;
-    #[cfg(not(feature = "full-saas"))]
-    let microsoft_token_cipher: Option<Arc<dyn MicrosoftTokenCipher>> = None;
-    #[cfg(feature = "full-saas")]
     let microsoft_token_cipher = microsoft_credentials.as_ref().map(|credentials| {
         Arc::new(EnvelopeMicrosoftTokenCipher::new(KmsDataKeyProvider::new(
             aws_sdk_kms::Client::new(&aws_config),
@@ -151,7 +128,6 @@ async fn main() -> anyhow::Result<()> {
     // A separate KMS key from the Microsoft one by design: sharing it would
     // grant whatever decrypts Cursor keys access to the key protecting
     // everyone's mailbox credentials.
-    #[cfg(feature = "full-saas")]
     let cursor_api_key_cipher = Arc::new(cursor_api_key::cipher::KmsCursorApiKeyCipher::new(
         cursor_api_key::cipher::AwsKmsCiphertexts::new(
             aws_sdk_kms::Client::new(&aws_config),
@@ -161,7 +137,6 @@ async fn main() -> anyhow::Result<()> {
 
     let internal_api_key = config.internal_api_key.clone();
 
-    #[cfg(feature = "full-saas")]
     let stripe_webhook_secret = secretsmanager_client
         .get_maybe_secret_value(env, StripeWebhookSecretKey::new()?)
         .await?;
@@ -210,7 +185,6 @@ async fn main() -> anyhow::Result<()> {
             .to_string(),
     };
 
-    #[cfg(feature = "full-saas")]
     let stripe_client_secret = match config.environment {
         Environment::Local => config.stripe_secret_key.to_string().clone(),
         _ => secretsmanager_client
@@ -244,7 +218,6 @@ async fn main() -> anyhow::Result<()> {
         google_client_secret,
     )
     .with_public_url(fusionauth_public_url);
-    #[cfg(feature = "full-saas")]
     let auth_client = match microsoft_credentials {
         Some(credentials) => auth_client.with_microsoft_credentials(
             credentials.client_id,
@@ -255,12 +228,10 @@ async fn main() -> anyhow::Result<()> {
     };
     tracing::trace!("initialized auth client");
 
-    #[cfg(feature = "full-saas")]
     let document_storage_service_client = DocumentStorageServiceClient::new(
         config.service_internal_auth_key.to_string().clone(),
         DocumentStorageServiceUrl::new()?.to_string(),
     );
-    #[cfg(feature = "full-saas")]
     tracing::trace!("initialized document storage service client");
 
     let email_service_client =
@@ -272,13 +243,10 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::trace!("initialized redis client");
 
-    #[cfg(feature = "full-saas")]
     let stripe_client = stripe::Client::new(stripe_client_secret);
-    #[cfg(feature = "full-saas")]
     tracing::trace!("initialized stripe client");
 
     // `from_env` routes to local SMTP (Mailpit) when SMTP_HOST is set, else SES.
-    #[cfg(feature = "full-saas")]
     let ses_client = ses_client::Ses::from_env(
         aws_sdk_sesv2::Client::new(&aws_config),
         &config.environment.to_string(),
@@ -297,18 +265,14 @@ async fn main() -> anyhow::Result<()> {
         PgUserApiKeyAuthorizer::new(PgUserApiKeyAuthorizationRepo::new(db.clone())),
     )));
 
-    #[cfg(feature = "full-saas")]
     let redis_client = redis::Client::open(config.redis_uri.to_string().as_str())
         .context("failed to create redis client")?;
-    #[cfg(feature = "full-saas")]
     let redis_multiplexed_conn = redis_client
         .get_multiplexed_async_connection()
         .await
         .context("failed to get multiplexed redis connection")?;
 
-    #[cfg(feature = "full-saas")]
     let notification_queue = macro_queues::NotificationIngressQueue::new();
-    #[cfg(feature = "full-saas")]
     let search_event_queue = macro_queues::SearchEventQueue::new();
     let link_manager_queue = macro_queues::LinkManagerQueue::new();
     let email_backfill_queue = macro_queues::EmailBackfillQueue::new();
@@ -319,31 +283,26 @@ async fn main() -> anyhow::Result<()> {
         gmail_ops_queue,
         gmail_ops_retry_queue,
     ) = crate::features::self_host_health::gmail_probe_queues();
-    #[cfg(feature = "full-saas")]
     let ingress_queue = SqsQueue::new(
         aws_sdk_sqs::Client::new(&macro_aws_config::get_macro_aws_config().await),
         notification_queue.to_string(),
     );
-    #[cfg(feature = "full-saas")]
     let notification_ingress_service = SqsNotificationIngress {
         queue: ingress_queue,
     };
-    #[cfg(feature = "full-saas")]
     tracing::trace!("initialized notification ingress service");
 
     let sqs_client = sqs_client::SQS::new(aws_sdk_sqs::Client::new(&aws_config))
+        .search_event_queue(&search_event_queue)
         .email_link_manager_queue(&link_manager_queue)
         .email_backfill_queue(&email_backfill_queue)
         .gmail_inbox_sync_queue(&gmail_inbox_sync_queue)
         .gmail_inbox_sync_retry_queue(&gmail_inbox_sync_retry_queue)
         .gmail_ops_queue(&gmail_ops_queue)
         .gmail_ops_retry_queue(&gmail_ops_retry_queue);
-    #[cfg(feature = "full-saas")]
-    let sqs_client = sqs_client.search_event_queue(&search_event_queue);
     tracing::trace!("initialized sqs client");
 
     // Initialize analytics client with configured providers
-    #[cfg(feature = "full-saas")]
     let analytics_client = Arc::new(AnalyticsClient::new(AnalyticsClientConfig {
         google_analytics: config
             .ga_measurement_id
@@ -380,7 +339,6 @@ async fn main() -> anyhow::Result<()> {
             }
         }),
     }));
-    #[cfg(feature = "full-saas")]
     tracing::trace!("initialized analytics client");
 
     // Initialize Loops client. Production and develop sign-ups are added to
@@ -388,7 +346,6 @@ async fn main() -> anyhow::Result<()> {
     // no-op. Note there is one Loops audience — a develop sign-up creates a
     // real contact and can trigger live workflows, so leave the key unset in
     // any environment that should not send.
-    #[cfg(feature = "full-saas")]
     let loops_client = match (config.environment, config.loops_api_key.value()) {
         (Environment::Production | Environment::Develop, Some(api_key)) => {
             tracing::info!("configuring Loops");
@@ -396,53 +353,39 @@ async fn main() -> anyhow::Result<()> {
         }
         _ => LoopsClient::noop(),
     };
-    #[cfg(feature = "full-saas")]
     tracing::trace!("initialized loops client");
 
-    #[cfg(feature = "full-saas")]
     let user_roles_and_permissions_macro_db = MacroDB::new(db.clone());
 
-    #[cfg(feature = "full-saas")]
     let user_roles_and_permissions_service = UserRolesAndPermissionsServiceImpl::new(
         user_roles_and_permissions_macro_db.clone(),
         user_roles_and_permissions_macro_db,
     );
 
-    #[cfg(feature = "full-saas")]
     let teams_repo_impl = TeamRepositoryImpl::new(db.clone());
-    #[cfg(feature = "full-saas")]
     let customer_repo_impl = CustomerRepositoryImpl::new(
         stripe_client.clone(),
         config.stripe_price_id.to_string().clone(),
     );
-    #[cfg(feature = "full-saas")]
     let favorites_service = favorites::domain::service::FavoritesServiceImpl::new(
         favorites::outbound::pg_favorites_repo::PgFavoritesRepo::new(db.clone()),
     );
-    #[cfg(feature = "full-saas")]
     let team_crm_settings_repo_impl =
         teams::outbound::team_crm_settings_repo::TeamCrmSettingsRepositoryImpl::new(db.clone());
 
-    #[cfg(feature = "full-saas")]
     let notification_ingress_service = Arc::new(notification_ingress_service);
 
-    #[cfg(feature = "full-saas")]
     let crm_enqueuer = teams::outbound::crm_enqueuer::SqsCrmEnqueuer::new(sqs_client.clone());
     let sqs_client = Arc::new(sqs_client);
-    #[cfg(feature = "full-saas")]
     let contacts_ingress = Arc::new(SqsContactsIngress {
         queue: SqsContactsQueue::new(
             aws_sdk_sqs::Client::new(&aws_config),
             macro_queues::ContactsQueue::new().to_string(),
         ),
     });
-    #[cfg(feature = "full-saas")]
     let contacts_enqueuer = ContactsIngressEnqueuer::new(contacts_ingress.clone());
-    #[cfg(feature = "full-saas")]
     let team_analytics = AnalyticsClientTeamAnalytics::new(analytics_client.clone());
-    #[cfg(feature = "full-saas")]
     let event_broker_tracker = TaskTracker::new();
-    #[cfg(feature = "full-saas")]
     let macro_event_broker = MacroEventBrokerService::new(
         KafkaEventPublisher::new(config.kafka_brokers.as_ref())
             .context("failed to create kafka event publisher")?,
@@ -451,7 +394,6 @@ async fn main() -> anyhow::Result<()> {
     let entity_access_service_impl = Arc::new(EntityAccessServiceImpl::new(
         PgAccessRepository::new(db.clone()),
     ));
-    #[cfg(feature = "full-saas")]
     let connection_gateway_client = Arc::new(ConnectionGatewayClient::new(
         internal_api_key.to_string(),
         ConnectionGatewayUrl::new()?.to_string(),
@@ -460,24 +402,50 @@ async fn main() -> anyhow::Result<()> {
     // channel service must dispatch the same realtime, notification, contact, and broker side
     // effects as the document-storage channel API. Channel broker events drive live search
     // indexing.
-    #[cfg(feature = "full-saas")]
     let channel_side_effects = ChannelSideEffectService::new(
         PgChannelSideEffectContext::new(db.clone()),
-        ConnectionGatewayChannelRealtimePublisher::new(connection_gateway_client),
+        ConnectionGatewayChannelRealtimePublisher::new(connection_gateway_client.clone()),
         NotificationChannelSender::new(notification_ingress_service.clone()),
         ContactsChannelDispatcher::new(contacts_ingress),
     )
     .with_macro_event_broker(macro_event_broker.clone());
-    #[cfg(feature = "full-saas")]
     let channel_event_dispatcher = SpawnedChannelEventDispatcher::new(channel_side_effects);
-    #[cfg(feature = "full-saas")]
     let channel_service = ChannelServiceImpl::with_dependencies(
         PgChannelsRepo::new(db.clone()),
-        channel_event_dispatcher,
+        channel_event_dispatcher.clone(),
         PgChannelReferenceSharePermissions::new(db.clone(), entity_access_service_impl.clone()),
     );
+    // The welcome message goes through the shared message service so it gets the
+    // same persistence and delivery as every other channel message.
+    let channel_messages: Arc<dyn messages::domain::api::MessageCommands> = Arc::new(
+        messages::domain::service::MessageService::new(
+            messages::outbound::pg_message_repo::PgMessageRepository::new(db.clone()),
+            messages::domain::effects::MessageEffects::new(
+                messages::outbound::broker::BrokerMessagePublisher::new(macro_event_broker.clone()),
+                messages::domain::ports::NoMessageEventPublisher,
+                channels::domain::message_delivery::ChannelMessageDelivery::new(
+                    PgChannelsRepo::new(db.clone()),
+                    channel_event_dispatcher,
+                    PgChannelReferenceSharePermissions::new(
+                        db.clone(),
+                        entity_access_service_impl.clone(),
+                    ),
+                    messages::outbound::connection_gateway::ConnectionGatewayMessages(
+                        connection_gateway_client,
+                    ),
+                ),
+            ),
+        )
+        .with_group_recipients(channels::domain::group_mentions::ChannelGroupRecipients(
+            PgChannelsRepo::new(db.clone()),
+        ))
+        .with_references(
+            messages::outbound::entity_access_audience::EntityAccessMessageReferences(
+                (*entity_access_service_impl).clone(),
+            ),
+        ),
+    );
 
-    #[cfg(feature = "full-saas")]
     let teams_service_impl = TeamServiceImpl::new_with_analytics(
         teams_repo_impl,
         customer_repo_impl,
@@ -491,11 +459,9 @@ async fn main() -> anyhow::Result<()> {
     .with_contacts_enqueuer(contacts_enqueuer)
     .with_event_broker(macro_event_broker);
 
-    #[cfg(feature = "full-saas")]
     let foreign_entity_service =
         ForeignEntityServiceImpl::new(PgForeignEntityRepo::new(db.clone()));
 
-    #[cfg(feature = "full-saas")]
     let github_link_service_impl = GithubLinkServiceImpl::new(
         PgGithubRepo::new(db.clone()),
         GithubOauthImpl::default(),
@@ -508,13 +474,11 @@ async fn main() -> anyhow::Result<()> {
         },
     );
 
-    #[cfg(feature = "full-saas")]
     let rate_limit = RateLimitServiceImpl {
         repo: RedisRateLimitAdapter {
             redis: redis_client,
         },
     };
-    #[cfg(feature = "full-saas")]
     let referral_service = ReferralServiceImpl {
         repo: PgReferralRepo::new(db.clone()),
         discount_client: StripeDiscountClient::new(
@@ -523,30 +487,47 @@ async fn main() -> anyhow::Result<()> {
         ),
         notification_ingress: notification_ingress_service.clone(),
     };
+    let gtm_invite_service = GtmInviteServiceImpl {
+        repo: PgGtmInviteRepo::new(db.clone()),
+        config: gtm_invite_config,
+    };
+
+    let codex_connection = if let Some(key_id) = config.codex_oauth_kms_key_id() {
+        let cipher = Arc::new(codex_connection::outbound::cipher::EnvelopeCipher::new(
+            aws_sdk_kms::Client::new(&aws_config),
+            key_id,
+        )?);
+        let repository = Arc::new(
+            codex_connection::outbound::postgres::PostgresRepository::new(db.clone(), cipher),
+        );
+        let provider = codex_cloud_agents::outbound::openai::OpenAi::new()
+            .map_err(|_| anyhow::anyhow!("failed to initialize Codex OAuth client"))?;
+        Some(
+            Arc::new(codex_connection::domain::ConnectionServiceImpl::new(
+                repository, provider,
+            )) as Arc<dyn codex_connection::domain::ConnectionService>,
+        )
+    } else {
+        None
+    };
 
     let server_result = api::setup_and_serve(
         ApiContext {
             db,
-            #[cfg(feature = "full-saas")]
             github_link_service: Arc::new(github_link_service_impl),
             auth_client: Arc::new(auth_client),
             microsoft_token_cipher,
-            #[cfg(feature = "full-saas")]
             cursor_api_key_cipher,
+            codex_connection,
             macro_cache_client: Arc::new(macro_cache_client),
-            #[cfg(feature = "full-saas")]
             stripe_client: Arc::new(stripe_client),
-            #[cfg(feature = "full-saas")]
             document_storage_service_client: Arc::new(document_storage_service_client),
             email_service_client: Arc::new(email_service_client),
-            #[cfg(feature = "full-saas")]
             ses_client: Arc::new(ses_client),
-            #[cfg(feature = "full-saas")]
             notification_ingress_service,
             sqs_client,
             environment: config.environment,
             signup_policy,
-            #[cfg(feature = "full-saas")]
             rate_limit_service: rate_limit,
             calendar_scope_enabled: config.calendar_scope_enabled,
             jwt_args,
@@ -560,20 +541,15 @@ async fn main() -> anyhow::Result<()> {
                     .context("failed to parse MACRO_API_TOKEN_EXPIRY_SECONDS as usize")?,
             },
             internal_api_key,
-            #[cfg(feature = "full-saas")]
             stripe_webhook_secret,
-            #[cfg(feature = "full-saas")]
             user_roles_and_permissions_service: Arc::new(user_roles_and_permissions_service),
-            #[cfg(feature = "full-saas")]
             teams_service: Arc::new(teams_service_impl),
-            #[cfg(feature = "full-saas")]
             channel_service: Arc::new(channel_service),
-            #[cfg(feature = "full-saas")]
+            channel_messages,
             favorites_service: Arc::new(favorites_service),
             entity_access_service: entity_access_service_impl,
-            #[cfg(feature = "full-saas")]
             referral_service: Arc::new(referral_service),
-            #[cfg(feature = "full-saas")]
+            gtm_invite_service: Arc::new(gtm_invite_service),
             native_app_service: Arc::new(NativeAppServiceImpl {
                 bundle_fetcher: DefaultBundleFetcher::new(
                     AppServiceUrl::new_for_environment(config.environment)
@@ -590,22 +566,16 @@ async fn main() -> anyhow::Result<()> {
                     ios_app_bundle_id: IOS_APP_BUNDLE_ID.to_string(),
                 },
             }),
-            #[cfg(feature = "full-saas")]
             loops_client: Arc::new(loops_client),
-            #[cfg(feature = "full-saas")]
             analytics_client,
-            #[cfg(feature = "full-saas")]
             stripe_price_id: config.stripe_price_id.to_string(),
         },
         config.port,
     )
     .await;
 
-    #[cfg(feature = "full-saas")]
     tracing::info!("waiting for event broker publishes to drain");
-    #[cfg(feature = "full-saas")]
     event_broker_tracker.close();
-    #[cfg(feature = "full-saas")]
     match tokio::time::timeout(EVENT_BROKER_DRAIN_TIMEOUT, event_broker_tracker.wait()).await {
         Ok(()) => tracing::info!("event broker publishes drained"),
         Err(error) => {
@@ -620,12 +590,9 @@ async fn main() -> anyhow::Result<()> {
     server_result
 }
 
-#[cfg(feature = "full-saas")]
 const EVENT_BROKER_DRAIN_TIMEOUT: Duration = Duration::from_secs(10);
 
 // SAFETY: this is not a secret value
-#[cfg(feature = "full-saas")]
 const IOS_DEVELOPMENT_TEAM_ID: &str = "TY74Q77JBD";
 // SAFETY: this is not a secret value
-#[cfg(feature = "full-saas")]
 const IOS_APP_BUNDLE_ID: &str = "com.macro.app.prod";

@@ -4,17 +4,35 @@ name = "macro_db_migrator"
 publish = false
 version = "0.1.0"
 
-# The migration runner. Off by default so the crate stays as light for its test
-# consumers as it was before — only the self-host init image builds it.
 [features]
-cli = ["dep:tokio"]
+comment-import = [
+  "dep:clap",
+  "dep:database_env_vars",
+  "dep:macro_entrypoint",
+  "dep:macro_env",
+  "dep:macro_uuid",
+  "dep:rootcause",
+  "dep:serde_json",
+  "dep:tokio",
+  "dep:tracing",
+]
 
 [[bin]]
-name = "macro_db_migrate"
-path = "src/bin/macro_db_migrate.rs"
-required-features = ["cli"]
+name = "comment_import"
+required-features = ["comment-import"]
 
 [dependencies]
+clap = { workspace = true, optional = true }
+database_env_vars = { path = "../database_env_vars", optional = true }
+macro_entrypoint = { path = "../macro_entrypoint", optional = true }
+macro_env = { path = "../macro_env", optional = true }
+macro_uuid = { path = "../macro_uuid", optional = true }
+rootcause = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 sqlx = { workspace = true, features = ["migrate"] }
-tokio = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"], optional = true }
+tracing = { workspace = true, optional = true }
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
+
+[dev-dependencies]
+chrono = { workspace = true }

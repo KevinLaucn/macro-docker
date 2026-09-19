@@ -239,16 +239,13 @@ impl TeamRepository for TeamRepositoryImpl {
         .await?;
 
         if let Some(stripe_customer_id) = stripe_customer_id {
-            match stripe::CustomerId::from_str(&stripe_customer_id) {
-                Ok(customer_id) => Ok(Some(customer_id)),
-                Err(_) => {
-                    tracing::debug!(
-                        raw_customer_id = %stripe_customer_id,
-                        "ignoring non-standard or local placeholder stripe customer id"
-                    );
-                    Ok(None)
-                }
-            }
+            let stripe_customer_id =
+                stripe::CustomerId::from_str(&stripe_customer_id).map_err(|_| {
+                    TeamError::StorageLayerError(anyhow::anyhow!(
+                        "unable to parse stripe customer id"
+                    ))
+                })?;
+            Ok(Some(stripe_customer_id))
         } else {
             Ok(None)
         }

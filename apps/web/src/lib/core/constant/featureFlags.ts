@@ -21,30 +21,22 @@ const parseBooleanOverride = (value: unknown): boolean | undefined =>
         : undefined;
 
 /**
- * Reads a `VITE_<flagName>` env override or a runtime `window.__MACRO_ENV__` override.
- * Returns `undefined` when unset, so callers can fall through to PostHog rather than forcing the flag off.
- *
- * 在开发环境读取 Vite 编译期注入的环境变量 (VITE_<flagName>)，
- * 在自托管与生产环境读取 /app/env-config.js 动态挂载的 window.__MACRO_ENV__。
+ * Reads a `VITE_<flagName>` env override. Returns `undefined` when unset, so
+ * callers can fall through to PostHog rather than forcing the flag off.
  */
+// PRIVATE-HOOK: selfhost_runtime:feature-flag-overrides
 export function getFeatureFlagOverride(flagName: string): boolean | undefined {
   if (typeof window !== 'undefined') {
     const macroEnv = (
       window as unknown as { __MACRO_ENV__?: Record<string, unknown> }
     ).__MACRO_ENV__;
     if (macroEnv) {
-      const runtimeVal = parseBooleanOverride(
-        macroEnv[flagName] ??
-          (macroEnv.FEATURES as Record<string, unknown> | undefined)?.[flagName]
-      );
-      if (runtimeVal !== undefined) return runtimeVal;
+      const runtimeValue = parseBooleanOverride(macroEnv[flagName]);
+      if (runtimeValue !== undefined) return runtimeValue;
     }
   }
 
-  const viteVal = parseBooleanOverride(import.meta.env[`VITE_${flagName}`]);
-  if (viteVal !== undefined) return viteVal;
-
-  return undefined;
+  return parseBooleanOverride(import.meta.env['VITE_' + flagName]);
 }
 
 export function resolveFeatureFlag(
@@ -115,6 +107,7 @@ export function defineFlag(config: RemoteFlagConfig | EnvFlagConfig): Flag {
     enabled: envOverride(config.env) ?? config.default ?? false,
   };
 }
+
 /**
  * Imperative snapshot. Env/`default` override wins. Otherwise PostHog,
  * or `false` if flags have not loaded or the key is unknown.
@@ -131,12 +124,14 @@ export function isFeatureEnabled(flag: Flag): boolean {
 
 /**
  * Switches Inbox, Tasks, and Channels from the current SoupView implementations
- * to the new composable view implementations. Override locally with
- * VITE_ENABLE_NEW_APP_VIEWS.
+ * to the new composable view implementations. Enabled by default in local
+ * development; production follows PostHog. Override locally with
+ * VITE_ENABLE_NEW_APP_VIEWS=false.
  */
 export const enableNewAppViews = defineFlag({
   key: 'enable-new-app-views',
   env: 'ENABLE_NEW_APP_VIEWS',
+  default: DEV_MODE_ENV || undefined,
 });
 
 /**
@@ -147,6 +142,13 @@ export const enableNewAppViews = defineFlag({
 export const PROD_MODE_ENV = import.meta.env.MODE === 'production';
 
 const onInDev = DEV_MODE_ENV || undefined;
+
+// Claude Cloud demo onboarding and harness/model discovery. Off until PostHog
+// enables it, including in dev; override locally with VITE_CLAUDE_CLOUD.
+export const claudeCloud = defineFlag({
+  key: 'claude-cloud',
+  env: 'CLAUDE_CLOUD',
+});
 
 export const ENABLE_PDF_MODIFICATION_DATA_AUTOSAVE = defineFlag({
   env: 'ENABLE_PDF_MODIFICATION_DATA_AUTOSAVE',
@@ -223,7 +225,7 @@ export const ENABLE_DOCX_TO_PDF = defineFlag({
 
 export const ENABLE_MARKDOWN_LIVE_COLLABORATION = defineFlag({
   env: 'ENABLE_MARKDOWN_LIVE_COLLABORATION',
-  default: false,
+  default: true,
 }).enabled;
 
 export const ENABLE_EMAIL = defineFlag({
@@ -295,16 +297,6 @@ export const ENABLE_CHAT_CHANNEL_ATTACHMENT = defineFlag({
 
 export const ENABLE_SVG_PREVIEW = defineFlag({
   env: 'ENABLE_SVG_PREVIEW',
-  default: true,
-}).enabled;
-
-export const USE_WIDE_ICONS = defineFlag({
-  env: 'USE_WIDE_ICONS',
-  default: true,
-}).enabled;
-
-export const ENABLE_ANIMATED_ICONS = defineFlag({
-  env: 'ENABLE_ANIMATED_ICONS',
   default: true,
 }).enabled;
 
@@ -424,19 +416,6 @@ export const enableEmailSignatures = defineFlag({
   default: onInDev,
 });
 
-// SidebarNext: the rebuilt app sidebar — the narrow icon rail in
-// `components/app/sidebar-next` — rendered in place of `AppSidebar`.
-// PostHog-gated everywhere, dev included: no dev-mode default, so `AppSidebar`
-// stays the sidebar you get by default until the flag is on for you. Set
-// VITE_ENABLE_SIDEBAR_NEXT=true to force the rail on locally without PostHog.
-//
-// The PostHog key is deliberately broader than the local names: `enable-new-app-views`
-// is the rollout switch for the rebuilt app surfaces, of which this sidebar is one.
-export const enableSidebarNext = defineFlag({
-  key: 'enable-new-app-views',
-  env: 'ENABLE_SIDEBAR_NEXT',
-});
-
 // CRM companies & contacts frontend: the Companies view + sidebar entry, the
 // company/contact detail blocks, CRM mentions / quick-access, and CRM rows in
 // global search. PostHog-gated (currently targeted at the Macro team in prod)
@@ -445,6 +424,13 @@ export const enableCrm = defineFlag({
   key: 'enable-crm',
   env: 'ENABLE_CRM',
   default: onInDev,
+});
+
+// Company collections are paused until ready; preserve stored lists while off.
+export const enableCrmLists = defineFlag({
+  key: 'enable-crm-lists',
+  env: 'ENABLE_CRM_LISTS',
+  default: false,
 });
 
 // Reminders: the "Remind me" entry in the command menu, the soup
@@ -514,13 +500,10 @@ export const enableSupportedSoupForeignEntities = defineFlag({
   default: onInDev,
 });
 
-// [二开规则 - 禁用空通知流排序]
-// 官方 default 为 onInDev，自建环境必须恒定为 false，以防触发空通知流排序清空收件箱。
-// 同步上游时以此为准，禁止还原为 onInDev。
 export const enableInboxNotifiedSort = defineFlag({
   key: 'enable-inbox-notified-sort',
   env: 'ENABLE_INBOX_NOTIFIED_SORT',
-  default: false,
+  default: onInDev,
 });
 
 export const enableGraphqlSoup = defineFlag({
@@ -689,17 +672,23 @@ export const enableActivityFeed = defineFlag({
 export const enableChatV3Agents = defineFlag({
   key: 'enable-chat-v3-agents',
   env: 'ENABLE_CHAT_V3_AGENTS',
-  default: getAppCapabilities().agents ? onInDev : false,
+  default: onInDev,
 });
 
-// The `@cursor` mention entry: agent sessions served by Cursor cloud agents
-// on Macro's Cursor account. PostHog-gated per user; the backend additionally
-// restricts these sessions to @macro.com senders. Override with
-// VITE_ENABLE_CURSOR_AGENTS.
+// The built-in @cursor mention, using the mentioning user's own Cursor account.
+// Account setup is checked after the mention; this flag controls discovery.
+// Override with VITE_ENABLE_CURSOR_AGENTS.
 export const enableCursorAgents = defineFlag({
   key: 'enable-cursor-agents',
   env: 'ENABLE_CURSOR_AGENTS',
-  default: getAppCapabilities().agents ? onInDev : false,
+  default: onInDev,
+});
+
+// Codex composer choices also require enableChatV3Agents.
+// Override with VITE_ENABLE_CODEX_AGENTS.
+export const enableCodexAgents = defineFlag({
+  key: 'enable-codex-agents',
+  env: 'ENABLE_CODEX_AGENTS',
 });
 
 // The Recent view: the touched-by-me feed (everything the viewer mutated,
@@ -722,17 +711,13 @@ export const enableNotificationSettings = defineFlag({
   default: onInDev,
 });
 
-// Email attachments: direct download/stream from email_service via Gmail API
-// bypassing DSS document creation and local S3 upload.
+// PRIVATE-HOOK: selfhost_runtime:direct-attachment-flag
 export const enableDirectAttachmentDownload = defineFlag({
   env: 'ENABLE_DIRECT_ATTACHMENT_DOWNLOAD',
   default: false,
 });
 
-// Self-host capability gating: In focused profiles (e.g. Email self-host),
-// backend services like document_cognition_service and scheduled_action_service
-// are not running by default. The web frontend gates feature queries to avoid
-// firing requests to non-existent backend containers (preventing 502s).
+// PRIVATE-HOOK: selfhost_runtime:capabilities
 export interface AppCapabilities {
   cognition: boolean;
   scheduledActions: boolean;
@@ -795,3 +780,23 @@ export function getAppCapabilities(): AppCapabilities {
     ),
   };
 }
+
+// PostHog controls the internal pilot and team targeting in every environment.
+export const enableSpreadsheets = defineFlag({
+  key: 'enable-spreadsheets',
+  env: 'ENABLE_SPREADSHEETS',
+});
+
+/**
+ * Document comments read and write through the shared message API and render
+ * with the channel message components; the legacy annotation comment stores
+ * stay in place while this is off. Channels are not gated. On in dev, where the
+ * legacy comments have already been imported into the message store; production
+ * follows PostHog and stays off until its own import has run. Override locally
+ * with VITE_ENABLE_UNIFIED_DOCUMENT_DISCUSSIONS.
+ */
+export const enableUnifiedDocumentDiscussions = defineFlag({
+  key: 'enable-unified-document-discussions',
+  env: 'ENABLE_UNIFIED_DOCUMENT_DISCUSSIONS',
+  default: onInDev,
+});

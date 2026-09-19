@@ -4,6 +4,7 @@ import { useOnboardingV4Flag } from '@app/features/setup/flow/useOnboardingV4Fla
 import { useAnalytics } from '@app/lib/analytics/analytics-context';
 import { GOOGLE_GMAIL_IDP } from '@core/auth/email';
 import { LoadingBlock } from '@core/component/LoadingBlock';
+import { toast } from '@core/component/Toast/Toast';
 import { useEmailLinks } from '@core/email-link';
 import { isMobile } from '@core/mobile/isMobile';
 import { isNativeMobilePlatform } from '@core/mobile/isNativeMobilePlatform';
@@ -13,15 +14,14 @@ import { getNativeMobilePlatform } from '@core/util/platform';
 import IconApple from '@icon/macro-apple.svg';
 import IconGoogle from '@icon/macro-google.svg';
 import LogoIcon from '@icon/macro-logo.svg';
-import { t } from '@macro/i18n';
 import ArrowLeft from '@phosphor/arrow-left.svg';
 import ArrowRight from '@phosphor/arrow-right.svg';
 import { useUserInfo } from '@queries/auth';
-import { passwordlessCallback, sessionLogin } from '@queries/auth/login';
 import {
   invalidateAllAfterLogin,
   useUserInfoQuery,
 } from '@queries/auth/user-info';
+import { authServiceClient } from '@service-auth/client';
 import {
   action,
   useAction,
@@ -124,26 +124,33 @@ function LoginPicker(props: {
     <div class="flex flex-col gap-3">
       <Button
         variant="cta"
+        size="xl"
         autofocus
         onClick={() => startSsoLogin(GOOGLE_GMAIL_IDP)}
       >
-        <IconGoogle />
-        {t('Continue with Google')}
+        <IconGoogle class="size-fit" />
+        Continue with Google
       </Button>
 
       <Show when={showApple}>
         <Button
           variant="outline"
+          size="xl"
           class="bg-surface"
           onClick={() => startSsoLogin('Apple')}
         >
-          <IconApple />
-          {t('Continue with Apple')}
+          <IconApple class="size-fit" />
+          Continue with Apple
         </Button>
       </Show>
 
-      <Button variant="outline" class="bg-surface" onClick={continueWithEmail}>
-        {t('Continue with email')}
+      <Button
+        variant="outline"
+        size="xl"
+        class="bg-surface"
+        onClick={continueWithEmail}
+      >
+        Continue with email
       </Button>
     </div>
   );
@@ -203,6 +210,7 @@ function EmailFormNew(props: {
   setStage: (next: Stage) => void;
   onBack: () => void;
 }) {
+  const [isPasswordLogin, setIsPasswordLogin] = createSignal(false);
   const submission = useSubmission(sendEmailCode);
   const send = useAction(sendEmailCode);
   const [searchParams] = useSearchParams();
@@ -231,6 +239,10 @@ function EmailFormNew(props: {
   createEffect(() => {
     if (sentEmailCode(submission.result)) {
       props.setStage(Stage.Verify);
+    } else if (submission.result === 'isPasswordLogin') {
+      setIsPasswordLogin(true);
+    } else if (submission.result === 'LoggedIn') {
+      props.setStage(Stage.Done);
     }
   });
 
@@ -242,7 +254,7 @@ function EmailFormNew(props: {
       class="flex flex-col gap-3"
     >
       <p class="text-xs text-ink-muted leading-snug">
-        {t("We'll send a one-time code to verify.")}
+        We’ll send a one-time code to verify.
       </p>
       <FormInput
         id="email"
@@ -250,14 +262,32 @@ function EmailFormNew(props: {
         placeholder="you@company.com"
         value={searchParamsEmail}
       />
+      <Show when={isPasswordLogin()}>
+        <FormInput
+          id="password"
+          type="password"
+          placeholder="Password"
+          required={isPasswordLogin()}
+        />
+      </Show>
       <FormError msg={submission.error?.message} />
-      <Button variant="cta" type="submit" disabled={submission.pending}>
-        {t('Continue')}
-        <ArrowRight class="size-4" />
+      <Button
+        variant="cta"
+        size="xl"
+        type="submit"
+        disabled={submission.pending}
+      >
+        Continue
+        <ArrowRight class="size-5" />
       </Button>
-      <Button variant="outline" class="bg-surface" onClick={props.onBack}>
-        <ArrowLeft class="size-4" />
-        {t('Back to sign in')}
+      <Button
+        variant="outline"
+        size="xl"
+        class="bg-surface"
+        onClick={props.onBack}
+      >
+        <ArrowLeft class="size-5" />
+        Back to sign in
       </Button>
     </form>
   );
@@ -269,7 +299,7 @@ const verifyCode = action(async (formData: FormData) => {
   const email = formData.get('email');
   if (typeof email !== 'string') throw new Error('Invalid email');
 
-  const result = await passwordlessCallback({ code, email });
+  const result = await authServiceClient.passwordlessCallback({ code, email });
   if (result.isErr()) {
     if (result.error.some((err) => err.code === 'UNAUTHORIZED')) {
       throw new Error('Invalid code.');
@@ -384,7 +414,7 @@ function VerifyFormNew(props: {
       <input type="hidden" name="email" value={email() ?? ''} />
       <input type="hidden" name="one-time-code" value={code()} />
       <p class="text-xs text-ink-muted leading-snug">
-        {t('Enter the 6-digit code we sent to')}{' '}
+        Enter the 6-digit code we sent to{' '}
         <span class="text-ink font-medium break-all">{email()}</span>.
       </p>
       <OtpInput
@@ -401,7 +431,7 @@ function VerifyFormNew(props: {
         }}
       />
       <p class="text-center text-xs text-ink-muted" aria-live="polite">
-        {t("Didn't receive a code?")}{' '}
+        Didn't receive a code?{' '}
         <button
           type="button"
           onClick={handleResendCode}
@@ -413,8 +443,8 @@ function VerifyFormNew(props: {
           }
           class="font-medium text-ink transition-colors hover:text-ink-muted disabled:text-ink-extra-muted"
         >
-          <Show when={resendTimer() > 0} fallback={t('Resend')}>
-            {t('Resend')} ({resendTimer()})
+          <Show when={resendTimer() > 0} fallback="Resend">
+            Resend ({resendTimer()})
           </Show>
         </button>
       </p>
@@ -424,15 +454,21 @@ function VerifyFormNew(props: {
           gate submission here instead of round-tripping partial codes. */}
       <Button
         variant="cta"
+        size="xl"
         type="submit"
         disabled={submission.pending || code().length !== 6 || !email()}
       >
-        {t('Verify')}
-        <ArrowRight class="size-4" />
+        Verify
+        <ArrowRight class="size-5" />
       </Button>
-      <Button variant="outline" class="bg-surface" onClick={props.onBack}>
-        <ArrowLeft class="size-4" />
-        {t('Change email')}
+      <Button
+        variant="outline"
+        size="xl"
+        class="bg-surface"
+        onClick={props.onBack}
+      >
+        <ArrowLeft class="size-5" />
+        Change email
       </Button>
     </form>
   );
@@ -447,7 +483,7 @@ export function Login(props: { signupMode?: boolean }) {
   const analytics = useAnalytics();
   const authenticatedUserId = createMemo(() => {
     const user = userInfo();
-    return user?.authenticated ? (user.id ?? user.userId) : undefined;
+    return user?.authenticated ? user.id : undefined;
   });
 
   onMount(() => {
@@ -458,11 +494,9 @@ export function Login(props: { signupMode?: boolean }) {
     const user = userInfo();
 
     if (!user || !user.authenticated) return;
-    const userId = user.id ?? user.userId;
-    if (!userId) return;
 
     const platform = detect(navigator.userAgent);
-    analytics.identify(userId, {
+    analytics.identify(user.id, {
       email: user.email,
       os: platform?.os?.replaceAll(' ', ''),
     });
@@ -482,9 +516,11 @@ export function Login(props: { signupMode?: boolean }) {
       ? rawToken[rawToken.length - 1]
       : rawToken;
     if (session_code && typeof session_code === 'string') {
-      void (async () => {
-        const res = await sessionLogin({ session_code });
+      authServiceClient.sessionLogin({ session_code }).then(async (res) => {
         if (res.isOk()) {
+          // Reset token state only after the session cookies have actually
+          // changed — resetting before sessionLogin opens a window where a
+          // visibility-triggered refresh re-latches under the new generation.
           unsetTokenPromise();
           await invalidateAllAfterLogin();
           await initEmailLink().match(
@@ -495,8 +531,11 @@ export function Login(props: { signupMode?: boolean }) {
               }
             }
           );
+        } else {
+          console.error('Failed to redeem session code', res.error);
+          toast.failure('Sign-in failed. Please try again.');
         }
-      })();
+      });
     }
   });
 
@@ -589,10 +628,10 @@ export function Login(props: { signupMode?: boolean }) {
                 <div class="flex flex-col gap-1.5">
                   <LogoIcon class="mb-2 size-9 text-accent" />
                   <h1 class="font-semibold tracking-tight text-ink text-2xl">
-                    {t('Welcome to Macro')}
+                    Welcome to Macro
                   </h1>
                   <p class="text-sm text-ink-muted">
-                    {t('The open source workspace')}
+                    The open source workspace
                   </p>
                 </div>
               </Show>
@@ -617,19 +656,19 @@ export function Login(props: { signupMode?: boolean }) {
             </div>
 
             <div class="text-center text-xs text-ink/50 wrap-break-word">
-              {t('By continuing, you agree to our')}{' '}
+              By continuing, you agree to our{' '}
               <a
-                class="underline underline-offset-2 hover:text-ink focus-visible:text-ink"
+                class="text-link hover:text-link-hover visited:text-link-visited underline underline-offset-2 focus-visible:text-link-hover"
                 href="/terms"
               >
-                {t('terms')}
+                terms
               </a>{' '}
-              {t('and')}{' '}
+              and{' '}
               <a
-                class="underline underline-offset-2 hover:text-ink focus-visible:text-ink"
+                class="text-link hover:text-link-hover visited:text-link-visited underline underline-offset-2 focus-visible:text-link-hover"
                 href="/privacy"
               >
-                {t('privacy policy')}
+                privacy policy
               </a>
               .
             </div>

@@ -1,4 +1,3 @@
-import { __t } from '@macro/i18n';
 import CaretRight from '@phosphor-icons/core/bold/caret-right-bold.svg?component-solid';
 import CheckIcon from '@phosphor-icons/core/bold/check-bold.svg?component-solid';
 import ClipboardIcon from '@phosphor-icons/core/bold/clipboard-bold.svg?component-solid';
@@ -35,9 +34,7 @@ function CollapsibleCard(props: {
           class="size-3 shrink-0 text-ink-muted transition-transform"
           classList={{ 'rotate-90': expanded() }}
         />
-        <span class="text-sm text-ink-muted truncate">
-          {typeof props.label === 'string' ? __t(props.label) : props.label}
-        </span>
+        <span class="text-sm text-ink-muted truncate">{props.label}</span>
       </button>
       <Show when={expanded()}>
         <div class="border-t border-edge-muted flex flex-col">
@@ -62,12 +59,12 @@ function CollapsibleCard(props: {
               {isCopied() ? (
                 <>
                   <CheckIcon class="size-3.5" />
-                  {__t('Copied')}
+                  Copied
                 </>
               ) : (
                 <>
                   <ClipboardIcon class="size-3.5" />
-                  {__t('Copy')}
+                  Copy
                 </>
               )}
             </Button>

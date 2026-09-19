@@ -1,7 +1,6 @@
 import { useAnalytics } from '@app/lib/analytics/analytics-context';
 import { toast } from '@core/component/Toast/Toast';
 import { isNativeMobilePlatform } from '@core/mobile/isNativeMobilePlatform';
-import { t } from '@macro/i18n';
 import {
   EMAIL_DIGEST_NOTIFICATION_TYPE,
   NOTIFICATION_EVENT_GROUPS,
@@ -53,7 +52,7 @@ export function Notifications() {
     try {
       await setTypeEnabled.mutateAsync({ type, enabled });
     } catch {
-      toast.failure(t('Could not update notification preference'));
+      toast.failure('Could not update notification preference');
     }
   };
 
@@ -61,46 +60,42 @@ export function Notifications() {
     try {
       await unmuteItem.mutateAsync(item);
     } catch {
-      toast.failure(t('Could not unmute item'));
+      toast.failure('Could not unmute item');
     }
   };
 
-  const pushLabel = () =>
-    isNativeMobilePlatform()
-      ? t('Mobile notifications')
-      : t('Desktop notifications');
-  const pushDescription = () =>
-    isNativeMobilePlatform()
-      ? t('Receive push notifications on this device')
-      : t('Receive notifications on this browser or desktop app');
+  const pushLabel = isNativeMobilePlatform()
+    ? 'Mobile notifications'
+    : 'Desktop notifications';
+  const pushDescription = isNativeMobilePlatform()
+    ? 'Receive push notifications on this device'
+    : 'Receive notifications on this browser or desktop app';
 
   return (
     <SettingsPage
-      title={t('Notifications')}
-      description={t(
-        "Choose when you'll be notified. Inbox items always arrive unless you mute a type or an item."
-      )}
+      title="Notifications"
+      description="Choose when you'll be notified. Inbox items always arrive unless you mute a type or an item."
     >
-      <SettingsSection title={t('Delivery')}>
+      <SettingsSection title="Delivery">
         <SettingsCard>
           <SettingsRow
-            label={t('Inbox')}
-            description={t('Always on for types you have not muted')}
+            label="Inbox"
+            description="Always on for types you have not muted"
           >
-            <span class="text-sm text-ink-muted">{t('Always on')}</span>
+            <span class="text-sm text-ink-muted">Always on</span>
           </SettingsRow>
           <Show
             when={platformSettings.isSupported && platformSettings}
             fallback={
-              <SettingsRow label={pushLabel()} description={pushDescription()}>
+              <SettingsRow label={pushLabel} description={pushDescription}>
                 <span class="text-sm text-ink-muted">
-                  {t('Not supported on this device')}
+                  Not supported on this device
                 </span>
               </SettingsRow>
             }
           >
             {(settings) => (
-              <SettingsRow label={pushLabel()} description={pushDescription()}>
+              <SettingsRow label={pushLabel} description={pushDescription}>
                 <ToggleSwitch
                   size="md"
                   checked={settings().isEnabled()}
@@ -113,10 +108,8 @@ export function Notifications() {
             )}
           </Show>
           <SettingsRow
-            label={t('Email digest')}
-            description={t(
-              'A periodic email of unread notifications. Inbox items are unchanged.'
-            )}
+            label="Email digest"
+            description="A periodic email of unread notifications. Inbox items are unchanged."
           >
             <ToggleSwitch
               size="md"
@@ -132,13 +125,13 @@ export function Notifications() {
 
       <For each={NOTIFICATION_EVENT_GROUPS}>
         {(group) => (
-          <SettingsSection title={t(group.label)}>
+          <SettingsSection title={group.label}>
             <SettingsCard>
               <For each={group.events}>
                 {(event) => (
                   <SettingsRow
-                    label={t(event.label)}
-                    description={t(event.description)}
+                    label={event.label}
+                    description={event.description}
                   >
                     <ToggleSwitch
                       size="md"
@@ -155,16 +148,16 @@ export function Notifications() {
       </For>
 
       <SettingsSection
-        title={t('Muted items')}
-        description={t('These items will not send you notifications.')}
+        title="Muted items"
+        description="These items will not send you notifications."
       >
         <SettingsCard>
           <Show
             when={mutedEntities().length > 0}
             fallback={
               <SettingsRow
-                label={t('Nothing muted')}
-                description={t('Items you mute stop sending notifications.')}
+                label="Nothing muted"
+                description="Items you mute stop sending notifications."
               />
             }
           >

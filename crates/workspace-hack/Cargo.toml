@@ -19,7 +19,6 @@ aes-gcm = { version = "0.10", features = ["zeroize"] }
 ahash = { version = "0.8" }
 aho-corasick = { version = "1" }
 anyhow = { version = "1" }
-async-graphql = { version = "7", features = ["dataloader"] }
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-credential-types = { version = "1", default-features = false, features = ["hardcoded-credentials", "test-util"] }
 aws-runtime = { version = "1", default-features = false, features = ["event-stream", "http-02x", "http-1x", "sigv4a"] }
@@ -74,6 +73,7 @@ hyper-rustls-adf3d7031871b0af = { package = "hyper-rustls", version = "0.24", de
 hyper-util = { version = "0.1", features = ["client-legacy", "client-proxy", "http1", "http2", "server", "service"] }
 idna = { version = "1" }
 indexmap = { version = "2", features = ["serde"] }
+insta = { version = "1", features = ["glob", "json"] }
 itertools = { version = "0.13" }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -152,7 +152,6 @@ aes-gcm = { version = "0.10", features = ["zeroize"] }
 ahash = { version = "0.8" }
 aho-corasick = { version = "1" }
 anyhow = { version = "1" }
-async-graphql = { version = "7", features = ["dataloader"] }
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-credential-types = { version = "1", default-features = false, features = ["hardcoded-credentials", "test-util"] }
 aws-runtime = { version = "1", default-features = false, features = ["event-stream", "http-02x", "http-1x", "sigv4a"] }
@@ -209,6 +208,7 @@ hyper-rustls-adf3d7031871b0af = { package = "hyper-rustls", version = "0.24", de
 hyper-util = { version = "0.1", features = ["client-legacy", "client-proxy", "http1", "http2", "server", "service"] }
 idna = { version = "1" }
 indexmap = { version = "2", features = ["serde"] }
+insta = { version = "1", features = ["glob", "json"] }
 itertools = { version = "0.13" }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
 libc = { version = "0.2", features = ["extra_traits"] }

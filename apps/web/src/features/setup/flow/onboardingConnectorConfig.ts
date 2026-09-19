@@ -32,11 +32,16 @@ export type OnboardingConnectorServerName =
  * must be explicitly set to `false` to hide it.
  */
 export function resolveOnboardingConnectorNames(
-  _flagEnabled: boolean,
-  _payload: unknown
+  flagEnabled: boolean,
+  payload: unknown
 ): OnboardingConnectorServerName[] {
-  // In private deployment, skip all third-party MCP connectors during onboarding
-  return [];
+  if (!flagEnabled || !isObject(payload)) {
+    return ONBOARDING_CONNECTORS.map(({ serverName }) => serverName);
+  }
+
+  return ONBOARDING_CONNECTORS.filter(({ key }) => payload[key] !== false).map(
+    ({ serverName }) => serverName
+  );
 }
 
 /**
@@ -55,4 +60,8 @@ export function resolveOnboardingStepIndex(
   return nextVisibleIndex === -1
     ? Math.max(visibleStepKeys.length - 1, 0)
     : nextVisibleIndex;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

@@ -4,7 +4,6 @@ import { useHasPaidAccess } from '@core/auth';
 import { PERMISSION_IDS } from '@core/constant/permissions';
 import { usePermissions, useUserId } from '@core/context/user';
 import { plural } from '@core/util/string';
-import { t } from '@macro/i18n';
 import CheckIcon from '@phosphor/check.svg';
 import EnvelopeIcon from '@phosphor/envelope.svg';
 import { useCurrentTeamQuery } from '@queries/team/teams';
@@ -32,7 +31,7 @@ const PlanFeatures = (props: { tier: PlanTier }) => (
     {(label) => (
       <li class="flex items-center gap-2">
         <CheckIcon class="size-3 text-success" />
-        <span class="text-ink-muted text-xs">{t(label)}</span>
+        <span class="text-ink-muted text-xs">{label}</span>
       </li>
     )}
   </For>
@@ -52,32 +51,20 @@ export const Billing = () => {
   });
 
   const userTeam = createMemo(() => {
-    try {
-      const currentTeam = team.data;
-      const uid = userId();
-      if (!currentTeam || !uid) return;
+    const currentTeam = team.data;
+    const uid = userId();
+    if (!currentTeam || !uid) return;
 
-      return currentTeam.team;
-    } catch {
-      return undefined;
-    }
+    return currentTeam.team;
   });
 
   const teamRole = createMemo(() => {
     const uid = userId();
-    const current = userTeam();
+    const team = userTeam();
 
-    if (!current) return 'owner';
+    if (!team) return;
 
-    return current.owner_id === uid ? 'owner' : 'member';
-  });
-
-  const memberCount = createMemo(() => {
-    try {
-      return team.data?.members?.length ?? 1;
-    } catch {
-      return 1;
-    }
+    return team.owner_id === uid ? 'owner' : 'member';
   });
 
   const handleCheckout = async () => {
@@ -103,15 +90,15 @@ export const Billing = () => {
 
   return (
     <SettingsPage
-      title={t('Billing')}
+      title="Billing"
       description={
         <>
-          {t('For questions about billing,')}{' '}
+          For questions about billing,{' '}
           <a
             class="text-link hover:text-link-hover visited:text-link-visited inline-flex items-center"
             href="mailto:support@macro.com"
           >
-            {t('contact us')}
+            contact us
             <EnvelopeIcon class="size-4 inline mx-1" />
           </a>
         </>
@@ -124,32 +111,34 @@ export const Billing = () => {
               <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-2">
                   <h2 class="text-lg font-medium text-ink">
-                    <Show when={!hasPaid()} fallback={t('Enterprise Plan')}>
-                      {t('Enterprise Plan')}
+                    <Show when={!hasPaid()} fallback={'Premium plan'}>
+                      Free plan
                     </Show>
                   </h2>
 
                   <Layer depth={3}>
                     <span class="text-xs text-ink-muted px-1.5 py-0.25 border border-edge-muted rounded-md bg-active">
-                      {t('Current')}
+                      Current
                     </span>
                   </Layer>
                 </div>
                 <Switch>
                   <Match when={teamRole() === 'member'}>
                     <p class="text-ink-extra-muted text-xs">
-                      {t(
-                        'Your subscription is managed by your team owner. Contact them to make changes.'
-                      )}
+                      Your subscription is managed by your team owner. Contact
+                      them to make changes.
                     </p>
                   </Match>
-                  <Match when={true}>
-                    <p class="text-ink-extra-muted text-xs">
-                      {t('{count} {users} • Self-hosted Unlimited Seats', {
-                        count: memberCount(),
-                        users: plural('user', memberCount()),
-                      })}
-                    </p>
+                  <Match
+                    when={hasPaid() && teamRole() === 'owner' && team.data}
+                  >
+                    {(team) => (
+                      <p class="text-ink-extra-muted text-xs">
+                        {team().members.length}{' '}
+                        {plural('user', team().members.length)} • $40 per
+                        seat/per month
+                      </p>
+                    )}
                   </Match>
                 </Switch>
               </div>
@@ -168,47 +157,51 @@ export const Billing = () => {
                   variant="outline"
                   onClick={handleManage}
                 >
-                  {t('Manage')}
+                  Manage
                 </Button>
               </Show>
             </header>
             <ul class="border-t border-t-edge-muted pt-4 flex flex-wrap gap-4 text-sm text-ink-muted">
-              <PlanFeatures tier="premium" />
+              <PlanFeatures tier={hasPaid() ? 'premium' : 'free'} />
             </ul>
           </section>
         </SettingsCard>
       </SettingsSection>
 
-      <SettingsSection>
-        <SettingsCard>
-          <section class="flex flex-col gap-4 p-4">
-            <header class="flex items-center gap-2">
-              <div class="flex flex-col">
-                <h2 class="text-lg font-medium text-ink">
-                  {t('Team & Enterprise Pricing')}
-                </h2>
-                <p class="text-ink-extra-muted text-xs">
-                  {t('$40 per seat / month (Included in Self-Hosted)')}
-                </p>
-              </div>
+      <Show
+        when={
+          !hasPaid() &&
+          canManageSubscription() &&
+          (!teamRole() || teamRole() === 'owner')
+        }
+      >
+        <SettingsSection>
+          <SettingsCard>
+            <section class="flex flex-col gap-4 p-4">
+              <header class="flex items-center gap-2">
+                <div class="flex flex-col">
+                  <h2 class="text-lg font-medium text-ink">Premium</h2>
+                  <p class="text-ink-extra-muted text-xs">
+                    $40 per seat / month
+                  </p>
+                </div>
 
-              <Show when={!hasPaid() && canManageSubscription()}>
                 <Button
                   class="ml-auto rounded-full py-1.5 px-3"
                   depth={2}
                   variant="cta"
                   onClick={handleCheckout}
                 >
-                  {t('Upgrade now')}
+                  Upgrade now
                 </Button>
-              </Show>
-            </header>
-            <ul class="border-t border-t-edge-muted pt-4 flex flex-wrap gap-4 text-sm text-ink-muted">
-              <PlanFeatures tier="premium" />
-            </ul>
-          </section>
-        </SettingsCard>
-      </SettingsSection>
+              </header>
+              <ul class="border-t border-t-edge-muted pt-4 flex flex-wrap gap-4 text-sm text-ink-muted">
+                <PlanFeatures tier="premium" />
+              </ul>
+            </section>
+          </SettingsCard>
+        </SettingsSection>
+      </Show>
     </SettingsPage>
   );
 };

@@ -1,7 +1,6 @@
 import { EMAIL_COMPOSE_TO_INPUT_ID } from '@app/features/email-compose/core/constants';
 import type { EmailRecipient } from '@app/features/email-compose/core/email-recipient';
 import { RecipientSelector } from '@core/component/RecipientSelector';
-import { t } from '@macro/i18n';
 
 import { cn } from '@ui';
 import { createSignal, type JSX, onCleanup, Show } from 'solid-js';
@@ -57,8 +56,8 @@ function ComposeFieldRow(props: {
   return (
     <div
       class={cn(
-        'flex gap-2 py-1 border-b border-edge-muted focus-within:border-accent',
-        ctx.isMobile() ? 'items-start' : 'items-center'
+        'flex gap-2 border-b border-edge-muted focus-within:border-ink/20',
+        ctx.isMobile() ? 'items-start py-1' : 'items-center py-3'
       )}
       classList={{ 'border-accent bg-accent/10': isDragOver() }}
       onDragOver={handleDragOver}
@@ -214,7 +213,7 @@ export function ComposeRecipients(props: {
           activate(field);
         }
       }}
-      placeholder={ctx.isMobile() ? '' : t('Macro users or email addresses')}
+      placeholder={ctx.isMobile() ? '' : 'Macro users or email addresses'}
       focusOnMount={opts?.focusOnMount}
       openOnFocus={false}
       hideBorder
@@ -237,7 +236,7 @@ export function ComposeRecipients(props: {
       fallback={
         <button
           type="button"
-          class="ph-no-capture w-full min-h-9 flex items-center text-sm text-ink text-left"
+          class="ph-no-capture w-full min-h-9 flex items-center text-base text-ink text-left"
           onClick={() => activate(field)}
         >
           <span class="truncate">{summaryParts(field).names}</span>
@@ -283,7 +282,7 @@ export function ComposeRecipients(props: {
   const toRow = (handlers?: RowFocusHandlers) =>
     fieldRow(
       'to',
-      fieldLabel(t('To')),
+      fieldLabel('To'),
       <>
         {summarizable(
           'to',
@@ -305,14 +304,14 @@ export function ComposeRecipients(props: {
   const ccRow = (handlers?: RowFocusHandlers) =>
     fieldRow(
       'cc',
-      fieldLabel(t('Cc')),
+      fieldLabel('Cc'),
       summarizable('cc', recipientSelector('cc', props.ccRef)),
       handlers
     );
   const bccRow = (handlers?: RowFocusHandlers) =>
     fieldRow(
       'bcc',
-      fieldLabel(t('Bcc')),
+      fieldLabel('Bcc'),
       summarizable('bcc', recipientSelector('bcc', props.bccRef)),
       handlers
     );
@@ -321,7 +320,7 @@ export function ComposeRecipients(props: {
     <Show
       when={ctx.isMobile()}
       fallback={
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col">
           {toRow()}
           <Show when={isCcVisible()}>{ccRow()}</Show>
           <Show when={isBccVisible()}>{bccRow()}</Show>
@@ -339,7 +338,7 @@ export function ComposeRecipients(props: {
               onClick={expand}
             >
               <span class="text-sm shrink-0 text-ink-placeholder min-h-9 flex items-center">
-                {t('Cc/Bcc, From:')}
+                Cc/Bcc, From:
               </span>
               <span class="ph-no-capture text-sm text-ink-muted truncate min-h-9 flex items-center">
                 {ctx.fromAddress?.()}
@@ -350,9 +349,7 @@ export function ComposeRecipients(props: {
           {ccRow(rowFocusHandlers('cc'))}
           {bccRow(rowFocusHandlers('bcc'))}
           <div class="flex items-center gap-2 py-1 border-b border-edge-muted">
-            <div class="text-sm shrink-0 text-ink-placeholder">
-              {t('From:')}
-            </div>
+            <div class="text-sm shrink-0 text-ink-placeholder">From:</div>
             <div class="flex-1 min-w-0 min-h-9 flex items-center">
               <FromInboxSelector
                 disabled={ctx.disabled()}

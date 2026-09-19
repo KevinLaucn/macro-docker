@@ -41,7 +41,6 @@ fn main() {
         Some("cache-wasm") => "xtask_cache_wasm",
         Some("kafka-topics") => "xtask_kafka_topics",
         Some("workflows") => "xtask_workflows",
-        Some("slim-plan") => "xtask_slim_plan",
         // Everything else (including no args) is the local/dev orchestration
         // surface. Forward every arg — the subcommand is its clap parser's
         // first positional.

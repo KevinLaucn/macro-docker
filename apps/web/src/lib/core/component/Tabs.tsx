@@ -4,7 +4,6 @@ import {
   type SegmentedControlRootProps,
   useSegmentedControlContext,
 } from '@kobalte/core/segmented-control';
-import { __t } from '@macro/i18n';
 import { createResizeObserver } from '@solid-primitives/resize-observer';
 import { cn } from '@ui';
 import {
@@ -71,7 +70,7 @@ export const Tabs = (
                   rootProps.onChange?.(item.value);
                 }}
               >
-                {typeof item.label === 'string' ? __t(item.label) : item.label}
+                {item.label}
               </KSegmentedControl.ItemLabel>
             </KSegmentedControl.Item>
           )}

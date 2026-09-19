@@ -11,32 +11,18 @@ maybe_env_var! {
 }
 
 maybe_env_var! {
+    /// Browser-facing LocalStack origin for a local stack with mapped ports.
     #[derive(Clone)]
-    pub struct S3EndpointUrl;
+    pub struct LocalAwsPublicUrl;
 }
 
 /// Creates an S3 client
-///
-/// `S3_ENDPOINT_URL` overrides the endpoint for S3 alone, leaving SQS, DynamoDB
-/// and KMS on whatever [`get_macro_aws_config`] resolves. A self-hosted
-/// deployment needs this because a presigned URL's signature covers the host it
-/// is signed for: the endpoint has to be the *public* object-storage hostname
-/// the browser will use, even though the storage itself is in-network.
 #[cfg(feature = "s3")]
 pub async fn s3_client() -> aws_sdk_s3::Client {
-    let mut builder = aws_sdk_s3::config::Builder::from(&get_macro_aws_config().await)
-        // Path-style for any non-AWS endpoint: neither LocalStack nor a
-        // self-hosted origin has per-bucket DNS.
-        .force_path_style(is_local_aws() || s3_endpoint_override().is_some());
-    if let Some(endpoint) = s3_endpoint_override() {
-        builder = builder.endpoint_url(endpoint);
-    }
-    aws_sdk_s3::Client::from_conf(builder.build())
-}
-
-/// The configured public S3 endpoint, if any.
-fn s3_endpoint_override() -> Option<String> {
-    S3EndpointUrl::new().map(|url| url.as_ref().to_string())
+    let s3_config = aws_sdk_s3::config::Builder::from(&get_macro_aws_config().await)
+        .force_path_style(is_local_aws())
+        .build();
+    aws_sdk_s3::Client::from_conf(s3_config)
 }
 
 /// Creates an SQS client
@@ -75,17 +61,8 @@ pub fn is_local_aws() -> bool {
     LocalAwsUrl::new().is_some()
 }
 
-/// Whether object URLs are already addressed by a public hostname.
-///
-/// When `S3_ENDPOINT_URL` is set, S3 URLs are minted against a real, routable
-/// host, so the local-development rewriting below must not touch them — the
-/// signature is bound to that host, and rewriting it would invalidate it.
-fn s3_urls_are_public() -> bool {
-    S3EndpointUrl::new().is_some()
-}
-
 /// internal method to transform the local aws url
-fn transform_local_url(url: &str) -> String {
+fn transform_local_url(url: &str, public_url: Option<&str>) -> String {
     // NOTE: it is ok to use expect as this is only run locally
     let parsed = url::Url::parse(url).expect("valid url");
     let host = parsed.host_str().unwrap();
@@ -93,11 +70,15 @@ fn transform_local_url(url: &str) -> String {
     let path = parsed.path();
     let query = parsed.query().map(|q| format!("?{q}")).unwrap_or_default();
 
+    let origin = public_url
+        .map(|url| url.trim_end_matches('/').to_owned())
+        .unwrap_or_else(|| format!("http://localhost:{port}"));
+
     // Path-style LocalStack URLs generated inside Docker use `localstack` as
     // the host, which the browser on the host machine cannot resolve. Keep the
-    // existing path (`/{bucket}/{key}`) and only swap the host to localhost.
+    // existing path (`/{bucket}/{key}`) and use the browser-facing origin.
     if host == "localstack" || host == "localhost" {
-        return format!("http://localhost:{port}{path}{query}");
+        return format!("{origin}{path}{query}");
     }
 
     // hostname should be in the form {asset}.localstack or {asset}.localhost
@@ -106,35 +87,37 @@ fn transform_local_url(url: &str) -> String {
         .or_else(|| host.strip_suffix(".localhost"))
         .unwrap();
 
-    format!("http://localhost:{port}/{asset}{path}{query}")
+    format!("{origin}/{asset}{path}{query}")
 }
 
 /// Transforms a localstack url into one that will work within the app
 /// For example, presigned urls for localstack come out as `http://{BUCKET_NAME}.localstack:{PORT}`
 /// but we need them to be formulated as `http://localhost:{PORT}/bucket-name`.
+/// `LOCAL_AWS_PUBLIC_URL`, when set by the local stack, supplies the browser-facing
+/// origin so named instances use their published port instead of Docker's port.
 pub fn transform_aws_url(url: &str) -> String {
-    if is_local_aws() && !s3_urls_are_public() {
-        return transform_local_url(url);
+    if is_local_aws() {
+        let public_url = LocalAwsPublicUrl::new();
+        return transform_local_url(url, public_url.as_ref().map(|url| url.as_ref()));
     }
     url.to_string()
 }
 
 /// internal method to transform a browser-facing local url into one reachable
 /// from inside the docker network
-fn transform_internal_url(url: &str) -> String {
+fn transform_internal_url(url: &str, local_aws_url: &str) -> String {
     // NOTE: it is ok to use expect as this is only run locally
     let parsed = url::Url::parse(url).expect("valid url");
     let host = parsed.host_str().unwrap();
-    let port = parsed.port().unwrap_or(4566);
     let path = parsed.path();
     let query = parsed.query().map(|q| format!("?{q}")).unwrap_or_default();
 
     // Browser-facing local URLs use `localhost`, which inside a container
-    // resolves to the container itself. Swap it for the `localstack` service
-    // hostname so service-to-service fetches reach LocalStack. Leave any other
+    // resolves to the container itself. Use the SDK endpoint, including its
+    // internal port, so service-to-service fetches reach LocalStack. Leave any other
     // host untouched.
     if host == "localhost" || host == "localstack" {
-        return format!("http://localstack:{port}{path}{query}");
+        return format!("{}{path}{query}", local_aws_url.trim_end_matches('/'));
     }
 
     url.to_string()
@@ -149,8 +132,8 @@ fn transform_internal_url(url: &str) -> String {
 /// Docker network must use the `localstack` service hostname instead. No-op
 /// outside local AWS.
 pub fn transform_aws_url_for_internal_fetch(url: &str) -> String {
-    if is_local_aws() && !s3_urls_are_public() {
-        return transform_internal_url(url);
+    if let Some(local_aws_url) = LocalAwsUrl::new() {
+        return transform_internal_url(url, local_aws_url.as_ref());
     }
     url.to_string()
 }

@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import { cn } from '@ui';
 import { createSignal, Show } from 'solid-js';
 import { useCompose } from '../context/compose-context';
@@ -32,8 +31,8 @@ export function ComposeSubject(props: {
   return (
     <div
       class={cn(
-        'w-full flex gap-2 border-b border-edge-muted focus-within:border-accent py-2',
-        ctx.isMobile() ? 'items-start' : 'items-center'
+        'w-full flex gap-2 border-b border-edge-muted focus-within:border-ink/20',
+        ctx.isMobile() ? 'items-start py-2' : 'items-center py-3'
       )}
     >
       <div
@@ -42,7 +41,7 @@ export function ComposeSubject(props: {
           ctx.isMobile() ? 'min-h-7 flex items-center' : 'w-14'
         )}
       >
-        {ctx.isMobile() ? t('Subject:') : t('Subject')}
+        {ctx.isMobile() ? 'Subject:' : 'Subject'}
       </div>
       <div class="flex-1 min-w-0">
         <Show
@@ -52,8 +51,8 @@ export function ComposeSubject(props: {
               ref={props.inputRef}
               type="text"
               value={ctx.subject()}
-              placeholder={t('Subject')}
-              class="w-full resize-none text-sm placeholder:text-ink-placeholder p-1"
+              placeholder="Subject"
+              class="w-full resize-none bg-transparent text-base text-ink placeholder:text-ink-placeholder outline-none"
               onInput={(e) => ctx.setSubject(e.currentTarget.value)}
               onKeyDown={blurOnEscape}
               disabled={ctx.disabled()}
@@ -65,7 +64,7 @@ export function ComposeSubject(props: {
             fallback={
               <button
                 type="button"
-                class="ph-no-capture w-full min-h-7 flex items-center text-sm text-ink text-left"
+                class="ph-no-capture w-full min-h-7 flex items-center text-base text-ink text-left"
                 onClick={() => {
                   setEditing(true);
                   requestAnimationFrame(() => textareaRef?.focus());
@@ -83,7 +82,7 @@ export function ComposeSubject(props: {
               }}
               rows="1"
               value={ctx.subject()}
-              class="w-full resize-none overflow-hidden text-sm p-1"
+              class="w-full resize-none overflow-hidden text-base p-1"
               onInput={(e) => {
                 ctx.setSubject(e.currentTarget.value.replace(/\n/g, ' '));
                 autosize(e.currentTarget);

@@ -1,3 +1,4 @@
+export { ActionDialogShell } from './components/ActionDialogShell';
 export type {
   AvatarGroupProps,
   AvatarGroupSize,
@@ -146,6 +147,7 @@ export { Surface } from './components/Surface';
 export { TabbedControl } from './components/TabbedControl';
 export type { TabItem, TabsProps } from './components/Tabs';
 export { Tabs } from './components/Tabs';
+export { TagDot, type TagDotProps, type TagDotSize } from './components/TagDot';
 export type {
   TextFieldDescriptionProps,
   TextFieldError,

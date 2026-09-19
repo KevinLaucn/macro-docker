@@ -16,13 +16,6 @@ inbound = [
   "item_filters/schema",
   "ports",
 ]
-livekit = [
-  "dep:livekit-api",
-  "dep:livekit-protocol",
-]
-voice = [
-  "dep:pgvector",
-]
 outbound = [
   "dep:agent",
   "dep:ai_usage",
@@ -31,7 +24,11 @@ outbound = [
   "channels/outbound",
   "dep:entity_access_db_utils",
   "dep:futures",
+  "dep:livekit-api",
+  "dep:livekit-protocol",
   "dep:macro_aws_config",
+  "dep:pgvector",
+  "dep:share_permission_db_utils",
   "dep:sqlx",
   "dep:urlencoding",
   "ports",
@@ -82,6 +79,7 @@ rootcause = { workspace = true }
 pgvector = { workspace = true, optional = true }
 schemars = { workspace = true, optional = true }
 serde = { workspace = true }
+share_permission_db_utils = { path = "../share_permission_db_utils", optional = true }
 serde_json = { workspace = true }
 sqlx = { workspace = true, optional = true }
 thiserror = { workspace = true }

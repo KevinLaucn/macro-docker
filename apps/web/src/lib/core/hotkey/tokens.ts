@@ -1,4 +1,7 @@
 export const TOKENS = {
+  workspace: {
+    toggleNavigation: 'workspace.toggleNavigation',
+  },
   // soup
   soup: {
     openSearch: 'soup.openSearch',
@@ -137,8 +140,6 @@ export const TOKENS = {
   email: {
     nextThread: 'email.nextThread',
     previousThread: 'email.previousThread',
-    translateList: 'email.translateList',
-    translateThread: 'email.translateThread',
     send: 'email.send',
     sendAndMarkDone: 'email.sendAndMarkDone',
     archive: 'email.archive',
@@ -276,6 +277,8 @@ export const TOKENS = {
     chatNewSplit: 'create.chatNewSplit',
     canvas: 'create.canvas',
     canvasNewSplit: 'create.canvasNewSplit',
+    spreadsheet: 'create.spreadsheet',
+    spreadsheetNewSplit: 'create.spreadsheetNewSplit',
     project: 'create.project',
     projectNewSplit: 'create.projectNewSplit',
     code: 'create.code',

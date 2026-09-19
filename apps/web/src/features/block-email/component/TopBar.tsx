@@ -20,10 +20,6 @@ import {
   SplitHeaderBadge,
   StaticSplitLabel,
 } from '@components/app/split-layout/components/SplitLabel';
-import {
-  returnSplitToRecentListView,
-  useSplitPanel,
-} from '@components/app/split-layout/layoutUtils';
 import { toast } from '@core/component/Toast/Toast';
 import {
   getShareDrawerRecipientInput,
@@ -32,18 +28,19 @@ import {
 } from '@core/component/TopBar/ShareButton';
 import { ENABLE_EMAIL_SHARING } from '@core/constant/featureFlags';
 import { TOKENS } from '@core/hotkey/tokens';
+import { getActiveCommandByToken, runCommand } from '@core/hotkey/utils';
 import { isMobile } from '@core/mobile/isMobile';
 import { buildEntityData } from '@entity';
-import { AnimatedNoiseIcon } from '@icon/wide-noise';
-import IconShared from '@icon/wide-share.svg';
-import { AnimatedTaskIcon } from '@icon/wide-task';
 import { t } from '@macro/i18n';
 import ArrowRightIcon from '@phosphor/arrow-right.svg';
 import CheckIcon from '@phosphor/check.svg';
 import EnvelopeSimpleIcon from '@phosphor/envelope-simple.svg';
 import EnvelopeSimpleOpenIcon from '@phosphor/envelope-simple-open.svg';
+import TaskIcon from '@phosphor/list-checks.svg';
 import ProhibitIcon from '@phosphor/prohibit.svg';
+import IconShared from '@phosphor/share.svg';
 import TrashIcon from '@phosphor/trash.svg';
+import NoiseIcon from '@phosphor/waveform.svg';
 import CheckBoldIcon from '@phosphor-icons/core/bold/check-bold.svg?component-solid';
 import ArrowCounterClockwise from '@phosphor-icons/core/regular/arrow-counter-clockwise.svg?component-solid';
 import { useEmailLinksQuery } from '@queries/email/link';
@@ -56,7 +53,6 @@ export function TopBar(props: {
   isDraft?: boolean;
   onCreateTask?: () => void;
 }) {
-  const splitPanel = useSplitPanel();
   const shareCtx = useShareDialogContext();
   const emailCtx = useEmailThreadState();
   const soup = useMaybeSoup();
@@ -90,7 +86,7 @@ export function TopBar(props: {
       projectId: thread?.project_id ?? undefined,
       isRead: thread?.is_read,
       isDraft: props.isDraft,
-      done: isDone(),
+      done: thread ? !thread.inbox_visible : undefined,
     });
   };
 
@@ -100,15 +96,23 @@ export function TopBar(props: {
     void moveToProjectAction.execute([entity]);
   };
 
+  // A send-only thread is permanently done, so neither half of the toggle
+  // does anything — hide it rather than offer a no-op.
+  const showMarkDoneToggle = () => !isDone() || emailCtx.canMarkThreadNotDone();
+
   const toggleMarkDone = () => {
-    if (isDone() && emailCtx.canMarkThreadNotDone()) {
+    if (isDone()) {
       emailCtx.markThreadNotDone();
       return;
     }
+    // Prefer the active Mark done command so it drives soup navigation and
+    // notifications; fall back to archiving the thread directly. A command
+    // can be found but still decline (condition/handler returns false, e.g.
+    // the triage registration when not opened from inbox/mail), so gate on
+    // it actually capturing.
+    const command = getActiveCommandByToken(TOKENS.entity.action.markDone);
+    if (command && runCommand(command).commandCaptured) return;
     emailCtx.archiveThread();
-    if (splitPanel?.handle) {
-      returnSplitToRecentListView(splitPanel.handle);
-    }
   };
 
   const toggleMarkUnread = () => {
@@ -166,7 +170,7 @@ export function TopBar(props: {
     icon: IconShared,
     action: () => shareCtx.open(),
     condition: () => ENABLE_EMAIL_SHARING,
-    buttonComponent: () => <ShareTrigger />,
+    buttonComponent: () => <ShareTrigger id={props.id} blockType="email" />,
     focusTarget: getShareDrawerRecipientInput,
   };
 
@@ -212,7 +216,7 @@ export function TopBar(props: {
     },
     {
       label: () => t('Create task'),
-      icon: AnimatedTaskIcon,
+      icon: TaskIcon,
       action: () => props.onCreateTask?.(),
       condition: () => !!props.onCreateTask && !!emailCtx.thread()?.db_id,
     },
@@ -237,7 +241,7 @@ export function TopBar(props: {
     {
       group: 'sender',
       label: () => t('Sender → Noise'),
-      icon: AnimatedNoiseIcon,
+      icon: NoiseIcon,
       action: () => emailCtx.markSenderNoise(),
       condition: isOwnThread,
     },
@@ -327,7 +331,7 @@ export function TopBar(props: {
               </Show>
             </Button>
           </Show>
-          <Show when={isOwnThread()}>
+          <Show when={isOwnThread() && showMarkDoneToggle()}>
             <Button
               class="p-1 rounded-lg"
               label={isDone() ? 'Mark as not done' : 'Mark done'}
@@ -340,7 +344,9 @@ export function TopBar(props: {
               // Same focus-preservation as the read-state toggle above.
               onMouseDown={(e) => e.preventDefault()}
             >
-              <CheckIcon class="size-4" />
+              <Show when={isDone()} fallback={<CheckIcon class="size-4" />}>
+                <CheckBoldIcon class="size-4 text-accent" />
+              </Show>
             </Button>
           </Show>
         </SplitHeaderRight>

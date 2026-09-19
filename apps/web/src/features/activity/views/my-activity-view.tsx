@@ -1,7 +1,6 @@
 import { SoupSectionHeader } from '@app/features/next-soup/soup-view/section-header';
 import { SplitHeaderLeft } from '@components/app/split-layout/components/SplitHeader';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
-import { t } from '@macro/i18n';
 import { createElementSize } from '@solid-primitives/resize-observer';
 import {
   createEffect,
@@ -120,7 +119,7 @@ export function MyActivityView(props: {
   return (
     <div class="@container/u-list flex size-full flex-col">
       <SplitHeaderLeft>
-        <span class="font-semibold text-sm">{t('Activity')}</span>
+        <span class="font-semibold text-sm">Activity</span>
       </SplitHeaderLeft>
       <StaticMarkdownContext>
         <div ref={setScroller} class="min-h-0 flex-1 overflow-y-auto py-1">
@@ -128,7 +127,7 @@ export function MyActivityView(props: {
             <Show when={pinnedDay()}>
               {(label) => (
                 <div class="pt-1" data-activity-pinned-day>
-                  <SoupSectionHeader>{t(label())}</SoupSectionHeader>
+                  <SoupSectionHeader>{label()}</SoupSectionHeader>
                 </div>
               )}
             </Show>
@@ -174,7 +173,7 @@ function FeedRowView(props: {
       <OverviewRow state={props.state} onOpen={props.onOpen} />
     ))
     .with({ kind: 'day' }, (row) => (
-      <SoupSectionHeader>{t(row.label)}</SoupSectionHeader>
+      <SoupSectionHeader>{row.label}</SoupSectionHeader>
     ))
     .with({ kind: 'entry' }, (row) => (
       <NamedActivityRow
@@ -184,17 +183,15 @@ function FeedRowView(props: {
       />
     ))
     .with({ kind: 'status', status: 'loading' }, () => (
-      <FeedStatus>{t('Loading…')}</FeedStatus>
+      <FeedStatus>Loading…</FeedStatus>
     ))
     .with({ kind: 'status', status: 'error' }, () => (
       <FeedStatus>
-        {t('Activity is unavailable right now. Try again in a moment.', {
-          context: 'activity',
-        })}
+        Activity is unavailable right now. Try again in a moment.
       </FeedStatus>
     ))
     .with({ kind: 'status', status: 'empty' }, () => (
-      <FeedStatus>{t('No activity yet.')}</FeedStatus>
+      <FeedStatus>No activity yet.</FeedStatus>
     ))
     .with({ kind: 'tail' }, () => <FeedTail state={props.state} />)
     .exhaustive();
@@ -211,15 +208,15 @@ function FeedTail(props: { state: MyActivityState }) {
       aria-live="polite"
       data-activity-feed-tail
     >
-      <Show when={ready()?.loadingMore}>{t('Loading…')}</Show>
+      <Show when={ready()?.loadingMore}>Loading…</Show>
       <Show when={!ready()?.loadingMore && ready()?.moreFailed}>
-        <span>{t("Couldn't load more.@@activity")}</span>
+        <span>Couldn't load more.</span>
         <button
           type="button"
           class="text-ink underline-offset-2 hover:underline"
           onClick={() => props.state.retryMore()}
         >
-          {t('Retry')}
+          Retry
         </button>
       </Show>
     </div>
@@ -249,7 +246,7 @@ function OverviewRow(props: {
             }
           >
             <p class="px-2 py-1 text-ink-extra-muted text-xs">
-              {t('Activity overview is unavailable right now.')}
+              Activity overview is unavailable right now.
             </p>
           </Show>
         </OverviewInset>

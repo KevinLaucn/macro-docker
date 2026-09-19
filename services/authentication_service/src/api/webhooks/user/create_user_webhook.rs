@@ -1,13 +1,9 @@
-#[cfg(all(test, feature = "full-saas"))]
+#[cfg(test)]
 mod test;
 
-#[cfg(feature = "full-saas")]
 use analytics_client::{MetaActionSource, MetaUserData};
-#[cfg(feature = "full-saas")]
-use std::collections::HashSet;
-use std::future::Future;
+use std::{collections::HashSet, future::Future};
 
-#[cfg(feature = "full-saas")]
 use anyhow::Context;
 use authentication_service::service::signup_policy::SignupPolicy;
 use axum::{
@@ -16,7 +12,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use macro_authorization::{InternalOnly, MacroAuthorizationExtractor};
-#[cfg(feature = "full-saas")]
 use rand::Rng;
 
 use crate::{
@@ -27,29 +22,24 @@ use crate::{
     rate_limit_config::RATE_LIMIT_CONFIG,
 };
 use authentication_service::service::user::create_user::create_user;
-#[cfg(feature = "full-saas")]
-use authentication_service::service::user::support_channel_welcome::post_support_channel_welcome;
-#[cfg(feature = "full-saas")]
+use authentication_service::service::user::support_channel_welcome::{
+    AuthorizedSupportChannelMessages, post_support_channel_welcome,
+};
 use channels::domain::{
     models::{ChannelType, CreateChannelRequest},
     ports::ChannelService,
 };
-#[cfg(feature = "full-saas")]
 use favorites::domain::ports::FavoritesService;
 use fusionauth::error::FusionAuthClientError;
-use macro_user_id::email::Email;
-#[cfg(feature = "full-saas")]
-use macro_user_id::{email::ReadEmailParts, user_id::MacroUserIdStr};
-use model::authentication::webhooks::FusionAuthUserWebhook;
-#[cfg(feature = "full-saas")]
-use model::authentication::webhooks::User as FusionAuthWebhookUser;
-#[cfg(feature = "full-saas")]
+use macro_user_id::{
+    email::{Email, ReadEmailParts},
+    user_id::MacroUserIdStr,
+};
+use model::authentication::webhooks::{FusionAuthUserWebhook, User as FusionAuthWebhookUser};
 use model_entity::EntityType;
-#[cfg(feature = "full-saas")]
 use teams::domain::team_repo::TeamService;
 
 /// Macro support team members added to every new user's support channel.
-#[cfg(feature = "full-saas")]
 const MACRO_SUPPORT_EMAILS: [&str; 5] = [
     "jacob@macro.com",
     "julia@macro.com",
@@ -58,7 +48,6 @@ const MACRO_SUPPORT_EMAILS: [&str; 5] = [
     "chaitanya@macro.com",
 ];
 
-#[cfg(feature = "full-saas")]
 fn support_channel_name<T: AsRef<str>>(email: &Email<T>) -> String {
     format!("Macro Support x {}", email.local_part())
 }
@@ -68,7 +57,6 @@ fn support_channel_name<T: AsRef<str>>(email: &Email<T>) -> String {
 /// Google SSO fills firstName/lastName via the IdP reconcile lambda; fall back to
 /// splitting fullName at the first space for providers that only send a display
 /// name. Passwordless signups have none of these and yield (None, None).
-#[cfg(feature = "full-saas")]
 fn identity_provider_name(user: &FusionAuthWebhookUser) -> (Option<String>, Option<String>) {
     fn trimmed(value: &Option<String>) -> Option<String> {
         value
@@ -208,7 +196,6 @@ async fn create_user_webhook_complete(
 async fn create_user_webhook(ctx: &ApiContext, req: FusionAuthUserWebhook) -> anyhow::Result<()> {
     let ip_address = req.event.info.ip_address;
     let email = req.event.user.email.to_lowercase();
-    #[cfg(feature = "full-saas")]
     let (first_name, last_name) = identity_provider_name(&req.event.user);
     let username = req.event.user.username.unwrap_or(email.clone());
     let fusionauth_user_id = req.event.user.id;
@@ -216,12 +203,11 @@ async fn create_user_webhook(ctx: &ApiContext, req: FusionAuthUserWebhook) -> an
     // FusionAuth's own email validation is more permissive than ours (e.g. it allows
     // single quotes). The user.create event is transactional (AbsoluteMajority), so
     // returning an error here aborts the FusionAuth user creation entirely.
-    let _parsed_email = match Email::parse_from_str(&email) {
+    let parsed_email = match Email::parse_from_str(&email) {
         Ok(email) => email,
         Err(e) => anyhow::bail!("email is not a valid macro email: {e}"),
     };
-    #[cfg(feature = "full-saas")]
-    let support_channel_name = support_channel_name(&_parsed_email);
+    let support_channel_name = support_channel_name(&parsed_email);
 
     // rate limit check for user creation
     let rate_limit = ctx
@@ -260,29 +246,15 @@ async fn create_user_webhook(ctx: &ApiContext, req: FusionAuthUserWebhook) -> an
     }
 
     let start_time = std::time::Instant::now();
-    #[cfg(feature = "full-saas")]
-    let (user_id, organization_id) = {
-        create_user(
-            &fusionauth_user_id,
-            &username,
-            &email,
-            req.event.user.verified,
-            &ctx.db,
-            &ctx.stripe_client,
-        )
-        .await?
-    };
-    #[cfg(not(feature = "full-saas"))]
-    let (user_id, organization_id) = {
-        create_user(
-            &fusionauth_user_id,
-            &username,
-            &email,
-            req.event.user.verified,
-            &ctx.db,
-        )
-        .await?
-    };
+    let (user_id, organization_id) = create_user(
+        &fusionauth_user_id,
+        &username,
+        &email,
+        req.event.user.verified,
+        &ctx.db,
+        &ctx.stripe_client,
+    )
+    .await?;
 
     tracing::trace!(user_id=?user_id, organization_id=?organization_id, "created user");
 
@@ -304,8 +276,6 @@ async fn create_user_webhook(ctx: &ApiContext, req: FusionAuthUserWebhook) -> an
     // cookies for attribution; Meta dedupes the pair on that id (see the
     // web app's signupCompletion.ts). Uses the same distinct id
     // ("macro|{email}") the app identifies with. Fire-and-forget.
-    #[cfg(feature = "full-saas")]
-    #[cfg(feature = "full-saas")]
     tokio::spawn({
         let analytics_client = ctx.analytics_client.clone();
         let db = ctx.db.clone();
@@ -381,8 +351,6 @@ async fn create_user_webhook(ctx: &ApiContext, req: FusionAuthUserWebhook) -> an
     // condition for the mobile-lead nurture sequence — so a lead who converts
     // stops being asked to sign up. Fire-and-forget: a Loops failure must never
     // block user creation.
-    #[cfg(feature = "full-saas")]
-    #[cfg(feature = "full-saas")]
     tokio::spawn({
         let loops_client = ctx.loops_client.clone();
         let email = loops_client::normalize_email(&email);
@@ -407,7 +375,6 @@ async fn create_user_webhook(ctx: &ApiContext, req: FusionAuthUserWebhook) -> an
     });
 
     // add user to all active experiments
-    #[cfg(feature = "full-saas")]
     tokio::spawn({
         let db = ctx.db.clone();
         let user_id = user_id.clone();
@@ -421,7 +388,6 @@ async fn create_user_webhook(ctx: &ApiContext, req: FusionAuthUserWebhook) -> an
     // Automatically add the new user to a team whose auto-join domain
     // matches their email domain. Fire-and-forget: a failed auto-join must
     // never block user creation.
-    #[cfg(feature = "full-saas")]
     tokio::spawn({
         let teams_service = ctx.teams_service.clone();
         let user_id = user_id.clone();
@@ -452,10 +418,11 @@ async fn create_user_webhook(ctx: &ApiContext, req: FusionAuthUserWebhook) -> an
     // mentions the guide, so seeding runs first. Fire-and-forget: neither a
     // failed seeding (retried, then skipped) nor a failed channel creation
     // may block user creation.
-    #[cfg(feature = "full-saas")]
     tokio::spawn({
         let document_storage_service_client = ctx.document_storage_service_client.clone();
         let channel_service = ctx.channel_service.clone();
+        let channel_messages = ctx.channel_messages.clone();
+        let entity_access_service = ctx.entity_access_service.clone();
         let favorites_service = ctx.favorites_service.clone();
         let user_id = user_id.clone();
         let email = email.clone();
@@ -511,7 +478,9 @@ async fn create_user_webhook(ctx: &ApiContext, req: FusionAuthUserWebhook) -> an
                 tracing::error!(error=?e, channel_id=%channel.id, %email, "failed to favorite Macro support channel");
             }
 
-            let _ = post_support_channel_welcome(channel_service.as_ref(), &channel.id, owner_id)
+            let welcome_gateway =
+                AuthorizedSupportChannelMessages::new(channel_messages, entity_access_service);
+            let _ = post_support_channel_welcome(&welcome_gateway, &channel.id, owner_id)
                 .await
                 .inspect_err(|e| {
                 tracing::error!(error=?e, channel_id=%channel.id, %email, "failed to post Macro support welcome message");
@@ -532,7 +501,6 @@ async fn create_user_webhook(ctx: &ApiContext, req: FusionAuthUserWebhook) -> an
 }
 
 /// Seed the starter documents with retries.
-#[cfg(feature = "full-saas")]
 async fn initialize_starter_docs_with_retries(
     client: &document_storage_service_client::DocumentStorageServiceClient,
     user_id: &str,
@@ -554,7 +522,6 @@ async fn initialize_starter_docs_with_retries(
 }
 
 /// Initializes the experiments for a provided user
-#[cfg(feature = "full-saas")]
 #[allow(dead_code)]
 async fn initialize_user_experiments(
     db: &sqlx::Pool<sqlx::Postgres>,

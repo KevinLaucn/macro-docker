@@ -115,6 +115,13 @@ When startup finishes, the command prints the frontend URL and the important ser
 
 Open the frontend URL in your browser.
 
+The local environment supplies both `LOCAL_AWS_URL` (the container endpoint)
+and `LOCAL_AWS_PUBLIC_URL` (the instance's published LocalStack port). SFS and
+other presigned uploads use the public endpoint in browser-facing URLs. If an
+upload attempts `localhost:4566` on a named instance, rebuild the service and
+reload its generated environment; named instances publish storage on their own
+port.
+
 The stack does not create accounts in advance. Passwordless login creates a user
 on demand. Register with any email address. FusionAuth sends you a one-time code
 by email. That email lands in **Mailpit** at http://localhost:8025, not in a real
@@ -181,8 +188,9 @@ across instances) debugging containers:
   `--traces jaeger|datadog`, or disable with `--traces off`.
 - **Agent browser** (opt-in via `--with-chrome`): Chromium with the DevTools
   protocol on http://localhost:9222, for agents driving the app (the
-  `chrome-devtools` MCP server in `opencode.json` points at it). Watch what an
-  agent is doing live at http://localhost:6080/vnc.html.
+  `chrome-devtools` MCP server in `.mcp.json` / `opencode.json` /
+  `.cursor/mcp.json` points at it). Watch what an agent is doing live at
+  http://localhost:6080/vnc.html.
 
 See `.claude/skills/live-debug/SKILL.md` for query recipes (Tempo/Loki HTTP
 APIs) and the browser-debugging workflow.
@@ -203,6 +211,8 @@ GenAI content is bounded by `genai_telemetry`; check
 While `run_local` is attached:
 
 - Press `r` to rebuild the changed Rust services and reload them.
+- Press `f` to restart Vite with the same frontend port and configuration. This
+  also recovers a stuck frontend reload and leaves backend services and data intact.
 - Press `q` to stop the stack and exit.
 
 Use `q`, not the terminal close button. `q` stops and removes the containers at once. The next start does not have to clean up a stale stack.
@@ -310,9 +320,7 @@ If you started without the flag and suspect a stale image, press `q`. Then start
 
 ## Headless Mode
 
-`just stack` runs the same stack without an attached terminal. There is no hotkey loop and no dev server. The frontend is built once and served statically by the proxy at `http://localhost:8090/app`. The whole product lives behind one origin. A finished `up` leaves only Docker containers running.
-
-Use this mode for agents, CI-style local operation, snapshot baking, or release/parity checks. Do not use it for normal UI development: it will not bind `localhost:3000`, and source edits under `apps/web/src` will not hot reload. For daily frontend/backend development, start the Vite HMR path with `just run_local --no-doppler` or run `just frontend` against an already-running backend stack, then open `http://localhost:3000/app`.
+`just stack` runs the same stack without an attached terminal. There is no hotkey loop and no dev server. The frontend is built once and served statically by the proxy. The whole product lives behind one origin. A finished `up` leaves only Docker containers running.
 
 ```bash
 just stack up                  # bring everything up, print URLs, return
@@ -320,29 +328,29 @@ just stack status --json      # machine-readable state (containers, health, URLs
 just stack update             # rebuild and reload only the changed services (the `r` hotkey)
 just stack update --frontend  # also rebuild the frontend bundle
 just stack update --binaries-dir <dir>  # remount a prebuilt set; volumes stay
-just stack down               # remove containers and state; volumes stay
+just stack down               # remove containers, volumes, and state
 ```
 
 All the `run_local` flags apply to `stack` too. This includes `--instance`, `--no-doppler`, `--no-build`, and `--binaries-dir`.
 
-The app is served at `<proxy>/app/` (`http://localhost:8090/app` for the default instance). The bundle resolves its backend from the origin it is served on. The same stack works on localhost or behind any hostname without a rebuild.
+The app is served at `<proxy>/app/`. The bundle resolves its backend from the origin it is served on. The same stack works on localhost or behind any hostname without a rebuild.
 
 ### Init Snapshots
 
-`stack up` caches the expensive infrastructure initialization. The first cold run:
+`just run_local` and `stack up` both cache the expensive infrastructure initialization. The first cold run:
 
 - Migrates the database
+- Creates the Kafka topics
 - Waits for the FusionAuth kickstart
 - Creates the search indices
 
-It saves these volumes as an init snapshot. The snapshot is content-addressed and stored under `infra/local/generated/.snapshots`. Later runs restore the snapshot and skip the initialization. An input change causes a cache miss and a normal full init.
-
-When FusionAuth is restored from an existing volume, local startup still reapplies the env-backed admin account and Google/GitHub identity providers, so changing those credentials does not require deleting the FusionAuth volume.
+It saves these volumes as an init snapshot. The snapshot is content-addressed and stored under `infra/local/generated/.snapshots`. Later runs restore the snapshot and skip the initialization. An input change causes a cache miss and a normal full init — the key *is* the definition of clean state, so the full-delete/full-create guarantee is unchanged.
 
 Useful commands:
 
 ```bash
-just stack up --no-snapshot   # skip the snapshot cache
+just run_local --no-snapshot  # skip the snapshot cache
+just stack up --no-snapshot   # same flag, headless
 ```
 
 Cursor Cloud bakes the snapshot during environment install. Later `stack up` restores it.
@@ -369,7 +377,7 @@ Stop an instance but keep its volumes:
 just stop_local --instance agent-a
 ```
 
-Remove the containers and named-instance networks of an instance. Volumes are preserved:
+Remove the containers, volumes, and named-instance networks of an instance:
 
 ```bash
 just destroy_local --instance agent-a
@@ -379,6 +387,16 @@ Drop, recreate, and migrate an instance database:
 
 ```bash
 just reset_local --instance agent-a
+```
+
+### Finding out where a bring-up spent its time
+
+Every run prints its slowest stages before the summary. To compare runs, point
+`MACRO_LOCAL_TIMINGS` at a file — each run appends one JSON line of every stage
+and its duration:
+
+```bash
+MACRO_LOCAL_TIMINGS=/tmp/run-local-timings.jsonl just run_local
 ```
 
 For the default instance, omit `--instance`.

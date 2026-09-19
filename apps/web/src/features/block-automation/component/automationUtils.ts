@@ -11,7 +11,6 @@ import {
   parseCron as parseCronParts,
 } from '@core/util/cron';
 import { ThrownResultError } from '@core/util/result';
-import { t } from '@macro/i18n';
 import type {
   AgentTask,
   CreateScheduledAction,
@@ -34,24 +33,9 @@ export const FREQUENCY_OPTIONS: Array<{
   value: ScheduleFrequency;
   label: string;
 }> = [
-  {
-    value: 'week',
-    get label() {
-      return t('Every week');
-    },
-  },
-  {
-    value: 'month',
-    get label() {
-      return t('Every month');
-    },
-  },
+  { value: 'week', label: 'Every week' },
+  { value: 'month', label: 'Every month' },
 ];
-
-export const getFrequencyOptions = (): Array<{
-  value: ScheduleFrequency;
-  label: string;
-}> => FREQUENCY_OPTIONS;
 
 function normalizePrompt(value: string) {
   return value
@@ -191,5 +175,5 @@ export function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return t('Please try again.');
+  return 'Please try again.';
 }

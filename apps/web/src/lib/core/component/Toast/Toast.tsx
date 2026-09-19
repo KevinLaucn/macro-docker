@@ -143,7 +143,6 @@ export interface CustomToastConfig {
   /** Any CSS color value, e.g. 'var(--color-success)' or '#ff6600' */
   color?: string;
   actions?: ToastAction[];
-  dismissible?: boolean;
 }
 
 interface ToastMessage {
@@ -473,12 +472,7 @@ function ToastContent(props: {
                         mobile={props.mobile}
                       />
                     </Show>
-                    <Show
-                      when={
-                        (customConfig().dismissible ?? true) &&
-                        (!props.mobile || props.persistent)
-                      }
-                    >
+                    <Show when={!props.mobile || props.persistent}>
                       <Toast.CloseButton>
                         <Button variant="ghost" size="icon-sm">
                           <XIcon />

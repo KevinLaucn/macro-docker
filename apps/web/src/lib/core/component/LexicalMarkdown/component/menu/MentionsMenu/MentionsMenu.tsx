@@ -13,7 +13,6 @@ import { useDateSearch } from '@core/util/dateSearch/useDateSearch';
 import { debouncedDependent } from '@core/util/debounce';
 import { useIsKeyPressActive } from '@core/util/useIsKeyPressActive';
 import type { EmailEntity } from '@entity';
-import { t } from '@macro/i18n';
 import type { HistoryItem as Item } from '@queries/history/history';
 import { createLazyMemo } from '@solid-primitives/memo';
 import { createVirtualizer } from '@tanstack/solid-virtual';
@@ -61,7 +60,6 @@ const VIRTUAL_ITEM_HEIGHT = 36;
 const PANEL_DECORATION_HEIGHT = 18;
 
 type MentionsMenuProps = {
-  editor: LexicalEditor;
   menu: MenuOperations;
   /** pass in a custom users list if necessary */
   users?: Accessor<IUser[]>;
@@ -80,7 +78,10 @@ type MentionsMenuProps = {
   showOpenTabs?: boolean;
   /** restrict which mention source buckets to show (e.g. ['users'] for user-only mentions) */
   sources?: MentionBucketId[];
-};
+} & (
+  | { editor: LexicalEditor; onPick?: never }
+  | { editor?: never; anchor: HTMLElement; onPick: (item: MentionItem) => void }
+);
 
 export function MentionsMenu(props: MentionsMenuProps) {
   return (
@@ -307,13 +308,13 @@ function MentionsMenuInner(props: MentionsMenuProps) {
     const buckets: BucketConfig[] = [
       {
         id: 'users',
-        label: groups().length > 0 ? t('People & Groups') : t('People'),
+        label: groups().length > 0 ? 'People & Groups' : 'People',
         getData: () => usersAndGroups() ?? [],
         getFullCount: () => usersAndGroups()?.length ?? 0,
       },
       {
         id: 'documents',
-        label: t('Documents, Agents, & Tasks'),
+        label: 'Documents, Agents, & Tasks',
         getData: () => docs() ?? [],
         getFullCount: docsMention.totalCount,
         hasMore: docsMention.hasMore,
@@ -322,7 +323,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
       },
       {
         id: 'channels',
-        label: t('Channels'),
+        label: 'Channels',
         getData: () => channels() ?? [],
         getFullCount: channelsMention.totalCount,
         hasMore: channelsMention.hasMore,
@@ -337,7 +338,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
       },
       {
         id: 'companies',
-        label: t('Companies'),
+        label: 'Companies',
         getData: () => companies() ?? [],
         getFullCount: () => companyMention?.totalCount() ?? 0,
         hasMore: () => companyMention?.hasMore() ?? false,
@@ -346,7 +347,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
       },
       {
         id: 'emails',
-        label: t('Emails'),
+        label: 'Emails',
         getData: () => emails() ?? [],
         getFullCount: totalEmailCount,
         hasMore: hasMoreEmails,
@@ -355,7 +356,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
       },
       {
         id: 'dates',
-        label: t('Dates'),
+        label: 'Dates',
         getData: () => dates() ?? [],
         getFullCount: () => dates()?.length ?? 0,
       },
@@ -364,7 +365,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
     if (props.showOpenTabs) {
       buckets.unshift({
         id: 'openTabs',
-        label: t('Open Tabs'),
+        label: 'Open Tabs',
         getData: () => openTabs() ?? [],
         getFullCount: () => openTabs()?.length ?? 0,
       });
@@ -394,19 +395,22 @@ function MentionsMenuInner(props: MentionsMenuProps) {
     }
   });
 
-  const itemActionHandler = createItemHandler({
-    editor: props.editor,
-    blockName: useMaybeBlockName(),
-    blockId: useMaybeBlockId(),
-    onUserMention: props.onUserMention,
-    onDocumentMention: props.onDocumentMention,
-    onEmailMention: props.onEmailMention,
-    disableMentionTracking: props.disableMentionTracking,
-  });
+  const itemActionHandler = props.editor
+    ? createItemHandler({
+        editor: props.editor,
+        blockName: useMaybeBlockName(),
+        blockId: useMaybeBlockId(),
+        onUserMention: props.onUserMention,
+        onDocumentMention: props.onDocumentMention,
+        onEmailMention: props.onEmailMention,
+        disableMentionTracking: props.disableMentionTracking,
+      })
+    : undefined;
 
   const itemAction = async (item: MentionItem) => {
     analytics.track('mentions_menu_use', { itemType: item.kind });
-    await itemActionHandler(item);
+    if (props.onPick) props.onPick(item);
+    else await itemActionHandler?.(item);
   };
 
   createEffect(() => {
@@ -423,7 +427,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
   });
 
   const closeMenu = () => {
-    props.editor.dispatchCommand(CLOSE_INLINE_SEARCH_COMMAND, undefined);
+    props.editor?.dispatchCommand(CLOSE_INLINE_SEARCH_COMMAND, undefined);
     setMenuOpen(false);
   };
 
@@ -566,7 +570,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
 
   const clickOutsideHandler = (e: MouseEvent) => {
     e.stopPropagation();
-    props.editor.dispatchCommand(CLOSE_INLINE_SEARCH_COMMAND, undefined);
+    props.editor?.dispatchCommand(CLOSE_INLINE_SEARCH_COMMAND, undefined);
     setMenuOpen(false);
   };
 
@@ -594,7 +598,7 @@ function MentionsMenuInner(props: MentionsMenuProps) {
     !props.anchor
       ? {
           selection: untrack(mountSelection),
-          reactiveOnContainer: props.editor.getRootElement(),
+          reactiveOnContainer: props.editor?.getRootElement(),
           useBlockBoundary: props.useBlockBoundary,
           onAvailableHeight: setMenuAvailableHeight,
         }
@@ -606,6 +610,12 @@ function MentionsMenuInner(props: MentionsMenuProps) {
         <div
           class="w-96 max-w-[calc(100cqw-1rem-2px)] cursor-default select-none z-modal-content menu-open-animation"
           on:touchstart={(e) => e.stopPropagation()}
+          onPointerDown={(event) => {
+            if (props.onPick) event.preventDefault();
+          }}
+          onMouseDown={(event) => {
+            if (props.onPick) event.preventDefault();
+          }}
           ref={(el) => {
             floatWithElement(el, floatWithElementProps);
             floatWithSelection(el, floatWithSelectionProps);

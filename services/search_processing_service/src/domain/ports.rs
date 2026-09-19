@@ -16,17 +16,14 @@
 
 use std::future::Future;
 
+use models_properties::EntityType;
 use sqs_client::search::SearchQueueMessage;
 
-use models_properties::EntityType;
-
-use super::models::{BackfillError, EmailBackfillRequest, SourcePage};
-#[cfg(feature = "full-processing")]
 use super::models::{
-    CalendarEventBackfillCursor, CalendarEventBackfillRequest, CallBackfillCursor,
+    BackfillError, CalendarEventBackfillCursor, CalendarEventBackfillRequest, CallBackfillCursor,
     CallBackfillRequest, ChannelBackfillRequest, ChatBackfillCursor, ChatBackfillRequest,
-    DocumentBackfillCursor, DocumentBackfillRequest, ProjectBackfillCursor, ProjectBackfillRequest,
-    PropertiesBackfillRequest, PropertySourcePage,
+    DocumentBackfillCursor, DocumentBackfillRequest, EmailBackfillRequest, ProjectBackfillCursor,
+    ProjectBackfillRequest, PropertiesBackfillRequest, PropertySourcePage, SourcePage,
 };
 
 /// Publishes batches of search-event messages.
@@ -56,7 +53,6 @@ pub trait PropertyBackfillIndexer: Send + Sync + 'static {
 /// per user) must report the row count separately so the loop offsets
 /// correctly.
 pub trait BackfillSource: Send + Sync + 'static {
-    #[cfg(feature = "full-processing")]
     /// Calls paginate by keyset cursor (mirroring documents/chats): the
     /// implementation returns the page plus the cursor of the last row
     /// to feed back into the next call. An empty page signals
@@ -69,7 +65,6 @@ pub trait BackfillSource: Send + Sync + 'static {
         cursor: Option<CallBackfillCursor>,
     ) -> impl Future<Output = Result<(SourcePage, Option<CallBackfillCursor>), BackfillError>> + Send;
 
-    #[cfg(feature = "full-processing")]
     /// Chats paginate by keyset cursor (mirroring documents): each call
     /// passes the cursor of the last row from the previous page (or
     /// `None` for the first page), and the implementation returns the
@@ -81,14 +76,12 @@ pub trait BackfillSource: Send + Sync + 'static {
         cursor: Option<ChatBackfillCursor>,
     ) -> impl Future<Output = Result<(SourcePage, Option<ChatBackfillCursor>), BackfillError>> + Send;
 
-    #[cfg(feature = "full-processing")]
     fn fetch_channels(
         &self,
         req: &ChannelBackfillRequest,
         offset: usize,
     ) -> impl Future<Output = Result<SourcePage, BackfillError>> + Send;
 
-    #[cfg(feature = "full-processing")]
     /// Documents paginate by keyset cursor: each call passes the cursor
     /// of the last row from the previous page (or `None` for the first
     /// page), and the implementation returns the page plus the cursor
@@ -106,7 +99,6 @@ pub trait BackfillSource: Send + Sync + 'static {
         offset: usize,
     ) -> impl Future<Output = Result<SourcePage, BackfillError>> + Send;
 
-    #[cfg(feature = "full-processing")]
     /// Distinct entity ids holding property rows of the requested type,
     /// paginated by plain offset over `entity_properties`.
     fn fetch_entity_properties(
@@ -115,7 +107,6 @@ pub trait BackfillSource: Send + Sync + 'static {
         offset: usize,
     ) -> impl Future<Output = Result<PropertySourcePage, BackfillError>> + Send;
 
-    #[cfg(feature = "full-processing")]
     /// Projects paginate by keyset cursor (mirroring documents): each call
     /// passes the cursor of the last row from the previous page (or `None`
     /// for the first page), and the implementation returns the page plus
@@ -127,7 +118,6 @@ pub trait BackfillSource: Send + Sync + 'static {
         cursor: Option<ProjectBackfillCursor>,
     ) -> impl Future<Output = Result<(SourcePage, Option<ProjectBackfillCursor>), BackfillError>> + Send;
 
-    #[cfg(feature = "full-processing")]
     /// Calendar events paginate by keyset cursor (mirroring projects): each
     /// call returns one page plus the cursor to resume from.
     fn fetch_calendar_events(

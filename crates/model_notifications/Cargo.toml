@@ -12,7 +12,7 @@ macro_user_id = { path = "../macro_user_id" }
 mention_utils = { path = "../mention_utils" }
 model-entity = { path = "../model-entity" }
 models_pagination = { path = "../models_pagination" }
-notification = { path = "../notification", default-features = false }
+notification = { path = "../notification" }
 paste = { workspace = true }
 invite_email = { path = "../invite_email" }
 rootcause = { workspace = true }

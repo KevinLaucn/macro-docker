@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full-processing")]
 use models_properties::EntityType;
 use serde::{Deserialize, Serialize};
 use sqs_client::search::SearchQueueMessage;
@@ -33,7 +32,6 @@ impl SourcePage {
     }
 }
 
-#[cfg(feature = "full-processing")]
 /// One page of entities whose denormalized properties must be reindexed.
 ///
 /// A page has one entity type so the source parses and validates that type
@@ -49,7 +47,6 @@ pub struct PropertySourcePage {
     pub rows_consumed: usize,
 }
 
-#[cfg(feature = "full-processing")]
 impl PropertySourcePage {
     /// Construct the end-of-source page for an entity type.
     pub fn empty(entity_type: EntityType) -> Self {
@@ -71,7 +68,6 @@ pub enum BackfillError {
     Reindex(#[source] anyhow::Error),
 }
 
-#[cfg(feature = "full-processing")]
 #[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum DeletionFilter {
@@ -81,7 +77,6 @@ pub enum DeletionFilter {
     Deleted,
 }
 
-#[cfg(feature = "full-processing")]
 impl DeletionFilter {
     pub fn as_only_deleted(self) -> Option<bool> {
         match self {
@@ -92,7 +87,6 @@ impl DeletionFilter {
     }
 }
 
-#[cfg(feature = "full-processing")]
 /// Call-record backfill filter. Empty `call_ids` means "all archived calls".
 ///
 /// `started_after` / `started_before` filter on `call_records.started_at`
@@ -108,7 +102,6 @@ pub struct CallBackfillRequest {
     pub index_override: Option<String>,
 }
 
-#[cfg(feature = "full-processing")]
 /// Keyset (seek-method) pagination cursor for call backfills.
 ///
 /// `get_call_records_for_search_backfill` walks `call_records` in
@@ -121,7 +114,6 @@ pub struct CallBackfillCursor {
     pub call_id: uuid::Uuid,
 }
 
-#[cfg(feature = "full-processing")]
 /// Chat-message backfill filter. Empty vectors mean "all messages for every
 /// chat / every user".
 ///
@@ -140,7 +132,6 @@ pub struct ChatBackfillRequest {
     pub index_override: Option<String>,
 }
 
-#[cfg(feature = "full-processing")]
 /// Keyset (seek-method) pagination cursor for chat backfills.
 ///
 /// `get_chat_messages_for_search_backfill` walks `"ChatMessage"` in
@@ -153,7 +144,6 @@ pub struct ChatBackfillCursor {
     pub message_id: String,
 }
 
-#[cfg(feature = "full-processing")]
 /// Channel-message backfill filter. No scoping knobs yet — reserved so adding
 /// one later doesn't break the request shape.
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -164,7 +154,6 @@ pub struct ChannelBackfillRequest {
     pub index_override: Option<String>,
 }
 
-#[cfg(feature = "full-processing")]
 /// Keyset (seek-method) pagination cursor for document backfills.
 ///
 /// `get_documents_for_search` walks `"Document"` in
@@ -177,7 +166,6 @@ pub struct DocumentBackfillCursor {
     pub document_id: String,
 }
 
-#[cfg(feature = "full-processing")]
 /// Document backfill filter. Every field is additive — all `None` means "every
 /// document this service knows about".
 ///
@@ -196,7 +184,6 @@ pub struct DocumentBackfillRequest {
     pub index_override: Option<String>,
 }
 
-#[cfg(feature = "full-processing")]
 /// Project backfill filter. All `None` means "every non-deleted project".
 ///
 /// `updated_after` / `updated_before` filter on `updatedAt` so incremental
@@ -211,7 +198,6 @@ pub struct ProjectBackfillRequest {
     pub index_override: Option<String>,
 }
 
-#[cfg(feature = "full-processing")]
 /// Keyset (seek-method) pagination cursor for project backfills.
 ///
 /// `get_projects_for_search_backfill` walks `"Project"` in
@@ -224,7 +210,6 @@ pub struct ProjectBackfillCursor {
     pub project_id: String,
 }
 
-#[cfg(feature = "full-processing")]
 /// Calendar event backfill filter. All `None` means "every event".
 ///
 /// Only series masters are enumerated — recurring instances are not indexed.
@@ -237,7 +222,6 @@ pub struct CalendarEventBackfillRequest {
     pub index_override: Option<String>,
 }
 
-#[cfg(feature = "full-processing")]
 /// Keyset (seek-method) pagination cursor for calendar event backfills.
 ///
 /// `get_calendar_events_for_search_backfill` walks `calendar_events` in
@@ -266,7 +250,6 @@ pub struct EmailBackfillRequest {
     pub batch_size: Option<usize>,
 }
 
-#[cfg(feature = "full-processing")]
 /// Property-only backfill: directly reindex every entity of one type that has
 /// property rows, refreshing the denormalized `properties` field without
 /// re-extracting content. Used after adding the field to an index's mapping.

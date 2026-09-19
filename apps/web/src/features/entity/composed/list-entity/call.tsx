@@ -1,7 +1,6 @@
 import { formatCallDuration } from '@block-call/utils';
 import { UserIcon } from '@core/component/UserIcon';
 import { matches } from '@core/util/match';
-import { t } from '@macro/i18n';
 import UserCircleIcon from '@phosphor/user-circle.svg';
 import { UserGroup } from '@property/component/propertyValue/UserGroup';
 import { usePropertyEntityDisplay } from '@property/hooks';
@@ -39,7 +38,7 @@ function ParticipantsTooltip(props: { participantIds: string[] }) {
     <div class="min-w-48 max-w-72">
       <div class="flex items-center gap-2 text-ink-muted border-b border-edge-muted/50 pb-1.5 mb-1.5">
         <UserCircleIcon class="size-3.5 text-ink-muted" />
-        <span class="text-xs">{t('Participants')}</span>
+        <span class="text-xs">Participants</span>
       </div>
       <div class="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
         <For each={props.participantIds}>
@@ -108,7 +107,7 @@ export function CallNarrowBody(props: {
       <span class="text-ink-extra-muted text-xs flex items-center gap-2">
         <Show
           when={props.entity.durationMs}
-          fallback={props.entity.isActive ? t('In progress') : t('No duration')}
+          fallback={props.entity.isActive ? 'In progress' : 'No duration'}
         >
           {(ms) => formatCallDuration(ms())}
         </Show>

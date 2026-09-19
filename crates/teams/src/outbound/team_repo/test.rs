@@ -10,7 +10,7 @@ use super::*;
     fixtures(path = "../../../fixtures", scripts("teams"))
 )]
 async fn test_get_stripe_customer_id(pool: Pool<Postgres>) -> anyhow::Result<()> {
-    let team_repo = TeamRepositoryImpl::new(pool.clone());
+    let team_repo = TeamRepositoryImpl::new(pool);
 
     let stripe_customer_id = team_repo
         .get_stripe_customer_id(&MacroUserIdStr::parse_from_str("macro|user@user.com")?)
@@ -25,18 +25,6 @@ async fn test_get_stripe_customer_id(pool: Pool<Postgres>) -> anyhow::Result<()>
         .await?;
 
     assert!(stripe_customer_id.is_none());
-
-    sqlx::query(
-        r#"UPDATE "User" SET "stripeCustomerId" = 'local-stripe-customer-test@test.com' WHERE id = 'macro|user@user.com'"#,
-    )
-    .execute(&pool)
-    .await?;
-
-    let stub_customer_id = team_repo
-        .get_stripe_customer_id(&MacroUserIdStr::parse_from_str("macro|user@user.com")?)
-        .await?;
-
-    assert!(stub_customer_id.is_none());
 
     Ok(())
 }

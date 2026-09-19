@@ -4,31 +4,26 @@ use axum::Router;
 use axum::http::HeaderName;
 use macro_auth::constant::MACRO_REFRESH_TOKEN_HEADER;
 use macro_tower_layers::MacroRequestIdAndTracingLayer;
+use native_app_service::inbound::RouterState;
 use std::net::SocketAddr;
 use std::time::Duration;
 use tower_http::compression::CompressionLayer;
-#[cfg(feature = "full-saas")]
 use utoipa::OpenApi;
-#[cfg(feature = "full-saas")]
 use utoipa_swagger_ui::SwaggerUi;
 
 // Utilities
 pub(crate) mod context;
 
 // Routes
-#[cfg(feature = "full-saas")]
+mod codex;
 mod cursor_api_key;
-#[cfg(feature = "full-saas")]
 #[allow(unused_imports)]
 mod email;
 mod link;
-#[cfg(feature = "full-saas")]
 #[allow(unused_imports)]
 mod merge;
-#[cfg(feature = "full-saas")]
 mod mobile_welcome_email;
 
-#[cfg(feature = "full-saas")]
 mod github_pull_requests;
 mod health;
 mod internal;
@@ -39,7 +34,7 @@ mod logout;
 mod oauth;
 mod oauth2;
 mod permissions;
-pub(crate) mod permissions_extractor;
+mod permissions_extractor;
 mod session;
 pub(crate) mod signup_policy;
 mod user;
@@ -47,7 +42,6 @@ mod webhooks;
 
 // Misc
 mod middleware;
-#[cfg(feature = "full-saas")]
 pub(crate) mod swagger;
 mod utils;
 
@@ -72,9 +66,9 @@ pub async fn setup_and_serve(state: ApiContext, port: usize) -> anyhow::Result<(
         .merge(health::router())
         .layer(cors)
         .layer(CompressionLayer::new());
-    let app = mount_at_root_and_prefix(app);
-    #[cfg(feature = "full-saas")]
-    let app = app.merge(swagger_ui());
+    // Swagger sits outside the dual-mount. Nested under `/auth`, the absolute
+    // `/api-doc/openapi.json` URL in the UI would 404 on the gateway.
+    let app = mount_at_root_and_prefix(app).merge(swagger_ui());
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
         .await
@@ -99,7 +93,6 @@ fn mount_at_root_and_prefix(inner: Router) -> Router {
         .nest(GATEWAY_PATH_PREFIX, inner)
 }
 
-#[cfg(feature = "full-saas")]
 fn swagger_ui() -> Router {
     Router::new()
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", swagger::ApiDoc::openapi()))
@@ -110,7 +103,12 @@ fn swagger_ui() -> Router {
 }
 
 fn api_router(state: ApiContext) -> Router<ApiContext> {
-    let router = Router::new()
+    Router::new()
+        .merge(native_app_service::inbound::native_app_router(
+            RouterState {
+                inner: state.native_app_service.clone(),
+            },
+        ))
         .nest("/internal", internal::router())
         .nest("/permissions", permissions::router())
         .nest("/login", login::router(state.clone()))
@@ -119,28 +117,8 @@ fn api_router(state: ApiContext) -> Router<ApiContext> {
         .nest("/oauth2", oauth2::router())
         .nest("/user", user::router())
         .nest("/link", link::router())
-        .nest("/jwt", jwt::router())
-        .nest("/session", session::router())
-        .nest(
-            "/webhooks",
-            webhooks::router().layer(axum::middleware::from_fn(
-                macro_middleware::connection_drop_prevention_handler,
-            )),
-        )
-        // PRIVATE-HOOK: self_host_health:admin_route
-        .nest(
-            "/admin",
-            crate::features::self_host_health::router(state.clone()),
-        );
-
-    #[cfg(feature = "full-saas")]
-    let router = router
-        .merge(native_app_service::inbound::native_app_router(
-            native_app_service::inbound::RouterState {
-                inner: state.native_app_service.clone(),
-            },
-        ))
         .nest("/cursor-api-key", cursor_api_key::router())
+        .nest("/codex", codex::router())
         .nest("/github_pull_requests", github_pull_requests::router())
         .nest(
             "/team",
@@ -162,7 +140,28 @@ fn api_router(state: ApiContext) -> Router<ApiContext> {
                 },
             ),
         )
-        .merge(mobile_welcome_email::router(state.clone()));
-
-    router
+        .nest(
+            "/gtm-invite",
+            gtm_invite::inbound::axum_router::gtm_invite_router(
+                gtm_invite::inbound::axum_router::GtmInviteRouterState {
+                    service: state.gtm_invite_service.clone(),
+                    rate_limiter: state.rate_limit_service.clone(),
+                    authorization_state: state.authorization_state.clone(),
+                },
+            ),
+        )
+        .nest("/jwt", jwt::router())
+        .nest("/session", session::router())
+        .merge(mobile_welcome_email::router(state.clone()))
+        .nest(
+            "/webhooks",
+            webhooks::router().layer(axum::middleware::from_fn(
+                macro_middleware::connection_drop_prevention_handler,
+            )),
+        )
+        // PRIVATE-HOOK: self_host_health:admin_route
+        .nest(
+            "/admin",
+            crate::features::self_host_health::router(state.clone()),
+        )
 }

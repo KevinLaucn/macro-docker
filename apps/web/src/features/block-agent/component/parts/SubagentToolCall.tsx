@@ -4,7 +4,6 @@
  * same part components), and what it reported back.
  */
 
-import { t } from '@macro/i18n';
 import type {
   MessagePart,
   SubagentResult,
@@ -12,6 +11,7 @@ import type {
 } from '@service-agent-fold/generated/types';
 import { For, type JSX, Show } from 'solid-js';
 import { match } from 'ts-pattern';
+import { thoughtIsStreaming } from '../../state/thought-streaming';
 import { FoldedOutput, Thought, ToolCard } from '../../ui';
 import type { ToolCallCommon, ToolCallContext } from './shared';
 import { TextPart } from './TextPart';
@@ -23,11 +23,7 @@ type SubagentDetail = Extract<ToolDetail, { kind: 'subagent' }>;
 function resultSummary(result: SubagentResult): string | undefined {
   const facts: string[] = [];
   if (result.toolUses != null) {
-    facts.push(
-      result.toolUses === 1
-        ? t('1 tool')
-        : t('{count} tools', { count: result.toolUses })
-    );
+    facts.push(result.toolUses === 1 ? '1 tool' : `${result.toolUses} tools`);
   }
   if (result.durationMs != null) {
     facts.push(
@@ -50,6 +46,7 @@ function resultSummary(result: SubagentResult): string | undefined {
 function ChildPart(props: {
   part: MessagePart;
   index: number;
+  childCount: number;
   context?: ToolCallContext;
 }) {
   const inFlight = () => props.context?.inFlight ?? false;
@@ -57,7 +54,10 @@ function ChildPart(props: {
     match(props.part)
       .with({ kind: 'text' }, (part) => <TextPart text={part.text} />)
       .with({ kind: 'thought' }, (part) => (
-        <Thought text={part.text} active={inFlight()} />
+        <Thought
+          text={part.text}
+          active={thoughtIsStreaming(inFlight(), props.index, props.childCount)}
+        />
       ))
       .with({ kind: 'tool_use' }, (part) => (
         <ToolCallPart
@@ -91,16 +91,13 @@ export function SubagentToolCall(props: {
       inFlight: working() && props.context.inFlight,
     };
   const subtitle = () =>
-    [
-      props.detail.agentType,
-      props.detail.background ? t('background') : undefined,
-    ]
+    [props.detail.agentType, props.detail.background ? 'background' : undefined]
       .filter(Boolean)
       .join(' · ') || undefined;
   const trailing = () =>
     props.common.trailing ??
     (props.detail.result?.error != null ? (
-      <span class="text-ink">{t('Failed')}</span>
+      <span class="text-ink">Failed</span>
     ) : props.detail.result ? (
       <Show when={resultSummary(props.detail.result)}>
         {(summary) => <span>{summary()}</span>}
@@ -119,6 +116,7 @@ export function SubagentToolCall(props: {
       muted={props.common.muted || props.detail.result?.error != null}
       trailing={trailing()}
       defaultOpen={props.detail.children.length > 0}
+      hasContent={hasBody()}
     >
       <Show when={hasBody()}>
         <div class="flex flex-col gap-2">
@@ -136,6 +134,7 @@ export function SubagentToolCall(props: {
                   <ChildPart
                     part={child}
                     index={index()}
+                    childCount={props.detail.children.length}
                     context={childContext()}
                   />
                 )}

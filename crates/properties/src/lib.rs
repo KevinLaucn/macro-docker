@@ -13,7 +13,7 @@
 pub mod domain;
 #[cfg(any(feature = "ai_tools", feature = "inbound"))]
 pub mod inbound;
-#[cfg(any(feature = "outbound", feature = "index_read"))]
+#[cfg(feature = "outbound")]
 pub mod outbound;
 
 pub use domain::error::PropertiesErr;

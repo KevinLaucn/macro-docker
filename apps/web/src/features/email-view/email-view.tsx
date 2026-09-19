@@ -1,4 +1,8 @@
-import { ViewShell } from '@app/components/view-shell';
+import {
+  EntityDetailNavigationStack,
+  useEntityDetailNavigationStack,
+} from '@app/components/entity-detail/EntityDetailNavigationStack';
+import { ViewBreadcrumbs, ViewShell } from '@app/components/view-shell';
 import { type PillTabItem, PillTabs } from '@components/app/mobile/PillTabs';
 import { SplitHeaderLeft } from '@components/app/split-layout/components/SplitHeader';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
@@ -6,18 +10,23 @@ import { SplitPanel } from '@components/app/split-panel';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { ListEntityMetadataQueryProvider } from '@entity';
-import { t } from '@macro/i18n';
 import SpinnerIcon from '@phosphor/spinner.svg';
-import { cn, Surface } from '@ui';
 import {
   createSignal,
+  Match,
   onMount,
   type ParentProps,
   Show,
   Suspense,
+  Switch,
 } from 'solid-js';
+import { EmailDetailView } from './components/EmailDetailView';
 import { EmailFilterDrawer } from './components/EmailFilterDrawer';
-import { EmailHeader, EmailTopBar } from './components/EmailHeader';
+import {
+  EmailHeader,
+  EmailTopBar,
+  EmailViewBreadcrumbItem,
+} from './components/EmailHeader';
 import { EmailList } from './components/EmailList';
 import { EmailSidebar } from './components/EmailSidebar';
 import { EMAIL_TABS } from './constants';
@@ -30,31 +39,43 @@ export type EmailViewProps = {
   initialState?: EmailViewStateOptions;
 };
 
+function EmailViewBreadcrumbs(props: ParentProps) {
+  const { closeThread } = useEmailView();
+  const navigationStack = useEntityDetailNavigationStack();
+
+  return (
+    <ViewBreadcrumbs.Root
+      value={navigationStack.active()?.value ?? 'email-view'}
+      onChange={(value) => {
+        if (value === 'email-view') {
+          closeThread();
+          return;
+        }
+        navigationStack.popTo(value);
+      }}
+    >
+      <EmailViewBreadcrumbItem />
+      {props.children}
+    </ViewBreadcrumbs.Root>
+  );
+}
+
 function EmailListFallback() {
   return (
-    <Surface
-      depth={isTouchDevice() ? 0 : 2}
-      hideBorder={isTouchDevice()}
-      class={cn(
-        'grid size-full min-h-0 min-w-0 place-items-center text-ink-muted',
-        isTouchDevice()
-          ? 'rounded-none bg-transparent pt-(--mobile-content-inset-top) pb-(--mobile-content-inset-bottom)'
-          : 'rounded-2xl'
-      )}
-    >
-      <SpinnerIcon
-        aria-label={t('Loading email@@email')}
-        class="size-5 animate-spin"
-      />
-    </Surface>
+    <div class="grid size-full min-h-0 min-w-0 place-items-center text-ink-muted touch:pt-(--mobile-content-inset-top) touch:pb-(--mobile-content-inset-bottom)">
+      <SpinnerIcon aria-label="Loading email" class="size-5 animate-spin" />
+    </div>
   );
 }
 
 function EmailDesktopLayout(
   props: ParentProps<{ onSearchEscape: () => void }>
 ) {
+  const { selectedThread } = useEmailView();
+
   return (
     <ViewShell.Root
+      asidePreferenceKey="email"
       resizable
       aside={{ preserveDuringResize: false }}
       main={{ preferredWidth: 640 }}
@@ -63,11 +84,18 @@ function EmailDesktopLayout(
         <EmailSidebar />
       </ViewShell.Aside>
       <ViewShell.Main>
-        <EmailTopBar />
-        <ViewShell.Header>
-          <EmailHeader onSearchEscape={props.onSearchEscape} />
-        </ViewShell.Header>
-        <ViewShell.Content>{props.children}</ViewShell.Content>
+        <Switch>
+          <Match when={selectedThread()}>
+            {(thread) => <EmailDetailView thread={thread()} />}
+          </Match>
+          <Match when={true}>
+            <EmailTopBar />
+            <ViewShell.Header>
+              <EmailHeader onSearchEscape={props.onSearchEscape} />
+            </ViewShell.Header>
+            <ViewShell.Content>{props.children}</ViewShell.Content>
+          </Match>
+        </Switch>
       </ViewShell.Main>
     </ViewShell.Root>
   );
@@ -122,36 +150,39 @@ function EmailViewRoot() {
   );
 
   return (
-    <EmailListTranslationProvider>
-      <ListEntityMetadataQueryProvider>
-        <StaticMarkdownContext>
-          <SplitPanel.Root>
-          <SplitPanel.Body>
-            <Show
-              when={isTouchDevice()}
-              fallback={
-                <EmailDesktopLayout
-                  onSearchEscape={() => listElement()?.focus()}
-                >
-                  {list()}
-                </EmailDesktopLayout>
-              }
-            >
-              <EmailMobileLayout>{list()}</EmailMobileLayout>
-            </Show>
-          </SplitPanel.Body>
-          </SplitPanel.Root>
-        </StaticMarkdownContext>
-      </ListEntityMetadataQueryProvider>
-    </EmailListTranslationProvider>
+    <StaticMarkdownContext>
+      <SplitPanel.Root>
+        <SplitPanel.Body>
+          <Show
+            when={isTouchDevice()}
+            fallback={
+              <EmailDesktopLayout onSearchEscape={() => listElement()?.focus()}>
+                {list()}
+              </EmailDesktopLayout>
+            }
+          >
+            <EmailMobileLayout>{list()}</EmailMobileLayout>
+          </Show>
+        </SplitPanel.Body>
+      </SplitPanel.Root>
+    </StaticMarkdownContext>
   );
 }
 
 /** Email shares one list across desktop sidebar and mobile pill layouts. */
 export function EmailView(props: EmailViewProps) {
   return (
-    <EmailViewProvider initialState={props.initialState}>
-      <EmailViewRoot />
-    </EmailViewProvider>
+    <EntityDetailNavigationStack.Root>
+      {/* PRIVATE-HOOK: email_translation:view-provider */}
+      <EmailListTranslationProvider>
+        <ListEntityMetadataQueryProvider>
+        <EmailViewProvider initialState={props.initialState}>
+          <EmailViewBreadcrumbs>
+            <EmailViewRoot />
+          </EmailViewBreadcrumbs>
+        </EmailViewProvider>
+        </ListEntityMetadataQueryProvider>
+      </EmailListTranslationProvider>
+    </EntityDetailNavigationStack.Root>
   );
 }

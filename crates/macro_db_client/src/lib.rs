@@ -5,12 +5,9 @@ pub mod annotations;
 pub mod blocked_email;
 pub mod calendar_event;
 pub mod call_record;
-#[cfg(feature = "chat")]
 pub mod chat;
-#[cfg(feature = "chat")]
 pub mod chat_history;
 pub mod convert;
-#[cfg(feature = "chat")]
 pub mod dcs;
 pub mod document;
 pub mod document_text;

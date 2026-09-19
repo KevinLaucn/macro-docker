@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import { usePropertyEditor } from '@property/hooks/usePropertyEditor';
 import {
   useAddPropertyOptionMutation,
@@ -89,22 +88,14 @@ function SelectEditorBody() {
         <PropertyOptionSelector
           config={{
             isMultiSelect: property.isMultiSelect,
-            placeholder: property.isMultiSelect
-              ? t('Add {property}...', {
-                  property: t(property.displayName),
-                })
-              : t('Change {property}...', {
-                  property: t(property.displayName),
-                }),
+            placeholder: `${property.isMultiSelect ? 'Add' : 'Change'} ${property.displayName.toLowerCase()}...`,
             inputType:
               property.valueType === 'SELECT_NUMBER' ? 'number' : 'text',
             canAddOption: property.isSystemProperty ? undefined : canAddOption,
           }}
           options={options().map((opt) => ({
             id: opt.id,
-            label: property.isSystemProperty
-              ? t(formatOptionValue(opt))
-              : formatOptionValue(opt),
+            label: formatOptionValue(opt),
           }))}
           isLoading={false}
           error={null}
@@ -114,9 +105,7 @@ function SelectEditorBody() {
           clearOption={
             !property.isMultiSelect && !property.isRequired
               ? {
-                  label: t('No {property}', {
-                    property: t(property.displayName),
-                  }),
+                  label: `No ${property.displayName.toLowerCase()}`,
                   onClear: editor.clearOptions,
                 }
               : undefined

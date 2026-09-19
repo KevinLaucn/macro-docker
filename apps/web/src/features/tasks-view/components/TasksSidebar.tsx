@@ -3,6 +3,7 @@ import {
   useViewTabHotkeys,
   ViewSidebar,
 } from '@app/components/view-shell';
+import { SidebarCreateHeader } from '@app/components/view-shell/SidebarCreateButton';
 import { FavoriteContextMenu } from '@app/features/favorites/FavoriteContextMenu';
 import { FavoriteIcon } from '@app/features/favorites/FavoriteIcon';
 import {
@@ -11,15 +12,12 @@ import {
 } from '@app/util/favorites';
 import { useSplitLayout } from '@components/app/split-layout/layout';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
-import { SplitPanel } from '@components/app/split-panel';
 import CheckSquareIcon from '@phosphor/check-square.svg';
 import ListChecksIcon from '@phosphor/list-checks.svg';
 import NoteIcon from '@phosphor/note-pencil.svg';
-import PlusIcon from '@phosphor/plus.svg';
 import { SidebarTagsSection } from '@property/tags/SidebarTagsSection';
 import { useFavoritesData } from '@queries/favorites/favorites';
 import type { Favorite } from '@service-storage/generated/schemas/favorite';
-import { Button } from '@ui';
 import { createMemo, For, Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { useTasksView } from '../tasks-view-context';
@@ -40,17 +38,14 @@ export function TasksNavigation(props: { onNavigate?: () => void }) {
         {(item) => (
           <ViewSidebar.Item
             active={state.tab === item.id}
-            class="font-normal"
             onClick={() => {
               setTab(item.id);
               props.onNavigate?.();
             }}
           >
-            <Dynamic
-              component={item.icon}
-              aria-hidden="true"
-              class="size-4 shrink-0"
-            />
+            <ViewSidebar.Icon>
+              <Dynamic component={item.icon} class="size-4" />
+            </ViewSidebar.Icon>
             <span class="truncate">{item.label}</span>
           </ViewSidebar.Item>
         )}
@@ -61,20 +56,19 @@ export function TasksNavigation(props: { onNavigate?: () => void }) {
 
 function FavoriteRow(props: {
   favorite: Favorite;
-  onOpen: (favorite: Favorite, event: MouseEvent) => void;
+  onOpen: (favorite: Favorite, name: string, event: MouseEvent) => void;
 }) {
   const name = useFavoriteDisplayName(props.favorite);
 
   return (
     <FavoriteContextMenu favorite={props.favorite} triggerClass="block">
       <ViewSidebar.Item
-        class="font-normal"
         title={name()}
-        onClick={(event) => props.onOpen(props.favorite, event)}
+        onClick={(event) => props.onOpen(props.favorite, name(), event)}
       >
-        <span class="flex size-4 shrink-0 items-center justify-center">
+        <ViewSidebar.Icon>
           <FavoriteIcon favorite={props.favorite} class="size-4" />
-        </span>
+        </ViewSidebar.Icon>
         <span class="truncate">{name()}</span>
       </ViewSidebar.Item>
     </FavoriteContextMenu>
@@ -87,6 +81,7 @@ function TaskFavorites(props: {
 }) {
   const data = useFavoritesData();
   const layout = useSplitLayout();
+  const { openTask } = useTasksView();
   const favorites = createMemo(() =>
     (data()?.favorites ?? [])
       .filter(
@@ -96,7 +91,13 @@ function TaskFavorites(props: {
       )
       .sort((left, right) => left.sortOrder - right.sortOrder)
   );
-  const openFavorite = (favorite: Favorite, event: MouseEvent) => {
+  const openFavorite = (
+    favorite: Favorite,
+    fallbackName: string,
+    event: MouseEvent
+  ) => {
+    if (openTask({ id: favorite.entityId, fallbackName }, { event })) return;
+
     layout.openWithSplit(favoriteSplitContent(favorite), {
       referredFrom: 'sidebar',
       preferNewSplit: event.shiftKey,
@@ -104,29 +105,26 @@ function TaskFavorites(props: {
   };
 
   return (
-    <CollapsibleSection.Root
-      open={props.open}
-      onOpenChange={props.onOpenChange}
-    >
-      <CollapsibleSection.Trigger class="text-xs">
-        <span class="min-w-0 truncate">Favorites</span>
-        <CollapsibleSection.Indicator />
-      </CollapsibleSection.Trigger>
-      <CollapsibleSection.Content>
-        <ViewSidebar.Nav aria-label="Favorite tasks">
-          <For each={favorites()}>
-            {(favorite) => (
-              <FavoriteRow favorite={favorite} onOpen={openFavorite} />
-            )}
-          </For>
-          <Show when={favorites().length === 0}>
-            <p class="px-3 py-2 text-sm text-ink-extra-muted">
-              No favorites yet
-            </p>
-          </Show>
-        </ViewSidebar.Nav>
-      </CollapsibleSection.Content>
-    </CollapsibleSection.Root>
+    <Show when={favorites().length > 0}>
+      <CollapsibleSection.Root
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+      >
+        <CollapsibleSection.Trigger>
+          <span class="min-w-0 truncate">Favorites</span>
+          <CollapsibleSection.Indicator />
+        </CollapsibleSection.Trigger>
+        <CollapsibleSection.Content>
+          <ViewSidebar.Nav aria-label="Favorite tasks">
+            <For each={favorites()}>
+              {(favorite) => (
+                <FavoriteRow favorite={favorite} onOpen={openFavorite} />
+              )}
+            </For>
+          </ViewSidebar.Nav>
+        </CollapsibleSection.Content>
+      </CollapsibleSection.Root>
+    </Show>
   );
 }
 
@@ -150,31 +148,17 @@ export function TasksSidebar() {
   });
 
   return (
-    <ViewSidebar.Root aria-label="Tasks navigation" class="gap-4 bg-panel">
-      <ViewSidebar.Header>
-        <div class="flex min-w-0 items-center gap-1">
-          <SplitPanel.CloseButton />
-          <ViewSidebar.Title>Tasks</ViewSidebar.Title>
-        </div>
-      </ViewSidebar.Header>
+    <ViewSidebar.Root aria-label="Tasks navigation">
+      <SidebarCreateHeader
+        title="Tasks"
+        label="New task"
+        onCreate={() =>
+          layout.popoverSplit({ type: 'component', id: 'task-compose' })
+        }
+      />
 
-      <ViewSidebar.Content class="flex flex-col gap-6">
-        <div class="flex shrink-0 flex-col gap-6">
-          <Button
-            type="button"
-            variant="ghost"
-            depth={2}
-            class="h-10 shrink-0 justify-start gap-3 rounded-xl bg-surface px-3"
-            onClick={() =>
-              layout.popoverSplit({ type: 'component', id: 'task-compose' })
-            }
-          >
-            <PlusIcon class="size-4 shrink-0" />
-            New task
-          </Button>
-
-          <TasksNavigation />
-        </div>
+      <ViewSidebar.Content>
+        <TasksNavigation />
 
         <TaskFavorites
           open={isSidebarSectionOpen('favorites')}

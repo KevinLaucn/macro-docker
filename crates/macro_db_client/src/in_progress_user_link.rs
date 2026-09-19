@@ -123,37 +123,6 @@ pub async fn delete_day_old_in_progress_user_links(
     Ok(())
 }
 
-/// Deletes uncompleted user-link attempts older than the active-link window.
-///
-/// Local development commonly preserves Docker volumes across restarts. A broken
-/// OAuth configuration followed by repeated clicks can otherwise strand old
-/// uncompleted rows and keep the user at the in-progress cap after the config is
-/// repaired.
-pub async fn delete_expired_uncompleted_in_progress_user_links_for_user(
-    db: &sqlx::Pool<sqlx::Postgres>,
-    macro_user_id: &str,
-) -> anyhow::Result<()> {
-    let macro_user_id = macro_uuid::string_to_uuid(macro_user_id)?;
-    let cutoff = (chrono::Utc::now() - IN_PROGRESS_USER_LINK_MAX_AGE).naive_utc();
-
-    sqlx::query(
-        r#"
-            DELETE FROM
-                in_progress_user_link
-            WHERE
-                macro_user_id = $1
-                AND linked_email IS NULL
-                AND created_at < $2
-        "#,
-    )
-    .bind(&macro_user_id)
-    .bind(cutoff)
-    .execute(db)
-    .await?;
-
-    Ok(())
-}
-
 pub async fn get_macro_user_id_by_link_id(
     db: &sqlx::Pool<sqlx::Postgres>,
     link_id: &uuid::Uuid,

@@ -1,5 +1,4 @@
 import { IS_MAC } from '@core/constant/isMac';
-import { t } from '@macro/i18n';
 import { cn, Hotkey, ToggleSwitch } from '@ui';
 import {
   enableScreencastHotkeys,
@@ -1039,9 +1038,7 @@ function ShortcutRow(props: { item: ShortcutItem; spacer?: string }) {
         </Index>
       </div>
       <span class="text-sm text-ink-muted group-hover:text-accent transition-colors">
-        {typeof props.item.description === 'string'
-          ? t(props.item.description)
-          : props.item.description}
+        {props.item.description}
       </span>
     </div>
   );
@@ -1051,9 +1048,7 @@ function ShortcutSectionComponent(props: { section: ShortcutSection }) {
   return (
     <div class="mb-4">
       <h3 class="text-sm font-semibold text-ink mb-1.5 flex items-center gap-2">
-        {typeof props.section.title === 'string'
-          ? t(props.section.title)
-          : props.section.title}
+        {props.section.title}
       </h3>
       <div class="flex flex-col">
         <For each={props.section.items}>
@@ -1067,10 +1062,10 @@ function ShortcutSectionComponent(props: { section: ShortcutSection }) {
 export function Shortcuts() {
   return (
     <SettingsPage
-      title={t('Keyboard shortcuts')}
+      title="Keyboard shortcuts"
       actions={
         <div class="flex items-center gap-2">
-          <span class="text-sm text-ink-muted">{t('Screencast keys')}</span>
+          <span class="text-sm text-ink-muted">Screencast keys</span>
           <ToggleSwitch
             size="md"
             onChange={setEnableScreencastHotkeys}
@@ -1094,7 +1089,7 @@ export function Shortcuts() {
           {/* Unified List - spans both columns with its own 2-column layout */}
           <div class="@[600px]:col-span-2">
             <h3 class="text-sm font-semibold text-ink mb-1.5 flex items-center gap-2">
-              {t(shortcutSections[2].title)}
+              {shortcutSections[2].title}
             </h3>
             <div class="grid grid-cols-1 @[600px]:grid-cols-2 gap-x-8">
               <For each={shortcutSections[2].items}>

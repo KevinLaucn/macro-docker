@@ -1,7 +1,6 @@
 import { useCallContextOptional } from '@channel/Call/CallContext';
 import { joinChannelCall } from '@channel/Call/join-channel-call';
-import PhoneIcon from '@icon/wide-call.svg';
-import { t } from '@macro/i18n';
+import PhoneIcon from '@phosphor/phone-call.svg';
 import { useActiveCallQuery } from '@queries/call/call';
 import { Button } from '@ui';
 import { createMemo, createSignal, onCleanup, Show } from 'solid-js';
@@ -63,12 +62,12 @@ export function ActiveCallMessage(props: { channelId: string }) {
                 <div class="flex min-w-0 items-center gap-2">
                   <div class="min-w-0 flex-1">
                     <div class="font-medium">
-                      {t('A call is active in this channel')}
+                      A call is active in this channel
                     </div>
                     <Show when={duration()}>
                       {(value) => (
                         <div class="text-xs text-ink-extra-muted">
-                          {t('Active for')}{' '}
+                          Active for{' '}
                           <span class="font-mono tabular-nums">{value()}</span>
                         </div>
                       )}
@@ -81,7 +80,7 @@ export function ActiveCallMessage(props: { channelId: string }) {
                     onClick={() => void joinChannelCall(props.channelId)}
                   >
                     <PhoneIcon class="size-3.5" />
-                    {t('Join')}
+                    Join
                   </Button>
                 </div>
               </div>

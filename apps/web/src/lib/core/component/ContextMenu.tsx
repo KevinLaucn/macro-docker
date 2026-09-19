@@ -1,7 +1,6 @@
 import type { HotkeyToken } from '@core/hotkey/tokens';
 import { isMobile } from '@core/mobile/isMobile';
 import { ContextMenu } from '@kobalte/core/context-menu';
-import { t } from '@macro/i18n';
 import CaretRight from '@phosphor/caret-right.svg?component-solid';
 import CheckIcon from '@phosphor/check.svg?component-solid';
 import {
@@ -215,9 +214,7 @@ export function MenuItem(props: MenuItemProps) {
         </Show>
       </Show>
       <Show when={props.text}>
-        <div class="flex-1 truncate pr-[2em]">
-          {typeof props.text === 'string' ? t(props.text) : props.text}
-        </div>
+        <div class="flex-1 truncate pr-[2em]">{props.text}</div>
       </Show>
       <Show when={props.hotkeyToken || props.shortcut}>
         <Hotkey

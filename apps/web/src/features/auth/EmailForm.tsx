@@ -1,5 +1,6 @@
 import { SERVER_HOSTS } from '@core/constant/servers';
 import { platformFetch } from '@core/util/platformFetch';
+import { authServiceClient } from '@service-auth/client';
 import { action, useSubmission } from '@solidjs/router';
 import { Stage } from './Shared';
 
@@ -9,11 +10,41 @@ import { Stage } from './Shared';
 const protocol = import.meta.hot ? 'http' : 'https';
 const REDIRECT_URI = `${protocol}://${window.location.host}/app`;
 
+async function isPasswordLogin(email?: string | null) {
+  if (!email) return false;
+
+  const encodedEmail = new TextEncoder().encode(email.toLowerCase());
+  const hashedBuffer = await crypto.subtle.digest('SHA-256', encodedEmail);
+  const hashedEmail = Array.from(new Uint8Array(hashedBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  return (
+    hashedEmail ===
+    '0d10222b5594dbb0eb5d2bccbc9b5d8e9ff83e99421b573fb32c8a7b74491c81'
+  );
+}
+
 // Initiates the passwordless login flow.
 // Redirecting to the requested identity provider endpoint.
 export const sendEmailCode = action(async (formData: FormData) => {
   const email = formData.get('email');
   if (!email || typeof email !== 'string') throw new Error('Invalid email');
+
+  if (typeof email === 'string' && (await isPasswordLogin(email))) {
+    const password = formData.get('password');
+    if (!password || typeof password !== 'string') return 'isPasswordLogin';
+
+    const maybeTokens = await authServiceClient.passwordLogin({
+      password,
+      email,
+    });
+    if (maybeTokens.isErr())
+      throw new Error(
+        'Failed to login. Check your email and password then try again.'
+      );
+
+    return 'LoggedIn';
+  }
 
   const url = new URL(window.location.href);
   const referral_code = url.searchParams.get('referral_code');

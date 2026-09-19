@@ -18,7 +18,6 @@ import { useCombinedRecipients } from '@core/signal/useCombinedRecipient';
 import type { WithCustomUserInput } from '@core/user';
 import { useSendMessageToPeople } from '@core/util/channels';
 import { getDestinationFromOptions } from '@core/util/destination';
-import { t } from '@macro/i18n';
 import CheckIcon from '@phosphor/check.svg?component-solid';
 import PaperPlaneTilt from '@phosphor/paper-plane-tilt.svg';
 import {
@@ -335,7 +334,7 @@ export function ForwardToChannel(props: ForwardToChannelProps) {
           toast.success('Message sent successfully', {
             actions: [
               {
-                label: t('View in channel'),
+                label: 'View in channel',
                 onClick: navigateToChannel,
               },
             ],
@@ -368,7 +367,7 @@ export function ForwardToChannel(props: ForwardToChannelProps) {
                 toast.success('Message sent successfully', {
                   actions: [
                     {
-                      label: t('View in channel'),
+                      label: 'View in channel',
                       onClick: () => navigateToChannel(),
                     },
                   ],
@@ -397,7 +396,7 @@ export function ForwardToChannel(props: ForwardToChannelProps) {
               toast.success('Message sent successfully', {
                 actions: [
                   {
-                    label: t('View in channel'),
+                    label: 'View in channel',
                     onClick: () => navigateToChannel(),
                   },
                 ],

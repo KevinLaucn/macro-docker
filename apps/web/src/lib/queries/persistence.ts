@@ -2,7 +2,11 @@ import {
   type ParsedDuration,
   parsedDurationToMilliseconds,
 } from '@core/util/dateSearch/dateParser';
-import type { QueryKey } from '@tanstack/query-core';
+import type {
+  Query,
+  QueryCacheNotifyEvent,
+  QueryKey,
+} from '@tanstack/query-core';
 import type {
   PerQueryPersistence,
   PersistedQueryEntry,
@@ -29,7 +33,7 @@ export type PersistScope = Readonly<{
 
 type QueryClientLike = {
   getQueryCache: () => {
-    subscribe: (listener: (event: unknown) => void) => () => void;
+    subscribe: (listener: (event: QueryCacheNotifyEvent) => void) => () => void;
   };
   getQueryState: (
     queryKey: QueryKey
@@ -39,21 +43,6 @@ type QueryClientLike = {
     data: unknown,
     options?: { updatedAt?: number }
   ) => void;
-};
-
-type QueryLike = {
-  queryHash: string;
-  queryKey: QueryKey;
-  state: {
-    status: string;
-    data: unknown;
-    dataUpdatedAt: number;
-  };
-};
-
-type QueryCacheEventLike = {
-  type: 'added' | 'updated' | 'removed' | string;
-  query: QueryLike;
 };
 
 /**
@@ -82,7 +71,7 @@ function validatePersistedEntry(
 async function handleRestore(
   queryClient: QueryClientLike,
   scope: PersistScope,
-  query: QueryLike
+  query: Query
 ): Promise<void> {
   if (scope.shouldRestore && !scope.shouldRestore(query.queryKey)) return;
 
@@ -118,7 +107,7 @@ async function handleRestore(
 /**
  * Persists a query's current data to IDB when the query updates successfully.
  */
-function handleUpdate(scope: PersistScope, query: QueryLike): void {
+function handleUpdate(scope: PersistScope, query: Query): void {
   if (query.state.status !== 'success') return;
   scope.store.set({
     queryHash: query.queryHash,
@@ -163,8 +152,7 @@ export function setupQueryPersistence(
   };
   document.addEventListener('visibilitychange', onVisibilityChange);
 
-  const cacheUnsubscribe = queryClient.getQueryCache().subscribe((rawEvent) => {
-    const event = rawEvent as QueryCacheEventLike;
+  const cacheUnsubscribe = queryClient.getQueryCache().subscribe((event) => {
     const { type } = event;
     if (type !== 'added' && type !== 'updated' && type !== 'removed') return;
 

@@ -2,7 +2,6 @@ import type { DocumentOp } from '@ai-ops/editor';
 import { resumeDocumentSpan } from '@block-md/observability';
 import { toast } from '@core/component/Toast/Toast';
 import { Telemetry } from '@macro-inc/observability';
-import { proxyOrigin } from '@core/constant/servers';
 import { getDocumentPermissionToken } from '@service-storage/client';
 import { createSignal } from 'solid-js';
 
@@ -11,12 +10,11 @@ import { createSignal } from 'solid-js';
 const overrideUrl: string | undefined = import.meta.env
   .VITE_AI_EDITING_WORKER_URL;
 
-const remoteHost = import.meta.env.VITE_AI_EDITING_WORKER_REMOTE_HOST;
-
 const AI_EDITING_WORKER_HOST =
   overrideUrl?.replace(/\/$/, '') ??
-  (proxyOrigin ? `${proxyOrigin}/ai-editing` : undefined) ??
-  (remoteHost ? `https://${remoteHost}` : 'http://localhost:8933');
+  (import.meta.env.MODE === 'development'
+    ? 'https://ai-editing-worker-dev.macroverse.workers.dev'
+    : 'https://ai-editing-worker.macroverse.workers.dev');
 
 /**
  * Model fallback chains per worker role. Mirrors the chains the backend

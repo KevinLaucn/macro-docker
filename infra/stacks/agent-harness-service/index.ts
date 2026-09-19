@@ -1,7 +1,9 @@
 import * as aws from '@pulumi/aws';
 import * as pulumi from '@pulumi/pulumi';
+import { createBucket } from '../../packages/resources';
 import {
   config,
+  CODEX_OAUTH_KMS_ALIAS,
   getAiToolsInfra,
   getMacroApiToken,
   getServiceUrl,
@@ -45,6 +47,30 @@ const macroApiTokenPrivateKeyArn = aws.secretsmanager
 
 const MACRO_API_TOKENS = getMacroApiToken();
 
+// ── Session changes bucket ───────────────────────────────────────────────────
+// The patch behind each agent session's Changes pane, one object per capture
+// under `agent-sessions/{session}/changes/`. Only the latest capture is
+// reachable from the database; superseded patches are deleted on capture and
+// a session's last patch is orphaned when the session is deleted, so the
+// lifecycle rule is what reclaims those.
+
+const sessionChangesBucket = createBucket({
+  id: `macro-agent-session-changes-${stack}`,
+  bucketName: `macro-agent-session-changes-${stack}`,
+  transferAcceleration: false,
+  enableVersioning: false,
+  lifecycleRules: [
+    {
+      id: 'expire-orphaned-patches',
+      enabled: true,
+      expiration: { days: 90 },
+    },
+  ],
+  tags,
+});
+
+export const agentSessionChangesBucketArn = sessionChangesBucket.arn;
+
 // ── AI tools infra ───────────────────────────────────────────────────────────
 
 const aiTools = getAiToolsInfra();
@@ -84,11 +110,19 @@ const service = new AgentHarnessService(`agent-harness-service-${stack}`, {
     ...aiTools.secretArns,
   ],
   queueArns: [...aiTools.queueArns],
-  bucketArns: [...aiTools.bucketArns],
+  bucketArns: [...aiTools.bucketArns, sessionChangesBucket.arn],
   containerEnvVars: [
+    {
+      name: 'CODEX_OAUTH_KMS_KEY_ID',
+      value: CODEX_OAUTH_KMS_ALIAS,
+    },
     {
       name: 'ENVIRONMENT',
       value: stack,
+    },
+    {
+      name: 'AGENT_SESSION_CHANGES_BUCKET',
+      value: sessionChangesBucket.bucket,
     },
     // Datadog
     {

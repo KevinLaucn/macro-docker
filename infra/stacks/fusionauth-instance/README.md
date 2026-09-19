@@ -25,11 +25,11 @@ Run `just setup` to setup the local fusionauth instance and get everything ready
 Important Keys:
 
 ```
-username: set ADMIN_EMAIL in your local/private .env
-password: set ADMIN_PASSWORD in your local/private .env
+username: admin@macro.com
+password: macroIsGreat!
 api-key: bf69486b-4733-4954-a44e-2e1b5f2c8a91
 ```
 
-# Maintenance
-- Use `just import_dev` or `just import_prod` once to adopt pre-existing FusionAuth state into Pulumi.
-- After import, use `pulumi up --stack [local|macro-inc/dev|macro-inc/prod]` for day-2 reconciliation.
+# TODO
+- [ ] configure idps
+- [ ] sync prod with pulumi stack

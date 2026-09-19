@@ -5,9 +5,8 @@ import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { buildConfig } from '@core/component/LexicalMarkdown/builder/MarkdownConfigBuilder';
 import { MarkdownShell } from '@core/component/LexicalMarkdown/builder/MarkdownShell';
 import { registerHotkey } from '@core/hotkey/hotkeys';
-import SearchIcon from '@icon/macro-magnifying-glass.svg';
-import { t } from '@macro/i18n';
 import { markdownToPlainText } from '@macro-inc/lexical-core/utils/parsers';
+import SearchIcon from '@phosphor/magnifying-glass.svg';
 import XIcon from '@phosphor/x.svg?component-solid';
 import { cn, Hotkey } from '@ui';
 import {
@@ -182,7 +181,7 @@ export const SoupSearchbar = (props: SoupSearchbarProps) => {
         >
           <MarkdownShell
             config={editor}
-            placeholder={t(props.placeholder ?? 'Search')}
+            placeholder={props.placeholder ?? 'Search'}
             autofocus={props.autoFocus}
             initialValue={initialEditorValue}
             class="min-h-0! overflow-visible!"

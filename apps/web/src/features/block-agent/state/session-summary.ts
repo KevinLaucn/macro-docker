@@ -4,7 +4,6 @@
  * `FoldedMessage[]`; the Solid layer wraps calls in memos.
  */
 
-import { t } from '@macro/i18n';
 import type {
   FoldedMessage,
   MessagePart,
@@ -106,32 +105,17 @@ export function activityCounts(messages: FoldedMessage[]): CountItem[] {
     {
       key: 'edit',
       count: counts.edit,
-      one: t('file edited'),
-      other: t('files edited'),
+      one: 'file edited',
+      other: 'files edited',
     },
-    {
-      key: 'read',
-      count: counts.read,
-      one: t('file read'),
-      other: t('files read'),
-    },
-    {
-      key: 'search',
-      count: counts.search,
-      one: t('search'),
-      other: t('searches'),
-    },
+    { key: 'read', count: counts.read, one: 'file read', other: 'files read' },
+    { key: 'search', count: counts.search, one: 'search', other: 'searches' },
     {
       key: 'terminal',
       count: counts.terminal,
-      one: t('command'),
-      other: t('commands'),
+      one: 'command',
+      other: 'commands',
     },
-    {
-      key: 'fetch',
-      count: counts.fetch,
-      one: t('fetch'),
-      other: t('fetches'),
-    },
+    { key: 'fetch', count: counts.fetch, one: 'fetch', other: 'fetches' },
   ];
 }

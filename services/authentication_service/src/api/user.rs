@@ -1,41 +1,29 @@
-#[cfg(not(feature = "full-saas"))]
-use axum::{Json, http::StatusCode};
 use axum::{
     Router,
     routing::{delete, get, patch, post, put},
 };
-#[cfg(not(feature = "full-saas"))]
-use serde_json::{Value, json};
 use tower_cookies::CookieManagerLayer;
 
-use crate::api::ApiContext;
-#[cfg(feature = "full-saas")]
-use crate::api::context::EntityAccessServiceType;
+use crate::api::{ApiContext, context::EntityAccessServiceType};
 
 // needs to be public in api crate for swagger
 pub(in crate::api) mod create_user;
 pub(in crate::api) mod delete_user;
-#[cfg(feature = "full-saas")]
 pub(in crate::api) mod get_legacy_user_permissions;
 pub(in crate::api) mod get_name;
 pub(in crate::api) mod get_user_info;
 pub(in crate::api) mod get_user_link_exists;
-#[cfg(feature = "full-saas")]
 pub(in crate::api) mod get_user_organization;
-#[cfg(feature = "full-saas")]
 pub(in crate::api) mod get_user_quota;
 pub(in crate::api) mod patch_ai_consent;
 pub(in crate::api) mod patch_tutorial;
-#[cfg(feature = "full-saas")]
 pub(in crate::api) mod patch_user_group;
-#[cfg(feature = "full-saas")]
 pub(in crate::api) mod patch_user_onboarding;
 pub(in crate::api) mod post_get_names;
 pub(in crate::api) mod post_get_names_with_email;
 pub(in crate::api) mod post_profile_pictures;
 pub(in crate::api) mod put_name;
 pub(in crate::api) mod put_profile_picture;
-#[cfg(feature = "full-saas")]
 pub(in crate::api) mod stripe;
 
 pub fn router() -> Router<ApiContext> {
@@ -45,7 +33,7 @@ pub fn router() -> Router<ApiContext> {
 }
 
 fn router_with_auth() -> Router<ApiContext> {
-    let router = Router::new()
+    Router::new()
         .route("/me", get(get_user_info::handler))
         .route("/me", delete(delete_user::handler))
         .route("/profile_pictures", post(post_profile_pictures::handler))
@@ -59,10 +47,7 @@ fn router_with_auth() -> Router<ApiContext> {
         )
         .route("/link_exists", get(get_user_link_exists::handler))
         .route("/tutorial", patch(patch_tutorial::handler))
-        .route("/ai_consent", patch(patch_ai_consent::handler));
-
-    #[cfg(feature = "full-saas")]
-    let router = router
+        .route("/ai_consent", patch(patch_ai_consent::handler))
         .route("/quota", get(get_user_quota::handler))
         .route(
             "/stripe/checkoutv2",
@@ -82,23 +67,6 @@ fn router_with_auth() -> Router<ApiContext> {
         )
         .route("/organization", get(get_user_organization::handler))
         .route("/group", patch(patch_user_group::handler))
-        .route("/onboarding", patch(patch_user_onboarding::handler));
-
-    #[cfg(not(feature = "full-saas"))]
-    let router = router
-        .route("/stripe/checkoutv2", post(payment_disabled))
-        .route("/stripe/portal", post(payment_disabled));
-
-    router.layer(CookieManagerLayer::new())
-}
-
-#[cfg(not(feature = "full-saas"))]
-async fn payment_disabled() -> (StatusCode, Json<Value>) {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(json!({
-            "error": "payment_disabled",
-            "message": "Payment and subscription features are disabled for this deployment"
-        })),
-    )
+        .route("/onboarding", patch(patch_user_onboarding::handler))
+        .layer(CookieManagerLayer::new())
 }

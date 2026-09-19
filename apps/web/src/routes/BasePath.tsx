@@ -150,11 +150,9 @@ export function BasePathComponent() {
       <Match when={userInfoQuery.fetchStatus === 'paused'}>{null}</Match>
       {/* An errored query on a cookie-backed session is also "unknown": a
           transient refresh or server failure is not proof the session is gone
-          (a definitive UNAUTHORIZED is handled above). Show retry fallback
-          instead of leaving the main area blank or bouncing to login. */}
-      <Match when={hasLoginCookie() && userInfoQuery.isError}>
-        <SessionVerificationFallback onRetry={() => userInfoQuery.refetch()} />
-      </Match>
+          (a definitive UNAUTHORIZED is handled above). Keep the local session
+          and wait for a retry instead of bouncing to login. */}
+      <Match when={hasLoginCookie() && userInfoQuery.isError}>{null}</Match>
       <Match
         when={!userInfoQuery.isLoading && !userInfoQuery.data?.authenticated}
       >

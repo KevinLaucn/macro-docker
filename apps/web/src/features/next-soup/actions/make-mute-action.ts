@@ -1,5 +1,4 @@
 import { toast } from '@core/component/Toast/Toast';
-import { t } from '@macro/i18n';
 import type { EntityData } from '@entity';
 import { entityIsMuted, muteItemForEntity } from '@entity/utils/notification';
 import type { NotificationSource } from '@notifications';
@@ -58,7 +57,7 @@ export const makeMuteAction = (options: MakeMuteActionOptions) => {
 
     // Each mutation rolls its own optimistic change back on failure, so report
     // what actually happened rather than an all-or-nothing result.
-    const verb = shouldUnmute ? t('Unmuted') : t('Muted');
+    const verb = shouldUnmute ? 'Unmuted' : 'Muted';
     const failed = results.filter((r) => r.status === 'rejected').length;
     const succeeded = results.length - failed;
     if (failed === 0) {

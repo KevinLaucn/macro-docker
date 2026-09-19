@@ -1,10 +1,13 @@
+import { ViewBreadcrumbs } from '@app/components/view-shell';
 import { isListViewID, LIST_VIEW_ID } from '@app/constants/list-views';
+import { driveLocationLabel } from '@app/features/drive-view/core/location-label';
+import type { DriveState } from '@app/features/drive-view/core/types';
 import { useSoup } from '@app/features/next-soup/soup-context';
 import { openEntityInSplitFromUnifiedList } from '@app/features/next-soup/utils';
 import { CALENDAR_BLOCK_ID } from '@block-calendar/types';
 import { useGlobalNotificationSource } from '@components/app/GlobalAppState';
 import { useSidebarCollapse } from '@components/app/sidebarVisibility';
-import type { BlockName } from '@core/block';
+import { type BlockName, NonDocumentBlockTypes } from '@core/block';
 import {
   ContextMenuContent,
   MenuItem,
@@ -17,10 +20,7 @@ import { isMobile } from '@core/mobile/isMobile';
 import { isNativeMobilePlatform } from '@core/mobile/isNativeMobilePlatform';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { type EntityDragEvent, isEntityDragEvent } from '@entity';
-import { AnimatedSquareSidebarIcon } from '@icon/square-sidebar';
-import SplitIcon from '@icon/wide-newSplit.svg';
 import { ContextMenu } from '@kobalte/core/context-menu';
-import { t } from '@macro/i18n';
 import ArrowClockwise from '@phosphor/arrow-clockwise.svg';
 import ArrowLeft from '@phosphor/arrow-left.svg';
 import ArrowRight from '@phosphor/arrow-right.svg';
@@ -28,16 +28,16 @@ import CollapseIcon from '@phosphor/arrows-in.svg';
 import ExpandIcon from '@phosphor/arrows-out.svg';
 import CaretDown from '@phosphor/caret-down.svg';
 import CaretLeft from '@phosphor/caret-left.svg';
-import CaretRight from '@phosphor/caret-right.svg';
 import CaretUp from '@phosphor/caret-up.svg';
+import SplitIcon from '@phosphor/columns.svg';
 import CopyIcon from '@phosphor/copy.svg';
+import SidebarIcon from '@phosphor/sidebar-simple.svg';
 import CloseIcon from '@phosphor/x.svg';
 import { mergeRefs } from '@solid-primitives/refs';
 import { createDroppable, useDragDropContext } from '@thisbeyond/solid-dnd';
 import { Button, cn } from '@ui';
 import {
   createMemo,
-  createSignal,
   type ParentProps,
   type Setter,
   Show,
@@ -122,7 +122,7 @@ function SplitBackButton() {
       square
       size="sm"
       class="p-1 rounded-lg touch:active:bg-transparent"
-      label={t('Go Back')}
+      label="Go Back"
       hotkey={TOKENS.split.go.back}
       disabled={!context.handle.canGoBack()}
       onClick={() => {
@@ -135,29 +135,10 @@ function SplitBackButton() {
   );
 }
 
-function SplitForwardButton() {
-  const context = useContext(SplitPanelContext);
-  if (!context) return '';
-  return (
-    <Button
-      square
-      size="sm"
-      class="p-1 rounded-lg touch:active:bg-transparent"
-      label={t('Go Forward')}
-      hotkey={TOKENS.split.go.forward}
-      disabled={!context.handle.canGoForward()}
-      onClick={context.handle.goForward}
-    >
-      <CaretRight />
-    </Button>
-  );
-}
-
 function SidebarExpandButton() {
   const panel = useContext(SplitPanelContext);
   const layout = useContext(SplitLayoutContext);
   const sidebar = useSidebarCollapse();
-  const [hovering, setHovering] = createSignal(false);
 
   const isLeftmostSplit = () =>
     layout?.manager.splits()[0]?.id === panel?.handle.id;
@@ -182,13 +163,8 @@ function SidebarExpandButton() {
         disabled={!visible()}
         tabindex={visible() ? undefined : -1}
         onClick={() => sidebar.expand()}
-        onMouseEnter={() => setHovering(true)}
-        onMouseLeave={() => setHovering(false)}
       >
-        <AnimatedSquareSidebarIcon
-          class="size-4"
-          triggerAnimation={hovering()}
-        />
+        <SidebarIcon class="size-4" />
       </Button>
     </div>
   );
@@ -226,21 +202,75 @@ function SplitCloseButton() {
   const label = createMemo(() => {
     const isOnlySplit = layout.manager.splits().length === 1;
     const isNotUnifiedList = !isListViewID(context.handle.content().id);
-    return isOnlySplit && isNotUnifiedList ? t('Return to list') : t('Close');
+    return isOnlySplit && isNotUnifiedList ? 'Return to list' : 'Close';
   });
 
   return (
     <Show when={shouldShowSplitCloseButton(layout.manager, context.handle)}>
       <Button
         square
-        size="sm"
+        size="icon-sm"
         class="rounded-lg"
         label={label()}
         hotkey={TOKENS.split.close}
         onClick={context.handle.close}
       >
-        <CloseIcon />
+        <CloseIcon class="size-4" />
       </Button>
+    </Show>
+  );
+}
+
+function SplitDriveReturnButton() {
+  const panel = useContext(SplitPanelContext);
+  const layout = useContext(SplitLayoutContext);
+  if (!panel || !layout) return null;
+
+  const sourceList = createMemo(() =>
+    panel.handle
+      .history()
+      .slice(0, -1)
+      .reverse()
+      .find(
+        (content) => content.type === 'component' && isListViewID(content.id)
+      )
+  );
+  const isDrive = (content: SplitContent) =>
+    content.type === 'component' && content.id === LIST_VIEW_ID.documents;
+  const currentIsDriveItem = () => {
+    const content = panel.handle.content();
+    return (
+      content.type !== 'component' &&
+      (content.type === 'project' ||
+        !NonDocumentBlockTypes.includes(content.type))
+    );
+  };
+  const sourceLabel = () => {
+    const state = sourceList()?.state;
+    const label = state?.['drive.returnLabel'];
+    if (typeof label === 'string') return label;
+    const driveState = state?.['drive.view'] as DriveState | undefined;
+    return driveState ? driveLocationLabel(driveState.location) : 'My Files';
+  };
+  const returnToDrive = () => {
+    if (panel.handle.goBackTo(isDrive)) return;
+    const driveSplit = layout.manager
+      .splits()
+      .find((split) => isDrive(split.content));
+    if (driveSplit) layout.manager.getSplit(driveSplit.id)?.activate();
+  };
+
+  return (
+    <Show
+      when={sourceList()?.id === LIST_VIEW_ID.documents && currentIsDriveItem()}
+    >
+      <ViewBreadcrumbs.ReturnButton
+        onClick={returnToDrive}
+        tooltip={sourceLabel()}
+      >
+        {sourceLabel()}
+      </ViewBreadcrumbs.ReturnButton>
+      <ViewBreadcrumbs.Separator class="ml-1" />
     </Show>
   );
 }
@@ -300,7 +330,7 @@ function SoupNavigationButtons() {
       <div class="flex items-center gap-0.5">
         <Button
           class="p-1 rounded-lg"
-          label={t('Previous item')}
+          label="Previous item"
           hotkey={TOKENS.entity.step.start}
           disabled={!canNavigateUp()}
           onClick={() => navigate(-1)}
@@ -309,7 +339,7 @@ function SoupNavigationButtons() {
         </Button>
         <Button
           class="p-1 rounded-lg"
-          label={t('Next item')}
+          label="Next item"
           hotkey={TOKENS.entity.step.end}
           disabled={!canNavigateDown()}
           onClick={() => navigate(1)}
@@ -331,7 +361,7 @@ function SplitHeaderContextMenu(props: ParentProps) {
   );
   const hasOtherSplits = createMemo(() => layout.manager.splits().length > 1);
   const canDuplicateSplit = createMemo(
-    () => panel.handle.content()?.type === 'component'
+    () => panel.handle.content().type === 'component'
   );
   const canToggleSpotlight = createMemo(() => canSpotlight(layout.manager));
   const canSwapWith = (direction: 'left' | 'right') =>
@@ -342,9 +372,7 @@ function SplitHeaderContextMenu(props: ParentProps) {
     id: LIST_VIEW_ID.inbox,
   });
 
-  const duplicateContent = (): SplitContent => ({
-    ...(panel.handle.content() ?? newSplitContent()),
-  });
+  const duplicateContent = (): SplitContent => ({ ...panel.handle.content() });
 
   const insertSplitBeside = (side: 'left' | 'right', content: SplitContent) => {
     const index = splitIndex();
@@ -552,10 +580,10 @@ export function SplitHeader(props: {
             <Portal mount={panelRef()}>
               <Show when={isEntityDraggingOver()}>
                 <div
-                  class="pointer-events-none absolute inset-0 z-modal-overlay bg-modal-overlay pattern-diagonal-4 pattern-edge-muted flex items-center justify-center"
+                  class="pointer-events-none absolute inset-0 z-modal-overlay bg-modal-overlay flex items-center justify-center"
                   data-split-header-drop-overlay
                 >
-                  <div class="max-w-[min(28rem,calc(100%-3rem))] min-w-0 bg-surface border border-edge rounded-lg shadow-lg shadow-drop-shadow px-4 py-3 flex items-center gap-2 text-sm text-ink">
+                  <div class="max-w-[min(28rem,calc(100%-3rem))] min-w-0 bg-surface border border-edge rounded-full shadow-lg shadow-drop-shadow px-4 py-2 flex items-center gap-2 font-sans text-xs text-ink">
                     <span class="shrink-0 text-ink-muted">
                       Open in this split
                     </span>
@@ -566,7 +594,7 @@ export function SplitHeader(props: {
           )}
         </Show>
         <div
-          class="absolute inset-0 flex justify-start items-center touch:px-(--mobile-chrome-gutter) touch:gap-2"
+          class="absolute inset-0 flex justify-start items-center not-touch:pl-[5px] touch:px-(--mobile-chrome-gutter) touch:gap-2"
           ref={props.collapseController.setRow}
         >
           <Show
@@ -575,25 +603,22 @@ export function SplitHeader(props: {
               <div class="relative flex items-center pl-2 h-full">
                 <SidebarExpandButton />
                 <SplitCloseButton />
-                <div class="flex items-center @max-[380px]/split-header:hidden">
-                  <SplitBackButton />
-                  <SplitForwardButton />
-                </div>
+                <SplitDriveReturnButton />
               </div>
             }
           >
-            {/* Back/forward island. List views never render the back button
+            {/* Mobile back island. List views never render the back button
                 (their header hosts the filter pills instead), so the island
                 hides for them even when history allows going back. */}
             <HeaderIsland
               class={cn(
                 'relative gap-0 px-1',
                 (!panel.handle.canGoBack() ||
-                  isListViewID(panel.handle.content()?.id ?? '')) &&
+                  isListViewID(panel.handle.content().id)) &&
                   'hidden'
               )}
             >
-              <Show when={!isListViewID(panel.handle.content()?.id ?? '')}>
+              <Show when={!isListViewID(panel.handle.content().id)}>
                 <SplitBackButton />
               </Show>
             </HeaderIsland>
