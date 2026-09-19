@@ -271,32 +271,19 @@ rewrite("apps/web/src/features/email-view/email-view.tsx") do |c|
     "import { EmailListTranslationProvider } from './email-list-translation-context';\n",
     "EmailView translation provider import"
   )
-  old = <<~'TSX'.strip
-    <EntityDetailNavigationStack.Root>
-      <ListEntityMetadataQueryProvider>
-        <EmailViewProvider initialState={props.initialState}>
-          <EmailViewBreadcrumbs>
-            <EmailViewRoot />
-          </EmailViewBreadcrumbs>
-        </EmailViewProvider>
-      </ListEntityMetadataQueryProvider>
-    </EntityDetailNavigationStack.Root>
-  TSX
-  new_value = <<~'TSX'.strip
-    <EntityDetailNavigationStack.Root>
-      {/* PRIVATE-HOOK: email_translation:view-provider */}
-      <EmailListTranslationProvider>
-        <ListEntityMetadataQueryProvider>
-          <EmailViewProvider initialState={props.initialState}>
-            <EmailViewBreadcrumbs>
-              <EmailViewRoot />
-            </EmailViewBreadcrumbs>
-          </EmailViewProvider>
-        </ListEntityMetadataQueryProvider>
-      </EmailListTranslationProvider>
-    </EntityDetailNavigationStack.Root>
-  TSX
-  replace_once!(c, old, new_value, "EmailView translation provider")
+  c = replace_once!(
+    c,
+    "    <EntityDetailNavigationStack.Root>\n      <ListEntityMetadataQueryProvider>\n",
+    "    <EntityDetailNavigationStack.Root>\n      {/* PRIVATE-HOOK: email_translation:view-provider */}\n      <EmailListTranslationProvider>\n        <ListEntityMetadataQueryProvider>\n",
+    "EmailView translation provider open"
+  )
+  c = replace_once!(
+    c,
+    "      </ListEntityMetadataQueryProvider>\n    </EntityDetailNavigationStack.Root>",
+    "        </ListEntityMetadataQueryProvider>\n      </EmailListTranslationProvider>\n    </EntityDetailNavigationStack.Root>",
+    "EmailView translation provider close"
+  )
+  c
 end
 
 rewrite("apps/web/src/features/entity/extractors/entity-icon.tsx") do |c|
