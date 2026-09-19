@@ -7,11 +7,7 @@ description: Build a new AI tool end-to-end — Rust implementation, toolset wir
 
 This skill walks through building a new AI tool from scratch. Before writing any code, read the design guide at `crates/ai_toolset/TOOL_DESIGN.md` and the framework docs/examples in `crates/ai_toolset/src/lib.rs`.
 
-**Default boundary:** a normal new Tool should use the existing
-`crates/ai_toolset/` framework without modifying it. If the task explicitly
-concerns framework behavior, inspect its current contracts and examples first;
-modify it only when the evidence shows the framework change is required, and
-include its compatibility/tests in the scope.
+**IMPORTANT:** Never modify the `crates/ai_toolset/` crate. It is the framework — you build tools that use it.
 
 ## Step 1: Write the tool
 
