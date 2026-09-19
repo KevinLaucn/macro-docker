@@ -1,5 +1,5 @@
 name: Resolve upstream sync
-# resolver-revision: 2
+# resolver-revision: 3
 
 on:
   push:
