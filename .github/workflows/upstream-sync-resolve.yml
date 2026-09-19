@@ -38,7 +38,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .sync-artifacts
+          cp .github/scripts/resolve-upstream-sync-conflicts.rb .sync-artifacts/resolve-upstream-sync-conflicts.rb
           ruby -c .github/scripts/build-fork-overlay.rb
+          ruby -c .sync-artifacts/resolve-upstream-sync-conflicts.rb
           ruby .github/scripts/build-fork-overlay.rb \
             --baseline "$BASELINE" \
             --head "$PREMERGE" \
@@ -50,7 +52,7 @@ jobs:
           echo "===== SELECTED FORK OVERLAY PATHS ====="
           cat .sync-artifacts/selected.txt
           echo "===== FORK FEATURE FLAG REFERENCES ====="
-          rg -n "getAppCapabilities|enableDirectAttachmentDownload|isSelfHost|ENABLE_INBOX_NOTIFIED_SORT|ENABLE_MARKDOWN_LIVE_COLLABORATION" apps packages self-host || true
+          grep -R -n -E "getAppCapabilities|enableDirectAttachmentDownload|isSelfHost|ENABLE_INBOX_NOTIFIED_SORT|ENABLE_MARKDOWN_LIVE_COLLABORATION" apps packages self-host 2>/dev/null || true
 
       - name: Rebuild merge from upstream and apply fork overlay
         shell: bash
@@ -76,8 +78,13 @@ jobs:
             git diff --no-color --unified=8 "$BASELINE" "$PREMERGE" -- "${conflict_paths[@]}" || true
             echo "===== UPSTREAM DIFF (baseline -> target) ====="
             git diff --no-color --unified=8 "$BASELINE" "$TARGET" -- "${conflict_paths[@]}" || true
-            echo "registered fork overlay has semantic conflicts"
-            exit "$status"
+            echo "registered fork overlay has semantic conflicts; running upstream-first resolver"
+            TARGET="$TARGET" ruby .sync-artifacts/resolve-upstream-sync-conflicts.rb
+            git diff --name-only --diff-filter=U | tee .sync-artifacts/conflicts-after-resolver.txt
+            if [ -s .sync-artifacts/conflicts-after-resolver.txt ]; then
+              echo "resolver left semantic conflicts"
+              exit "$status"
+            fi
           fi
 
           TARGET="$TARGET" ruby -ryaml -e '
