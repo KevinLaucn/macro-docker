@@ -92,6 +92,7 @@ const tool = (
 });
 const permission = (toolCall: string): MessagePart => ({
   kind: 'permission',
+  requestId: 'permission-test',
   toolCall,
   options: [],
   outcome: { kind: 'pending' },
