@@ -395,3 +395,17 @@ hooks:
     expected: "export interface AppCapabilities"
     context:
       - "export function getAppCapabilities(): AppCapabilities {"
+
+  - id: self_host_health_auth_sqs_gmail_feature
+    file: services/authentication_service/Cargo.toml
+    marker: "# PRIVATE-HOOK: self_host_health:auth-sqs-gmail-feature"
+    expected: '"gmail",'
+    context:
+      - 'sqs_client = { path = "../../crates/sqs_client", default-features = false, features = ['
+
+  - id: selfhost_runtime_direct_attachment_flag
+    file: apps/web/src/lib/core/constant/featureFlags.ts
+    marker: "// PRIVATE-HOOK: selfhost_runtime:direct-attachment-flag"
+    expected: "export const enableDirectAttachmentDownload = defineFlag({"
+    context:
+      - "env: 'ENABLE_DIRECT_ATTACHMENT_DOWNLOAD',"
