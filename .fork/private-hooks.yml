@@ -380,7 +380,7 @@ hooks:
     marker: "{/* PRIVATE-HOOK: email_translation:view-provider */}"
     expected: "<EmailListTranslationProvider>"
     context:
-      - "<EmailViewProvider>"
+      - "<EmailViewProvider initialState={props.initialState}>"
 
   - id: selfhost_runtime_feature_flag_overrides
     file: apps/web/src/lib/core/constant/featureFlags.ts
