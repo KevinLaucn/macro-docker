@@ -47,6 +47,10 @@ jobs:
             --dropped .sync-artifacts/dropped.txt
           echo "selected paths: $(wc -l < .sync-artifacts/selected.txt)"
           echo "dropped historical drift: $(wc -l < .sync-artifacts/dropped.txt)"
+          echo "===== SELECTED FORK OVERLAY PATHS ====="
+          cat .sync-artifacts/selected.txt
+          echo "===== FORK FEATURE FLAG REFERENCES ====="
+          rg -n "getAppCapabilities|enableDirectAttachmentDownload|isSelfHost|ENABLE_INBOX_NOTIFIED_SORT|ENABLE_MARKDOWN_LIVE_COLLABORATION" apps packages self-host || true
 
       - name: Rebuild merge from upstream and apply fork overlay
         shell: bash
