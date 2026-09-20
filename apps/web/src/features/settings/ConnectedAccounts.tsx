@@ -20,7 +20,9 @@ export function ConnectedAccounts() {
   return (
     <SettingsPage
       title={t('Integrations')}
-      description={t('Connect your accounts so Macro can work across the tools you already use.')}
+      description={t(
+        'Connect your accounts so Macro can work across the tools you already use.'
+      )}
     >
       <SettingsSection title={t('Accounts')}>
         <div class="flex flex-col gap-3">

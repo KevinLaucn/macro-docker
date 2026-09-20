@@ -17,6 +17,7 @@ import {
   openFilePicker,
   openFolderPicker,
 } from '@core/util/upload';
+import { t } from '@fork/i18n';
 import BuildingsIcon from '@phosphor/buildings.svg';
 import ChevronDownIcon from '@phosphor/caret-down.svg';
 import PlusCircleIcon from '@phosphor/plus-circle.svg';
@@ -44,17 +45,23 @@ type CreateOption = {
 
 const IMPORT_FILE_OPTION: CreateOption = {
   id: 'import-file',
-  label: 'Import file',
+  get label() {
+    return t('Import file');
+  },
 };
 const IMPORT_FOLDER_OPTION: CreateOption = {
   id: 'import-folder',
-  label: 'Import folder',
+  get label() {
+    return t('Import folder');
+  },
 };
 // Companies aren't blocks, so the Customers view gets a bespoke option
 // that opens the create-company modal instead of a create action.
 const CREATE_COMPANY_OPTION: CreateOption = {
   id: 'create-company',
-  label: 'Company',
+  get label() {
+    return t('Company');
+  },
 };
 
 /**
@@ -63,18 +70,36 @@ const CREATE_COMPANY_OPTION: CreateOption = {
  * specific list views.
  */
 const VIEW_ONLY_BLOCK_LABELS: Partial<Record<CreatableName, string>> = {
-  automation: 'Automation',
+  get automation() {
+    return t('Automation');
+  },
 };
 
 const VIEW_CREATE_LABELS: Partial<Record<ListView, string>> = {
-  agents: 'Agent',
-  channels: 'Channel',
-  companies: 'Company',
-  documents: 'New',
-  folders: 'Folder',
-  mail: 'Email',
-  reminders: 'Reminder',
-  tasks: 'Task',
+  get agents() {
+    return t('Agent');
+  },
+  get channels() {
+    return t('Channel');
+  },
+  get companies() {
+    return t('Company');
+  },
+  get documents() {
+    return t('New');
+  },
+  get folders() {
+    return t('Folder');
+  },
+  get mail() {
+    return t('Email');
+  },
+  get reminders() {
+    return t('Reminder');
+  },
+  get tasks() {
+    return t('Task');
+  },
 };
 
 function getViewCreateOptions(
@@ -158,8 +183,8 @@ export const SoupViewCreateButton = () => {
   });
   const createLabel = createMemo(() => {
     const view = createView();
-    if (!view) return 'Create';
-    return VIEW_CREATE_LABELS[view] ?? 'Create';
+    if (!view) return t('Create');
+    return VIEW_CREATE_LABELS[view] ?? t('Create');
   });
 
   const handleSelect = (option: CreateOption) => {

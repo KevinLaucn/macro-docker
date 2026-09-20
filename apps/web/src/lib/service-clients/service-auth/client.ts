@@ -1118,7 +1118,11 @@ export const authServiceClient = {
   },
   async repairSelfHostGmailSync() {
     return await fetchWithAuth<{
-      enqueued_syncs: Array<{ email: string; history_id: number; enqueued: boolean }>;
+      enqueued_syncs: Array<{
+        email: string;
+        history_id: number;
+        enqueued: boolean;
+      }>;
     }>(`${authHost}/admin/health-check/repair/gmail-sync`, {
       method: 'POST',
     });

@@ -85,7 +85,8 @@ export const useSoupViewHotkeys = (options: UseSoupViewHotkeysOptions) => {
   registerHotkey({
     hotkey: 'q',
     scopeId,
-    hotkeyToken: ((TOKENS.email as any).translateList ?? 'email.translateList') as any,
+    hotkeyToken: ((TOKENS.email as any).translateList ??
+      'email.translateList') as any,
     description: 'Translate email list',
     condition: emailListTranslationHotkey.condition,
     keyDownHandler: emailListTranslationHotkey.keyDownHandler,

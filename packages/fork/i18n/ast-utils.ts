@@ -2,6 +2,7 @@ export const TRANSLATABLE_ATTRIBUTES = new Set([
   'placeholder',
   'title',
   'aria-label',
+  'ariaLabel',
   'label',
   'text',
   'tooltip',
@@ -19,6 +20,8 @@ export const TRANSLATABLE_ATTRIBUTES = new Set([
   'subtext',
   'error',
   'success',
+  'warning',
+  'info',
   'helperText',
   'loadingText',
   'alt',
@@ -27,6 +30,14 @@ export const TRANSLATABLE_ATTRIBUTES = new Set([
   'actionLabel',
   'submitLabel',
   'deleteLabel',
+  'dismissLabel',
+  'disabledLabel',
+  'clearLabel',
+  'renameAriaLabel',
+  'triggerLabel',
+  'triggerAriaLabel',
+  'neutralLabel',
+  'labelPlural',
   'searchPlaceholder',
   'emptyTitle',
   'emptyDescription',
@@ -42,7 +53,33 @@ export const TRANSLATABLE_ATTRIBUTES = new Set([
   'hint',
   'prompt',
   'summary',
-  'subtext',
+  'body',
+  'desc',
+  'help',
+  'detail',
+  'note',
+  'header',
+  'badge',
+  'cta',
+  'ctaLabel',
+  'actionLabel',
+  'actionText',
+  'activeLabel',
+  'inactiveLabel',
+  'errorText',
+  'successText',
+  'warningText',
+  'infoText',
+  'loadErrorTitle',
+  'toastMessage',
+  'viewName',
+  'pendingLabel',
+  'secondaryLabel',
+  'fieldLabel',
+  'fieldHelp',
+  'duration',
+  'leader',
+  'sub',
 ]);
 
 export const TRANSLATABLE_OBJECT_KEYS = new Set([
@@ -64,6 +101,14 @@ export const TRANSLATABLE_OBJECT_KEYS = new Set([
   'actionLabel',
   'submitLabel',
   'deleteLabel',
+  'dismissLabel',
+  'clearLabel',
+  'disabledLabel',
+  'activeLabel',
+  'inactiveLabel',
+  'neutralLabel',
+  'labelPlural',
+  'triggerLabel',
   'searchPlaceholder',
   'emptyTitle',
   'emptyDescription',
@@ -79,6 +124,34 @@ export const TRANSLATABLE_OBJECT_KEYS = new Set([
   'summary',
   'fullLabel',
   'shortLabel',
+  'message',
+  'subtext',
+  'detail',
+  'note',
+  'errorText',
+  'successText',
+  'warningText',
+  'infoText',
+  'prettyName',
+  'displayName',
+  'cta',
+  'ctaLabel',
+  'actionText',
+  'badge',
+  'badgeLabel',
+  'header',
+  'emptyStateTitle',
+  'emptyStateDescription',
+  'toastMessage',
+  'secondaryLabel',
+  'pendingLabel',
+  'fieldLabel',
+  'fieldHelp',
+  'successMessage',
+  'errorMessage',
+  'warnMessage',
+  'infoMessage',
+  'channelSummary',
 ]);
 
 export const IGNORED_TAGS = new Set([
@@ -93,6 +166,8 @@ export const IGNORED_TAGS = new Set([
 export const IGNORED_PATH_PATTERNS = [
   /playground/i,
   /debugger/i,
+  /\/debug\//i,
+  /\/lib\/graphql-cache\//i,
   /\/features\/ui-gallery\//i,
   /\/components\/ui\/.*\.docs\.[tj]sx?$/i,
   /\/collab-surface\/debug\//i,
@@ -137,6 +212,8 @@ export function shouldTranslateText(text: string): boolean {
   if (/^[a-z0-9-_]+:[a-z0-9-_]+$/i.test(normalized)) return false;
   if (/^[a-z0-9_-]+\/[a-z0-9_.-]+$/i.test(normalized)) return false; // e.g. application/json
   if (/^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/i.test(normalized)) return false; // technical snake_case identifiers
+  if (/^[a-z]+(?:[A-Z][a-z0-9]+)+$/.test(normalized)) return false; // camelCase technical identifiers (e.g. convertHeic, zipFiles)
+  if (/^var\(--[a-z0-9_-]+\)$/i.test(normalized)) return false; // CSS var(--...)
   if (/^(--|\$|\.)[a-z0-9_-]+/i.test(normalized)) return false; // css variables or classes
   if (/^\[data-/.test(normalized)) return false; // css attribute selectors
   if (/^(property|header|category|loadmore):/i.test(normalized)) return false;
@@ -153,13 +230,18 @@ export function shouldTranslateText(text: string): boolean {
   if (/^\d+(\.\d+)?(px|rem|em|vh|vw|ms|s|%|fr)$/i.test(normalized))
     return false;
   if (/^[0-9a-f]{7,40}$/i.test(normalized)) return false;
+  if (/^[a-z0-9_-]+(?:\.[a-z0-9_-]+)+$/i.test(normalized)) return false; // dot-separated commands/keys (e.g. email.compose.edit.message)
+  if (/^@?\{[a-zA-Z0-9_]+\}$/.test(normalized)) return false; // pure variable placeholder e.g. @{name}
+  if (/^\{[a-zA-Z0-9_]+\}:\{[a-zA-Z0-9_]+\}$/.test(normalized)) return false; // e.g. {path}:{line}
+  if (/^\(?x:\s*\{x\},\s*y:\s*\{y\}\)?$/i.test(normalized)) return false; // coordinates e.g. (x: {x}, y: {y})
   // Ignore CSS utility class lists (e.g. Tailwind classes in style maps)
   if (
-    /(?:^|\s)(?:bg|text|border|hover|focus|active)-[a-z0-9_-]+/i.test(
+    /^(?:[a-z0-9_:-]+:)*(?:bg|text|border|ring|p|px|py|m|mx|my|flex|grid|rounded|size|w|h|items|justify|inline|block|hidden|relative|absolute|fixed|overflow)-[a-z0-9_-]+/i.test(
       normalized
     ) &&
-    normalized.includes(' ') &&
-    /(?:border|surface|ink|accent)/i.test(normalized)
+    normalized
+      .split(/\s+/)
+      .every((token) => /^[a-z0-9_:./[\]()%,-]+$/i.test(token))
   ) {
     return false;
   }

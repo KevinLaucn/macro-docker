@@ -38,7 +38,9 @@ export function EmailViewBreadcrumbItem() {
           <span class="truncate @max-[720px]/view-shell:hidden">
             {tabTitle()}
           </span>
-          <span class="hidden @max-[720px]/view-shell:inline">{t('Email')}</span>
+          <span class="hidden @max-[720px]/view-shell:inline">
+            {t('Email')}
+          </span>
         </ViewBreadcrumbs.Button>
       )}
     </ViewBreadcrumbs.Item>
@@ -91,7 +93,10 @@ export function EmailHeader(props: EmailHeaderProps) {
         <div class="ml-auto flex shrink-0 items-center gap-2">
           <EmailInboxMenu />
           <div class="shrink-0">
-            <SidebarCreateButton label={t('New')} onCreate={() => composeEmail()} />
+            <SidebarCreateButton
+              label={t('New')}
+              onCreate={() => composeEmail()}
+            />
           </div>
         </div>
       </div>

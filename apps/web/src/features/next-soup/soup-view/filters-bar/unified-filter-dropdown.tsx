@@ -30,6 +30,7 @@ import { useUserId } from '@core/context/user';
 import { registerHotkey } from '@core/hotkey/hotkeys';
 import { TOKENS } from '@core/hotkey/tokens';
 import { idToDisplayName } from '@core/user/util';
+import { t } from '@macro/i18n';
 import CircleDashedIcon from '@phosphor/circle-dashed.svg';
 import FilterIcon from '@phosphor/funnel-simple.svg';
 import { PropertyValueIcon } from '@property/component/propertyValue/PropertyValueIcon';
@@ -59,7 +60,6 @@ import {
   SearchableFilterSubmenu,
 } from './filter-menu';
 import type { SearchableOption } from './searchable-multi-select';
-
 import { useTagFilter } from './tag-filter';
 
 export type { FilterCategory, FilterOption } from './filter-categories';
@@ -68,47 +68,67 @@ export type { FilterCategory, FilterOption } from './filter-categories';
 const INBOX_FILTER_CATEGORIES: FilterCategory[] = [
   {
     id: 'type',
-    label: 'Type',
-    labelPlural: 'Types',
+    get label() {
+      return t('Type');
+    },
+    get labelPlural() {
+      return t('Types');
+    },
     options: [
       {
         id: 'document',
-        label: 'Docs',
+        get label() {
+          return t('Docs');
+        },
         icon: () => <EntityIcon targetType="md" size="xs" />,
       },
       {
         id: 'agent',
-        label: 'Agents',
+        get label() {
+          return t('Agents');
+        },
         icon: () => <EntityIcon targetType="chat" size="xs" />,
       },
       {
         id: 'people',
-        label: 'People',
+        get label() {
+          return t('People');
+        },
         icon: () => <EntityIcon targetType="direct_message" size="xs" />,
       },
       {
         id: 'teams',
-        label: 'Teams',
+        get label() {
+          return t('Teams');
+        },
         icon: () => <EntityIcon targetType="channel" size="xs" />,
       },
       {
         id: 'task',
-        label: 'Tasks',
+        get label() {
+          return t('Tasks');
+        },
         icon: () => <EntityIcon targetType="task" size="xs" />,
       },
       {
         id: 'email',
-        label: 'Mail',
+        get label() {
+          return t('Mail');
+        },
         icon: () => <EntityIcon targetType="email" size="xs" />,
       },
       {
         id: 'file',
-        label: 'Files',
+        get label() {
+          return t('Files');
+        },
         icon: () => <EntityIcon targetType="files" size="xs" />,
       },
       {
         id: 'github-pr',
-        label: 'GitHub PRs',
+        get label() {
+          return t('GitHub PRs');
+        },
         icon: () => <EntityIcon targetType="githubPullRequest" size="xs" />,
       },
     ],
@@ -127,34 +147,68 @@ const isInboxTypeFilterId = (id: string) => {
 const MAIL_FILTER_CATEGORIES: FilterCategory[] = [
   {
     id: 'status',
-    label: 'Status',
-    labelPlural: 'Statuses',
+    get label() {
+      return t('Status');
+    },
+    get labelPlural() {
+      return t('Statuses');
+    },
     options: [
-      { id: 'unread', label: 'Unread' },
-      { id: 'read', label: 'Read' },
-      { id: 'not-done', label: 'Not Done' },
-      { id: 'done', label: 'Done' },
+      {
+        id: 'unread',
+        get label() {
+          return t('Unread');
+        },
+      },
+      {
+        id: 'read',
+        get label() {
+          return t('Read');
+        },
+      },
+      {
+        id: 'not-done',
+        get label() {
+          return t('Not Done');
+        },
+      },
+      {
+        id: 'done',
+        get label() {
+          return t('Done');
+        },
+      },
     ],
     multiple: true,
   },
   {
     id: 'attachment',
-    label: 'Attachments',
-    labelPlural: 'Attachments',
+    get label() {
+      return t('Attachments');
+    },
+    get labelPlural() {
+      return t('Attachments');
+    },
     options: [
       {
         id: 'attachment-pdf',
-        label: 'PDFs',
+        get label() {
+          return t('PDFs');
+        },
         icon: () => <EntityIcon targetType="pdf" size="xs" />,
       },
       {
         id: 'attachment-image',
-        label: 'Images',
+        get label() {
+          return t('Images');
+        },
         icon: () => <EntityIcon targetType="image" size="xs" />,
       },
       {
         id: 'attachment-document',
-        label: 'Documents',
+        get label() {
+          return t('Documents');
+        },
         icon: () => <EntityIcon targetType="files" size="xs" />,
       },
     ],
@@ -162,9 +216,20 @@ const MAIL_FILTER_CATEGORIES: FilterCategory[] = [
   },
   {
     id: 'calendar',
-    label: 'Calendar',
-    labelPlural: 'Calendar',
-    options: [{ id: 'has-calendar-invite', label: 'Has Calendar Invite' }],
+    get label() {
+      return t('Calendar');
+    },
+    get labelPlural() {
+      return t('Calendar');
+    },
+    options: [
+      {
+        id: 'has-calendar-invite',
+        get label() {
+          return t('Has Calendar Invite');
+        },
+      },
+    ],
     multiple: false,
   },
 ];
@@ -172,12 +237,18 @@ const MAIL_FILTER_CATEGORIES: FilterCategory[] = [
 const TASKS_FILTER_CATEGORIES: FilterCategory[] = [
   {
     id: 'status',
-    label: 'Status',
-    labelPlural: 'Statuses',
+    get label() {
+      return t('Status');
+    },
+    get labelPlural() {
+      return t('Statuses');
+    },
     options: [
       {
         id: 'task-not-started',
-        label: 'Not Started',
+        get label() {
+          return t('Not Started');
+        },
         icon: () => (
           <PropertyValueIcon
             optionId={PROPERTY_OPTION_IDS.STATUS.NOT_STARTED}
@@ -187,7 +258,9 @@ const TASKS_FILTER_CATEGORIES: FilterCategory[] = [
       },
       {
         id: 'task-in-progress',
-        label: 'In Progress',
+        get label() {
+          return t('In Progress');
+        },
         icon: () => (
           <PropertyValueIcon
             optionId={PROPERTY_OPTION_IDS.STATUS.IN_PROGRESS}
@@ -197,7 +270,9 @@ const TASKS_FILTER_CATEGORIES: FilterCategory[] = [
       },
       {
         id: 'task-in-review',
-        label: 'In Review',
+        get label() {
+          return t('In Review');
+        },
         icon: () => (
           <PropertyValueIcon
             optionId={PROPERTY_OPTION_IDS.STATUS.IN_REVIEW}
@@ -207,7 +282,9 @@ const TASKS_FILTER_CATEGORIES: FilterCategory[] = [
       },
       {
         id: 'task-completed',
-        label: 'Completed',
+        get label() {
+          return t('Completed');
+        },
         icon: () => (
           <PropertyValueIcon
             optionId={PROPERTY_OPTION_IDS.STATUS.COMPLETED}
@@ -217,7 +294,9 @@ const TASKS_FILTER_CATEGORIES: FilterCategory[] = [
       },
       {
         id: 'task-canceled',
-        label: 'Canceled',
+        get label() {
+          return t('Canceled');
+        },
         icon: () => (
           <PropertyValueIcon
             optionId={PROPERTY_OPTION_IDS.STATUS.CANCELED}
@@ -230,12 +309,18 @@ const TASKS_FILTER_CATEGORIES: FilterCategory[] = [
   },
   {
     id: 'priority',
-    label: 'Priority',
-    labelPlural: 'Priorities',
+    get label() {
+      return t('Priority');
+    },
+    get labelPlural() {
+      return t('Priorities');
+    },
     options: [
       {
         id: 'task-urgent',
-        label: 'Urgent',
+        get label() {
+          return t('Urgent');
+        },
         icon: () => (
           <PropertyValueIcon
             optionId={PROPERTY_OPTION_IDS.PRIORITY.URGENT}
@@ -245,7 +330,9 @@ const TASKS_FILTER_CATEGORIES: FilterCategory[] = [
       },
       {
         id: 'task-high-priority',
-        label: 'High Priority',
+        get label() {
+          return t('High Priority');
+        },
         icon: () => (
           <PropertyValueIcon
             optionId={PROPERTY_OPTION_IDS.PRIORITY.HIGH}
@@ -255,7 +342,9 @@ const TASKS_FILTER_CATEGORIES: FilterCategory[] = [
       },
       {
         id: 'task-medium-priority',
-        label: 'Medium Priority',
+        get label() {
+          return t('Medium Priority');
+        },
         icon: () => (
           <PropertyValueIcon
             optionId={PROPERTY_OPTION_IDS.PRIORITY.MEDIUM}
@@ -265,7 +354,9 @@ const TASKS_FILTER_CATEGORIES: FilterCategory[] = [
       },
       {
         id: 'task-low-priority',
-        label: 'Low Priority',
+        get label() {
+          return t('Low Priority');
+        },
         icon: () => (
           <PropertyValueIcon
             optionId={PROPERTY_OPTION_IDS.PRIORITY.LOW}
@@ -273,7 +364,12 @@ const TASKS_FILTER_CATEGORIES: FilterCategory[] = [
           />
         ),
       },
-      { id: 'task-no-priority', label: 'No Priority' },
+      {
+        id: 'task-no-priority',
+        get label() {
+          return t('No Priority');
+        },
+      },
     ],
     multiple: true,
   },
@@ -287,62 +383,88 @@ const COMPANIES_FILTER_CATEGORIES: FilterCategory[] = [];
 const DOCUMENTS_FILTER_CATEGORIES: FilterCategory[] = [
   {
     id: 'type',
-    label: 'Type',
-    labelPlural: 'Types',
+    get label() {
+      return t('Type');
+    },
+    get labelPlural() {
+      return t('Types');
+    },
     options: [
       {
         id: 'doc-markdown',
-        label: 'Markdown',
+        get label() {
+          return t('Markdown');
+        },
         icon: () => <EntityIcon targetType="md" size="xs" />,
       },
       {
         id: 'doc-canvas',
-        label: 'Canvas',
+        get label() {
+          return t('Canvas');
+        },
         icon: () => <EntityIcon targetType="canvas" size="xs" />,
       },
       {
         id: 'doc-spreadsheet',
-        label: 'Spreadsheet',
+        get label() {
+          return t('Spreadsheet');
+        },
         icon: () => <EntityIcon targetType="spreadsheet" size="xs" />,
       },
       {
         id: 'file-code',
-        label: 'Code',
+        get label() {
+          return t('Code');
+        },
         icon: () => <EntityIcon targetType="code" size="xs" />,
       },
       {
         id: 'file-image',
-        label: 'Images',
+        get label() {
+          return t('Images');
+        },
         icon: () => <EntityIcon targetType="image" size="xs" />,
       },
       {
         id: 'file-pdf',
-        label: 'PDFs',
+        get label() {
+          return t('PDFs');
+        },
         icon: () => <EntityIcon targetType="pdf" size="xs" />,
       },
       {
         id: 'file-docx',
-        label: 'DOCX',
+        get label() {
+          return t('DOCX');
+        },
         icon: () => <EntityIcon targetType="write" size="xs" />,
       },
       {
         id: 'file-video',
-        label: 'Videos',
+        get label() {
+          return t('Videos');
+        },
         icon: () => <EntityIcon targetType="video" size="xs" />,
       },
       {
         id: 'doc-snippet',
-        label: 'Snippets',
+        get label() {
+          return t('Snippets');
+        },
         icon: () => <EntityIcon targetType="snippet" size="xs" />,
       },
       {
         id: 'doc-skill',
-        label: 'Skills',
+        get label() {
+          return t('Skills');
+        },
         icon: () => <EntityIcon targetType="skill" size="xs" />,
       },
       {
         id: 'file-other',
-        label: 'Other',
+        get label() {
+          return t('Other');
+        },
         icon: () => <EntityIcon targetType="files" size="xs" />,
       },
     ],
@@ -355,7 +477,7 @@ export function buildContactLabel(
   currentUserId: string | undefined
 ): string {
   if (contact.id === currentUserId) {
-    return contact.name ? `${contact.name} (me)` : 'Me';
+    return contact.name ? `${contact.name} (${t('me')})` : t('Me');
   }
   return contact.name || contact.id;
 }
@@ -394,9 +516,24 @@ interface UnifiedFilterDropdownProps {
 }
 
 const READ_FILTER_OPTIONS: { id: ReadFilter; label: string }[] = [
-  { id: 'unread', label: 'Unread' },
-  { id: 'read', label: 'Read' },
-  { id: 'all', label: 'All' },
+  {
+    id: 'unread',
+    get label() {
+      return t('Unread');
+    },
+  },
+  {
+    id: 'read',
+    get label() {
+      return t('Read');
+    },
+  },
+  {
+    id: 'all',
+    get label() {
+      return t('All');
+    },
+  },
 ];
 
 /** Single-select read/unread/all submenu for the inbox. */
@@ -406,7 +543,7 @@ const ReadStatusSubmenu = (props: {
 }) => {
   return (
     <FilterSubmenu
-      label="Status"
+      label={t('Status')}
       active={props.value !== 'all'}
       options={READ_FILTER_OPTIONS}
       isSelected={(id) => props.value === id}
@@ -539,7 +676,7 @@ export const UnifiedFilterDropdown = (
     const currentUserId = userId();
     const noAssigneeOption: SearchableOption = {
       id: NO_ASSIGNEE,
-      label: 'Unassigned',
+      label: t('Unassigned'),
       icon: () => <CircleDashedIcon class="size-3.5 text-ink-muted" />,
     };
     let meOption: SearchableOption | undefined;
@@ -610,7 +747,7 @@ export const UnifiedFilterDropdown = (
     const currentUserId = userId();
     const noOwnerOption: SearchableOption = {
       id: NO_ASSIGNEE,
-      label: 'No owner',
+      label: t('No owner'),
       icon: () => <CircleDashedIcon class="size-3.5 text-ink-muted" />,
     };
     let meOption: SearchableOption | undefined;
@@ -662,7 +799,7 @@ export const UnifiedFilterDropdown = (
     })),
     {
       id: NO_STAGE,
-      label: 'No stage',
+      label: t('No stage'),
       icon: () => <CircleDashedIcon class="size-3.5 text-ink-muted" />,
     },
   ]);
@@ -767,7 +904,7 @@ export const UnifiedFilterDropdown = (
   registerHotkey({
     hotkey: 'f',
     scopeId: panel.splitHotkeyScope,
-    description: 'Open filter menu',
+    description: t('Open filter menu'),
     hotkeyToken: TOKENS.soup.filter,
     keyDownHandler: () => {
       setOpen(true);
@@ -855,11 +992,11 @@ export const UnifiedFilterDropdown = (
                 <>
                   <Show when={isDocumentsView() && showTagsFilter()}>
                     <SearchableFilterSubmenu
-                      label="Tags"
+                      label={t('Tags')}
                       options={tagFilter.options}
                       activeIds={tagFilter.activeIds}
                       onChange={tagFilter.onChange}
-                      placeholder="Filter by tag..."
+                      placeholder={t('Filter by tag...')}
                     />
                   </Show>
 
@@ -878,41 +1015,41 @@ export const UnifiedFilterDropdown = (
                   {/* Assignee filter for tasks view */}
                   <Show when={isTasksView()}>
                     <SearchableFilterSubmenu
-                      label="Assignee"
+                      label={t('Assignee')}
                       options={assigneeOptions}
                       activeIds={assigneeFilter}
                       onChange={handleAssigneeChange}
-                      placeholder="Search assignees..."
+                      placeholder={t('Search assignees...')}
                     />
                   </Show>
 
                   <Show when={showCreatedByFilter()}>
                     <SearchableFilterSubmenu
-                      label="Created by"
+                      label={t('Created by')}
                       options={createdByOptions}
                       activeIds={createdByIds}
                       onChange={handleCreatedByChange}
-                      placeholder="Search creators..."
+                      placeholder={t('Search creators...')}
                     />
                   </Show>
 
                   {/* Stage + Owner filters for the Customers view */}
                   <Show when={isCompaniesView()}>
                     <SearchableFilterSubmenu
-                      label="Stage"
+                      label={t('Stage')}
                       active={stageFilter().length > 0}
                       options={stageOptions}
                       activeIds={effectiveStageFilter}
                       onChange={handleStageChange}
-                      placeholder="Filter stages..."
+                      placeholder={t('Filter stages...')}
                       preserveOrder
                     />
                     <SearchableFilterSubmenu
-                      label="Owner"
+                      label={t('Owner')}
                       options={ownerOptions}
                       activeIds={ownerFilter}
                       onChange={handleOwnerChange}
-                      placeholder="Search owners..."
+                      placeholder={t('Search owners...')}
                     />
                   </Show>
                 </>
@@ -937,11 +1074,11 @@ export const UnifiedFilterDropdown = (
 
             <Show when={!isDocumentsView() && showTagsFilter()}>
               <SearchableFilterSubmenu
-                label="Tags"
+                label={t('Tags')}
                 options={tagFilter.options}
                 activeIds={tagFilter.activeIds}
                 onChange={tagFilter.onChange}
-                placeholder="Filter by tag..."
+                placeholder={t('Filter by tag...')}
               />
             </Show>
             {props.children}

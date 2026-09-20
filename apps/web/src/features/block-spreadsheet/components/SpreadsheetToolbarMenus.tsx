@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import AlignMiddle from '@phosphor/align-center-vertical-simple.svg';
 import Check from '@phosphor/check.svg';
 import PaintBucket from '@phosphor/paint-bucket.svg';
@@ -141,10 +142,10 @@ export function NumberFormatMenu(props: SpreadsheetToolbarProps) {
 }
 
 const FONT_FAMILIES = [
-  { value: 'sans', label: 'Sans serif', font: 'var(--font-sans)' },
-  { value: 'serif', label: 'Serif', font: 'Georgia, serif' },
-  { value: 'mono', label: 'Monospace', font: 'var(--font-mono)' },
-] as const;
+  { value: 'sans' as const, label: t('Sans serif'), font: 'var(--font-sans)' },
+  { value: 'serif' as const, label: t('Serif'), font: 'Georgia, serif' },
+  { value: 'mono' as const, label: t('Monospace'), font: 'var(--font-mono)' },
+];
 
 export function FontFamilyMenu(props: SpreadsheetToolbarProps) {
   return (

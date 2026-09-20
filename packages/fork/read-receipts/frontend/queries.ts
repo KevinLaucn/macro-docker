@@ -462,3 +462,24 @@ export function useSetGlobalPixelBlockingMutation(
     },
   }));
 }
+
+export function handleReadReceiptSentMessage(
+  message: { db_id?: string | null; thread_db_id?: string | null },
+  queryClient?: QueryClient
+): void {
+  if (!message.db_id) return;
+  queryClient?.setQueryData(['email', 'read-receipt', message.db_id], {
+    message_id: message.db_id,
+    first_opened_at: null,
+    last_opened_at: null,
+    open_count: 0,
+  });
+  if (message.thread_db_id) {
+    import('@queries/email/thread')
+      .then(({ fetchAndCacheThread }) => {
+        void fetchAndCacheThread(message.thread_db_id!);
+      })
+      .catch(() => {});
+  }
+}
+

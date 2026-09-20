@@ -21,6 +21,7 @@ import { openExternalUrl } from '@core/util/url';
 import { type EntityData, isGithubPrEntity } from '@entity';
 import { EntitySelectionBadge } from '@entity/components/EntitySelectionBadge';
 import Macro from '@icon/macro-logo.svg';
+import { t } from '@macro/i18n';
 import ArrowLeft from '@phosphor/arrow-left.svg';
 import {
   Badge,
@@ -64,13 +65,13 @@ import {
 } from './useCommandItems';
 
 const CATEGORIES: { id: CategoryFilter; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'commands', label: 'Command' },
-  { id: 'chats', label: 'Agents' },
-  { id: 'documents', label: 'Files' },
-  { id: 'tasks', label: 'Tasks' },
-  { id: 'channels', label: 'Channels' },
-  { id: 'dms', label: 'People' },
+  { id: 'all', label: t('All') },
+  { id: 'commands', label: t('Command') },
+  { id: 'chats', label: t('Agents') },
+  { id: 'documents', label: t('Files') },
+  { id: 'tasks', label: t('Tasks') },
+  { id: 'channels', label: t('Channels') },
+  { id: 'dms', label: t('People') },
 ];
 
 const VIRTUAL_ITEM_HEIGHT = 40; // tailwind h-10

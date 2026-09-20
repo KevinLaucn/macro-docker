@@ -11,6 +11,7 @@ import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { useUserId } from '@core/context/user';
 import type { ChannelEntity } from '@entity';
 import { isMutedItem } from '@entity/utils/notification';
+import { t } from '@macro/i18n';
 import SpinnerIcon from '@phosphor/spinner.svg';
 import { createElementSize } from '@solid-primitives/resize-observer';
 import { Button } from '@ui';
@@ -37,13 +38,10 @@ import { useChannelCalls } from './rail/hooks/useChannelCalls';
 import { useChannelRailActivity } from './rail/hooks/useChannelRailActivity';
 
 const MOBILE_CHANNEL_TABS: PillTabItem<ChannelsQueryScope>[] = [
-  { value: 'recents', label: 'Recent' },
-  { value: 'channels', label: 'Channels' },
-  { value: 'direct_messages', label: 'DMs' },
+  { value: 'recents', label: t('Recent') },
+  { value: 'channels', label: t('Channels') },
+  { value: 'direct_messages', label: t('DMs') },
 ];
-const MOBILE_TAB_STRIP_CLASS =
-  '-ml-(--mobile-chrome-gutter) w-[100cqw] max-w-none flex-none';
-const MOBILE_TAB_CONTENT_CLASS = 'px-(--mobile-chrome-gutter)';
 const MOBILE_CHANNEL_BUFFER_SIZE = CONVERSATION_CARD_HEIGHT * 6;
 const LOAD_MORE_THRESHOLD = 300;
 
@@ -122,8 +120,8 @@ export function ChannelsMobileView(props: {
         <div class="flex h-full w-full min-w-0 flex-1 items-center">
           <PillTabs
             scrollable
-            class={MOBILE_TAB_STRIP_CLASS}
-            contentClass={MOBILE_TAB_CONTENT_CLASS}
+            class="-ml-(--mobile-chrome-gutter) w-[100cqw] max-w-none flex-none"
+            contentClass="px-(--mobile-chrome-gutter)"
             items={MOBILE_CHANNEL_TABS}
             value={props.tab}
             onChange={selectTab}

@@ -1,4 +1,5 @@
 import { IS_MAC } from '@core/constant/isMac';
+import { t } from '@macro/i18n';
 import { cn, Hotkey, ToggleSwitch } from '@ui';
 import {
   enableScreencastHotkeys,
@@ -882,118 +883,226 @@ function Keyboard(props: { keys?: string[] }): JSX.Element {
 
 const shortcutSections: ShortcutSection[] = [
   {
-    title: 'Core',
+    get title() {
+      return t('Core');
+    },
     items: [
       {
         keys: [`${cmdOrCtrl}+k`],
         codes: [CmdOrCtrl, 'KeyK'],
-        description: 'Open the command menu',
+        get description() {
+          return t('Open the command menu');
+        },
       },
       {
         keys: [`${cmdOrCtrl}+f`],
         codes: [CmdOrCtrl, 'KeyF'],
-        description: 'Search in current view',
+        get description() {
+          return t('Search in current view');
+        },
       },
-      { keys: ['c'], codes: ['KeyC'], description: 'Open the create menu' },
+      {
+        keys: ['c'],
+        codes: ['KeyC'],
+        get description() {
+          return t('Open the create menu');
+        },
+      },
       {
         keys: [`${cmdOrCtrl}+;`],
         codes: [CmdOrCtrl, 'Semicolon'],
-        description: 'Open settings panel',
+        get description() {
+          return t('Open settings panel');
+        },
       },
-      { keys: ['/'], codes: ['Slash'], description: 'Go to search view' },
+      {
+        keys: ['/'],
+        codes: ['Slash'],
+        get description() {
+          return t('Go to search view');
+        },
+      },
       {
         keys: [`${cmdOrCtrl}+j`],
         codes: [CmdOrCtrl, 'KeyJ'],
-        description: 'Focus AI chat',
+        get description() {
+          return t('Focus AI chat');
+        },
       },
-      { keys: ['g'], codes: ['KeyG'], description: 'Go to a view' },
+      {
+        keys: ['g'],
+        codes: ['KeyG'],
+        get description() {
+          return t('Go to a view');
+        },
+      },
     ],
   },
   {
-    title: 'Splits',
+    get title() {
+      return t('Splits');
+    },
     items: [
       {
         keys: ['opt+['],
         codes: ['AltLeft', 'BracketLeft'],
-        description: 'Go back in current split',
+        get description() {
+          return t('Go back in current split');
+        },
       },
       {
         keys: ['opt+]'],
         codes: ['AltLeft', 'BracketRight'],
-        description: 'Go forward in current split',
+        get description() {
+          return t('Go forward in current split');
+        },
       },
       {
         keys: ['shift+arrowleft'],
         codes: ['ShiftLeft', 'ArrowLeft'],
-        description: 'Focus split to the left',
+        get description() {
+          return t('Focus split to the left');
+        },
       },
       {
         keys: ['shift+arrowright'],
         codes: ['ShiftLeft', 'ArrowRight'],
-        description: 'Focus split to the right',
+        get description() {
+          return t('Focus split to the right');
+        },
       },
       {
         keys: ['cmd+escape'],
         codes: ['MetaLeft', 'Escape'],
-        description: 'Back to list / close split',
+        get description() {
+          return t('Back to list / close split');
+        },
       },
       {
         keys: ['shift+escape'],
         codes: ['ShiftLeft', 'Escape'],
-        description: 'Spotlight split',
+        get description() {
+          return t('Spotlight split');
+        },
       },
-      { keys: ['\\'], codes: ['Backslash'], description: 'Create a split' },
+      {
+        keys: ['\\'],
+        codes: ['Backslash'],
+        get description() {
+          return t('Create a split');
+        },
+      },
     ],
   },
   {
-    title: 'Unified List',
+    get title() {
+      return t('Unified List');
+    },
     items: [
       {
         keys: ['enter'],
         codes: ['Enter'],
-        description: 'Open item in current split',
+        get description() {
+          return t('Open item in current split');
+        },
       },
       {
         keys: ['shift+enter'],
         codes: ['ShiftLeft', 'Enter'],
-        description: 'Open item in a new split',
+        get description() {
+          return t('Open item in a new split');
+        },
       },
       {
         keys: ['opt+enter'],
         codes: ['AltLeft', 'Enter'],
-        description: 'Open item in place of the preview',
+        get description() {
+          return t('Open item in place of the preview');
+        },
       },
-      { keys: ['arrowup'], codes: ['ArrowUp'], description: 'Move up' },
-      { keys: ['arrowdown'], codes: ['ArrowDown'], description: 'Move down' },
+      {
+        keys: ['arrowup'],
+        codes: ['ArrowUp'],
+        get description() {
+          return t('Move up');
+        },
+      },
+      {
+        keys: ['arrowdown'],
+        codes: ['ArrowDown'],
+        get description() {
+          return t('Move down');
+        },
+      },
       {
         keys: ['shift+arrowup'],
         codes: ['ShiftLeft', 'ArrowUp'],
-        description: 'Select up',
+        get description() {
+          return t('Select up');
+        },
       },
       {
         keys: ['shift+arrowdown'],
         codes: ['ShiftLeft', 'ArrowDown'],
-        description: 'Select down',
+        get description() {
+          return t('Select down');
+        },
       },
       {
         keys: ['arrowleft'],
         codes: ['ArrowLeft'],
-        description: 'Collapse item',
+        get description() {
+          return t('Collapse item');
+        },
       },
       {
         keys: ['arrowright'],
         codes: ['ArrowRight'],
-        description: 'Expand item',
+        get description() {
+          return t('Expand item');
+        },
       },
-      { keys: ['space'], codes: ['Space'], description: 'Preview item' },
-      { keys: ['f'], codes: ['KeyF'], description: 'Open filter menu' },
-      { keys: ['x'], codes: ['KeyX'], description: 'Select items' },
-      { keys: ['e'], codes: ['KeyE'], description: 'Mark done' },
-      { keys: ['u'], codes: ['KeyU'], description: 'Mark unread' },
+      {
+        keys: ['space'],
+        codes: ['Space'],
+        get description() {
+          return t('Preview item');
+        },
+      },
+      {
+        keys: ['f'],
+        codes: ['KeyF'],
+        get description() {
+          return t('Open filter menu');
+        },
+      },
+      {
+        keys: ['x'],
+        codes: ['KeyX'],
+        get description() {
+          return t('Select items');
+        },
+      },
+      {
+        keys: ['e'],
+        codes: ['KeyE'],
+        get description() {
+          return t('Mark done');
+        },
+      },
+      {
+        keys: ['u'],
+        codes: ['KeyU'],
+        get description() {
+          return t('Mark unread');
+        },
+      },
       {
         keys: ['shift+u'],
         codes: ['ShiftLeft', 'KeyU'],
-        description: 'Mark read',
+        get description() {
+          return t('Mark read');
+        },
       },
     ],
   },
@@ -1052,7 +1161,7 @@ function ShortcutSectionComponent(props: { section: ShortcutSection }) {
       </h3>
       <div class="flex flex-col">
         <For each={props.section.items}>
-          {(item) => <ShortcutRow item={item} spacer="or" />}
+          {(item) => <ShortcutRow item={item} spacer={t('or')} />}
         </For>
       </div>
     </div>
@@ -1062,10 +1171,10 @@ function ShortcutSectionComponent(props: { section: ShortcutSection }) {
 export function Shortcuts() {
   return (
     <SettingsPage
-      title="Keyboard shortcuts"
+      title={t('Keyboard shortcuts')}
       actions={
         <div class="flex items-center gap-2">
-          <span class="text-sm text-ink-muted">Screencast keys</span>
+          <span class="text-sm text-ink-muted">{t('Screencast keys')}</span>
           <ToggleSwitch
             size="md"
             onChange={setEnableScreencastHotkeys}
@@ -1093,7 +1202,7 @@ export function Shortcuts() {
             </h3>
             <div class="grid grid-cols-1 @[600px]:grid-cols-2 gap-x-8">
               <For each={shortcutSections[2].items}>
-                {(item) => <ShortcutRow item={item} spacer="or" />}
+                {(item) => <ShortcutRow item={item} spacer={t('or')} />}
               </For>
             </div>
           </div>

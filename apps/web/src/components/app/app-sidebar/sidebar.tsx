@@ -75,6 +75,7 @@ import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { getDisplayName, tryMacroId } from '@core/user';
 import LogoIcon from '@icon/macro-logo.svg';
 import { ContextMenu } from '@kobalte/core/context-menu';
+import { t } from '@macro/i18n';
 import BellIcon from '@phosphor/bell.svg';
 import CaretRightIcon from '@phosphor/caret-right.svg';
 import CaretUpIcon from '@phosphor/caret-up.svg';
@@ -182,7 +183,7 @@ const SIDEBAR_LINKS = [
   {
     id: 'inbox',
     get label() {
-      return isTouchDevice() ? 'Notifications' : 'Home';
+      return isTouchDevice() ? t('Notifications') : t('Home');
     },
     href: LIST_VIEW_PATHS.inbox,
     get icon() {
@@ -193,7 +194,9 @@ const SIDEBAR_LINKS = [
   },
   {
     id: 'search',
-    label: 'Search',
+    get label() {
+      return t('Search');
+    },
     href: LIST_VIEW_PATHS.search,
     icon: SearchIcon,
     hotkey: '/',
@@ -203,7 +206,9 @@ const SIDEBAR_LINKS = [
   },
   {
     id: 'agents',
-    label: 'Agents',
+    get label() {
+      return t('Agents');
+    },
     href: LIST_VIEW_PATHS.agents,
     icon: getIconConfig('agent').icon,
     hotkey: 'a',
@@ -211,7 +216,9 @@ const SIDEBAR_LINKS = [
   },
   {
     id: 'mail',
-    label: 'Email',
+    get label() {
+      return t('Email');
+    },
     href: LIST_VIEW_PATHS.mail,
     icon: getIconConfig('email').icon,
     hotkey: 'e',
@@ -219,7 +226,9 @@ const SIDEBAR_LINKS = [
   },
   {
     id: 'documents',
-    label: 'Files',
+    get label() {
+      return t('Files');
+    },
     href: LIST_VIEW_PATHS.documents,
     icon: getIconConfig('files').icon,
     hotkey: 'f',
@@ -227,7 +236,9 @@ const SIDEBAR_LINKS = [
   },
   {
     id: 'documents',
-    label: 'Documents',
+    get label() {
+      return t('Documents');
+    },
     href: LIST_VIEW_PATHS.documents,
     params: {
       initialFilters: markdownDocumentsQuery ?? {},
@@ -243,7 +254,9 @@ const SIDEBAR_LINKS = [
   },
   {
     id: 'tasks',
-    label: 'Tasks',
+    get label() {
+      return t('Tasks');
+    },
     href: LIST_VIEW_PATHS.tasks,
     icon: getIconConfig('task').icon,
     hotkey: 't',
@@ -251,7 +264,9 @@ const SIDEBAR_LINKS = [
   },
   {
     id: 'calendar',
-    label: 'Calendar',
+    get label() {
+      return t('Calendar');
+    },
     href: '/calendar',
     icon: getIconConfig('calendar').icon,
     hotkey: 'r',
@@ -259,7 +274,9 @@ const SIDEBAR_LINKS = [
   },
   {
     id: 'channels',
-    label: 'Channels',
+    get label() {
+      return t('Channels');
+    },
     href: LIST_VIEW_PATHS.channels,
     icon: getIconConfig('channel').icon,
     hotkey: 'c',
@@ -363,7 +380,7 @@ export const registerSidebarHotkeys = ({
     hotkey: 'cmd+.',
     scopeId: 'global',
     hotkeyToken: TOKENS.global.toggleSidebar,
-    description: 'Toggle sidebar',
+    description: t('Toggle sidebar'),
     runWithInputFocused: true,
     keyDownHandler: (e) => {
       e?.preventDefault();
@@ -403,7 +420,7 @@ export const GoToHotkeys = () => {
   const inviteHotkey = registerHotkey({
     scopeId: 'global',
     hotkeyToken: TOKENS.global.inviteTeam,
-    description: 'Send Invites',
+    description: t('Send Invites'),
     keyDownHandler: (e) => {
       e?.preventDefault();
       setInviteModalOpen(true);
@@ -435,7 +452,7 @@ export const GoToHotkeys = () => {
     hotkey: GO_TO_LEADER_KEY,
     scopeId: 'global',
     hotkeyToken: TOKENS.sidebar.goToLeader,
-    description: 'Go to page',
+    description: t('Go to page'),
     keyDownHandler: () => {
       // We debounce the time till the hot keys are visible to allow other commands
       // like g+g to fire
@@ -997,7 +1014,9 @@ export const SidebarSettingsWidget = (props: SidebarSettingsWidgetProps) => {
 
 const CALLS_LINK: SidebarItem = {
   id: 'calls',
-  label: 'Calls',
+  get label() {
+    return t('Calls');
+  },
   href: LIST_VIEW_PATHS.calls,
   icon: getIconConfig('call').icon,
   hotkey: 'l',
@@ -1006,7 +1025,9 @@ const CALLS_LINK: SidebarItem = {
 
 const COMPANIES_LINK: SidebarItem = {
   id: 'companies',
-  label: 'Customers',
+  get label() {
+    return t('Customers');
+  },
   href: LIST_VIEW_PATHS.companies,
   icon: getIconConfig('company').icon,
   hotkey: 'o',
@@ -1015,7 +1036,9 @@ const COMPANIES_LINK: SidebarItem = {
 
 const DASHBOARD_LINK: SidebarItem = {
   id: 'home',
-  label: 'Assistant',
+  get label() {
+    return t('Assistant');
+  },
   href: '/home',
   icon: HomeIcon,
   hotkeyToken: TOKENS.sidebar.goTo.home,
@@ -1023,7 +1046,9 @@ const DASHBOARD_LINK: SidebarItem = {
 
 const GETTING_STARTED_LINK: SidebarItem = {
   id: 'getting-started',
-  label: 'Getting Started',
+  get label() {
+    return t('Getting Started');
+  },
   href: '/getting-started',
   icon: CompassIcon,
   hotkey: 's',
@@ -1032,7 +1057,9 @@ const GETTING_STARTED_LINK: SidebarItem = {
 
 const ACTIVITY_LINK: SidebarItem = {
   id: 'activity',
-  label: 'Activity',
+  get label() {
+    return t('Activity');
+  },
   href: '/activity',
   icon: ActivityIcon,
   hotkey: 'y',
@@ -1041,7 +1068,9 @@ const ACTIVITY_LINK: SidebarItem = {
 
 const RECENT_LINK: SidebarItem = {
   id: 'recent',
-  label: 'Recent',
+  get label() {
+    return t('Recent');
+  },
   href: LIST_VIEW_PATHS.recent,
   icon: ActivityIcon,
   // `r` is Calendar and `e`/`c`/`t` are taken; `n` is the only letter of
@@ -1317,15 +1346,16 @@ export const AppSidebar = (props: AppSidebarProps) => {
       removeAction={
         link.id === 'getting-started'
           ? {
-              tooltip: 'Remove from sidebar',
+              tooltip: t('Remove from sidebar'),
               onRemove: () => {
                 gettingStartedVisibility.hide();
                 // Hiding drops the row only — the go-to hotkey and its
                 // command-menu entry stay registered (see buildSidebarLinks),
                 // so this stays true.
-                toast.success('Removed from sidebar', {
-                  subtext:
-                    'You can always find Getting Started in the account menu or command menu.',
+                toast.success(t('Removed from sidebar'), {
+                  subtext: t(
+                    'You can always find Getting Started in the account menu or command menu.'
+                  ),
                 });
               },
             }
@@ -1550,13 +1580,13 @@ export const AppSidebar = (props: AppSidebarProps) => {
           class="size-full overflow-y-auto flex flex-col gap-3"
         >
           <CollapsibleSidebarSection
-            label="Workspace"
+            label={t('Workspace')}
             persistKey="workspace"
             items={workspaceItems()}
             headerMenu={() => (
               <div class="pointer-events-auto">
                 <SidebarSectionMenu
-                  label="Workspace"
+                  label={t('Workspace')}
                   options={sectionMenuOptionsFor(WORKSPACE_LINK_IDS)}
                   onToggle={toggleSectionVisibility}
                   onOpenChange={handleWorkspaceContextMenuOpenChange}
@@ -1573,21 +1603,19 @@ export const AppSidebar = (props: AppSidebarProps) => {
             />
           </Suspense>
 
-          <Suspense>
-            <ChannelsRecentWidget
-              sidebarState={sidebarDisplayState()}
-              onSectionOpenChange={scheduleMiddleScrollUpdate}
-              onDropdownOpenChange={handleOverlayDropdownOpenChange}
-              headerWrapper={(header) => (
-                <SidebarOpenInSplitMenu
-                  content={channelsContent}
-                  onOpenChange={handleOverlayDropdownOpenChange}
-                >
-                  {header}
-                </SidebarOpenInSplitMenu>
-              )}
-            />
-          </Suspense>
+          <ChannelsRecentWidget
+            sidebarState={sidebarDisplayState()}
+            onSectionOpenChange={scheduleMiddleScrollUpdate}
+            onDropdownOpenChange={handleOverlayDropdownOpenChange}
+            headerWrapper={(header) => (
+              <SidebarOpenInSplitMenu
+                content={channelsContent}
+                onOpenChange={handleOverlayDropdownOpenChange}
+              >
+                {header}
+              </SidebarOpenInSplitMenu>
+            )}
+          />
         </div>
         <div
           class={cn(
@@ -1629,18 +1657,20 @@ export const AppSidebar = (props: AppSidebarProps) => {
           }
         >
           <SidebarPromoCard
-            label="Upgrade to Premium"
-            description="Unlock MCP integrations, better AI models, and team collaboration."
+            label={t('Upgrade to Premium')}
+            description={t(
+              'Unlock MCP integrations, better AI models, and team collaboration.'
+            )}
             onDismiss={() => {
               setPremiumCardDismissed(true);
               setPremiumHintVisible(true);
             }}
             primaryAction={{
-              label: 'Upgrade',
+              label: t('Upgrade'),
               onClick: () => openSettingsTab('Billing'),
             }}
             secondaryAction={{
-              label: 'Later',
+              label: t('Later'),
               onClick: () => {
                 setPremiumCardDismissed(true);
                 setPremiumHintVisible(true);
@@ -1660,11 +1690,11 @@ export const AppSidebar = (props: AppSidebarProps) => {
           }
         >
           <SidebarPromoHint
-            title="Maybe later"
-            message="You can upgrade anytime from Account settings."
+            title={t('Maybe later')}
+            message={t('You can upgrade anytime from Account settings.')}
             onDone={() => setPremiumHintVisible(false)}
             secondaryAction={{
-              label: 'Take me there',
+              label: t('Take me there'),
               onClick: () => openSettingsTab('Account'),
             }}
           />
@@ -1871,7 +1901,7 @@ const SidebarLinkRow = (props: SidebarLinkProps) => {
       fullWidth
       tooltipPlacement="right"
       onMouseEnter={() => setIsHovering(true)}
-      label={`Go to ${props.label}`}
+      label={t('Go to {label}', { label: props.label }, `Go to ${props.label}`)}
       hotkey={
         props.hotkey
           ? props.standaloneHotkey

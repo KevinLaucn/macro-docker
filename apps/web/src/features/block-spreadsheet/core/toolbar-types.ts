@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import type { SpreadsheetCell } from './spreadsheet-document';
 
 export type SpreadsheetCommand =
@@ -52,20 +53,36 @@ export type SpreadsheetToolbarProps = {
 export const SPREADSHEET_ZOOM_LEVELS = [50, 75, 90, 100, 125, 150, 200];
 
 export const SPREADSHEET_FUNCTIONS = [
-  { name: 'SUM', command: 'insert-sum', description: 'Add values' },
-  { name: 'AVERAGE', command: 'insert-average', description: 'Mean of values' },
-  { name: 'COUNT', command: 'insert-count', description: 'Count numbers' },
-  { name: 'MIN', command: 'insert-min', description: 'Smallest value' },
-  { name: 'MAX', command: 'insert-max', description: 'Largest value' },
-] as const;
+  { name: 'SUM', command: 'insert-sum' as const, description: t('Add values') },
+  {
+    name: 'AVERAGE',
+    command: 'insert-average' as const,
+    description: t('Mean of values'),
+  },
+  {
+    name: 'COUNT',
+    command: 'insert-count' as const,
+    description: t('Count numbers'),
+  },
+  {
+    name: 'MIN',
+    command: 'insert-min' as const,
+    description: t('Smallest value'),
+  },
+  {
+    name: 'MAX',
+    command: 'insert-max' as const,
+    description: t('Largest value'),
+  },
+];
 
 export const SPREADSHEET_NUMBER_FORMATS = [
-  { value: 'general', label: 'Automatic', example: '1,234.5' },
-  { value: 'number', label: 'Number', example: '1,234.00' },
-  { value: 'currency', label: 'Currency', example: '$1,234.00' },
-  { value: 'percent', label: 'Percent', example: '12.50%' },
-  { value: 'date', label: 'Date', example: '9/17/2026' },
-  { value: 'time', label: 'Time', example: '12:30 PM' },
-  { value: 'scientific', label: 'Scientific', example: '1.23E+03' },
-  { value: 'text', label: 'Plain text', example: '1234' },
-] as const;
+  { value: 'general' as const, label: t('Automatic'), example: '1,234.5' },
+  { value: 'number' as const, label: t('Number'), example: '1,234.00' },
+  { value: 'currency' as const, label: t('Currency'), example: '$1,234.00' },
+  { value: 'percent' as const, label: t('Percent'), example: '12.50%' },
+  { value: 'date' as const, label: t('Date'), example: '9/17/2026' },
+  { value: 'time' as const, label: t('Time'), example: '12:30 PM' },
+  { value: 'scientific' as const, label: t('Scientific'), example: '1.23E+03' },
+  { value: 'text' as const, label: t('Plain text'), example: '1234' },
+];

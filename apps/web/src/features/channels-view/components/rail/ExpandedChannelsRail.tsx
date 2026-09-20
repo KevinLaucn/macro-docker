@@ -8,6 +8,7 @@ import { useUserId } from '@core/context/user';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import EmptyStateNoSearchMatchGraphic from '@design/empty-state-no-search-match.svg';
 import { type ChannelEntity, Entity } from '@entity';
+import { t } from '@macro/i18n';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import CheckIcon from '@phosphor/check.svg';
 import MagnifyingGlassIcon from '@phosphor/magnifying-glass.svg';
@@ -60,8 +61,8 @@ import {
 } from './hooks/useChannelRailState';
 
 const CHANNEL_TABS = [
-  { value: 'browse', label: 'All' },
-  { value: 'recents', label: 'Recent' },
+  { value: 'browse', label: t('All') },
+  { value: 'recents', label: t('Recent') },
 ];
 
 type ChannelRailSearch = {

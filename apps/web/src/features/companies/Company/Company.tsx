@@ -1,8 +1,8 @@
 import { openCreateContactModal } from '@app/features/companies/CreateContactModal';
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
 import { SidePanel } from '@components/app/side-panel';
-import { t } from '@macro/i18n';
 import { enableCrmLists } from '@core/constant/featureFlags';
+import { t } from '@macro/i18n';
 import PlusIcon from '@phosphor/plus.svg';
 import { type CompanyContact, useCompanyQuery } from '@queries/crm/companies';
 import { Button } from '@ui';

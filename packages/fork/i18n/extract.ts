@@ -324,23 +324,10 @@ async function run() {
               }
             } else if (p.node.value?.type === 'JSXExpressionContainer') {
               const exp = p.node.value.expression;
-              if (exp.type === 'StringLiteral') {
-                const val = normalizeKey(exp.value);
-                if (shouldTranslateText(val) || existingZh[val]) {
-                  const dictKey = fileContext ? `${val}@@${fileContext}` : val;
-                  recordCall(
-                    dictKey,
-                    rel,
-                    fileContext,
-                    false,
-                    line,
-                    `JSXAttribute(${attrName})`,
-                    attrName
-                  );
-                }
-              } else if (exp.type === 'TemplateLiteral') {
-                if (exp.quasis.length === 1 && exp.expressions.length === 0) {
-                  const val = normalizeKey(exp.quasis[0].value.raw);
+              const checkExpNode = (node: any) => {
+                if (!node) return;
+                if (node.type === 'StringLiteral') {
+                  const val = normalizeKey(node.value);
                   if (shouldTranslateText(val) || existingZh[val]) {
                     const dictKey = fileContext
                       ? `${val}@@${fileContext}`
@@ -350,13 +337,195 @@ async function run() {
                       rel,
                       fileContext,
                       false,
-                      line,
+                      node.loc?.start?.line || line,
                       `JSXAttribute(${attrName})`,
                       attrName
                     );
                   }
-                } else {
-                  const unit = parseSimpleTemplateLiteral(exp);
+                } else if (node.type === 'TemplateLiteral') {
+                  if (
+                    node.quasis.length === 1 &&
+                    node.expressions.length === 0
+                  ) {
+                    const val = normalizeKey(node.quasis[0].value.raw);
+                    if (shouldTranslateText(val) || existingZh[val]) {
+                      const dictKey = fileContext
+                        ? `${val}@@${fileContext}`
+                        : val;
+                      recordCall(
+                        dictKey,
+                        rel,
+                        fileContext,
+                        false,
+                        node.loc?.start?.line || line,
+                        `JSXAttribute(${attrName})`,
+                        attrName
+                      );
+                    }
+                  } else {
+                    const unit = parseSimpleTemplateLiteral(node);
+                    if (unit) {
+                      const norm = normalizeKey(unit.template);
+                      if (shouldTranslateText(norm) || existingZh[norm]) {
+                        const dictKey = fileContext
+                          ? `${norm}@@${fileContext}`
+                          : norm;
+                        recordCall(
+                          dictKey,
+                          rel,
+                          fileContext,
+                          false,
+                          node.loc?.start?.line || line,
+                          `JSXAttribute(${attrName})`,
+                          attrName
+                        );
+                      }
+                    }
+                  }
+                } else if (node.type === 'ConditionalExpression') {
+                  checkExpNode(node.consequent);
+                  checkExpNode(node.alternate);
+                } else if (node.type === 'LogicalExpression') {
+                  checkExpNode(node.left);
+                  checkExpNode(node.right);
+                }
+              };
+              checkExpNode(exp);
+            }
+          }
+        },
+        ObjectProperty(p: any) {
+          if (rel.includes('lib/service-clients/')) return;
+          const propName = getObjectPropertyName(p.node.key);
+          const parentCall = p.parentPath?.parentPath?.node;
+          const isLoggingCall =
+            parentCall?.type === 'CallExpression' &&
+            ((parentCall.callee?.type === 'Identifier' &&
+              /^(?:log|logger|track|console)/i.test(parentCall.callee.name)) ||
+              (parentCall.callee?.type === 'MemberExpression' &&
+                /^(?:log|logger|console)/i.test(
+                  parentCall.callee.object?.name
+                )));
+          if (isLoggingCall) return;
+
+          const isToastPromiseOption =
+            parentCall?.type === 'CallExpression' &&
+            parentCall.callee?.type === 'MemberExpression' &&
+            parentCall.callee.object?.name === 'toast' &&
+            parentCall.callee.property?.name === 'promise';
+          if (
+            !propName ||
+            (!TRANSLATABLE_OBJECT_KEYS.has(propName) &&
+              !(
+                isToastPromiseOption &&
+                [
+                  'loading',
+                  'success',
+                  'error',
+                  'description',
+                  'message',
+                ].includes(propName)
+              ))
+          )
+            return;
+
+          const line = p.node.loc?.start?.line ?? 0;
+          const checkObjectValue = (valNode: any) => {
+            if (!valNode) return;
+            if (valNode.type === 'StringLiteral') {
+              const val = normalizeKey(valNode.value);
+              if (shouldTranslateText(val) || existingZh[val]) {
+                const dictKey = fileContext ? `${val}@@${fileContext}` : val;
+                recordCall(
+                  dictKey,
+                  rel,
+                  fileContext,
+                  false,
+                  valNode.loc?.start?.line || line,
+                  `ObjectProperty(${propName})`,
+                  propName
+                );
+              }
+            } else if (valNode.type === 'TemplateLiteral') {
+              if (
+                valNode.quasis.length === 1 &&
+                valNode.expressions.length === 0
+              ) {
+                const val = normalizeKey(valNode.quasis[0].value.raw);
+                if (shouldTranslateText(val) || existingZh[val]) {
+                  const dictKey = fileContext ? `${val}@@${fileContext}` : val;
+                  recordCall(
+                    dictKey,
+                    rel,
+                    fileContext,
+                    false,
+                    valNode.loc?.start?.line || line,
+                    `ObjectProperty(${propName})`,
+                    propName
+                  );
+                }
+              } else {
+                const unit = parseSimpleTemplateLiteral(valNode);
+                if (unit) {
+                  const norm = normalizeKey(unit.template);
+                  if (shouldTranslateText(norm) || existingZh[norm]) {
+                    const dictKey = fileContext
+                      ? `${norm}@@${fileContext}`
+                      : norm;
+                    recordCall(
+                      dictKey,
+                      rel,
+                      fileContext,
+                      false,
+                      valNode.loc?.start?.line || line,
+                      `ObjectProperty(${propName})`,
+                      propName
+                    );
+                  }
+                }
+              }
+            } else if (valNode.type === 'ConditionalExpression') {
+              checkObjectValue(valNode.consequent);
+              checkObjectValue(valNode.alternate);
+            } else if (valNode.type === 'LogicalExpression') {
+              checkObjectValue(valNode.left);
+              checkObjectValue(valNode.right);
+            }
+          };
+
+          checkObjectValue(p.node.value);
+        },
+        ObjectMethod(p: any) {
+          if (rel.includes('lib/service-clients/')) return;
+          if (p.node.kind !== 'get' && p.node.kind !== 'method') return;
+          const propName = getObjectPropertyName(p.node.key);
+          if (!propName || !TRANSLATABLE_OBJECT_KEYS.has(propName)) return;
+
+          const line = p.node.loc?.start?.line ?? 0;
+          p.traverse({
+            ReturnStatement(retPath: any) {
+              const arg = retPath.node.argument;
+              if (!arg) return;
+              const checkReturnValue = (valNode: any) => {
+                if (!valNode) return;
+                if (valNode.type === 'StringLiteral') {
+                  const val = normalizeKey(valNode.value);
+                  if (shouldTranslateText(val) || existingZh[val]) {
+                    const dictKey = fileContext
+                      ? `${val}@@${fileContext}`
+                      : val;
+                    recordCall(
+                      dictKey,
+                      rel,
+                      fileContext,
+                      false,
+                      valNode.loc?.start?.line || line,
+                      `ObjectMethod(${propName})`,
+                      propName
+                    );
+                  }
+                } else if (valNode.type === 'TemplateLiteral') {
+                  const unit = parseSimpleTemplateLiteral(valNode);
                   if (unit) {
                     const norm = normalizeKey(unit.template);
                     if (shouldTranslateText(norm) || existingZh[norm]) {
@@ -368,88 +537,24 @@ async function run() {
                         rel,
                         fileContext,
                         false,
-                        line,
-                        `JSXAttribute(${attrName})`,
-                        attrName
+                        valNode.loc?.start?.line || line,
+                        `ObjectMethod(${propName})`,
+                        propName
                       );
                     }
                   }
+                } else if (valNode.type === 'ConditionalExpression') {
+                  checkReturnValue(valNode.consequent);
+                  checkReturnValue(valNode.alternate);
+                } else if (valNode.type === 'LogicalExpression') {
+                  checkReturnValue(valNode.left);
+                  checkReturnValue(valNode.right);
                 }
-              }
-            }
-          }
-        },
-        ObjectProperty(p: any) {
-          if (rel.includes('lib/service-clients/')) return;
-          const propName = getObjectPropertyName(p.node.key);
-          const parentCall = p.parentPath?.parentPath?.node;
-          const isToastPromiseOption =
-            parentCall?.type === 'CallExpression' &&
-            parentCall.callee?.type === 'MemberExpression' &&
-            parentCall.callee.object?.name === 'toast' &&
-            parentCall.callee.property?.name === 'promise';
-          if (
-            !propName ||
-            (!TRANSLATABLE_OBJECT_KEYS.has(propName) &&
-              !(
-                isToastPromiseOption &&
-                ['loading', 'success', 'error'].includes(propName)
-              ))
-          )
-            return;
+              };
 
-          const line = p.node.loc?.start?.line ?? 0;
-          const value = p.node.value;
-          if (value.type === 'StringLiteral') {
-            const val = normalizeKey(value.value);
-            if (shouldTranslateText(val) || existingZh[val]) {
-              const dictKey = fileContext ? `${val}@@${fileContext}` : val;
-              recordCall(
-                dictKey,
-                rel,
-                fileContext,
-                false,
-                line,
-                `ObjectProperty(${propName})`,
-                propName
-              );
-            }
-          } else if (value.type === 'TemplateLiteral') {
-            if (value.quasis.length === 1 && value.expressions.length === 0) {
-              const val = normalizeKey(value.quasis[0].value.raw);
-              if (shouldTranslateText(val) || existingZh[val]) {
-                const dictKey = fileContext ? `${val}@@${fileContext}` : val;
-                recordCall(
-                  dictKey,
-                  rel,
-                  fileContext,
-                  false,
-                  line,
-                  `ObjectProperty(${propName})`,
-                  propName
-                );
-              }
-            } else {
-              const unit = parseSimpleTemplateLiteral(value);
-              if (unit) {
-                const norm = normalizeKey(unit.template);
-                if (shouldTranslateText(norm) || existingZh[norm]) {
-                  const dictKey = fileContext
-                    ? `${norm}@@${fileContext}`
-                    : norm;
-                  recordCall(
-                    dictKey,
-                    rel,
-                    fileContext,
-                    false,
-                    line,
-                    `ObjectProperty(${propName})`,
-                    propName
-                  );
-                }
-              }
-            }
-          }
+              checkReturnValue(arg);
+            },
+          });
         },
         StringLiteral(p: any) {
           const val = normalizeKey(p.node.value);

@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import type { EmailTab } from './types';
 
 export type EmailTabItem = {
@@ -6,13 +7,13 @@ export type EmailTabItem = {
 };
 
 export const EMAIL_TABS: EmailTabItem[] = [
-  { id: 'important', label: 'Signal' },
-  { id: 'noise', label: 'Noise' },
-  { id: 'sent', label: 'Sent' },
-  { id: 'calendar', label: 'Calendar' },
-  { id: 'drafts', label: 'Drafts' },
-  { id: 'shared', label: 'Shared' },
-  { id: 'all', label: 'All' },
+  { id: 'important', label: t('Signal') },
+  { id: 'noise', label: t('Noise') },
+  { id: 'sent', label: t('Sent') },
+  { id: 'calendar', label: t('Calendar') },
+  { id: 'drafts', label: t('Drafts') },
+  { id: 'shared', label: t('Shared') },
+  { id: 'all', label: t('All') },
 ];
 
 export const EMAIL_TAB_IDS: EmailTab[] = EMAIL_TABS.map((tab) => tab.id);

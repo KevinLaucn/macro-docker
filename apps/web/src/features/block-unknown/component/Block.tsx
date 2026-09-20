@@ -66,23 +66,23 @@ function BlockUnknownContent() {
             when={spreadsheet()}
             fallback={
               <Show
-            when={getAdobeFormatFromFileName(fileName())}
-            fallback={
-              <UnknownContent
-                fileName={fileName()}
-                onShare={shareCtx.open}
-                onDownload={() => void downloadDocument()}
-              />
-            }
-          >
-            {(format) => (
-              <AdobePreviewContainer
-                format={format()}
-                fileName={fileName()}
-                getBlob={getBlob}
-              />
-            )}
-          </Show>
+                when={getAdobeFormatFromFileName(fileName())}
+                fallback={
+                  <UnknownContent
+                    fileName={fileName()}
+                    onShare={shareCtx.open}
+                    onDownload={() => void downloadDocument()}
+                  />
+                }
+              >
+                {(format) => (
+                  <AdobePreviewContainer
+                    format={format()}
+                    fileName={fileName()}
+                    getBlob={getBlob}
+                  />
+                )}
+              </Show>
             }
           >
             <Suspense

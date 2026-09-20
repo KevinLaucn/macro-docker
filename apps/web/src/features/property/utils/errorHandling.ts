@@ -1,4 +1,5 @@
 import { toast } from '@core/component/Toast/Toast';
+import { t } from '@fork/i18n';
 import type { Result } from '../types';
 
 /**
@@ -7,21 +8,43 @@ import type { Result } from '../types';
  */
 export const ERROR_MESSAGES = {
   // Property operations
-  PROPERTY_FETCH: 'Unable to load properties',
-  PROPERTY_SAVE: 'Unable to save property',
-  PROPERTY_DELETE: 'Unable to delete property',
-  PROPERTY_ADD: 'Unable to add property',
-  PROPERTY_CREATE: 'Unable to create property',
+  get PROPERTY_FETCH() {
+    return t('Unable to load properties');
+  },
+  get PROPERTY_SAVE() {
+    return t('Unable to save property');
+  },
+  get PROPERTY_DELETE() {
+    return t('Unable to delete property');
+  },
+  get PROPERTY_ADD() {
+    return t('Unable to add property');
+  },
+  get PROPERTY_CREATE() {
+    return t('Unable to create property');
+  },
 
   // Option operations
-  OPTION_FETCH: 'Unable to load options',
-  OPTION_ADD: 'Unable to add option',
-  OPTION_CREATE: 'Unable to create option',
+  get OPTION_FETCH() {
+    return t('Unable to load options');
+  },
+  get OPTION_ADD() {
+    return t('Unable to add option');
+  },
+  get OPTION_CREATE() {
+    return t('Unable to create option');
+  },
 
   // Validation
-  VALIDATION_REQUIRED: 'This field is required',
-  VALIDATION_DUPLICATE: 'Duplicate values not allowed',
-  VALIDATION_MIN_OPTIONS: 'At least one option required',
+  get VALIDATION_REQUIRED() {
+    return t('This field is required');
+  },
+  get VALIDATION_DUPLICATE() {
+    return t('Duplicate values not allowed');
+  },
+  get VALIDATION_MIN_OPTIONS() {
+    return t('At least one option required');
+  },
 } as const;
 
 /**

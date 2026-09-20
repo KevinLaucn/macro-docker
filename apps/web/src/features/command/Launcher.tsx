@@ -43,6 +43,7 @@ import {
 } from '@core/util/create';
 import { createControlledOpenSignal } from '@core/util/createControlledOpenSignal';
 import { Dialog } from '@kobalte/core/dialog';
+import { t } from '@macro/i18n';
 import { getMarkdownGoldenBytes } from '@macro-inc/lexical-core/markdown-golden';
 import type { Span } from '@macro-inc/observability';
 import ChatIcon from '@phosphor/chat.svg';
@@ -471,9 +472,9 @@ export type { CreatableBlock, CreatableName } from './types';
 
 export const CREATABLE_BLOCKS: CreatableBlock[] = [
   {
-    label: 'Email',
+    label: t('Email'),
     icon: getIconConfig('email').icon,
-    description: 'Create email',
+    description: t('Create email'),
     keywords: ['new', 'make', 'add', 'compose'],
     blockName: 'email',
     hotkeyToken: TOKENS.create.email,
@@ -488,10 +489,10 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     // The pre-agent-session chat, kept on `a` for anyone the new agent flag
     // has not reached. Mutually exclusive with the Agent entry below:
     // both bind `a`, and exactly one is ever enabled.
-    label: 'Agent',
+    label: t('Agent'),
     icon: getIconConfig('chat').icon,
-    description: 'Create agent chat',
-    launcherHint: 'New agent session',
+    description: t('Create agent chat'),
+    launcherHint: t('New agent session'),
     keywords: ['new', 'make', 'add', 'agent'],
     blockName: 'chat',
     hotkeyToken: TOKENS.create.chat,
@@ -508,10 +509,10 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Automation',
+    label: t('Automation'),
     icon: getIconConfig('automation').icon,
-    description: 'Create automation',
-    launcherHint: 'Scheduled agent runs',
+    description: t('Create automation'),
+    launcherHint: t('Scheduled agent runs'),
     keywords: ['new', 'make', 'add', 'schedule', 'agent'],
     blockName: 'automation',
     hotkeyToken: TOKENS.create.automation,
@@ -522,10 +523,10 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Agent',
+    label: t('Agent'),
     icon: getIconConfig('agent').icon,
-    description: 'Create agent session',
-    launcherHint: 'Dedicated Agent Session',
+    description: t('Create agent session'),
+    launcherHint: t('Dedicated Agent Session'),
     keywords: ['new', 'make', 'add', 'agent', 'code', 'coder', 'session'],
     blockName: 'agent',
     hotkeyToken: TOKENS.create.agent,
@@ -539,10 +540,10 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Skill',
+    label: t('Skill'),
     icon: getIconConfig('skill').icon,
-    description: 'Create skill',
-    launcherHint: 'Custom agent skill',
+    description: t('Create skill'),
+    launcherHint: t('Custom agent skill'),
     keywords: ['new', 'make', 'add', 'instruction', 'prompt'],
     blockName: 'skill',
     hotkeyToken: TOKENS.create.skill,
@@ -553,9 +554,9 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Document',
+    label: t('Document'),
     icon: getIconConfig('md').icon,
-    description: 'Create doc',
+    description: t('Create doc'),
     keywords: ['new', 'make', 'add', 'document', 'note'],
     blockName: 'md',
     hotkeyToken: TOKENS.create.note,
@@ -567,9 +568,9 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Task',
+    label: t('Task'),
     icon: getIconConfig('task').icon,
-    description: 'Create task',
+    description: t('Create task'),
     keywords: ['new', 'make', 'add', 'todo'],
     blockName: 'task',
     hotkeyToken: TOKENS.create.task,
@@ -581,10 +582,10 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Reminder',
+    label: t('Reminder'),
     icon: getIconConfig('reminder').icon,
-    description: 'Create reminder',
-    launcherHint: 'Nudge yourself later',
+    description: t('Create reminder'),
+    launcherHint: t('Nudge yourself later'),
     keywords: ['new', 'make', 'add', 'remind', 'later', 'todo'],
     blockName: 'reminder',
     hotkeyToken: TOKENS.create.reminder,
@@ -598,10 +599,10 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Snippet',
+    label: t('Snippet'),
     icon: getIconConfig('snippet').icon,
-    description: 'Create snippet',
-    launcherHint: 'Reusable document template',
+    description: t('Create snippet'),
+    launcherHint: t('Reusable document template'),
     keywords: ['new', 'make', 'add'],
     blockName: 'snippet',
     hotkeyToken: TOKENS.create.snippet,
@@ -613,10 +614,10 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Message',
+    label: t('Message'),
     icon: ChatIcon,
-    description: 'Create message',
-    launcherHint: 'Quick send message',
+    description: t('Create message'),
+    launcherHint: t('Quick send message'),
     keywords: ['new', 'make', 'add', 'channel'],
     blockName: 'channel',
     hotkeyToken: TOKENS.create.message,
@@ -628,10 +629,10 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Channel',
+    label: t('Channel'),
     icon: getIconConfig('channel').icon,
-    description: 'Create channel',
-    launcherHint: 'Team-wide or group chat',
+    description: t('Create channel'),
+    launcherHint: t('Team-wide or group chat'),
     keywords: ['new', 'make', 'add', 'channel', 'group', 'conversation'],
     blockName: 'channel',
     hotkeyToken: TOKENS.create.channel,
@@ -643,9 +644,9 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Canvas',
+    label: t('Canvas'),
     icon: getIconConfig('canvas').icon,
-    description: 'Create canvas',
+    description: t('Create canvas'),
     keywords: ['new', 'make', 'add', 'diagram'],
     blockName: 'canvas',
     hotkeyToken: TOKENS.create.canvas,
@@ -659,11 +660,11 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Spreadsheet',
+    label: t('Spreadsheet'),
     enabled: isSpreadsheetEnabledForCurrentUser,
     icon: getIconConfig('spreadsheet').icon,
-    description: 'Create spreadsheet',
-    launcherHint: 'Tables, formulas, and shared calculations',
+    description: t('Create spreadsheet'),
+    launcherHint: t('Tables, formulas, and shared calculations'),
     keywords: ['new', 'make', 'add', 'sheet', 'table', 'formula'],
     blockName: 'spreadsheet',
     hotkeyToken: TOKENS.create.spreadsheet,
@@ -677,9 +678,9 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Folder',
+    label: t('Folder'),
     icon: getIconConfig('project').icon,
-    description: 'Create folder',
+    description: t('Create folder'),
     keywords: ['new', 'make', 'add', 'project'],
     blockName: 'project',
     hotkeyToken: TOKENS.create.project,
@@ -691,9 +692,9 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: 'Code',
+    label: t('Code'),
     icon: getIconConfig('code').icon,
-    description: 'Create code file',
+    description: t('Create code file'),
     keywords: ['new', 'make', 'add'],
     blockName: 'code',
     hotkeyToken: TOKENS.create.code,

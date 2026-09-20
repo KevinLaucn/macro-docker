@@ -30,8 +30,8 @@ import {
 import { EmailList } from './components/EmailList';
 import { EmailSidebar } from './components/EmailSidebar';
 import { EMAIL_TABS } from './constants';
-import { EmailViewProvider, useEmailView } from './email-view-context';
 import { EmailListTranslationProvider } from './email-list-translation-context';
+import { EmailViewProvider, useEmailView } from './email-view-context';
 import type { EmailTab, EmailViewStateOptions } from './types';
 
 export type EmailViewProps = {
@@ -176,11 +176,11 @@ export function EmailView(props: EmailViewProps) {
       {/* PRIVATE-HOOK: email_translation:view-provider */}
       <EmailListTranslationProvider>
         <ListEntityMetadataQueryProvider>
-        <EmailViewProvider initialState={props.initialState}>
-          <EmailViewBreadcrumbs>
-            <EmailViewRoot />
-          </EmailViewBreadcrumbs>
-        </EmailViewProvider>
+          <EmailViewProvider initialState={props.initialState}>
+            <EmailViewBreadcrumbs>
+              <EmailViewRoot />
+            </EmailViewBreadcrumbs>
+          </EmailViewProvider>
         </ListEntityMetadataQueryProvider>
       </EmailListTranslationProvider>
     </EntityDetailNavigationStack.Root>

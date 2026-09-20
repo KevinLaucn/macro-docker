@@ -1,15 +1,17 @@
+import { t } from '@macro/i18n';
 import type { VisibleCalendar } from '@queries/calendar/calendars';
 import type { CalendarPeriodView } from '../types';
 
-const CALENDAR_PERIOD_LABELS = {
-  dayGridMonth: 'Month',
-  timeGridWeek: 'Week',
-  timeGridDay: 'Day',
-} satisfies Record<CalendarPeriodView, string>;
-
 /** Human-readable label for a calendar period view. */
 export function calendarPeriodLabel(view: CalendarPeriodView): string {
-  return CALENDAR_PERIOD_LABELS[view];
+  switch (view) {
+    case 'dayGridMonth':
+      return t('Month');
+    case 'timeGridWeek':
+      return t('Week');
+    case 'timeGridDay':
+      return t('Day');
+  }
 }
 
 /**

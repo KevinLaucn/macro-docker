@@ -2,6 +2,8 @@ import CheckIcon from '@phosphor-icons/core/bold/check-bold.svg?component-solid'
 import ChecksIcon from '@phosphor-icons/core/bold/checks-bold.svg?component-solid';
 import { cn, Tooltip } from '@ui';
 import { createMemo, Show } from 'solid-js';
+import { useEmail } from '@core/context/user';
+import { useEmailLinksQuery } from '@queries/email/link';
 import { useReadReceiptStatusQuery } from './queries';
 import { formatReadReceiptStatus } from './utils';
 
@@ -11,15 +13,31 @@ export interface ReadReceiptStatusProps {
     is_sent?: boolean | null;
     is_draft?: boolean | null;
     sent_at?: string | null;
+    from?: { email?: string | null } | null;
   };
   class?: string;
   showIconOnly?: boolean;
 }
 
 export function ReadReceiptStatus(props: ReadReceiptStatusProps) {
+  const viewerEmail = useEmail();
+  const accounts = useEmailLinksQuery();
+
+  const isSent = () => {
+    if (props.message.is_sent != null) return Boolean(props.message.is_sent);
+    const fromEmail = props.message.from?.email?.toLowerCase();
+    if (!fromEmail) return false;
+    if (viewerEmail()?.toLowerCase() === fromEmail) return true;
+    const links = accounts.isSuccess ? accounts.data?.links : undefined;
+    return Boolean(
+      links?.some(
+        (acc) => acc.email_address?.toLowerCase() === fromEmail
+      )
+    );
+  };
+
   const isEligible = () => {
-    const isSent = Boolean(props.message.is_sent);
-    return Boolean(isSent && !props.message.is_draft && props.message.db_id);
+    return Boolean(isSent() && !props.message.is_draft && props.message.db_id);
   };
 
   const query = useReadReceiptStatusQuery(
@@ -27,8 +45,11 @@ export function ReadReceiptStatus(props: ReadReceiptStatusProps) {
     isEligible
   );
 
-  const formatted = createMemo(() => formatReadReceiptStatus(query.data));
-  const isOpened = () => (query.data?.open_count ?? 0) > 0;
+  const formatted = createMemo(() =>
+    formatReadReceiptStatus(query.isSuccess ? query.data : undefined)
+  );
+  const isOpened = () =>
+    Boolean(query.isSuccess && (query.data?.open_count ?? 0) > 0);
 
   return (
     <Show when={isEligible()}>

@@ -59,52 +59,88 @@ export type ShareStatus = {
   tooltip: string;
 };
 
+import { t } from '@fork/i18n';
+
 const LINK_SHARE_SCOPE_COPY: Record<LinkShareScope, LinkShareScopeCopy> = {
   NONE: {
-    label: 'None',
-    title: 'Link sharing off',
-    description:
-      'Only people and channels you explicitly share with can access this item.',
+    get label() {
+      return t('None');
+    },
+    get title() {
+      return t('Link sharing off');
+    },
+    get description() {
+      return t(
+        'Only people and channels you explicitly share with can access this item.'
+      );
+    },
   },
   PUBLIC: {
-    label: 'Public',
-    title: 'Public link',
-    description: 'Anyone with the link can access this item.',
+    get label() {
+      return t('Public');
+    },
+    get title() {
+      return t('Public link');
+    },
+    get description() {
+      return t('Anyone with the link can access this item.');
+    },
   },
   TEAM: {
-    label: 'Team',
-    title: 'Team link',
-    description:
-      "Members of the owner's team with the link can access this item. This does not share it directly with a team or channel.",
+    get label() {
+      return t('Team');
+    },
+    get title() {
+      return t('Team link');
+    },
+    get description() {
+      return t(
+        "Members of the owner's team with the link can access this item. This does not share it directly with a team or channel."
+      );
+    },
   },
 };
 
 const TEAM_SHARE_COPY: Record<TeamShareScope, string> = {
-  NONE: 'None',
-  view: 'View',
-  comment: 'Comment',
-  edit: 'Edit',
+  get NONE() {
+    return t('None');
+  },
+  get view() {
+    return t('View');
+  },
+  get comment() {
+    return t('Comment');
+  },
+  get edit() {
+    return t('Edit');
+  },
 };
 
 export const LINK_SHARE_SCOPE_OPTIONS = (
   ['NONE', 'PUBLIC', 'TEAM'] as const
 ).map((scope) => ({
   value: scope,
-  label: LINK_SHARE_SCOPE_COPY[scope].label,
+  get label() {
+    return LINK_SHARE_SCOPE_COPY[scope].label;
+  },
 }));
 
 export const TEAM_SHARE_SCOPE_OPTIONS = (
   ['NONE', 'view', 'comment', 'edit'] as const
 ).map((scope) => ({
   value: scope,
-  label: TEAM_SHARE_COPY[scope],
+  get label() {
+    return TEAM_SHARE_COPY[scope];
+  },
 }));
 
 export const CALL_TEAM_SHARE_SCOPE_OPTIONS = (
   ['NONE', 'view'] as const satisfies readonly CallTeamShareScope[]
 ).map((scope) => ({
   value: scope,
-  label: TEAM_SHARE_COPY[scope],
+  get label() {
+    return TEAM_SHARE_COPY[scope];
+  },
 }));
 
 export function teamShareScopeOptionsForItem(itemType: ItemType) {

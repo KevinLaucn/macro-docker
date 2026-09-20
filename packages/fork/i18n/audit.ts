@@ -79,8 +79,7 @@ async function audit() {
     // base key. Match that lookup order so shared translations are not
     // reported as missing merely because a file has a context.
     return (
-      !Object.prototype.hasOwnProperty.call(existingZh, key) &&
-      !Object.prototype.hasOwnProperty.call(existingZh, normalized)
+      !Object.hasOwn(existingZh, key) && !Object.hasOwn(existingZh, normalized)
     );
   }
   const untranslated: {
@@ -97,8 +96,8 @@ async function audit() {
     if (
       !file.endsWith('.tsx') &&
       !code.includes('toast') &&
-      !Array.from(TRANSLATABLE_OBJECT_KEYS).some((key) =>
-        code.includes(`${key}:`)
+      !Array.from(TRANSLATABLE_OBJECT_KEYS).some(
+        (key) => code.includes(`${key}:`) || code.includes(`get ${key}(`)
       )
     )
       continue;
@@ -126,45 +125,57 @@ async function audit() {
           if (!TRANSLATABLE_ATTRIBUTES.has(attr)) return;
           const line = p.node.loc?.start?.line ?? 0;
           const value = p.node.value;
-          if (
-            value?.type === 'StringLiteral' &&
-            isMissingTranslation(value.value, file)
-          ) {
-            untranslated.push({
-              file: rel,
-              line,
-              type: `JSXAttribute(${attr})`,
-              snippet: value.value.slice(0, 60),
-            });
-          } else if (value?.type === 'JSXExpressionContainer') {
-            const exp = value.expression;
+          const checkAttrValue = (node: any) => {
+            if (!node) return;
             if (
-              exp.type === 'StringLiteral' &&
-              isMissingTranslation(exp.value, file)
+              node.type === 'StringLiteral' &&
+              isMissingTranslation(node.value, file)
             ) {
               untranslated.push({
                 file: rel,
-                line,
+                line: node.loc?.start?.line ?? line,
                 type: `JSXAttribute(${attr})`,
-                snippet: exp.value.slice(0, 60),
+                snippet: node.value.slice(0, 60),
               });
-            } else if (exp.type === 'TemplateLiteral') {
-              const unit = parseSimpleTemplateLiteral(exp);
+            } else if (node.type === 'TemplateLiteral') {
+              const unit = parseSimpleTemplateLiteral(node);
               if (unit && isMissingTranslation(unit.template, file)) {
                 untranslated.push({
                   file: rel,
-                  line,
+                  line: node.loc?.start?.line ?? line,
                   type: `JSXAttribute(${attr})`,
                   snippet: unit.template.slice(0, 60),
                 });
               }
+            } else if (node.type === 'ConditionalExpression') {
+              checkAttrValue(node.consequent);
+              checkAttrValue(node.alternate);
+            } else if (node.type === 'LogicalExpression') {
+              checkAttrValue(node.left);
+              checkAttrValue(node.right);
             }
+          };
+
+          if (value?.type === 'StringLiteral') {
+            checkAttrValue(value);
+          } else if (value?.type === 'JSXExpressionContainer') {
+            checkAttrValue(value.expression);
           }
         },
         ObjectProperty(p: any) {
           if (rel.includes('lib/service-clients/')) return;
           const propName = getObjectPropertyName(p.node.key);
           const parentCall = p.parentPath?.parentPath?.node;
+          const isLoggingCall =
+            parentCall?.type === 'CallExpression' &&
+            ((parentCall.callee?.type === 'Identifier' &&
+              /^(?:log|logger|track|console)/i.test(parentCall.callee.name)) ||
+              (parentCall.callee?.type === 'MemberExpression' &&
+                /^(?:log|logger|console)/i.test(
+                  parentCall.callee.object?.name
+                )));
+          if (isLoggingCall) return;
+
           const isToastPromiseOption =
             parentCall?.type === 'CallExpression' &&
             parentCall.callee?.type === 'MemberExpression' &&
@@ -175,34 +186,94 @@ async function audit() {
             (!TRANSLATABLE_OBJECT_KEYS.has(propName) &&
               !(
                 isToastPromiseOption &&
-                ['loading', 'success', 'error'].includes(propName)
+                [
+                  'loading',
+                  'success',
+                  'error',
+                  'description',
+                  'message',
+                ].includes(propName)
               ))
           )
             return;
 
           const line = p.node.loc?.start?.line ?? 0;
-          const value = p.node.value;
-          if (
-            value.type === 'StringLiteral' &&
-            isMissingTranslation(value.value, file)
-          ) {
-            untranslated.push({
-              file: rel,
-              line,
-              type: `ObjectProperty(${propName})`,
-              snippet: value.value.slice(0, 60),
-            });
-          } else if (value.type === 'TemplateLiteral') {
-            const unit = parseSimpleTemplateLiteral(value);
-            if (unit && isMissingTranslation(unit.template, file)) {
+          const checkObjectValue = (valNode: any) => {
+            if (!valNode) return;
+            if (
+              valNode.type === 'StringLiteral' &&
+              isMissingTranslation(valNode.value, file)
+            ) {
               untranslated.push({
                 file: rel,
-                line,
+                line: valNode.loc?.start?.line ?? line,
                 type: `ObjectProperty(${propName})`,
-                snippet: unit.template.slice(0, 60),
+                snippet: valNode.value.slice(0, 60),
               });
+            } else if (valNode.type === 'TemplateLiteral') {
+              const unit = parseSimpleTemplateLiteral(valNode);
+              if (unit && isMissingTranslation(unit.template, file)) {
+                untranslated.push({
+                  file: rel,
+                  line: valNode.loc?.start?.line ?? line,
+                  type: `ObjectProperty(${propName})`,
+                  snippet: unit.template.slice(0, 60),
+                });
+              }
+            } else if (valNode.type === 'ConditionalExpression') {
+              checkObjectValue(valNode.consequent);
+              checkObjectValue(valNode.alternate);
+            } else if (valNode.type === 'LogicalExpression') {
+              checkObjectValue(valNode.left);
+              checkObjectValue(valNode.right);
             }
-          }
+          };
+          checkObjectValue(p.node.value);
+        },
+        ObjectMethod(p: any) {
+          if (rel.includes('lib/service-clients/')) return;
+          if (p.node.kind !== 'get' && p.node.kind !== 'method') return;
+          const propName = getObjectPropertyName(p.node.key);
+          if (!propName || !TRANSLATABLE_OBJECT_KEYS.has(propName)) return;
+
+          const line = p.node.loc?.start?.line ?? 0;
+          p.traverse({
+            ReturnStatement(retPath: any) {
+              const arg = retPath.node.argument;
+              if (!arg) return;
+              const checkReturnValue = (valNode: any) => {
+                if (!valNode) return;
+                if (
+                  valNode.type === 'StringLiteral' &&
+                  isMissingTranslation(valNode.value, file)
+                ) {
+                  untranslated.push({
+                    file: rel,
+                    line: valNode.loc?.start?.line ?? line,
+                    type: `ObjectMethod(${propName})`,
+                    snippet: valNode.value.slice(0, 60),
+                  });
+                } else if (valNode.type === 'TemplateLiteral') {
+                  const unit = parseSimpleTemplateLiteral(valNode);
+                  if (unit && isMissingTranslation(unit.template, file)) {
+                    untranslated.push({
+                      file: rel,
+                      line: valNode.loc?.start?.line ?? line,
+                      type: `ObjectMethod(${propName})`,
+                      snippet: unit.template.slice(0, 60),
+                    });
+                  }
+                } else if (valNode.type === 'ConditionalExpression') {
+                  checkReturnValue(valNode.consequent);
+                  checkReturnValue(valNode.alternate);
+                } else if (valNode.type === 'LogicalExpression') {
+                  checkReturnValue(valNode.left);
+                  checkReturnValue(valNode.right);
+                }
+              };
+              checkReturnValue(arg);
+            },
+          });
         },
         CallExpression(p: any) {
           const callee = p.node.callee;

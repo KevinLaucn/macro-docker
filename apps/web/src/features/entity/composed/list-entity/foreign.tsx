@@ -1,3 +1,4 @@
+import { t } from '@fork/i18n';
 import { Popover } from '@kobalte/core/popover';
 import ArrowSquareOut from '@phosphor/arrow-square-out.svg';
 import ChatCircle from '@phosphor/chat-circle.svg';
@@ -91,16 +92,16 @@ function checkCounts(entity: GithubPullRequestEntity): CheckCounts {
 }
 
 function checkOverviewTitle(counts: CheckCounts) {
-  if (counts.total === 0) return 'No checks';
+  if (counts.total === 0) return t('No checks');
 
   if (counts.failed > 0) {
     return counts.failed === counts.total
-      ? 'All checks failed'
-      : 'Some checks failed';
+      ? t('All checks failed')
+      : t('Some checks failed');
   }
-  if (counts.pending > 0) return 'Checks pending';
-  if (counts.successful === counts.total) return 'All checks succeeded';
-  return 'Checks completed';
+  if (counts.pending > 0) return t('Checks pending');
+  if (counts.successful === counts.total) return t('All checks succeeded');
+  return t('Checks completed');
 }
 
 function checkOverviewTitleClass(state: CheckVisualState): string {
@@ -121,21 +122,51 @@ function showCheckCountSummary(counts: CheckCounts) {
 }
 
 const CHECK_RUN_STATE_LABELS: Record<string, string> = {
-  action_required: 'Action required',
-  cancelled: 'Cancelled',
-  completed: 'Completed',
-  failure: 'Failed',
-  in_progress: 'In progress',
-  neutral: 'Neutral',
-  pending: 'Pending',
-  queued: 'Queued',
-  requested: 'Requested',
-  skipped: 'Skipped',
-  stale: 'Stale',
-  startup_failure: 'Startup failure',
-  success: 'Success',
-  timed_out: 'Timed out',
-  waiting: 'Waiting',
+  get action_required() {
+    return t('Action required');
+  },
+  get cancelled() {
+    return t('Cancelled');
+  },
+  get completed() {
+    return t('Completed');
+  },
+  get failure() {
+    return t('Failed');
+  },
+  get in_progress() {
+    return t('In progress');
+  },
+  get neutral() {
+    return t('Neutral');
+  },
+  get pending() {
+    return t('Pending');
+  },
+  get queued() {
+    return t('Queued');
+  },
+  get requested() {
+    return t('Requested');
+  },
+  get skipped() {
+    return t('Skipped');
+  },
+  get stale() {
+    return t('Stale');
+  },
+  get startup_failure() {
+    return t('Startup failure');
+  },
+  get success() {
+    return t('Success');
+  },
+  get timed_out() {
+    return t('Timed out');
+  },
+  get waiting() {
+    return t('Waiting');
+  },
 };
 
 type CheckVisualState = 'success' | 'failure' | 'pending' | 'skipped' | 'none';

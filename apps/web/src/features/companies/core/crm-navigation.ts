@@ -1,30 +1,36 @@
+import { t } from '@macro/i18n';
+
 export const CRM_VIEWS = [
   {
     id: 'active',
-    label: 'All companies',
-    description: 'Every visible company in your CRM',
+    label: t('All companies', 'crm'),
+    description: t('Every visible company in your CRM', 'crm'),
   },
   {
     id: 'my-companies',
-    label: 'My companies',
-    description: 'Companies assigned to you',
+    label: t('My companies', 'crm'),
+    description: t('Companies assigned to you', 'crm'),
   },
   {
     id: 'needs-follow-up',
-    label: 'Needs follow-up',
-    description:
+    label: t('Needs follow-up', 'crm'),
+    description: t(
       'Has a stage other than Churned, with no interaction in the last 14 days',
+      'crm'
+    ),
   },
   {
     id: 'recently-active',
-    label: 'Recently active',
-    description:
+    label: t('Recently active', 'crm'),
+    description: t(
       'Team email activity in the last 7 days. Newly added companies may also appear.',
+      'crm'
+    ),
   },
   {
     id: 'unassigned',
-    label: 'Unassigned',
-    description: 'Companies without an owner',
+    label: t('Unassigned', 'crm'),
+    description: t('Companies without an owner', 'crm'),
   },
 ] as const;
 

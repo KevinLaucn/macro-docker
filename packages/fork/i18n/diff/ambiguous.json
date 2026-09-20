@@ -1,176 +1,196 @@
 {
-  "New skill": [
-    "features/next-soup/soup-view/empty-states.tsx",
-    "features/block-md/component/ComposeSkill.tsx",
-    "lib/core/component/LexicalMarkdown/component/menu/SkillsMenu/SkillsMenu.tsx"
+  "Company": [
+    "features/next-soup/soup-view/soup-view-create-button.tsx",
+    "features/contacts/Contact/ContactMetadataSection.tsx",
+    "components/app/mobile/MobilePageCreateButton.tsx"
   ],
-  "Team": [
-    "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "features/settings/Harness.tsx",
+  "New": [
+    "features/next-soup/soup-view/soup-view-create-button.tsx",
+    "features/email-view/components/EmailHeader.tsx",
+    "components/app/mobile/MobilePageCreateButton.tsx"
+  ],
+  "Folder": [
+    "features/next-soup/soup-view/soup-view-create-button.tsx",
+    "features/command/Launcher.tsx",
+    "features/block-project/component/ProjectCreateMenu.tsx"
+  ],
+  "Email": [
+    "features/next-soup/soup-view/soup-view-create-button.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/contacts/Contact/ContactMetadataSection.tsx",
+    "features/command/Launcher.tsx",
+    "features/notifications/notification-event-catalog.ts",
+    "features/email-view/components/EmailSidebar.tsx",
+    "features/email-view/components/EmailHeader.tsx",
+    "components/app/app-sidebar/sidebar.tsx"
+  ],
+  "Task": [
+    "features/next-soup/soup-view/soup-view-create-button.tsx",
+    "features/command/Launcher.tsx",
+    "features/block-project/component/ProjectCreateMenu.tsx"
+  ],
+  "Signal": [
+    "features/next-soup/soup-view/tab-lists.ts",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/contacts/Contact/ContactEmailsSection.tsx",
+    "features/inbox-view/components/InboxTabs.tsx",
+    "features/email-view/constants.ts"
+  ],
+  "Noise": [
+    "features/next-soup/soup-view/tab-lists.ts",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/inbox-view/components/InboxTabs.tsx",
+    "features/email-view/constants.ts"
+  ],
+  "All": [
+    "features/next-soup/soup-view/tab-lists.ts",
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/contacts/Contact/ContactEmailsSection.tsx",
+    "features/channels-view/components/rail/ExpandedChannelsRail.tsx",
+    "features/command/CommandMenu.tsx",
+    "features/email-view/constants.ts"
+  ],
+  "Calendar": [
+    "features/next-soup/soup-view/tab-lists.ts",
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/notifications/notification-event-catalog.ts",
+    "features/email-view/constants.ts",
+    "components/app/app-sidebar/sidebar.tsx"
+  ],
+  "Attachments": [
+    "features/next-soup/soup-view/tab-lists.ts",
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/channel/Channel/channel-tabs.ts"
+  ],
+  "Recent": [
+    "features/next-soup/soup-view/tab-lists.ts",
+    "features/drive-view/core/types.ts",
+    "features/channels-view/components/rail/ExpandedChannelsRail.tsx",
+    "features/channels-view/components/ChannelsMobileView.tsx",
+    "components/app/app-sidebar/sidebar.tsx"
+  ],
+  "People": [
+    "features/next-soup/soup-view/tab-lists.ts",
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/command/CommandMenu.tsx"
+  ],
+  "Type": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/next-soup/soup-view/group-options.ts"
+  ],
+  "Agents": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/command/CommandMenu.tsx",
+    "components/app/app-sidebar/sidebar.tsx",
+    "lib/core/constant/settingsTabsConfig.tsx"
+  ],
+  "Tasks": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/command/CommandMenu.tsx",
+    "features/notifications/notification-event-catalog.ts",
+    "components/app/app-sidebar/sidebar.tsx"
+  ],
+  "Files": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/command/CommandMenu.tsx",
+    "components/app/app-sidebar/sidebar.tsx"
+  ],
+  "Status": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/next-soup/soup-view/group-options.ts",
+    "features/tasks-view/constants.ts"
+  ],
+  "Documents": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/notifications/notification-event-catalog.ts",
+    "components/app/app-sidebar/sidebar.tsx"
+  ],
+  "Completed": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/entity/composed/list-entity/foreign.tsx"
+  ],
+  "Priority": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/next-soup/soup-view/group-options.ts",
+    "features/tasks-view/constants.ts"
+  ],
+  "Canvas": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/command/Launcher.tsx",
+    "features/block-project/component/ProjectCreateMenu.tsx"
+  ],
+  "Spreadsheet": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/command/Launcher.tsx",
+    "features/block-project/component/ProjectCreateMenu.tsx"
+  ],
+  "Me": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
     "features/contacts/Contact/ContactEmailsSection.tsx"
   ],
-  "Save": [
-    "features/next-soup/soup-view/views/companies/CompanyViewsMenu.tsx",
-    "features/settings/Team.tsx",
-    "features/settings/Harness.tsx"
+  "Tags": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "lib/core/constant/settingsTabsConfig.tsx"
   ],
-  "Copied": [
-    "features/settings/Team.tsx",
-    "features/block-agent/ui/ToolErrorCard.tsx",
-    "features/channel/Bots/CredentialField.tsx",
-    "lib/core/component/AI/component/McpSetupCards.tsx"
+  "Assignee": [
+    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/next-soup/soup-view/group-options.ts",
+    "features/tasks-view/constants.ts"
   ],
-  "Harness": [
-    "features/settings/Harness.tsx",
-    "features/settings/Agents.tsx",
-    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx"
+  "Channels": [
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/channels-view/components/ChannelsMobileView.tsx",
+    "features/command/CommandMenu.tsx",
+    "features/notifications/notification-event-catalog.ts",
+    "components/app/app-sidebar/sidebar.tsx"
+  ],
+  "None": [
+    "features/next-soup/soup-view/group-options.ts",
+    "features/tasks-view/constants.ts",
+    "lib/core/component/TopBar/linkShare.ts"
+  ],
+  "Date": [
+    "features/next-soup/soup-view/group-options.ts",
+    "features/block-spreadsheet/core/toolbar-types.ts",
+    "features/tasks-view/constants.ts"
+  ],
+  "Mark done": [
+    "features/settings/Shortcuts.tsx",
+    "features/block-email/util/emailHotkeys.ts",
+    "features/block-email/component/TopBar.tsx"
+  ],
+  "Mark unread": [
+    "features/settings/Shortcuts.tsx",
+    "features/block-email/util/emailHotkeys.ts",
+    "features/block-email/component/TopBar.tsx"
+  ],
+  "Mark read": [
+    "features/settings/Shortcuts.tsx",
+    "features/block-email/util/emailHotkeys.ts",
+    "features/block-email/component/TopBar.tsx"
   ],
   "Loading…": [
-    "features/settings/Harness.tsx",
-    "features/activity/views/my-activity-view.tsx",
     "features/contacts/Contact/ContactSharingSection.tsx",
     "features/contacts/Contact/ContactEmailsSection.tsx",
     "features/contacts/Contact/ContactMetadataSection.tsx",
     "features/companies/Company/CompanyContactsSection.tsx"
   ],
-  "Loading models…": [
-    "features/settings/Harness.tsx",
-    "features/settings/Agents.tsx",
-    "features/block-agent/component/ComposeAgentSession.tsx"
-  ],
-  "Retry": [
-    "features/settings/Harness.tsx",
-    "features/settings/Integrations.tsx",
-    "features/activity/views/my-activity-view.tsx"
-  ],
-  "Cancel": [
-    "features/settings/Harness.tsx",
-    "features/settings/ApiKeys.tsx",
-    "features/entity/bulk-edit/BulkDeleteView.tsx"
-  ],
-  "Close": [
-    "features/settings/ApiKeys.tsx",
-    "features/settings/HarnessPairingDialog.tsx",
-    "features/block-md/component/ComposeSkill.tsx",
-    "features/companies/CreateContactModal.tsx",
-    "features/companies/CreateCompanyModal.tsx",
-    "components/app/split-layout/components/SplitHeader.tsx"
-  ],
-  "Name": [
-    "features/settings/ApiKeys.tsx",
-    "features/companies/CreateContactModal.tsx",
-    "features/companies/CreateCompanyModal.tsx"
-  ],
-  "Creating…": [
-    "features/settings/ApiKeys.tsx",
-    "features/settings/Agents.tsx",
-    "features/block-automation/component/AutomationComposer.tsx",
-    "features/companies/CreateCompanyModal.tsx"
-  ],
-  "Done": [
-    "features/settings/ApiKeys.tsx",
-    "features/settings/HarnessPairingDialog.tsx",
-    "features/block-agent/component/parts/UserToolCall.tsx"
-  ],
-  "Reconnect": [
-    "features/settings/GitHub.tsx",
-    "features/auth/GithubReauthenticationPrompt.tsx",
-    "features/auth/GmailReauthenticationPrompt.tsx"
-  ],
-  "From": [
-    "features/email-message/components/email-message-top-bar.tsx",
-    "features/email-compose/views/reply-envelope.tsx",
-    "features/email-compose/views/compose-layout.tsx"
-  ],
-  "To": [
-    "features/email-message/components/email-message-top-bar.tsx",
-    "features/email-compose/views/reply-envelope.tsx",
-    "features/email-compose/views/compose-recipients.tsx",
-    "features/block-agent/component/parts/UserToolCall.tsx"
-  ],
-  "Cc": [
-    "features/email-message/components/email-message-top-bar.tsx",
-    "features/email-compose/views/reply-envelope.tsx",
-    "features/email-compose/views/compose-recipients.tsx",
-    "features/block-agent/component/parts/UserToolCall.tsx"
-  ],
-  "Bcc": [
-    "features/email-message/components/email-message-top-bar.tsx",
-    "features/email-compose/views/reply-envelope.tsx",
-    "features/email-compose/views/compose-recipients.tsx",
-    "features/block-agent/component/parts/UserToolCall.tsx"
-  ],
-  "Subject": [
-    "features/email-compose/views/compose-subject.tsx",
-    "features/email-compose/views/reply-envelope.tsx",
-    "features/block-agent/component/parts/UserToolCall.tsx"
-  ],
-  "Bold": [
-    "features/block-md/component/useMarkdownCommands.ts",
-    "features/block-md/component/FormatTools.tsx",
-    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
-  ],
-  "Italic": [
-    "features/block-md/component/useMarkdownCommands.ts",
-    "features/block-md/component/FormatTools.tsx",
-    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
-  ],
-  "Underline": [
-    "features/block-md/component/useMarkdownCommands.ts",
-    "features/block-md/component/FormatTools.tsx",
-    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
-  ],
-  "Strikethrough": [
-    "features/block-md/component/useMarkdownCommands.ts",
-    "features/block-md/component/FormatTools.tsx",
-    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
-  ],
-  "Highlight": [
-    "features/block-md/component/useMarkdownCommands.ts",
-    "features/block-md/component/FormatTools.tsx",
-    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
-  ],
-  "Inline code": [
-    "features/block-md/component/useMarkdownCommands.ts",
-    "features/block-md/component/FormatTools.tsx",
-    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
-  ],
-  "Superscript": [
-    "features/block-md/component/useMarkdownCommands.ts",
-    "features/block-md/component/FormatTools.tsx",
-    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
-  ],
-  "Subscript": [
-    "features/block-md/component/useMarkdownCommands.ts",
-    "features/block-md/component/FormatTools.tsx",
-    "lib/core/component/LexicalMarkdown/component/menu/FloatingFormatMenu.tsx"
-  ],
-  "Activity": [
-    "features/activity/views/my-activity-view.tsx",
-    "features/activity/views/entity-activity-section.tsx",
-    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx"
-  ],
-  "Details": [
-    "features/contacts/Contact/Contact.tsx",
-    "features/block-agent/component/sidepanel/AgentSidePanelSections.tsx",
-    "features/block-chat/component/TopBar.tsx",
-    "features/companies/Company/Company.tsx"
-  ],
-  "Failed": [
-    "features/block-agent/ui/ToolErrorCard.tsx",
-    "features/block-agent/component/parts/SubagentToolCall.tsx",
-    "features/block-agent/component/parts/PermissionPart.tsx",
-    "features/block-agent/component/parts/UserToolCall.tsx",
-    "features/block-agent/component/parts/ToolCallPart.tsx"
-  ],
-  "Show original": [
-    "features/email-translation/SoupListTranslateButton.tsx",
-    "features/email-translation/EmailTranslateButton.tsx",
-    "features/email-translation/EmailThreadTranslateButton.tsx"
-  ],
-  "Translate": [
-    "features/email-translation/SoupListTranslateButton.tsx",
-    "features/email-translation/EmailTranslateButton.tsx",
-    "features/email-translation/EmailThreadTranslateButton.tsx"
+  "Team": [
+    "features/contacts/Contact/ContactEmailsSection.tsx",
+    "features/channel/CreateChannelModal.tsx",
+    "lib/core/component/TopBar/linkShare.ts",
+    "lib/core/constant/settingsTabsConfig.tsx"
   ]
 }

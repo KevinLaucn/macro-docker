@@ -6,7 +6,6 @@ import { isMacroNewId } from '@core/constant/macroNew';
 import { staticFileSizedUrl } from '@core/constant/servers';
 import { internalDrag } from '@core/directive/internalDragState';
 import { useProfilePictureUrl } from '@core/signal/profilePicture';
-import { resolveAvatarWithPriority } from '@macro/email-participant-identity';
 import {
   getDisplayName,
   getDisplayNameParts,
@@ -16,6 +15,7 @@ import {
   useIsConnectedSecondaryInbox,
 } from '@core/user';
 import MacroLogo from '@icon/macro-logo.svg';
+import { resolveAvatarWithPriority } from '@macro/email-participant-identity';
 import RobotIcon from '@phosphor/robot.svg';
 import Trash from '@phosphor-icons/core/regular/trash.svg?component-solid';
 import { useGetOrCreateDirectMessageMutation } from '@queries/channel/get-or-create-dm';

@@ -1,6 +1,7 @@
 import type { SortDefinition } from '@app/features/soup';
 import { compareDateDesc } from '@core/util/date';
 import type { TaskEntityWithProperties } from '@entity';
+import { t } from '@macro/i18n';
 import type { TaskGroupBy, TaskSortId, TaskTab } from './types';
 
 export type TaskTabItem = {
@@ -9,12 +10,12 @@ export type TaskTabItem = {
 };
 
 export const PERSONAL_TASK_TABS: TaskTabItem[] = [
-  { id: 'my-tasks', label: 'My tasks' },
-  { id: 'created-by-me', label: 'Created by me' },
+  { id: 'my-tasks', label: t('My tasks') },
+  { id: 'created-by-me', label: t('Created by me') },
 ];
 
 export const TEAM_TASK_TABS: TaskTabItem[] = [
-  { id: 'team-tasks', label: 'All tasks' },
+  { id: 'team-tasks', label: t('All tasks') },
 ];
 
 export const TASK_TABS = [...PERSONAL_TASK_TABS, ...TEAM_TASK_TABS];
@@ -29,12 +30,12 @@ export const TASK_GROUP_OPTIONS: {
   id: TaskGroupBy;
   label: string;
 }[] = [
-  { id: 'none', label: 'None' },
-  { id: 'status', label: 'Status' },
-  { id: 'priority', label: 'Priority' },
-  { id: 'assignee', label: 'Assignee' },
-  { id: 'project', label: 'Project' },
-  { id: 'date', label: 'Date' },
+  { id: 'none', label: t('None') },
+  { id: 'status', label: t('Status') },
+  { id: 'priority', label: t('Priority') },
+  { id: 'assignee', label: t('Assignee') },
+  { id: 'project', label: t('Project') },
+  { id: 'date', label: t('Date') },
 ];
 
 export const TASK_SORT_DEFINITIONS: SortDefinition<
@@ -71,7 +72,7 @@ export const TASK_SORT_OPTIONS: {
   id: TaskSortId;
   label: string;
 }[] = [
-  { id: 'viewed_at', label: 'Viewed' },
-  { id: 'updated_at', label: 'Updated' },
-  { id: 'created_at', label: 'Created' },
+  { id: 'viewed_at', label: t('Viewed') },
+  { id: 'updated_at', label: t('Updated') },
+  { id: 'created_at', label: t('Created') },
 ];

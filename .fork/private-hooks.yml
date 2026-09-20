@@ -378,7 +378,7 @@ hooks:
     marker: "// PRIVATE-HOOK: self_host_health:settings_item"
     expected: "{ tab: 'SelfHostHealth', label: t('Health Check'), icon: HeartbeatIcon },"
     context:
-      - "{ tab: 'Admin', label: 'Debug', icon: BugIcon },"
+      - "{ tab: 'Admin', label: t('Debug'), icon: BugIcon },"
   - id: self_host_health_settings_slug
     customization: SELFHOST-HEALTH-001
     file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx

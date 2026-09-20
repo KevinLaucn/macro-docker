@@ -1,5 +1,5 @@
-import { AdobeAttachmentBadge } from '@macro/adobe-preview';
 import { EntityIcon } from '@core/component/EntityIcon';
+import { AdobeAttachmentBadge } from '@macro/adobe-preview';
 import { t } from '@macro/i18n';
 import X from '@phosphor/x.svg';
 import { FileTypeMap } from '@service-storage/fileTypeMap';
@@ -52,7 +52,9 @@ export function EmailAttachmentPill(props: EmailAttachmentPillProps) {
           return (
             <Show when={fileType() !== undefined || props.attachment.mimeType}>
               <EntityIcon
-                targetType={fileType() ?? (props.attachment.mimeType as FileType)}
+                targetType={
+                  fileType() ?? (props.attachment.mimeType as FileType)
+                }
                 size="xs"
               />
             </Show>

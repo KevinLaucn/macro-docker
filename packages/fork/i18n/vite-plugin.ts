@@ -77,9 +77,12 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
       const isActivityDesc =
         id.includes('describe-action') || id.includes('activity');
       const hasToast = code.includes('toast');
+      const hasObjectKeys = Array.from(TRANSLATABLE_OBJECT_KEYS).some(
+        (key) => code.includes(`${key}:`) || code.includes(`get ${key}(`)
+      );
 
-      // Quick early exit for plain .ts files that don't have toasts or action descriptions
-      if (!isTsx && !isActivityDesc && !hasToast) {
+      // Quick early exit for plain .ts files that don't have toasts or translatable keys or action descriptions
+      if (!isTsx && !isActivityDesc && !hasToast && !hasObjectKeys) {
         return null;
       }
 
@@ -173,10 +176,9 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
         },
         JSXAttribute(path: any) {
           const attrName = path.node.name?.name;
-          if (
-            TRANSLATABLE_ATTRIBUTES.has(attrName) &&
-            path.node.value?.type === 'StringLiteral'
-          ) {
+          if (!TRANSLATABLE_ATTRIBUTES.has(attrName)) return;
+
+          if (path.node.value?.type === 'StringLiteral') {
             const val = normalizeText(path.node.value.value);
             if (shouldTranslateText(val)) {
               const escaped = JSON.stringify(val);
@@ -187,6 +189,26 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
               );
               transformed = true;
             }
+          } else if (path.node.value?.type === 'JSXExpressionContainer') {
+            const exp = path.node.value.expression;
+            const checkExp = (node: any) => {
+              if (!node) return;
+              if (node.type === 'StringLiteral') {
+                const val = normalizeText(node.value);
+                if (shouldTranslateText(val)) {
+                  s.overwrite(
+                    node.start,
+                    node.end,
+                    `__t(${JSON.stringify(val)}${ctxArg})`
+                  );
+                  transformed = true;
+                }
+              } else if (node.type === 'ConditionalExpression') {
+                checkExp(node.consequent);
+                checkExp(node.alternate);
+              }
+            };
+            checkExp(exp);
           }
         },
         CallExpression(path: any) {
@@ -266,22 +288,62 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
             !TRANSLATABLE_OBJECT_KEYS.has(propName) &&
             !(
               isToastPromiseOption &&
-              ['loading', 'success', 'error'].includes(propName)
+              [
+                'loading',
+                'success',
+                'error',
+                'description',
+                'message',
+              ].includes(propName)
             )
           )
             return;
-          const value = path.node.value;
-          if (value.type === 'StringLiteral') {
-            const text = normalizeText(value.value);
-            if (shouldTranslateText(text)) {
-              s.overwrite(
-                value.start,
-                value.end,
-                `__t(${JSON.stringify(text)}${ctxArg})`
-              );
-              transformed = true;
+          const checkObjectValue = (valueNode: any) => {
+            if (!valueNode) return;
+            if (valueNode.type === 'StringLiteral') {
+              const text = normalizeText(valueNode.value);
+              if (shouldTranslateText(text)) {
+                s.overwrite(
+                  valueNode.start,
+                  valueNode.end,
+                  `__t(${JSON.stringify(text)}${ctxArg})`
+                );
+                transformed = true;
+              }
+            } else if (valueNode.type === 'ConditionalExpression') {
+              checkObjectValue(valueNode.consequent);
+              checkObjectValue(valueNode.alternate);
             }
-          }
+          };
+          checkObjectValue(path.node.value);
+        },
+        ObjectMethod(path: any) {
+          if (path.node.kind !== 'get' && path.node.kind !== 'method') return;
+          const propName = path.node.key?.name ?? path.node.key?.value;
+          if (!propName || !TRANSLATABLE_OBJECT_KEYS.has(propName)) return;
+          path.traverse({
+            ReturnStatement(retPath: any) {
+              const arg = retPath.node.argument;
+              const checkReturnValue = (valNode: any) => {
+                if (!valNode) return;
+                if (valNode.type === 'StringLiteral') {
+                  const text = normalizeText(valNode.value);
+                  if (shouldTranslateText(text)) {
+                    s.overwrite(
+                      valNode.start,
+                      valNode.end,
+                      `__t(${JSON.stringify(text)}${ctxArg})`
+                    );
+                    transformed = true;
+                  }
+                } else if (valNode.type === 'ConditionalExpression') {
+                  checkReturnValue(valNode.consequent);
+                  checkReturnValue(valNode.alternate);
+                }
+              };
+              checkReturnValue(arg);
+            },
+          });
         },
         StringLiteral(path: any) {
           if (!isUiFallbackStringLiteral(path)) return;

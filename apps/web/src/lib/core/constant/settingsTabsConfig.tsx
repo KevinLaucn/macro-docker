@@ -1,4 +1,5 @@
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
+import { t } from '@macro/i18n';
 import BellIcon from '@phosphor/bell-simple.svg';
 import BugIcon from '@phosphor/bug.svg';
 import BuildingsIcon from '@phosphor/buildings.svg';
@@ -19,7 +20,6 @@ import TagIcon from '@phosphor/tag-simple.svg';
 import UserIconPhosphor from '@phosphor/user.svg';
 import UsersThreeIcon from '@phosphor/users-three.svg';
 import { type Component, createMemo } from 'solid-js';
-import { t } from '@macro/i18n';
 import { useHasPermission } from '../context/user';
 import { isNativeMobilePlatform } from '../mobile/isNativeMobilePlatform';
 import { isTouchDevice } from '../mobile/isTouchDevice';
@@ -55,44 +55,44 @@ export type SettingsTabGroup = {
  */
 export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
   {
-    label: 'General',
+    label: t('General'),
     items: [
-      { tab: 'Account', label: 'Account', icon: UserIconPhosphor },
-      { tab: 'API Keys', label: 'API Keys', icon: KeyIcon },
-      { tab: 'Notifications', label: 'Notifications', icon: BellIcon },
-      { tab: 'Billing', label: 'Billing', icon: CreditCardIcon },
-      { tab: 'Appearance', label: 'Appearance', icon: SwatchesIcon },
-      { tab: 'Mobile App', label: 'Mobile App', icon: DeviceMobileIcon },
-      { tab: 'Shortcuts', label: 'Shortcuts', icon: KeyboardIcon },
+      { tab: 'Account', label: t('Account'), icon: UserIconPhosphor },
+      { tab: 'API Keys', label: t('API Keys'), icon: KeyIcon },
+      { tab: 'Notifications', label: t('Notifications'), icon: BellIcon },
+      { tab: 'Billing', label: t('Billing'), icon: CreditCardIcon },
+      { tab: 'Appearance', label: t('Appearance'), icon: SwatchesIcon },
+      { tab: 'Mobile App', label: t('Mobile App'), icon: DeviceMobileIcon },
+      { tab: 'Shortcuts', label: t('Shortcuts'), icon: KeyboardIcon },
       { tab: 'Extensions', label: t('Extensions'), icon: PuzzlePieceIcon },
     ],
   },
   {
-    label: 'Workspace',
+    label: t('Workspace'),
     items: [
-      { tab: 'Team', label: 'Team', icon: UsersThreeIcon },
-      { tab: 'Tags', label: 'Tags', icon: TagIcon },
-      { tab: 'CRM', label: 'CRM', icon: BuildingsIcon },
+      { tab: 'Team', label: t('Team'), icon: UsersThreeIcon },
+      { tab: 'Tags', label: t('Tags'), icon: TagIcon },
+      { tab: 'CRM', label: t('CRM'), icon: BuildingsIcon },
       {
         tab: 'Connected',
-        label: 'Integrations',
+        label: t('Integrations'),
         icon: CpuIcon,
       },
-      { tab: 'Agent', label: 'MCP server', icon: PlugIcon },
-      { tab: 'Bots', label: 'Bots', icon: BotIcon },
+      { tab: 'Agent', label: t('MCP server'), icon: PlugIcon },
+      { tab: 'Bots', label: t('Bots'), icon: BotIcon },
     ],
   },
   {
-    label: 'Agents',
+    label: t('Agents'),
     items: [
-      { tab: 'Agents', label: 'Agents', icon: AgentIcon },
-      { tab: 'Harness', label: 'Harness', icon: HardDrivesIcon },
+      { tab: 'Agents', label: t('Agents'), icon: AgentIcon },
+      { tab: 'Harness', label: t('Harness'), icon: HardDrivesIcon },
     ],
   },
   {
-    label: 'Admin',
+    label: t('Admin'),
     items: [
-      { tab: 'Admin', label: 'Debug', icon: BugIcon },
+      { tab: 'Admin', label: t('Debug'), icon: BugIcon },
       // PRIVATE-HOOK: self_host_health:settings_item
       { tab: 'SelfHostHealth', label: t('Health Check'), icon: HeartbeatIcon },
     ],

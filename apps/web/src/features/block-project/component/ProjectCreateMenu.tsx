@@ -13,6 +13,7 @@ import {
   createTask,
 } from '@core/util/create';
 import type { ObjectLike } from '@core/util/result';
+import { t } from '@macro/i18n';
 import CaretDown from '@phosphor/caret-down.svg';
 import PlusIcon from '@phosphor/plus.svg';
 import CirclePlus from '@phosphor/plus-circle.svg';
@@ -39,7 +40,7 @@ type CreateBlockSpec = {
 
 const BLOCK_CREATE_SPECS: CreateBlockSpec[] = [
   {
-    label: 'Spreadsheet',
+    label: t('Spreadsheet'),
     blockName: 'spreadsheet',
     hotkeyToken: TOKENS.create.spreadsheet,
     icon: () => (
@@ -59,7 +60,7 @@ const BLOCK_CREATE_SPECS: CreateBlockSpec[] = [
     },
   },
   {
-    label: 'Note',
+    label: t('Note'),
     blockName: 'md' as BlockName,
     hotkeyToken: TOKENS.create.note,
     icon: () => (
@@ -80,7 +81,7 @@ const BLOCK_CREATE_SPECS: CreateBlockSpec[] = [
     params: { fromScratch: true },
   },
   {
-    label: 'Task',
+    label: t('Task'),
     blockName: 'task' as BlockAlias,
     hotkeyToken: TOKENS.create.task,
     icon: () => (
@@ -109,7 +110,7 @@ const BLOCK_CREATE_SPECS: CreateBlockSpec[] = [
     },
   },
   {
-    label: 'AI',
+    label: t('AI'),
     blockName: 'chat' as BlockName,
     hotkeyToken: TOKENS.create.chat,
     icon: () => (
@@ -127,7 +128,7 @@ const BLOCK_CREATE_SPECS: CreateBlockSpec[] = [
     },
   },
   {
-    label: 'Canvas',
+    label: t('Canvas'),
     blockName: 'canvas' as BlockName,
     hotkeyToken: TOKENS.create.canvas,
     icon: () => (
@@ -150,7 +151,7 @@ const BLOCK_CREATE_SPECS: CreateBlockSpec[] = [
     },
   },
   {
-    label: 'Folder',
+    label: t('Folder'),
     blockName: 'project' as BlockName,
     hotkeyToken: TOKENS.create.project,
     icon: () => (

@@ -5,7 +5,6 @@ import {
   isFeatureEnabled,
 } from '@core/constant/featureFlags';
 import { WebsocketEvent } from '@macro-inc/collaboration/websocket';
-import { queryClient } from '@queries/client';
 import { handleAgentSessionChanges } from '@queries/agent-session/changes-sync';
 import { handleAgentSessionQueue } from '@queries/agent-session/queue-sync';
 import {
@@ -29,6 +28,7 @@ import {
   handleChannelPictureChanged,
   invalidateChannelPictures,
 } from '@queries/channel/picture';
+import { queryClient } from '@queries/client';
 import { invalidateContacts } from '@queries/contacts/contacts';
 import { handleReadReceiptOpenedEvent } from '@queries/email/readReceipts';
 import { handleRefreshEmail } from '@queries/email/sync';
@@ -180,12 +180,12 @@ export function QuerySyncProvider(props: SyncProviderProps) {
         withParsedWebsocketPayload(data.type, data.data, handleRefreshEmail);
       })
 
-// PRIVATE-HOOK: read_receipts:realtime-event
-.with({ type: 'email_read_receipt_opened' }, () => {
-  withParsedWebsocketPayload(data.type, data.data, (payload) => {
-    handleReadReceiptOpenedEvent(payload, queryClient);
-  });
-})
+      // PRIVATE-HOOK: read_receipts:realtime-event
+      .with({ type: 'email_read_receipt_opened' }, () => {
+        withParsedWebsocketPayload(data.type, data.data, (payload) => {
+          handleReadReceiptOpenedEvent(payload, queryClient);
+        });
+      })
       .with({ type: 'refresh_calendar' }, () => {
         withParsedWebsocketPayload(data.type, data.data, handleRefreshCalendar);
       })

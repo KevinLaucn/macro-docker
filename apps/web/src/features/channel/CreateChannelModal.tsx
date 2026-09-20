@@ -13,6 +13,7 @@ import {
 } from '@core/user';
 import { useFocusLock } from '@core/util/createControlledOpenSignal';
 import { getDestinationFromOptions } from '@core/util/destination';
+import { t } from '@macro/i18n';
 import HashIcon from '@phosphor/hash.svg';
 import InfoIcon from '@phosphor/info.svg';
 import XIcon from '@phosphor/x.svg';
@@ -26,8 +27,8 @@ const [newChannelModalOpen, setNewChannelModalOpen] = createSignal(false);
 const newChannelModalFocusLock = useFocusLock('create-channel');
 
 const CHANNEL_TYPE_TABS = [
-  { value: 'private', label: 'Private' },
-  { value: 'team', label: 'Team' },
+  { value: 'private', label: t('Private') },
+  { value: 'team', label: t('Team') },
 ];
 
 type CreatableChannelType = 'private' | 'team';

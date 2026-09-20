@@ -16,7 +16,10 @@ function proxyEmailImageUrl(url: string): string {
 function isSelfHostedStaticFileUrl(url: string): boolean {
   if (typeof globalThis.location?.origin !== 'string') return false;
   try {
-    const staticFile = new URL(SERVER_HOSTS['static-file'], globalThis.location.origin);
+    const staticFile = new URL(
+      SERVER_HOSTS['static-file'],
+      globalThis.location.origin
+    );
     const candidate = new URL(url);
     return (
       staticFile.origin === globalThis.location.origin &&
@@ -45,9 +48,7 @@ export function createEmailRenderingContext(): EmailRenderingContextValue {
     theme,
     images: {
       remote: 'allow',
-      proxyUrl: ENABLE_PROXY_EMAIL_IMAGES
-        ? proxyEmailImageUrl
-        : undefined,
+      proxyUrl: ENABLE_PROXY_EMAIL_IMAGES ? proxyEmailImageUrl : undefined,
     },
     prepareLinks: interceptMailtoLinks,
     async resolveImages(root, attachments, lifetime) {

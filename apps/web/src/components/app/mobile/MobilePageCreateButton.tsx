@@ -7,6 +7,7 @@ import { openCreateCompanyModal } from '@app/features/companies/CreateCompanyMod
 import { useOpenEventComposer } from '@block-calendar/components/use-open-event-composer';
 import { hapticImpact } from '@core/mobile/haptics';
 import { virtualKeyboardVisible } from '@core/mobile/virtualKeyboard';
+import { t } from '@macro/i18n';
 import CalendarIcon from '@phosphor/calendar-blank.svg';
 import MessageIcon from '@phosphor/chat-circle.svg';
 import MoreIcon from '@phosphor/dots-three.svg';
@@ -44,11 +45,11 @@ export function MobilePageCreateButton() {
     view: MobileNavViewId | undefined
   ): Pick<MobileCreateMenuItem, 'label' | 'onSelect'> | undefined => {
     if (view === 'companies') {
-      return { label: 'Company', onSelect: openCreateCompanyModal };
+      return { label: t('Company'), onSelect: openCreateCompanyModal };
     }
     if (view === 'calendar') {
       return calendarEnabled()
-        ? { label: 'Event', onSelect: () => openEventComposer() }
+        ? { label: t('Event'), onSelect: () => openEventComposer() }
         : undefined;
     }
     const block = mobilePageCreateBlock(view, createBlocks());
@@ -60,11 +61,11 @@ export function MobilePageCreateButton() {
       const action = actionForView(view);
       return action ? [{ ...action, icon }] : [];
     }),
-    { label: 'More', icon: MoreIcon, onSelect: openCreateMenu },
+    { label: t('More'), icon: MoreIcon, onSelect: openCreateMenu },
   ];
   const action = () =>
     actionForView(foregroundView()) ?? {
-      label: 'New',
+      label: t('New'),
       onSelect: openCreateMenu,
     };
 
@@ -77,9 +78,9 @@ export function MobilePageCreateButton() {
             <button
               type="button"
               aria-label={
-                action().label === 'New'
-                  ? 'New'
-                  : `New ${action().label.toLowerCase()}`
+                action().label === t('New')
+                  ? t('New')
+                  : `${t('New')} ${action().label.toLowerCase()}`
               }
               onPointerDown={() => hapticImpact('light')}
               onClick={() => action().onSelect()}

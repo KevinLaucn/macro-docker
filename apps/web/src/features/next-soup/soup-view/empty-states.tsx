@@ -21,6 +21,7 @@ import EmptyStateInboxZeroGraphic from '@design/empty-state-inbox-zero.svg';
 import EmptyStateNoFilterMatchGraphic from '@design/empty-state-no-filter-match.svg';
 import EmptyStateNoSearchMatchGraphic from '@design/empty-state-no-search-match.svg';
 import EmptyStateTasksGraphic from '@design/empty-state-tasks.svg';
+import { t } from '@macro/i18n';
 import PlusIcon from '@phosphor/plus.svg';
 import { useCurrentTeamQuery, useIsTeamAdmin } from '@queries/team/teams';
 import { EmptyStatePanel, FilteredHiddenBanner } from '@ui';
@@ -57,17 +58,19 @@ const FALLBACK_CONTENT: Partial<Record<ListView, FallbackContent>> = {
   documents: {
     plural: 'documents',
     graphic: EmptyStateDocGraphic,
-    description:
-      'Write, collaborate, and share documents right inside Macro. Create notes, specs, or any long-form content and keep it alongside your conversations.',
-    create: { label: 'New document', blockName: 'md' },
+    description: t(
+      'Write, collaborate, and share documents right inside Macro. Create notes, specs, or any long-form content and keep it alongside your conversations.'
+    ),
+    create: { label: t('New document'), blockName: 'md' },
     documentationUrl: `${DOCS_BASE}/product/docs`,
   },
   channels: {
     plural: 'channels',
     graphic: EmptyStateChannelsGraphic,
-    description:
-      'Channels are shared spaces for team conversations organized by topic, project, or team. Create a channel to start collaborating with your team.',
-    create: { label: 'New channel', blockName: 'channel' },
+    description: t(
+      'Channels are shared spaces for team conversations organized by topic, project, or team. Create a channel to start collaborating with your team.'
+    ),
+    create: { label: t('New channel'), blockName: 'channel' },
     documentationUrl: `${DOCS_BASE}/product/channels`,
   },
   reminders: {
@@ -79,7 +82,7 @@ const FALLBACK_CONTENT: Partial<Record<ListView, FallbackContent>> = {
         the Create menu.
       </>
     ),
-    create: { label: 'New reminder', blockName: 'reminder' },
+    create: { label: t('New reminder'), blockName: 'reminder' },
   },
   calls: {
     plural: 'calls',
@@ -206,7 +209,7 @@ export function EmptyState(props: {
           title="Connect your email"
           description="Bring your inbox into Macro to triage signal from noise, reply faster, and let agents work alongside your mail."
           primaryAction={{
-            label: 'Connect email',
+            label: t('Connect email'),
             onClick: onConnectEmail,
           }}
           documentationUrl={`${DOCS_BASE}/product/email`}
@@ -222,7 +225,7 @@ export function EmptyState(props: {
           const { title, description } =
             tab === 'noise'
               ? {
-                  title: 'No noise',
+                  title: t('No noise'),
                   description: (
                     <>
                       Low-priority items like newsletters and notifications
@@ -234,14 +237,16 @@ export function EmptyState(props: {
                 }
               : tab === 'all'
                 ? {
-                    title: 'Inbox zero',
-                    description:
-                      "You're all caught up. New items will appear here as they arrive.",
+                    title: t('Inbox zero'),
+                    description: t(
+                      "You're all caught up. New items will appear here as they arrive."
+                    ),
                   }
                 : {
-                    title: 'Inbox zero',
-                    description:
-                      "You're all caught up. Important items will appear here as they arrive.",
+                    title: t('Inbox zero'),
+                    description: t(
+                      "You're all caught up. Important items will appear here as they arrive."
+                    ),
                   };
           return (
             <EmptyStatePanel
@@ -269,7 +274,7 @@ export function EmptyState(props: {
           title="Nothing to do"
           description="Tasks you create or that get assigned to you will show up here."
           primaryAction={{
-            label: 'New task',
+            label: t('New task'),
             icon: PlusIcon,
             onClick: () => runCreateAction('task'),
           }}
@@ -285,7 +290,7 @@ export function EmptyState(props: {
           title="No automations to show"
           description="Automations run in the background to handle repetitive work for you — like triaging messages, updating tasks, or sending follow-ups."
           primaryAction={{
-            label: 'New automation',
+            label: t('New automation'),
             icon: PlusIcon,
             onClick: () => runCreateAction('automation'),
           }}
@@ -301,7 +306,7 @@ export function EmptyState(props: {
           title="No skills yet"
           description="Skills are markdown documents with instructions AI follows. Reference one with / in any AI input."
           primaryAction={{
-            label: 'New skill',
+            label: t('New skill'),
             icon: PlusIcon,
             onClick: () => runCreateAction('skill'),
           }}
@@ -315,7 +320,7 @@ export function EmptyState(props: {
           title="Get started with agents"
           description="Create an agent, or use Macro with your favorite AI chat client or code editor via MCP."
           primaryAction={{
-            label: 'New agent',
+            label: t('New agent'),
             icon: PlusIcon,
             onClick: () => runCreateAction('chat'),
           }}
@@ -335,7 +340,7 @@ export function EmptyState(props: {
               title="Join a team to enable CRM"
               description="Create or join a team in Settings > Team."
               primaryAction={{
-                label: 'Open team settings',
+                label: t('Open team settings'),
                 onClick: () => openSettings('Team'),
               }}
             />
@@ -353,7 +358,7 @@ export function EmptyState(props: {
               primaryAction={
                 isTeamAdmin()
                   ? {
-                      label: 'Open CRM settings',
+                      label: t('Open CRM settings'),
                       onClick: () => openSettings('CRM'),
                     }
                   : undefined

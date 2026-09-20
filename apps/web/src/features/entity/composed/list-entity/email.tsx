@@ -1,8 +1,8 @@
+import { AwaitingReplyTag } from '@app/features/extensions/AwaitingReplyTag';
 import { inboxIconProps } from '@core/component/inboxIcon';
 import { UserIcon } from '@core/component/UserIcon';
 import { useEmailLinksContext } from '@core/context/emailLinks';
 import { useEmailRowTranslation } from '@macro/email-translation';
-import { AwaitingReplyTag } from '@app/features/extensions/AwaitingReplyTag';
 import { cn } from '@ui';
 import { type Accessor, createMemo, type JSX, Show } from 'solid-js';
 import { DraftBadge } from '../../components/Badges';

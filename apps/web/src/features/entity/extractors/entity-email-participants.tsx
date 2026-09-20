@@ -7,16 +7,16 @@ import { UserTooltip } from '@core/component/UserTooltip';
 import { useEmailLinksContext } from '@core/context/emailLinks';
 import { emailToMacroId, getDisplayName } from '@core/user';
 import {
-  EmailParticipantIdentity,
+  highlightTermsInText,
+  mergeAdjacentMacroEmTags,
+} from '@core/util/searchHighlight';
+import {
   buildThreadDisplay,
+  EmailParticipantIdentity,
   normalizeEmail,
   resolveParticipantIdentities,
   resolveSelfEmails,
 } from '@macro/email-participant-identity';
-import {
-  highlightTermsInText,
-  mergeAdjacentMacroEmTags,
-} from '@core/util/searchHighlight';
 import CopyIcon from '@phosphor/copy.svg';
 import { Surface } from '@ui';
 import { createSignal, For, Show } from 'solid-js';
@@ -91,7 +91,9 @@ function ParticipantWithTooltip(props: {
               selfEmailSet={props.selfEmailSet}
               label={props.displayName}
               avatar={
-                <Show when={(props.participant as { photoUrl?: string }).photoUrl}>
+                <Show
+                  when={(props.participant as { photoUrl?: string }).photoUrl}
+                >
                   {(url) => (
                     <UserIcon
                       email={props.participant.email}
@@ -125,7 +127,7 @@ function ParticipantWithTooltip(props: {
  * logical self identity. External display names continue using Macro's normal
  * name resolution; self must remain the stable `me` label.
  */
-function resolveParticipants(
+export function resolveParticipants(
   participants: EmailThreadParticipants | undefined,
   selfEmailSet: ReadonlySet<string>,
   getMacroDisplayName: (email: string) => string | undefined
@@ -239,10 +241,7 @@ export function EntityEmailParticipants(props: { entity: EmailEntity }) {
         participant: original,
         displayName: identity.isSelf
           ? identity.label
-          : resolveParticipantName(
-              original,
-              fetchDisplayName(identity.email)
-            ),
+          : resolveParticipantName(original, fetchDisplayName(identity.email)),
         isSelf: identity.isSelf,
       };
     });
@@ -295,10 +294,7 @@ export function EntityEmailParticipants(props: { entity: EmailEntity }) {
             <ParticipantWithTooltip
               participant={resolved.participant}
               displayName={resolved.displayName}
-              highlighted={highlightName(
-                resolved.displayName,
-                resolved.isSelf
-              )}
+              highlighted={highlightName(resolved.displayName, resolved.isSelf)}
               selfEmailSet={selfEmailSet()}
             />
           </>

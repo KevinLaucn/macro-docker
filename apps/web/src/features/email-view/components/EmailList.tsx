@@ -198,37 +198,38 @@ export function EmailList(props: EmailListProps) {
 
   const rows = source.items;
 
-// PRIVATE-HOOK: email_translation:email-list-keyboard
-const translationHotkey = createEmailListTranslationHotkey({
-  currentView: () => 'mail',
-  emailItems: translation.items,
-});
-const translationHotkeyGroup = createHotkeyGroup();
-registerHotkey({
-  hotkey: 'q',
-  scopeId: panel.splitHotkeyScope,
-  hotkeyToken: ((TOKENS.email as any).translateList ?? 'email.translateList') as any,
-  description: 'Translate email list',
-  condition: translationHotkey.condition,
-  keyDownHandler: translationHotkey.keyDownHandler,
-}).withGroup(translationHotkeyGroup);
-onCleanup(() => translationHotkeyGroup.dispose());
+  // PRIVATE-HOOK: email_translation:email-list-keyboard
+  const translationHotkey = createEmailListTranslationHotkey({
+    currentView: () => 'mail',
+    emailItems: translation.items,
+  });
+  const translationHotkeyGroup = createHotkeyGroup();
+  registerHotkey({
+    hotkey: 'q',
+    scopeId: panel.splitHotkeyScope,
+    hotkeyToken: ((TOKENS.email as any).translateList ??
+      'email.translateList') as any,
+    description: 'Translate email list',
+    condition: translationHotkey.condition,
+    keyDownHandler: translationHotkey.keyDownHandler,
+  }).withGroup(translationHotkeyGroup);
+  onCleanup(() => translationHotkeyGroup.dispose());
 
-createEffect(() => {
-  translation.setItems(
-    rows().flatMap((row) =>
-      row.kind === 'entity' && row.entity.type === 'email'
-        ? [
-            {
-              id: row.entity.id,
-              name: row.entity.name,
-              snippet: row.entity.snippet,
-            },
-          ]
-        : []
-    )
-  );
-});
+  createEffect(() => {
+    translation.setItems(
+      rows().flatMap((row) =>
+        row.kind === 'entity' && row.entity.type === 'email'
+          ? [
+              {
+                id: row.entity.id,
+                name: row.entity.name,
+                snippet: row.entity.snippet,
+              },
+            ]
+          : []
+      )
+    );
+  });
 
   const swipeRowsByEntityId = createMemo(() => {
     const entities = new Map<string, EmailActionRow>();

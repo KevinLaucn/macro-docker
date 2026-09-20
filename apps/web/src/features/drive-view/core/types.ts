@@ -1,3 +1,5 @@
+import { t } from '@macro/i18n';
+
 export type DriveTab = 'owned' | 'recent' | 'shared';
 export type DriveScope = 'default' | 'all' | 'attachments';
 export type DriveSort = 'updated_at' | 'created_at' | 'viewed_at';
@@ -25,7 +27,7 @@ export type DriveState = {
 };
 
 export const DRIVE_TABS = [
-  { id: 'owned', label: 'My Files' },
-  { id: 'recent', label: 'Recent' },
-  { id: 'shared', label: 'Shared with me' },
+  { id: 'owned' as const, label: t('My Files') },
+  { id: 'recent' as const, label: t('Recent') },
+  { id: 'shared' as const, label: t('Shared with me') },
 ] satisfies { id: DriveTab; label: string }[];

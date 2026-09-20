@@ -44,7 +44,8 @@ export function registerEmailHotkeys(
       scopeId,
       description: t('Translate email thread'),
       keyDownHandler: extHandlers.translateThread,
-      hotkeyToken: ((TOKENS.email as any).translateThread ?? 'email.translateThread') as any,
+      hotkeyToken: ((TOKENS.email as any).translateThread ??
+        'email.translateThread') as any,
       displayPriority: 8,
     });
   }
