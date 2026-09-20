@@ -2,6 +2,7 @@ import { inboxIconProps } from '@core/component/inboxIcon';
 import { UserIcon } from '@core/component/UserIcon';
 import { useEmailLinksContext } from '@core/context/emailLinks';
 import { useEmailRowTranslation } from '@macro/email-translation';
+import { AwaitingReplyTag } from '@app/features/extensions/AwaitingReplyTag';
 import { cn } from '@ui';
 import { type Accessor, createMemo, type JSX, Show } from 'solid-js';
 import { DraftBadge } from '../../components/Badges';
@@ -95,17 +96,20 @@ export function EmailNarrowBody(props: {
 
   return (
     <Entity.Slot placement="body" class="flex flex-col pb-2 min-h-[2lh] pr-4">
-      <Show
-        when={
-          translation.isTranslated() &&
-          translation.rowTranslation()?.translatedName
-        }
-        fallback={<Entity.Title entity={props.entity} />}
-      >
-        <span class="font-medium truncate">
-          {translation.rowTranslation()!.translatedName}
-        </span>
-      </Show>
+      <div class="flex items-center gap-1.5 min-w-0">
+        <AwaitingReplyTag entity={props.entity} />
+        <Show
+          when={
+            translation.isTranslated() &&
+            translation.rowTranslation()?.translatedName
+          }
+          fallback={<Entity.Title entity={props.entity} />}
+        >
+          <span class="font-medium truncate">
+            {translation.rowTranslation()!.translatedName}
+          </span>
+        </Show>
+      </div>
       <span
         ref={props.setContainerRef}
         class="text-ink/50 font-medium truncate"
@@ -154,6 +158,7 @@ export function EmailWideContent(props: {
         <EmailInboxChip entity={props.entity} class="ml-auto" />
       </span>
       {/* [FORK-FEATURE]: Left-side tags slot (between sender column and title) */}
+      <AwaitingReplyTag entity={props.entity} />
       {props.tagsSlot}
       <span class="truncate">
         <Show
