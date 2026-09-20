@@ -46,6 +46,7 @@ customizations:
       - crates/models_email/src/email/service/contact.rs
       - apps/web/tsconfig.json
       - .fork/private-hooks.yml
+      - apps/web/src/features/email-message/components/email-user-tooltip.tsx
     owned_paths:
       - apps/web/src/features/email-view/queries/use-email-query.ts
       - apps/web/src/features/entity/extractors/entity-email-participants.tsx
@@ -54,6 +55,7 @@ customizations:
       - apps/web/src/lib/core/component/UserIcon.tsx
       - apps/web/tsconfig.json
       - crates/models_email/src/email/service/contact.rs
+      - apps/web/src/features/email-message/components/email-user-tooltip.tsx
     tests:
       - conventions
       - email-identity
@@ -161,6 +163,8 @@ customizations:
       - self-host/scripts/check-drift.py
       - self-host/scripts/affected-services.py
       - .github/workflows/self-host-images.yml
+      - services/email_service/src/api/email/links/health_check.rs
+      - services/authentication_service/Cargo.toml
     owned_paths:
       - apps/web/src/components/app/Layout.tsx
       - apps/web/src/features/settings/SettingsTabContent.tsx
@@ -174,6 +178,8 @@ customizations:
       - services/authentication_service/src/main.rs
       - services/authentication_service/src/openapi.rs
       - services/document_storage_service/src/api/internal.rs
+      - services/email_service/src/api/email/links/health_check.rs
+      - services/authentication_service/Cargo.toml
     tests:
       - conventions
       - auth-rust
@@ -462,6 +468,7 @@ customizations:
       - apps/web/src/features/email-view/email-view.tsx
       - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
       - .fork/private-hooks.yml
+      - apps/web/src/features/email-message/components/collapsed-message.tsx
     owned_paths:
       - apps/web/src/features/email-message/components/email-message-top-bar.tsx
       - apps/web/src/features/email-message/primitives/email-message-body.ts
@@ -476,6 +483,7 @@ customizations:
       - apps/web/src/features/entity/composed/list-entity/email.tsx
       - apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
       - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
+      - apps/web/src/features/email-message/components/collapsed-message.tsx
     tests:
       - conventions
       - email-translation
