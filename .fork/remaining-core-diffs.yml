@@ -387,6 +387,11 @@ diffs:
       - "READ-RECEIPTS-001"
     hooks: []
     override: false
+  - file: "bun.lock"
+    owners:
+      - "FORK-PACKAGES-001"
+    hooks: []
+    override: false
   - file: "crates/ai_projections/src/domain/ai_projection_service.rs"
     owners:
       - "AI-MODEL-POLICY-001"
@@ -466,7 +471,7 @@ diffs:
     override: false
   - file: "package.json"
     owners:
-      - "READ-RECEIPTS-001"
+      - "FORK-PACKAGES-001"
     hooks: []
     override: false
   - file: "packages/email-renderer/src/core/resource-policy.ts"
