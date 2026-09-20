@@ -1,97 +1,149 @@
 # 私有二开开发规范
 
-本仓库的二开代码、官方源码和同步治理规则分层管理：
+本仓库长期跟随 `macro-inc/macro`。默认原则只有一个：**upstream-owned
+行为以上游为权威，二开只保留明确登记的差异。**
+
+如果 upstream bug 不影响正常使用、也不违反 self-host/privacy/明确二开契约，
+不要在 Fork 独立修复、加 defensive fallback 或顺手重构；等待官方修复并在后续
+sync 获取。只有阻塞正常使用或违反明确 Fork invariant 时才允许临时补丁，并且
+必须可识别、可测试、可退役。
+
+## 1. 代码边界
 
 ```text
-packages/fork/<feature>/  二开功能的完整实现
-.fork/                    规则、Hook、Override 和门禁
+packages/fork/<feature>/  二开功能完整实现
+.fork/                    ownership / Hook / Override / Retirement / upstream anchor
 官方目录                  只保留最小接入口
 ```
 
-## 1. 目录规则
+完整二开功能优先放 `packages/fork/<feature>/`。Docker、Nix、self-host、
+`macroctl` 等部署/runtime 基础设施保持原有目录，但仍受 Fork manifest 管理。
 
-- 一个二开功能一个目录，例如 `packages/fork/email-translation/`、
-  `packages/fork/read-receipts/`、`packages/fork/self-host-health/`。
-- 前端、后端、脚本、配置属于同一个功能时，优先收口到同一个功能目录；
-  不为了形式强制拆成 `frontend/backend/rust/web`。
-- `.fork/` 只放治理文件，不放主要业务代码。
-- 老功能不要求一次性迁移；后续修改该功能时顺带迁移。
+不要为了二开功能搬迁、删除或复制 upstream 文件。必须接入 upstream 文件时，
+以当前 upstream 文件为主体重新注入最小 Hook。
 
-## 2. 官方源码接入
+## 2. Customization ownership
 
-完整二开功能、跨文件模块或需要独立测试/配置/构建边界的实现放在
-`packages/fork/<feature>/`。官方文件通常只保留最小接入代码；但小型语义补丁和上游兼容性
-修补可以留在对应 upstream-owned 文件中，不得为了形式统一强行 package 化。
+`.fork/customizations.yml` 中两个路径字段语义不同：
 
-每个官方源码接入点必须：
+- `paths`：watch scope。用于 upstream overlap、语义审查和 targeted test，可较宽。
+- `owned_paths`：真正允许与 upstream 不同的**精确文件路径**，禁止 glob。
 
-1. 添加唯一的 `PRIVATE-HOOK:` 标记；
-2. 登记到 `.fork/private-hooks.yml`，填写官方文件、接入点和预期代码；
-3. 运行 `just fork-gate`（机器门禁的唯一入口）；
-4. 同一区域已有多个二开时，优先增加一个统一 Fork 入口，由入口内部组合功能。
+因此 `services/email_service/**` 可以作为监控范围，但不能自动授权整个目录
+长期偏离 upstream。新增 upstream-owned 改动时必须把具体文件加入正确
+customization 的 `owned_paths`。
 
-## 3. 固定覆盖
+`remaining-core-diffs.yml` 是从当前树生成的 v2 快照，不是历史 allowlist。
+任何已经与 upstream 相同的 owned path 都属于 stale ownership，门禁失败。
 
-默认模型、云服务地址、遥测地址和固定开关等简单替换放到
-`.fork/overrides/*.yml`，不要在上游文件中重复手改。
+## 3. PRIVATE-HOOK
 
-每条 Override 必须声明：唯一 ID、目标文件、原文、替换文本和精确匹配数量。
-检查器支持模拟检查；原文不存在、替换文已存在、或匹配数量不等于声明值，均直接失败，
-不得静默跳过。
+每个 upstream-owned 语义接入点必须：
 
-## 4. Upstream 同步流程
+1. 使用唯一 `PRIVATE-HOOK:<namespace>:<name>`；
+2. 在 `.fork/private-hooks.yml` 显式填写 `customization` owner；
+3. owner 的 `paths` 必须覆盖该文件；
+4. 如果该文件存在于 upstream，owner 的 `owned_paths` 必须精确列出它；
+5. 保留可验证的 `expected` 和 `context`；
+6. 对应 customization 必须有 targeted regression test。
 
-禁止在 `main` 上直接进行 upstream 合并，也不直接向 GitHub `main` 推送开发提交。
-所有同步使用 `sync/upstream-*` 分支：
+同一 upstream 文件允许多个不同功能 Hook，但每个 Hook 自己只有一个语义 owner。
+不要依赖“这个文件刚好被另一个宽 customization 覆盖”。
+
+## 4. 官方 Skills
+
+upstream 提供的 `.agents/skills/<name>/` 必须**整个 Skill 目录 0 diff**，包括：
+
+- `SKILL.md` / `skill.md`
+- `agents/openai.yaml`
+- references / scripts / assets
+- symlink 或其它 upstream Skill 文件
+
+所有 Fork 工作流规则只写入
+`macro-private-maintainer`、`macro-upstream-sync`、
+`macro-pre-push-gate` 等 Fork 自有 Skills，绝不修改官方 Skill。
+
+## 5. Upstream anchor
+
+`.fork/upstream.yml` 记录 `main` 最后一次实际合入的 upstream SHA。
+
+普通 feature 开发运行 `just fork-gate` 时默认使用这个固定 SHA，所以 upstream
+刚出现新提交不会无关地阻塞日常二开。
+
+upstream sync 则显式使用 live `upstream/main`，并启用 strict ancestry；目标 SHA
+必须已经成为 sync branch 的祖先，同时 `.fork/upstream.yml` 必须更新到同一 SHA。
+
+## 6. Upstream 同步
+
+禁止直接在 `main` 做 upstream merge。使用 `sync/upstream-*`：
 
 ```text
-创建 sync/upstream-* 分支
-→ 合并 upstream/main
-→ 处理 Git 硬冲突
+main
+→ sync/upstream-*
+→ merge upstream/main（保留 ancestry）
+→ upstream-first 解决冲突
+→ 更新 ownership / hooks / retirements
+→ 更新 .fork/upstream.yml
+→ 重建 remaining-core-diffs.yml
 → just fork-gate
-→ 运行命中的功能测试
-→ 构建
-→ 通过 PR 合并到 main
+→ targeted tests / build
+→ PR 回 main
 ```
 
-`just fork-gate` 是机器门禁的唯一真源；具体检查项以 recipe 实现为准，不在文档中重复枚举。
+同步必须看两份 diff：
 
-门禁失败时只修复命中的二开点。门禁通过不代表语义审查可以省略；上游修改某个功能
-关联文件时，必须运行该功能的 targeted test。
+```bash
+# upstream 自上次同步后改了什么
+git diff --name-status <last-merged-upstream>..<target-upstream>
 
-### Runtime 与零云依赖
+# 冲突处理后 Fork 还与目标 upstream 差什么
+git diff --name-status <target-upstream>..HEAD
+```
 
-`SELFHOST-RUNTIME-001` 属于部署/runtime 基础设施，不迁移到 `packages/fork/`。
-Docker、Nix、self-host compose、`macroctl` 和 Just 入口保持原目录。固定 URL、默认值和
-feature flag 使用 Override；少量语义兼容补丁使用 `PRIVATE-HOOK`。零云门禁只扫描自托管
-构建路径，允许文档、测试 fixture 和示例域名，不把上游产品默认值误判为私有 runtime 违规。
+第二份 diff 中每个 upstream-owned 文件必须有精确 owner 或 exact override。
+删除 upstream-owned 文件直接失败；如果只是为了接 Hook，不允许把官方
+`foo.rs` 搬成 Fork 的 `foo/mod.rs`。
 
-Telemetry/analytics 单独登记为 `TELEMETRY-PRIVACY-001`，不与 runtime 风险混合。
+完成 ownership review 后刷新派生快照：
 
-### Fork 补丁退役
+```bash
+ruby .github/scripts/check-core-drift.rb \
+  --upstream upstream/main \
+  --write-snapshot
 
-小型稳定性补丁也不能永久保留。每个可能被 upstream 吸收的补丁登记到
-`.fork/retirements.yml`，记录旧行为签名、上游修复签名和回归测试：
+CHECK_BASE=upstream/main FORK_SYNC_STRICT=1 just fork-gate
+```
+
+CI 的 upstream-sync workflow 会自动启用 strict ancestry。
+
+## 7. Override 与 Retirement
+
+固定模型、固定 URL、默认开关等机械替换使用 `.fork/overrides/*.yml`；必须声明
+目标文件、原文、替换文本和精确匹配数量。
+
+可能被官方吸收的临时补丁登记 `.fork/retirements.yml`：
 
 ```text
-上游出现修复签名
-→ 机器门禁标记 retirement candidate
-→ 运行回归测试并检查用户行为等价
-→ 人工确认
-→ 删除 Fork 实现、PRIVATE-HOOK、customization/retirement 登记
+upstream 出现等价修复
+→ retirement gate 报 candidate
+→ 跑回归测试确认行为
+→ 删除 Fork 实现 / Hook / owned_path / retirement
+→ 重建 drift snapshot
 ```
 
-门禁只负责发现候选，不自动删除代码；这样不会因为字符串相似或局部重构误删行为。
+不要因为字符串相似自动删除功能，也不要在 upstream 已经等价后继续保留 Fork
+历史补丁。
 
-## 5. 提交边界
+## 8. 验收
 
-- 一个功能域一个小提交，避免把 upstream、二开、生成文件混在一起。
-- 新增或移动二开文件后，检查 Cargo、Bun、Docker、Nix、复制清单和构建上下文。
-- 推送前必须确认当前分支不是 `main`，目标是当前同步分支的 PR；本规范文档和二开代码
-  不通过直接 push 进入 GitHub `main`。
-
-## 常用命令
+机器入口统一为：
 
 ```bash
 just fork-gate
 ```
+
+门禁通过仍不替代语义审查。同步命中某 customization 的 watch scope 时必须运行
+对应 targeted tests；release/production 再执行完整 build/image 验收。
+
+提交时保持功能域边界清晰，不把 upstream merge、无关 refactor 和二开功能混成
+一个不可审计的大提交。
