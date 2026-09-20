@@ -29,6 +29,11 @@ customizations:
     paths:
       - packages/fork/**
       - .fork/overrides/**
+      - package.json
+      - bun.lock
+    owned_paths:
+      - package.json
+      - bun.lock
     tests:
       - conventions
 
@@ -94,7 +99,6 @@ customizations:
       - apps/web/src/features/entity/extractors/entity-icon.tsx
       - apps/web/src/features/email-view/queries/use-email-query.ts
       - apps/web/src/index.css
-      - package.json
       - apps/web/vitest.config.ts
       - .github/workflows/upstream-sync-test-group.yml
       - .github/workflows/self-host-images.yml
@@ -113,7 +117,6 @@ customizations:
       - crates/email_db_client/src/lib.rs
       - crates/email_db_client/src/settings.rs
       - crates/email_utils/src/lib.rs
-      - package.json
       - services/email_service/src/api.rs
       - services/email_service/src/api/email/messages.rs
       - services/email_service/src/api/email/settings.rs
