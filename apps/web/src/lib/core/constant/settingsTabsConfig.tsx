@@ -11,6 +11,7 @@ import HeartbeatIcon from '@phosphor/heartbeat.svg';
 import KeyIcon from '@phosphor/key.svg';
 import KeyboardIcon from '@phosphor/keyboard.svg';
 import PlugIcon from '@phosphor/plug.svg';
+import PuzzlePieceIcon from '@phosphor/puzzle-piece.svg';
 import BotIcon from '@phosphor/robot.svg';
 import AgentIcon from '@phosphor/sparkle.svg';
 import SwatchesIcon from '@phosphor/swatches.svg';
@@ -63,6 +64,7 @@ export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
       { tab: 'Appearance', label: 'Appearance', icon: SwatchesIcon },
       { tab: 'Mobile App', label: 'Mobile App', icon: DeviceMobileIcon },
       { tab: 'Shortcuts', label: 'Shortcuts', icon: KeyboardIcon },
+      { tab: 'Extensions', label: t('Extensions'), icon: PuzzlePieceIcon },
     ],
   },
   {
@@ -130,6 +132,7 @@ const SETTINGS_TAB_SLUGS: Record<SettingsTab, string> = {
   Email: 'email',
   GitHub: 'github',
   Admin: 'admin',
+  Extensions: 'extensions',
   // PRIVATE-HOOK: self_host_health:settings_slug
   SelfHostHealth: 'health-check',
 };
@@ -179,6 +182,7 @@ export const useSettingsTabAvailable = () => {
       case 'Account':
       case 'API Keys':
       case 'Billing':
+      case 'Extensions':
         return true;
       case 'Notifications':
         return notificationSettingsFlag().enabled;

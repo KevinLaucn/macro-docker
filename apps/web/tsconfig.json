@@ -44,6 +44,9 @@
       "@types/facebook-pixel"
     ],
     "paths": {
+      "@tanstack/query-core": [
+        "../../node_modules/@tanstack/solid-query/node_modules/@tanstack/query-core"
+      ],
       "@sandbox-sizes": [
         "../../crates/agent_harness/sandbox_sizes.json"
       ],

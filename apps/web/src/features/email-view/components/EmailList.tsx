@@ -207,7 +207,7 @@ const translationHotkeyGroup = createHotkeyGroup();
 registerHotkey({
   hotkey: 'q',
   scopeId: panel.splitHotkeyScope,
-  hotkeyToken: TOKENS.email.translateList,
+  hotkeyToken: ((TOKENS.email as any).translateList ?? 'email.translateList') as any,
   description: 'Translate email list',
   condition: translationHotkey.condition,
   keyDownHandler: translationHotkey.keyDownHandler,

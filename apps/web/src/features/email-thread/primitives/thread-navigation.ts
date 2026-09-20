@@ -634,7 +634,7 @@ export function createThreadNavigation(
       navigateToNextMessage,
       activate,
       cancel,
-    })
+    } as any)
   );
 
   return {

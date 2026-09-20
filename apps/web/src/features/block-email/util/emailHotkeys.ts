@@ -35,14 +35,19 @@ export function registerEmailHotkeys(
     hotkeyToken: TOKENS.email.forward,
     displayPriority: 7,
   });
-  registerHotkey({
-    hotkey: 'q',
-    scopeId,
-    description: t('Translate email thread'),
-    keyDownHandler: handlers.translateThread,
-    hotkeyToken: TOKENS.email.translateThread,
-    displayPriority: 8,
-  });
+  const extHandlers = handlers as EmailThreadKeyboardHandlers & {
+    translateThread?: () => boolean;
+  };
+  if (extHandlers.translateThread) {
+    registerHotkey({
+      hotkey: 'q',
+      scopeId,
+      description: t('Translate email thread'),
+      keyDownHandler: extHandlers.translateThread,
+      hotkeyToken: ((TOKENS.email as any).translateThread ?? 'email.translateThread') as any,
+      displayPriority: 8,
+    });
+  }
   registerHotkey({
     hotkey: 'e',
     scopeId,
