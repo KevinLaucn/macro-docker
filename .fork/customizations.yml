@@ -166,6 +166,9 @@ customizations:
       - .github/workflows/self-host-images.yml
       - services/email_service/src/api/email/links/health_check.rs
       - services/authentication_service/Cargo.toml
+      - crates/sqs_client/src/email.rs
+      - crates/sqs_client/src/gmail.rs
+      - crates/sqs_client/src/queue.rs
     owned_paths:
       - apps/web/src/components/app/Layout.tsx
       - apps/web/src/features/settings/SettingsTabContent.tsx
@@ -178,6 +181,9 @@ customizations:
       - services/document_storage_service/src/api/internal.rs
       - services/email_service/src/api/email/links/health_check.rs
       - services/authentication_service/Cargo.toml
+      - crates/sqs_client/src/email.rs
+      - crates/sqs_client/src/gmail.rs
+      - crates/sqs_client/src/queue.rs
     tests:
       - conventions
       - auth-rust

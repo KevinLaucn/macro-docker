@@ -467,6 +467,21 @@ diffs:
   - AUTH-SELFHOST-001
   hooks: []
   override: false
+- file: crates/sqs_client/src/email.rs
+  owners:
+  - SELFHOST-HEALTH-001
+  hooks: []
+  override: false
+- file: crates/sqs_client/src/gmail.rs
+  owners:
+  - SELFHOST-HEALTH-001
+  hooks: []
+  override: false
+- file: crates/sqs_client/src/queue.rs
+  owners:
+  - SELFHOST-HEALTH-001
+  hooks: []
+  override: false
 - file: docker/docker-compose-databases.yml
   owners:
   - SELFHOST-RUNTIME-001
@@ -513,6 +528,7 @@ diffs:
   - AUTH-SELFHOST-001
   - SELFHOST-HEALTH-001
   hooks:
+  - self_host_health_auth_models_email_dep
   - self_host_health_auth_sqs_gmail_feature
   override: false
 - file: services/authentication_service/src/api.rs
@@ -520,6 +536,7 @@ diffs:
   - SELFHOST-HEALTH-001
   hooks:
   - self_host_health_admin_route
+  - self_host_health_permissions_extractor
   override: false
 - file: services/authentication_service/src/api/link/gmail.rs
   owners:

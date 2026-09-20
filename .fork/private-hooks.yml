@@ -279,6 +279,13 @@ hooks:
     expected: "return getEmailCollapsedSnippet(props.message);"
     context:
       - "const snippet = createMemo(() => {"
+  - id: self_host_health_permissions_extractor
+    customization: SELFHOST-HEALTH-001
+    file: services/authentication_service/src/api.rs
+    marker: "// PRIVATE-HOOK: self_host_health:permissions_extractor"
+    expected: "pub(crate) mod permissions_extractor;"
+    context:
+      - "mod permissions;"
   - id: self_host_health_admin_route
     customization: SELFHOST-HEALTH-001
     file: services/authentication_service/src/api.rs
@@ -459,6 +466,14 @@ hooks:
     expected: "export interface AppCapabilities"
     context:
       - "export function getAppCapabilities(): AppCapabilities {"
+
+  - id: self_host_health_auth_models_email_dep
+    customization: SELFHOST-HEALTH-001
+    file: services/authentication_service/Cargo.toml
+    marker: "# PRIVATE-HOOK: self_host_health:auth-models-email-dep"
+    expected: 'models_email = { path = "../../crates/models_email" }'
+    context:
+      - 'model = { path = "../../crates/model" }'
 
   - id: self_host_health_auth_sqs_gmail_feature
     customization: SELFHOST-HEALTH-001

@@ -34,7 +34,8 @@ mod logout;
 mod oauth;
 mod oauth2;
 mod permissions;
-mod permissions_extractor;
+// PRIVATE-HOOK: self_host_health:permissions_extractor
+pub(crate) mod permissions_extractor;
 mod session;
 pub(crate) mod signup_policy;
 mod user;

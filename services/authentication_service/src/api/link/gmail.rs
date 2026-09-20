@@ -151,11 +151,10 @@ pub async fn init_gmail_link_handler(
         .await
         .map_err(|_| InitGmailLinkError::IdentityProviderNotFound)?;
 
-    macro_db_client::in_progress_user_link::delete_expired_uncompleted_in_progress_user_links_for_user(
+    let _ = macro_db_client::in_progress_user_link::delete_day_old_in_progress_user_links(
         &ctx.db,
-        &authorization.authorization.user.user_context.fusion_user_id,
     )
-    .await?;
+    .await;
 
     let count =
         macro_db_client::in_progress_user_link::count_existing_in_progress_user_links_for_user(
