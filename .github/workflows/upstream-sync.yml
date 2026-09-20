@@ -50,6 +50,7 @@ jobs:
       - name: Run unified fork gate
         env:
           CHECK_BASE: ${{ github.event_name == 'workflow_dispatch' && inputs.base || 'upstream/main' }}
+          FORK_SYNC_STRICT: "1"
         run: just fork-gate
 
       - name: Detect overlaps for targeted-test matrix
