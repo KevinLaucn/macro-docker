@@ -492,3 +492,19 @@ hooks:
     expected: "const uid = data.id ?? data.userId;"
     context:
       - "initAndStartEmailSync().match("
+
+  - id: ai_model_policy_free_tier_models
+    customization: AI-MODEL-POLICY-001
+    file: crates/ai_projections/src/domain/ai_projection_service.rs
+    marker: "PRIVATE-HOOK: ai_model_policy:free-tier-models"
+    expected: "openai/gpt-5-mini"
+    context:
+      - "FREE_TIER_MODELS"
+
+  - id: ai_model_policy_chat_renamer
+    customization: AI-MODEL-POLICY-001
+    file: services/document_cognition_service/src/service/chat_renamer.rs
+    marker: "PRIVATE-HOOK: ai_model_policy:chat-renamer"
+    expected: "PredefinedModel::Gpt5Mini"
+    context:
+      - "Chat Rename must use the same OpenAI provider"
