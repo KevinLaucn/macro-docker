@@ -91,7 +91,7 @@ export function Extensions() {
           >
             <TagSelectorDropdown
               value={awaitingReplyTagId()}
-              onChange={(tagId) => setAwaitingReplyTagId(tagId)}
+              onChange={(tagId: string) => setAwaitingReplyTagId(tagId)}
             />
           </SettingsRow>
           {/* PRIVATE-HOOK: read_receipts:settings */}
