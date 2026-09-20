@@ -337,7 +337,7 @@ diffs:
     override: false
   - file: "apps/web/src/lib/queries/ai/createHomeRecommendations.ts"
     owners:
-      - "SELFHOST-HEALTH-001"
+      - "AI-MODEL-POLICY-001"
     hooks: []
     override: true
   - file: "apps/web/src/lib/queries/sync/SyncProvider.tsx"
@@ -389,7 +389,7 @@ diffs:
     override: false
   - file: "crates/ai_projections/src/domain/ai_projection_service.rs"
     owners:
-      - "SELFHOST-HEALTH-001"
+      - "AI-MODEL-POLICY-001"
     hooks: []
     override: false
   - file: "crates/email/Cargo.toml"
