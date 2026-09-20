@@ -97,7 +97,7 @@ hook_ids_by_file.each_value(&:sort!)
 
 override_files = Dir[".fork/overrides/*.yml"].flat_map do |file|
   data = YAML.safe_load(File.read(file), permitted_classes: [], aliases: false)
-  Array(data && data["overrides"]).filter_map { |entry| entry["file"] }
+  Array(data && data["overrides"]).map { |entry| entry["file"] }.compact
 end.uniq.sort
 
 unexplained = upstream_owned_diff.reject do |path|
