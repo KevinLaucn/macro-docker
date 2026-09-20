@@ -192,9 +192,11 @@ customizations:
       - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
       - crates/ai_projections/src/domain/ai_projection_service.rs
       - .fork/overrides/home-recommendations.yml
+      - services/document_cognition_service/src/service/chat_renamer.rs
     owned_paths:
       - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
       - crates/ai_projections/src/domain/ai_projection_service.rs
+      - services/document_cognition_service/src/service/chat_renamer.rs
     tests:
       - conventions
       - web
@@ -211,14 +213,12 @@ customizations:
       - tooling/just/**
       - apps/web/src/lib/core/constant/featureFlags.ts
       - services/sync-service/wrangler.docker.toml
-      - services/document_cognition_service/src/service/chat_renamer.rs
     owned_paths:
       - apps/web/src/lib/core/constant/featureFlags.ts
       - docker/docker-compose-databases.yml
       - docker/sync-service.Dockerfile
       - docker/websocket-service.Dockerfile
       - nix/cloud-storage.nix
-      - services/document_cognition_service/src/service/chat_renamer.rs
       - services/sync-service/wrangler.docker.toml
       - tooling/just/check.just
       - tooling/just/ci.just
