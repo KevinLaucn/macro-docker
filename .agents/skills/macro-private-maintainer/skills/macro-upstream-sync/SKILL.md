@@ -5,86 +5,73 @@ description: Merge macro-inc/macro upstream changes into the long-lived private 
 
 # Macro Upstream Sync
 
-This Skill owns upstream merge semantics. Upstream-provided Skills remain
-byte-identical to the selected upstream target; fork policy lives only in the
-private maintainer hierarchy.
+Start from upstream behavior, then reapply only explicit Fork behavior. Never
+preserve a historical edit merely because it exists or compiles.
 
-## Core rule
+## Target and ancestry
 
-Start from upstream behavior, then reapply only explicit fork behavior.
+Create `sync/upstream-*` from main. Read `.fork/upstream.yml` for the last
+merged upstream SHA, fetch the selected target (normally `upstream/main`), record
+its exact SHA, merge it, and preserve ancestry. Never rebase away the upstream
+merge.
 
-Do not preserve a historical fork edit merely because it exists or compiles.
-If an upstream-owned difference cannot be tied to a current customization,
-hook, override, self-host invariant, or blocker patch, restore upstream.
+After the merge, update `.fork/upstream.yml` to the exact target SHA. Strict
+sync validation requires that SHA to be an ancestor of HEAD.
 
-Do not independently fix non-blocking upstream bugs during sync. Preserve the
-official behavior and wait for upstream. A blocker-only patch requires hook,
-customization, targeted regression test, and retirement evidence.
-
-## Branch and target
-
-Use `sync/upstream-*` from current main. Default target is `upstream/main`.
-Record pre-sync main SHA and exact upstream target SHA. Merge the target and
-preserve upstream ancestry; never rebase away the merge commit.
-
-## Required two-diff review
+## Required review
 
 Before merge:
-`git diff --name-status <last-upstream-sha>..<upstream-target>`
-answers what upstream changed.
+
+`git diff --name-status <last-merged-upstream>..<target-upstream>`
 
 After conflict resolution:
-`git diff --name-status <upstream-target>..HEAD`
-answers what the fork still changes.
 
-Every upstream-owned path in the second diff must be classified as one of:
-- registered PRIVATE-HOOK integration;
-- registered customization;
-- exact override;
-- generated artifact derived from authoritative source;
-- temporary blocker patch with retirement entry.
+`git diff --name-status <target-upstream>..HEAD`
 
-Anything else is unexplained core drift and blocks completion.
+For the second diff:
+- `customizations.yml.paths` only says what to watch/test;
+- every intentional upstream-owned source difference needs its exact path in
+  `owned_paths`, or a registered exact override;
+- every PRIVATE-HOOK declares one semantic customization owner;
+- deleting or relocating an upstream file is a failure, not an integration strategy;
+- upstream-provided Skill directories must be fully 0 diff.
+
+Do not independently fix non-blocking upstream bugs. A blocker-only patch needs
+exact ownership, regression coverage, and retirement evidence.
 
 ## Conflict procedure
 
-1. Read `.fork/customizations.yml`, `.fork/private-hooks.yml`,
-   `.fork/retirements.yml`, and the relevant fork package before resolving.
-2. For upstream-owned files, take current upstream as the base implementation.
-3. Reinject only the smallest currently-required fork hook. Adapt the hook to
-   upstream's current API rather than restoring an obsolete fork copy.
-4. Preserve complete fork implementations in `packages/fork/**` unless upstream
-   now provides equivalent behavior; if equivalent, mark retirement and remove
-   the duplicate after regression verification.
-5. Restore every upstream-provided `.agents/skills/**` file exactly from the
-   selected target. Never carry fork policy inside those files.
-6. Regenerate SQLx/OpenAPI/GraphQL/TypeScript only after source semantics are
-   settled. Generated files do not decide conflicts.
-7. Review non-conflicting overlaps too; Git conflict absence is not semantic proof.
+1. Read customizations, private-hooks, retirements, upstream anchor, and relevant
+   Fork packages before resolving.
+2. Use current upstream file content as the implementation base.
+3. Reinject only the smallest still-required Hook and adapt it to current upstream
+   APIs; do not restore an obsolete Fork copy.
+4. Keep complete Fork implementations in `packages/fork/**`.
+5. If upstream now provides equivalent behavior, remove the duplicate Fork path
+   after regression verification and retire its Hook/ownership.
+6. Regenerate generated artifacts only after source semantics are settled.
+7. Review no-conflict overlaps as well as Git conflicts.
 
-For a real semantic collision involving permissions, data meaning, privacy,
-authentication, or business behavior, compare upstream and fork behavior and
-choose the smallest composition consistent with declared fork requirements.
-Do not choose ours/theirs based on diff size.
+## Finalize governance
 
-## Historical drift cleanup
+After semantic review:
 
-Treat old deletions, defensive fallbacks, copied upstream files, and broad
-CORE-ADAPTATION entries as migration debt. During each sync:
-- restore upstream when no current fork requirement exists;
-- move complete private behavior into `packages/fork/**`;
-- reduce upstream files to narrow hooks;
-- replace broad classifications with explicit ownership;
-- remove obsolete hooks/retirements after upstream equivalence is verified.
+```bash
+ruby .github/scripts/check-core-drift.rb \
+  --upstream upstream/main \
+  --write-snapshot
 
-## Validation
+CHECK_BASE=upstream/main FORK_SYNC_STRICT=1 just fork-gate
+```
 
-Run `just fork-gate`, then test every customization group overlapped by the
-sync. Release/production acceptance additionally requires applicable production
-image/build checks. Do not weaken a gate to make a sync pass.
+The v2 snapshot must describe the current tree exactly; never preserve stale
+entries from an older sync.
+
+Run every targeted test group reported by the overlap gate. Release/production
+acceptance additionally requires the applicable full build/image validation.
 
 ## Report
 
-Report target SHA, pre-sync SHA, preserved merge ancestry, upstream Skills parity,
-conflicts resolved, remaining classified upstream-owned drift, customization and
-retirement changes, checks run, and blocked checks.
+Report target SHA, pre-sync SHA, merge ancestry, official Skill directory parity,
+conflicts and historical drift removed, ownership/Hook/retirement changes, v2
+core-drift count, tests run, and any environment-blocked checks.
