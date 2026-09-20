@@ -5,8 +5,9 @@ description: Master router for maintaining the long-lived private Macro fork. Us
 
 # Macro Private Maintainer
 
-Own fork policy here. Upstream Skills are read-only mirrors of macro-inc/macro and
-must remain byte-identical to the selected upstream target.
+Own Fork policy here. Every Skill directory supplied by `macro-inc/macro` is a
+read-only mirror and must remain fully byte-identical to the selected upstream
+target. Put Fork instructions only in Fork-owned Skills.
 
 ## Routing
 
@@ -21,67 +22,61 @@ must remain byte-identical to the selected upstream target.
 | i18n extraction/audit | `references/i18n-workflow.md` |
 | Production operations | `references/production-deployment.md` |
 
-Read the relevant AGENTS.md/CLAUDE.md and repository source before editing.
-Use CodeGraph when present; use rg for literal/config/PRIVATE-HOOK checks.
+Read relevant AGENTS.md/CLAUDE.md and source before editing. Use CodeGraph when
+present and `rg` for literals, config, URLs, and PRIVATE-HOOK markers.
 
 ## Authority order
 
-1. The selected upstream source is authoritative for upstream-owned behavior.
-2. `packages/fork/<feature>/`, `.fork/`, and this private Skill hierarchy own
-   fork policy and fork features.
-3. An upstream-owned file may differ only for a registered minimal integration
-   point, exact override, self-host boundary, or temporary blocker patch.
-4. Generated artifacts never define intended behavior.
+1. Upstream-owned behavior follows the selected upstream source by default.
+2. `packages/fork/<feature>/`, `.fork/`, and Fork-owned Skills define private behavior.
+3. `customizations.yml.paths` is only watch/test scope.
+4. `customizations.yml.owned_paths` is the exact file-level grant for upstream
+   source drift; never use a broad glob as drift permission.
+5. `.fork/upstream.yml` records the last upstream SHA actually merged into main.
+6. `remaining-core-diffs.yml` is a derived snapshot, never a historical allowlist.
 
 ## Upstream bug policy
 
-Do not locally repair, harden, refactor, or work around an upstream bug when
-normal fork operation remains usable and no declared fork invariant is broken.
+Do not repair, harden, refactor, or work around a non-blocking upstream bug when
+normal Fork operation remains usable and no declared Fork invariant is broken.
 Preserve upstream behavior and take the official fix in a later sync.
 
-A local upstream-owned bug fix is allowed only when it blocks normal operation
-or violates an explicit self-host/privacy/fork requirement. Keep it minimal and
-register all of:
-- a unique PRIVATE-HOOK when source semantics are changed;
-- a matching `.fork/customizations.yml` entry;
-- a targeted regression test;
-- a `.fork/retirements.yml` condition when upstream can absorb the behavior.
+A blocker-only upstream patch must be minimal and have an explicit customization,
+exact `owned_path`, PRIVATE-HOOK when semantics are injected, targeted regression
+test, and retirement condition when upstream can absorb it.
 
 ## Fork boundary
 
-- Put complete fork features in `packages/fork/<feature>/`.
-- Keep upstream-owned integration code as small hooks, adapters, registrations,
-  imports, or router entries.
+- Put complete Fork features in `packages/fork/<feature>/`.
+- Keep upstream integration to minimal hooks/adapters/registrations.
+- Never delete or relocate an upstream file merely to accommodate a Fork feature.
 - Put deterministic exact replacements in `.fork/overrides/`.
-- Never use a generic CORE-ADAPTATION label as permission for unexplained
-  upstream-owned source drift.
-- Never edit an upstream-provided `.agents/skills/**` file. Extend behavior
-  through this private Skill hierarchy instead.
+- Every PRIVATE-HOOK declares exactly one semantic `customization` owner.
+- Never use generic CORE-ADAPTATION wording to justify source drift.
+- Never edit an upstream-provided Skill; extend behavior through Fork-owned Skills.
 
-## Cross-task invariants
+## Invariants
 
-1. Zero Macro cloud: no implicit `*.macro.com` fallback for private user data.
+1. Zero Macro cloud fallback for private user data.
 2. Preserve credentials and local data; destructive reset requires explicit intent.
-3. Preserve upstream capabilities unless an explicit fork customization replaces
-   or gates them.
-4. Attribute failures to upstream, fork, or interaction before editing code.
-5. Keep Cargo/Bun/TypeScript/Vite/Docker/Nix/CI closure complete when boundaries
-   change; run Hakari only when dependency/workspace topology changes.
-6. Development uses targeted checks; sync/release uses the required full gates.
+3. Preserve upstream capabilities unless a registered Fork requirement changes them.
+4. Attribute failures to upstream, Fork, or interaction before editing.
+5. Keep build/dependency closure complete when topology changes.
+6. Use targeted checks in development; sync/release uses strict gates.
 7. Prefer native Just/xtask/Compose/migration/reconcile paths over workarounds.
 8. Push/PR/merge/deploy only with explicit user intent.
 
 ## Machine governance
 
-`just fork-gate` is the sole machine entrypoint. It must validate hooks,
-overrides, retirements, privacy/zero-cloud constraints, upstream overlap, and
-unexplained core drift. Do not duplicate its command list in other Skills.
+`just fork-gate` is the only machine entrypoint. Normal development defaults to
+the SHA in `.fork/upstream.yml`; sync CI overrides it with live
+`upstream/main` and requires ancestry.
 
-A sync is not complete while an upstream-owned diff lacks an explicit owner and
-classification. For every remaining diff, be able to answer: why it differs,
-which customization owns it, which test protects it, and when it can be removed.
+A change is incomplete while an upstream-owned diff lacks an exact owner, a Hook
+has no explicit semantic owner, an official Skill differs anywhere in its
+directory, an upstream file was deleted, or the v2 drift snapshot is stale.
 
 ## Completion
 
-Report changed files, upstream target SHA, remaining classified drift, checks
-actually run, and blocked environment-dependent verification.
+Report upstream target SHA, changed customization ownership, remaining classified
+core drift, checks actually run, and blocked environment-dependent verification.
