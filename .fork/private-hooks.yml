@@ -80,16 +80,16 @@ hooks:
       - "mod api;"
   - id: email_read_receipts_send
     customization: READ-RECEIPTS-001
-    file: services/email_service/src/util/gmail/send/mod.rs
+    file: services/email_service/src/util/gmail/send.rs
     marker: "// PRIVATE-HOOK: read_receipts:send"
     expected: "self::read_receipts_send::attach_open_tracking_pixel(db, message_to_send).await;"
     context:
       - "pub async fn attach_open_tracking_pixel"
   - id: email_read_receipts_send_module
     customization: READ-RECEIPTS-001
-    file: services/email_service/src/util/gmail/send/mod.rs
+    file: services/email_service/src/util/gmail/send.rs
     marker: "// PRIVATE-HOOK: read_receipts:registration"
-    expected: "#[path = \"../../../../../../packages/fork/read-receipts/backend/service/send.rs\"]"
+    expected: "#[path = \"../../../../../packages/fork/read-receipts/backend/service/send.rs\"]"
     context:
       - "use models_email::service::attachment::{AttachmentDraft, AttachmentToSend};"
   - id: email_read_receipts_send_call
