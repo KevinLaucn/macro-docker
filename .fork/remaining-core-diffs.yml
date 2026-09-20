@@ -398,7 +398,8 @@ diffs:
   - file: "crates/ai_projections/src/domain/ai_projection_service.rs"
     owners:
       - "AI-MODEL-POLICY-001"
-    hooks: []
+    hooks:
+      - "ai_model_policy_free_tier_models"
     override: false
   - file: "crates/email/Cargo.toml"
     owners:
@@ -551,8 +552,9 @@ diffs:
     override: false
   - file: "services/document_cognition_service/src/service/chat_renamer.rs"
     owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
+      - "AI-MODEL-POLICY-001"
+    hooks:
+      - "ai_model_policy_chat_renamer"
     override: false
   - file: "services/document_storage_service/src/api/internal.rs"
     owners:
