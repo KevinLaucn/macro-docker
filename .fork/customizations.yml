@@ -1,7 +1,8 @@
 version: 1
 
-# Keep paths narrow enough to identify the fork feature that needs review.
-# Test group names are implemented by .github/workflows/upstream-sync.yml.
+# paths define the review/test watch scope and may be broad.
+# owned_paths are exact upstream-owned files intentionally allowed to differ;
+# glob patterns are forbidden there. Test groups are implemented by CI.
 customizations:
   - id: FORK-GOVERNANCE-001
     title: Private fork governance and upstream parity gates
@@ -14,6 +15,9 @@ customizations:
       - .github/scripts/check-private-hooks.rb
       - tooling/just/check.just
       - docs/FORK_DEVELOPMENT.md
+      - .fork/upstream.yml
+    owned_paths:
+      - tooling/just/check.just
     tests:
       - conventions
       - workflow-lint
@@ -42,6 +46,14 @@ customizations:
       - crates/models_email/src/email/service/contact.rs
       - apps/web/tsconfig.json
       - .fork/private-hooks.yml
+    owned_paths:
+      - apps/web/src/features/email-view/queries/use-email-query.ts
+      - apps/web/src/features/entity/extractors/entity-email-participants.tsx
+      - apps/web/src/features/entity/queries/email.ts
+      - apps/web/src/features/entity/types/entity.ts
+      - apps/web/src/lib/core/component/UserIcon.tsx
+      - apps/web/tsconfig.json
+      - crates/models_email/src/email/service/contact.rs
     tests:
       - conventions
       - email-identity
@@ -85,6 +97,27 @@ customizations:
       - .github/workflows/upstream-sync-test-group.yml
       - .github/workflows/self-host-images.yml
       - .fork/private-hooks.yml
+    owned_paths:
+      - apps/web/src/features/block-email/component/TopBar.tsx
+      - apps/web/src/features/email-compose/primitives/prepare-email-body.ts
+      - apps/web/src/features/email-message/components/collapsed-message.tsx
+      - apps/web/src/features/email-message/components/email-message-top-bar.tsx
+      - apps/web/src/features/email-view/queries/use-email-query.ts
+      - apps/web/src/features/entity/extractors/entity-icon.tsx
+      - apps/web/src/features/notifications/notification-platform.ts
+      - apps/web/src/index.css
+      - apps/web/src/lib/queries/sync/SyncProvider.tsx
+      - apps/web/vitest.config.ts
+      - crates/email_db_client/src/lib.rs
+      - crates/email_db_client/src/settings.rs
+      - crates/email_utils/src/lib.rs
+      - package.json
+      - services/email_service/src/api.rs
+      - services/email_service/src/api/email/messages.rs
+      - services/email_service/src/api/email/settings.rs
+      - services/email_service/src/main.rs
+      - services/email_service/src/openapi.rs
+      - services/email_service/src/pubsub/scheduled/process.rs
     tests:
       - conventions
       - email-rust
@@ -99,6 +132,9 @@ customizations:
       - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
       - .fork/private-hooks.yml
       - .fork/retirements.yml
+    owned_paths:
+      - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
+      - services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
     tests:
       - conventions
       - email-rust
@@ -125,6 +161,19 @@ customizations:
       - self-host/scripts/check-drift.py
       - self-host/scripts/affected-services.py
       - .github/workflows/self-host-images.yml
+    owned_paths:
+      - apps/web/src/components/app/Layout.tsx
+      - apps/web/src/features/settings/SettingsTabContent.tsx
+      - apps/web/src/lib/core/constant/SettingsState.tsx
+      - apps/web/src/lib/core/constant/settingsTabsConfig.tsx
+      - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
+      - apps/web/src/lib/service-clients/service-auth/client.ts
+      - apps/web/src/routes/Root.tsx
+      - crates/ai_projections/src/domain/ai_projection_service.rs
+      - services/authentication_service/src/api.rs
+      - services/authentication_service/src/main.rs
+      - services/authentication_service/src/openapi.rs
+      - services/document_storage_service/src/api/internal.rs
     tests:
       - conventions
       - auth-rust
@@ -144,6 +193,39 @@ customizations:
       - apps/web/src/lib/core/constant/featureFlags.ts
       - services/sync-service/wrangler.docker.toml
       - services/document_cognition_service/src/service/chat_renamer.rs
+    owned_paths:
+      - apps/web/src/lib/core/constant/featureFlags.ts
+      - docker/docker-compose-databases.yml
+      - docker/sync-service.Dockerfile
+      - docker/websocket-service.Dockerfile
+      - nix/cloud-storage.nix
+      - services/document_cognition_service/src/service/chat_renamer.rs
+      - services/sync-service/wrangler.docker.toml
+      - tooling/just/check.just
+      - tooling/just/ci.just
+      - tooling/just/database.just
+      - tooling/just/local_stack.just
+      - tooling/just/rust.just
+      - tooling/just/xtask.just
+      - tooling/xtask/crates/xtask_local/Cargo.toml
+      - tooling/xtask/crates/xtask_local/src/local.rs
+      - tooling/xtask/crates/xtask_local/src/local/cli.rs
+      - tooling/xtask/crates/xtask_local/src/local/cli/test.rs
+      - tooling/xtask/crates/xtask_local/src/local/env_layer.rs
+      - tooling/xtask/crates/xtask_local/src/local/frontend.rs
+      - tooling/xtask/crates/xtask_local/src/local/fusionauth.rs
+      - tooling/xtask/crates/xtask_local/src/local/instance.rs
+      - tooling/xtask/crates/xtask_local/src/local/instance/test.rs
+      - tooling/xtask/crates/xtask_local/src/local/inventory/test.rs
+      - tooling/xtask/crates/xtask_local/src/local/kickstart.rs
+      - tooling/xtask/crates/xtask_local/src/local/kickstart/test.rs
+      - tooling/xtask/crates/xtask_local/src/local/local_env/test.rs
+      - tooling/xtask/crates/xtask_local/src/local/localstack.rs
+      - tooling/xtask/crates/xtask_local/src/local/sandbox_image.rs
+      - tooling/xtask/crates/xtask_local/src/local/sandbox_image/test.rs
+      - tooling/xtask/crates/xtask_local/src/local/snapshot/test.rs
+      - tooling/xtask/crates/xtask_local/src/local/stack.rs
+      - tooling/xtask/crates/xtask_local/src/local/test.rs
     tests:
       - conventions
       - selfhost-config
@@ -161,6 +243,9 @@ customizations:
       - nix/cloud-storage.nix
       - Cargo.toml
       - .fork/private-hooks.yml
+    owned_paths:
+      - Cargo.toml
+      - nix/cloud-storage.nix
     tests:
       - conventions
       - selfhost-config
@@ -176,6 +261,11 @@ customizations:
       - self-host/Caddyfile
       - docker/analytics-proxy.Dockerfile
       - .github/scripts/check-zero-cloud.rb
+    owned_paths:
+      - apps/web/src/lib/analytics/analytics.ts
+      - apps/web/src/lib/analytics/posthog.tsx
+      - services/analytics-proxy/src/index.ts
+      - services/analytics-proxy/wrangler.jsonc
     tests:
       - conventions
       - selfhost-config
@@ -188,6 +278,9 @@ customizations:
       - apps/web/src/features/email-message/rendering-adapter.ts
       - packages/email-renderer/src/core/resource-policy.ts
       - .fork/private-hooks.yml
+    owned_paths:
+      - apps/web/src/features/email-message/rendering-adapter.ts
+      - packages/email-renderer/src/core/resource-policy.ts
     tests:
       - conventions
       - web
@@ -207,6 +300,62 @@ customizations:
       - apps/web/src/features/block-email/**
       - apps/web/src/features/email-message/**
       - apps/web/src/lib/service-clients/service-email/**
+    owned_paths:
+      - apps/web/src/features/block-email/component/TopBar.tsx
+      - apps/web/src/features/block-email/definition.ts
+      - apps/web/src/features/block-email/util/emailHotkeys.ts
+      - apps/web/src/features/email-message/attachment-action-adapter.ts
+      - apps/web/src/features/email-message/components/attachment-pill.tsx
+      - apps/web/src/features/email-message/components/collapsed-message.tsx
+      - apps/web/src/features/email-message/components/email-message-top-bar.tsx
+      - apps/web/src/features/email-message/components/email-user-tooltip.tsx
+      - apps/web/src/features/email-message/components/message-actions.tsx
+      - apps/web/src/features/email-message/core/email-message.ts
+      - apps/web/src/features/email-message/core/format-email-date.ts
+      - apps/web/src/features/email-message/primitives/email-message-body.ts
+      - apps/web/src/features/email-message/rendering-adapter.ts
+      - apps/web/src/features/email-message/views/email-message-body.tsx
+      - apps/web/src/lib/service-clients/service-email/client.ts
+      - apps/web/src/lib/service-clients/service-email/generated/client.ts
+      - crates/email/Cargo.toml
+      - crates/email/src/outbound/email_pg_repo.rs
+      - crates/email_db_client/src/lib.rs
+      - crates/email_db_client/src/links/get.rs
+      - crates/email_db_client/src/messages/mod.rs
+      - crates/email_db_client/src/settings.rs
+      - crates/email_utils/src/lib.rs
+      - services/email_service/Cargo.toml
+      - services/email_service/src/api.rs
+      - services/email_service/src/api/context.rs
+      - services/email_service/src/api/email/attachments.rs
+      - services/email_service/src/api/email/attachments/get.rs
+      - services/email_service/src/api/email/attachments/get_document_id.rs
+      - services/email_service/src/api/email/init.rs
+      - services/email_service/src/api/email/links.rs
+      - services/email_service/src/api/email/links/health_check.rs
+      - services/email_service/src/api/email/links/list.rs
+      - services/email_service/src/api/email/messages.rs
+      - services/email_service/src/api/email/settings.rs
+      - services/email_service/src/api/swagger.rs
+      - services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
+      - services/email_service/src/config.rs
+      - services/email_service/src/lib.rs
+      - services/email_service/src/main.rs
+      - services/email_service/src/openapi.rs
+      - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
+      - services/email_service/src/pubsub/backfill/error_handlers.rs
+      - services/email_service/src/pubsub/backfill/mod.rs
+      - services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
+      - services/email_service/src/pubsub/backfill/process.rs
+      - services/email_service/src/pubsub/context.rs
+      - services/email_service/src/pubsub/inbox_sync/operations/upsert_message.rs
+      - services/email_service/src/pubsub/inbox_sync/operations/upsert_message/test.rs
+      - services/email_service/src/pubsub/mod.rs
+      - services/email_service/src/pubsub/scheduled/process.rs
+      - services/email_service/src/pubsub/util.rs
+      - services/email_service/src/util/sync_contacts.rs
+      - services/email_service/src/util/sync_contacts/test.rs
+      - services/email_service/src/util/upload_attachment.rs
     tests:
       - conventions
       - email-rust
@@ -236,6 +385,17 @@ customizations:
       - self-host/kickstart/**
       - self-host/scripts/reconcile_fusionauth_idp.py
       - apps/web/src/lib/service-clients/service-auth/client.ts
+    owned_paths:
+      - apps/web/src/lib/service-clients/service-auth/client.ts
+      - crates/soup/src/outbound/pg_soup_repo/candidate_gates.rs
+      - services/authentication_service/Cargo.toml
+      - services/authentication_service/src/api/link/gmail.rs
+      - services/authentication_service/src/api/link/gmail/test.rs
+      - services/authentication_service/src/api/login/sso.rs
+      - services/authentication_service/src/api/oauth.rs
+      - services/authentication_service/src/api/oauth2.rs
+      - services/authentication_service/src/api/utils.rs
+      - services/authentication_service/src/main.rs
     tests:
       - conventions
       - auth-rust
@@ -259,6 +419,23 @@ customizations:
       - apps/web/src/features/companies/Company/CompanyContactsSection.tsx
       - apps/web/src/features/contacts/Contact/**
       - apps/web/vite.base.ts
+    owned_paths:
+      - apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
+      - apps/web/src/features/auth/GmailReauthenticationPrompt.tsx
+      - apps/web/src/features/block-email/component/TopBar.tsx
+      - apps/web/src/features/companies/Company/Company.tsx
+      - apps/web/src/features/companies/Company/CompanyContactsSection.tsx
+      - apps/web/src/features/contacts/Contact/Contact.tsx
+      - apps/web/src/features/contacts/Contact/ContactEmailsSection.tsx
+      - apps/web/src/features/contacts/Contact/ContactHeader.tsx
+      - apps/web/src/features/contacts/Contact/ContactMetadataSection.tsx
+      - apps/web/src/features/contacts/Contact/ContactSharingSection.tsx
+      - apps/web/src/features/email-view/components/EmailHeader.tsx
+      - apps/web/src/features/email-view/components/EmailSidebar.tsx
+      - apps/web/src/features/settings/ConnectedAccounts.tsx
+      - apps/web/src/features/settings/Integrations.tsx
+      - apps/web/vite.base.ts
+      - sgconfig.yml
     tests:
       - conventions
       - i18n
@@ -285,6 +462,20 @@ customizations:
       - apps/web/src/features/email-view/email-view.tsx
       - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
       - .fork/private-hooks.yml
+    owned_paths:
+      - apps/web/src/features/email-message/components/email-message-top-bar.tsx
+      - apps/web/src/features/email-message/primitives/email-message-body.ts
+      - apps/web/src/features/email-message/views/email-message-body.tsx
+      - apps/web/src/features/email-thread/primitives/thread-navigation.ts
+      - apps/web/src/features/email-thread/views/message-list.tsx
+      - apps/web/src/features/email-view/components/EmailControls.tsx
+      - apps/web/src/features/email-view/components/EmailHeader.tsx
+      - apps/web/src/features/email-view/components/EmailList.tsx
+      - apps/web/src/features/email-view/components/EmailSidebar.tsx
+      - apps/web/src/features/email-view/email-view.tsx
+      - apps/web/src/features/entity/composed/list-entity/email.tsx
+      - apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
+      - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
     tests:
       - conventions
       - email-translation
@@ -304,6 +495,10 @@ customizations:
       - .github/actions/setup-nix/**
       - .github/scripts/**
       - .fork/**
+    owned_paths:
+      - .github/actions/setup-nix/action.yml
+      - .github/scripts/build-cloud-storage-lambdas-nix.sh
+      - .github/scripts/build-cloud-storage-lambdas.sh
     tests:
       - conventions
       - workflow-lint
@@ -320,6 +515,12 @@ customizations:
       - apps/web/tsconfig.json
       - apps/web/vite.base.ts
       - .fork/private-hooks.yml
+    owned_paths:
+      - apps/web/src/features/block-unknown/component/Block.tsx
+      - apps/web/src/features/email-message/attachment-action-adapter.ts
+      - apps/web/src/features/email-message/components/attachment-pill.tsx
+      - apps/web/tsconfig.json
+      - apps/web/vite.base.ts
     tests:
       - conventions
       - web
