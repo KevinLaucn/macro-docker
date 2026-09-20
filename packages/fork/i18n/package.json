@@ -22,7 +22,7 @@
     "@babel/parser": "^7.26.0",
     "@babel/traverse": "^7.26.0",
     "@types/babel__traverse": "^7.20.6",
-    "magic-string": "^0.30.17",
-    "vite": "^6.0.0"
+    "magic-string": "^1.4.1",
+    "vite": "^6.4.3"
   }
 }
