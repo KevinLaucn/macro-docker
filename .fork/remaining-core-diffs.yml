@@ -594,6 +594,12 @@ diffs:
   hooks:
   - self_host_health_dss_internal_storage_probe
   override: false
+- file: services/document_storage_service/src/service/s3.rs
+  owners:
+  - SELFHOST-HEALTH-001
+  hooks:
+  - self_host_health_dss_s3_storage_probe
+  override: false
 - file: services/email_service/Cargo.toml
   owners:
   - EMAIL-SELFHOST-001

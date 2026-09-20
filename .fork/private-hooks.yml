@@ -325,6 +325,13 @@ hooks:
     expected: ".route(\"/health\", get(health_handler))"
     context:
       - "pub fn router(state: ApiContext) -> Router<ApiContext> {"
+  - id: self_host_health_dss_s3_storage_probe
+    customization: SELFHOST-HEALTH-001
+    file: services/document_storage_service/src/service/s3.rs
+    marker: "// PRIVATE-HOOK: self_host_health:dss_s3_storage_probe"
+    expected: "pub async fn health_check_document_storage_bucket(&self) -> anyhow::Result<()> {"
+    context:
+      - "impl S3Client {"
   - id: self_host_health_settings_tab
     customization: SELFHOST-HEALTH-001
     file: apps/web/src/features/settings/SettingsTabContent.tsx

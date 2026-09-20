@@ -113,7 +113,7 @@ async fn generate_chat_name(
     let response = agent::complete(
         // Chat Rename must use the same OpenAI provider configured for the
         // self-hosted production deployment; Fast maps to Anthropic.
-// PRIVATE-HOOK: ai_model_policy:chat-renamer
+        // PRIVATE-HOOK: ai_model_policy:chat-renamer
         PredefinedModel::Gpt5Mini,
         CHAT_RENAME_SYSTEM_PROMPT,
         &rename_request,

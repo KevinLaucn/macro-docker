@@ -155,6 +155,7 @@ customizations:
       - services/authentication_service/src/main.rs
       - services/authentication_service/src/openapi.rs
       - services/document_storage_service/src/api/internal.rs
+      - services/document_storage_service/src/service/s3.rs
       - apps/web/src/components/app/Layout.tsx
       - apps/web/src/lib/core/constant/SettingsState.tsx
       - apps/web/src/lib/core/constant/settingsTabsConfig.tsx
@@ -179,6 +180,7 @@ customizations:
       - services/authentication_service/src/main.rs
       - services/authentication_service/src/openapi.rs
       - services/document_storage_service/src/api/internal.rs
+      - services/document_storage_service/src/service/s3.rs
       - services/email_service/src/api/email/links/health_check.rs
       - services/authentication_service/Cargo.toml
       - crates/sqs_client/src/email.rs
