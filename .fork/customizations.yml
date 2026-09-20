@@ -74,7 +74,7 @@ customizations:
       - services/email_service/src/main.rs
       - services/email_service/src/openapi.rs
       - services/email_service/src/pubsub/scheduled/process.rs
-      - services/email_service/src/util/gmail/send/mod.rs
+      - services/email_service/src/util/gmail/send.rs
       - crates/email_db_client/src/lib.rs
       - crates/email_db_client/src/settings.rs
       - crates/email_utils/src/lib.rs
@@ -120,6 +120,7 @@ customizations:
       - services/email_service/src/main.rs
       - services/email_service/src/openapi.rs
       - services/email_service/src/pubsub/scheduled/process.rs
+      - services/email_service/src/util/gmail/send.rs
     tests:
       - conventions
       - email-rust
