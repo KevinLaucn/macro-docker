@@ -46,11 +46,12 @@ jobs:
         archive="release-artifacts/macro-source-${tag}.tar.gz"
         git archive --format=tar.gz --prefix="macro-${tag}/" -o "$archive" "$tag"
 
-        printf 'Automated release for `%s`.\n\n- Commit: `%s`\n- Workflow run: `%s`\n- Source archive: `%s`\n' \
-          "$tag" \
-          "${GITHUB_SHA}" \
-          "${GITHUB_RUN_ID}" \
-          "$(basename "$archive")" > release-artifacts/release-notes.md
+        {
+          printf 'Automated release for %s.\n\n' "$tag"
+          printf '%s\n' "- Commit: $GITHUB_SHA"
+          printf '%s\n' "- Workflow run: $GITHUB_RUN_ID"
+          printf '%s\n' "- Source archive: $(basename "$archive")"
+        } > release-artifacts/release-notes.md
     - name: Publish GitHub Release
       run: |
         set -euo pipefail
