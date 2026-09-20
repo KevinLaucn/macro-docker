@@ -159,13 +159,15 @@ jobs:
           echo "Changed paths:"
           printf '%s\n' "$changed"
           echo "Build targets: services=$run_services scheduled_action=$run_scheduled_action init=$run_init web=$run_web caddy=$run_caddy workers=$run_workers"
-          echo "run_services=$run_services" >> "$GITHUB_OUTPUT"
-          echo "run_scheduled_action=$run_scheduled_action" >> "$GITHUB_OUTPUT"
-          echo "run_init=$run_init" >> "$GITHUB_OUTPUT"
-          echo "run_web=$run_web" >> "$GITHUB_OUTPUT"
-          echo "run_caddy=$run_caddy" >> "$GITHUB_OUTPUT"
-          echo "run_workers=$run_workers" >> "$GITHUB_OUTPUT"
-          echo "run_bundle=$run_bundle" >> "$GITHUB_OUTPUT"
+          {
+            echo "run_services=$run_services"
+            echo "run_scheduled_action=$run_scheduled_action"
+            echo "run_init=$run_init"
+            echo "run_web=$run_web"
+            echo "run_caddy=$run_caddy"
+            echo "run_workers=$run_workers"
+            echo "run_bundle=$run_bundle"
+          } >> "$GITHUB_OUTPUT"
 
   services:
     name: macro-services
@@ -264,17 +266,6 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p self-host/build/bin
-
-          # Concurrency policy:
-          # Use conservative concurrency on ephemeral GitHub-hosted runners (--max-jobs 2 --cores 4).
-          # Keeping max-jobs=2 limits blast radius while allowing one extra parallel derivation.
-          # cargoBuildHook passes -j $NIX_BUILD_CORES (-j 4) to cargo inside the derivation.
-          if [ "${{ inputs.services_runner || 'github' }}" = "github" ]; then
-            echo "Applying conservative concurrency settings for GitHub hosted runner (--max-jobs 2 --cores 4)"
-            NIX_JOBS_FLAG="--max-jobs 2 --cores 4"
-          else
-            NIX_JOBS_FLAG=""
-          fi
 
           echo "Building focused email production aggregate: .#self-host-email-binaries"
 
@@ -397,9 +388,9 @@ jobs:
           # cargoBuildHook passes -j $NIX_BUILD_CORES (-j 4) to cargo inside the derivation.
           if [ "${{ inputs.services_runner || 'github' }}" = "github" ]; then
             echo "Applying conservative concurrency settings for GitHub hosted runner (--max-jobs 2 --cores 4)"
-            NIX_JOBS_FLAG="--max-jobs 2 --cores 4"
+            nix_jobs=(--max-jobs 2 --cores 4)
           else
-            NIX_JOBS_FLAG=""
+            nix_jobs=()
           fi
 
           # 3. Create live stream filter script
@@ -746,7 +737,7 @@ jobs:
 
           BUILD_NIX_START=$(date -u +%s)
           set +e
-          nix build --print-build-logs $NIX_JOBS_FLAG ".#self-host-email-binaries" --out-link result-bins 2>&1 \
+          nix build --print-build-logs "${nix_jobs[@]}" ".#self-host-email-binaries" --out-link result-bins 2>&1 \
             | tee /tmp/macro-nix-build.log \
             | python3 /tmp/filter_nix_logs.py
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
@@ -1495,7 +1486,7 @@ jobs:
           get_digest() {
             local img="$1"
             docker pull --quiet "$img" >/dev/null
-            local dig revision
+            local dig
             dig=$(docker inspect --format='{{index .RepoDigests 0}}' "$img" | cut -d'@' -f2)
             [[ "$dig" =~ ^sha256:[0-9a-f]{64}$ ]]
             echo "$dig"
