@@ -161,7 +161,6 @@ customizations:
       - apps/web/src/features/settings/Settings.tsx
       - apps/web/src/features/settings/SettingsTabContent.tsx
       - apps/web/src/lib/service-clients/service-auth/client.ts
-      - apps/web/src/routes/Root.tsx
       - self-host/scripts/check-drift.py
       - self-host/scripts/affected-services.py
       - .github/workflows/self-host-images.yml
@@ -173,7 +172,6 @@ customizations:
       - apps/web/src/lib/core/constant/SettingsState.tsx
       - apps/web/src/lib/core/constant/settingsTabsConfig.tsx
       - apps/web/src/lib/service-clients/service-auth/client.ts
-      - apps/web/src/routes/Root.tsx
       - services/authentication_service/src/api.rs
       - services/authentication_service/src/main.rs
       - services/authentication_service/src/openapi.rs
@@ -321,6 +319,7 @@ customizations:
       - apps/web/src/features/block-email/**
       - apps/web/src/features/email-message/**
       - apps/web/src/lib/service-clients/service-email/**
+      - apps/web/src/routes/Root.tsx
     owned_paths:
       - apps/web/src/features/block-email/component/TopBar.tsx
       - apps/web/src/features/block-email/definition.ts
@@ -377,6 +376,7 @@ customizations:
       - services/email_service/src/util/sync_contacts.rs
       - services/email_service/src/util/sync_contacts/test.rs
       - services/email_service/src/util/upload_attachment.rs
+      - apps/web/src/routes/Root.tsx
     tests:
       - conventions
       - email-rust
@@ -406,6 +406,7 @@ customizations:
       - self-host/kickstart/**
       - self-host/scripts/reconcile_fusionauth_idp.py
       - apps/web/src/lib/service-clients/service-auth/client.ts
+      - apps/web/src/routes/Root.tsx
     owned_paths:
       - apps/web/src/lib/service-clients/service-auth/client.ts
       - crates/soup/src/outbound/pg_soup_repo/candidate_gates.rs
@@ -417,6 +418,7 @@ customizations:
       - services/authentication_service/src/api/oauth2.rs
       - services/authentication_service/src/api/utils.rs
       - services/authentication_service/src/main.rs
+      - apps/web/src/routes/Root.tsx
     tests:
       - conventions
       - auth-rust
