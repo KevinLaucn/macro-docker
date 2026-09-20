@@ -15,13 +15,17 @@ private-hook-check:
     ruby .github/scripts/check-private-hooks.rb
 
 fork-gate:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    base="${CHECK_BASE:-$(ruby -e 'require "yaml"; puts YAML.safe_load(File.read(".fork/upstream.yml"), permitted_classes: [], aliases: false).fetch("last_merged_upstream_sha")')}"
+    echo "fork-gate upstream base: $base"
     ruby .github/scripts/check-private-hooks.rb
     ruby .github/scripts/check-fork-overrides.rb --check
-    ruby .github/scripts/check-fork-retirements.rb --upstream "${CHECK_BASE:-upstream/main}"
-    ruby .github/scripts/check-zero-cloud.rb --base "${CHECK_BASE:-upstream/main}" --head HEAD
-    ruby .github/scripts/check-telemetry-privacy.rb --base "${CHECK_BASE:-upstream/main}" --head HEAD
-    ruby .github/scripts/check-upstream-overlap.rb --base "${CHECK_BASE:-upstream/main}" --head HEAD
-    ruby .github/scripts/check-core-drift.rb "${CHECK_BASE:-upstream/main}"
+    ruby .github/scripts/check-fork-retirements.rb --upstream "$base"
+    ruby .github/scripts/check-zero-cloud.rb --base "$base" --head HEAD
+    ruby .github/scripts/check-telemetry-privacy.rb --base "$base" --head HEAD
+    ruby .github/scripts/check-upstream-overlap.rb --base "$base" --head HEAD
+    ruby .github/scripts/check-core-drift.rb --upstream "$base"
 
 check *ARGS:
     #!/usr/bin/env bash
