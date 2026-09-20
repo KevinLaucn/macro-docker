@@ -39,18 +39,37 @@ For the second diff:
 Do not independently fix non-blocking upstream bugs. A blocker-only patch needs
 exact ownership, regression coverage, and retirement evidence.
 
-## Conflict procedure
+## 7-Step Upstream Sync Procedure
 
-1. Read customizations, private-hooks, retirements, upstream anchor, and relevant
-   Fork packages before resolving.
-2. Use current upstream file content as the implementation base.
-3. Reinject only the smallest still-required Hook and adapt it to current upstream
-   APIs; do not restore an obsolete Fork copy.
-4. Keep complete Fork implementations in `packages/fork/**`.
-5. If upstream now provides equivalent behavior, remove the duplicate Fork path
-   after regression verification and retire its Hook/ownership.
-6. Regenerate generated artifacts only after source semantics are settled.
-7. Review no-conflict overlaps as well as Git conflicts.
+Every merge from `upstream/main` must follow this 7-step workflow:
+
+1. **Diff Upstream**: Inspect incoming changes via `git diff --name-status <last-merged-upstream>..<target-upstream>`.
+2. **Check Fork Files**: Verify whether fork-owned files or `.fork/` definitions were directly touched or have conflicts.
+3. **Trace Upstream Integration Seams & Dependencies**:
+   Inspect whether upstream interfaces, data structures, schemas, or call chains depended on by fork customizations have shifted (e.g. backend photo attributes, contact serialization, auth claims, tracking routes).
+4. **Adapt Affected Customizations**:
+   Adapt fork packages (`packages/fork/`) to the new upstream schemas and contracts, adhering strictly to zero core drift in upstream source files.
+5. **Run Fork Contract Gate**:
+   Execute contract and unit tests for every affected customization (e.g. `identity.test.ts`, read-receipts query tests) to ensure private features are not silently broken.
+6. **Run Self-host Smoke Gate**:
+   Execute smoke tests for official core capabilities under self-hosted infrastructure (e.g. paste screenshot upload, presigned S3 URLs, public asset access, email webhooks/pixels).
+7. **Complete Governance Validation**:
+   Validate that `just private-hook-check` (exact hook context) and `check-core-drift.rb` pass with 0 unauthorized drift before concluding sync.
+
+## Two-Gate Acceptance Criteria
+
+### 1. Fork Contract Gate
+- **Focus**: Customization integrity across integration seams.
+- **Rule**: "No diff in fork-owned files does not mean the customization is preserved."
+- **Verification**: Run declared contract tests in `customizations.yml`. Verify that UI components, API mappers, and backend adapters correctly handle upstream payload changes.
+
+### 2. Self-host Smoke Gate
+- **Focus**: Upstream official core capabilities in the self-host environment.
+- **Rule**: Upstream code changes must not break self-hosted operational contracts or fallback to unreachable endpoints (e.g. LocalStack `localhost:4566` or internal container hostnames).
+- **Verification**: Verify critical paths:
+  - Screenshot / file upload: static file upload → presigned S3 URL → storage bucket → public read.
+  - Email open tracking / webhooks: public gateway routing (`/t/*`) → backend service port.
+  - Domain configuration: service hostnames resolve correctly without hardcoded localhost fallbacks.
 
 ## Finalize governance
 

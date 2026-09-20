@@ -33,13 +33,25 @@ export function resolveAvatarWithPriority(
 }
 
 /**
- * Resolves tooltip photo URL from either explicit prop or recipient contact photo_url.
+ * Resolves tooltip photo URL from either explicit prop or recipient contact photo_url variants.
  */
 export function resolveTooltipPhotoUrl(
 	photoUrl?: string,
-	recipient?: { photo_url?: string | null } | null,
+	recipient?: {
+		photo_url?: string | null;
+		photoUrl?: string | null;
+		sfs_photo_url?: string | null;
+		sfsPhotoUrl?: string | null;
+	} | null,
 ): string | undefined {
-	return photoUrl || recipient?.photo_url || undefined;
+	return (
+		photoUrl ||
+		recipient?.photo_url ||
+		recipient?.photoUrl ||
+		recipient?.sfs_photo_url ||
+		recipient?.sfsPhotoUrl ||
+		undefined
+	);
 }
 
 

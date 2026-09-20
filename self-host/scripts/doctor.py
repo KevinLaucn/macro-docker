@@ -104,7 +104,7 @@ else:
     print(msg); failures.append(msg)
 
 # 6. Frontend Default Compose Sender Priority
-print("\n[6/6] Checking Frontend Default Compose Sender (etsy@chnprints.com)...")
+print("\n[6/7] Checking Frontend Default Compose Sender (etsy@chnprints.com)...")
 web_asset_vol = "/var/lib/docker/volumes/macro-selfhost_web_assets/_data"
 code, out = run_cmd(f"sudo grep -s 'etsy@chnprints.com' {web_asset_vol}/app-*.js")
 if code == 0 and "etsy@chnprints.com" in out:
@@ -120,6 +120,32 @@ else:
     else:
         msg = "  ❌ Frontend Default Sender: etsy@chnprints.com not found in web bundle"
         print(msg); failures.append(msg)
+
+# 7. Object Storage & SFS Presigned URL Smoke Check
+print("\n[7/7] Checking Object Storage Presigned URL & SFS External Endpoint...")
+code, out = run_cmd("docker exec macro-selfhost-static_file_service-1 env")
+if code == 0:
+    sfs_env = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+    public_s3 = sfs_env.get("LOCAL_AWS_PUBLIC_URL") or sfs_env.get("S3_ENDPOINT_URL")
+    if not public_s3:
+        msg = "  ❌ SFS Presigned URL: LOCAL_AWS_PUBLIC_URL is not set (will fallback to localhost:4566)"
+        print(msg); failures.append(msg)
+    elif "4566" in public_s3 or "localhost" in public_s3 or "localstack" in public_s3:
+        msg = f"  ❌ SFS Presigned URL: invalid external endpoint '{public_s3}' (cannot be reached by browser)"
+        print(msg); failures.append(msg)
+    else:
+        print(f"  ✅ SFS Presigned URL: external endpoint configured to {public_s3}")
+else:
+    # Fallback to checking .env directly if containers are offline
+    code_env, out_env = run_cmd("grep -E '^(LOCAL_AWS_PUBLIC_URL|S3_ENDPOINT_URL|S3_DOMAIN)=' .env 2>/dev/null")
+    if code_env == 0 and out_env:
+        if "4566" in out_env:
+            msg = "  ❌ SFS Presigned URL: .env contains internal port 4566 in public S3 config"
+            print(msg); failures.append(msg)
+        else:
+            print(f"  ✅ SFS Presigned URL: validated configuration from .env")
+    else:
+        print("  ℹ️ SFS Presigned URL: container not running and .env not found in current dir")
 
 print("\n--------------------------------------------------")
 if not failures:

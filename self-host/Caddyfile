@@ -80,6 +80,9 @@
 	handle_path /email/* {
 		reverse_proxy email-service:8080
 	}
+	handle /t/* {
+		reverse_proxy email-service:8080
+	}
 	handle_path /notification/* {
 		reverse_proxy notification-service:8080
 	}

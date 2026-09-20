@@ -14754,12 +14754,6 @@
   "Email Enhancements": [
     "features/extensions/Extensions.tsx"
   ],
-  "Awaiting reply badge": [
-    "features/extensions/Extensions.tsx"
-  ],
-  "Automatically add a tag to threads awaiting reply.": [
-    "features/extensions/Extensions.tsx"
-  ],
   "View a CRM company": [
     "features/block-company/definition.ts"
   ],

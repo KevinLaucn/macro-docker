@@ -177,6 +177,8 @@ cmd_generate_secrets() {
       v["ADMIN_EMAIL"]                          = env("ADMIN_EMAIL")
       v["MACRO_DOMAIN"]                         = env("MACRO_DOMAIN")
       v["S3_DOMAIN"]                            = env("S3_DOMAIN")
+      v["LOCAL_AWS_PUBLIC_URL"]                 = "https://" env("S3_DOMAIN")
+      v["S3_ENDPOINT_URL"]                      = "https://" env("S3_DOMAIN")
       v["FUSIONAUTH_DOMAIN"]                    = env("FUSIONAUTH_DOMAIN")
       v["ISSUER"]                               = env("MACRO_DOMAIN")
       v["MACRO_API_TOKEN_ISSUER"]               = env("MACRO_DOMAIN")

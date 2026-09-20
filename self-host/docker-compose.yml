@@ -17,6 +17,9 @@ x-service: &service
   <<: *env
   image: ${MACRO_IMAGE_SERVICES:-ghcr.io/kevinlaucn/macro-services-email}:${MACRO_VERSION:?set MACRO_VERSION in .env}
   restart: unless-stopped
+  environment:
+    LOCAL_AWS_PUBLIC_URL: ${LOCAL_AWS_PUBLIC_URL:-${S3_ENDPOINT_URL:-https://${S3_DOMAIN}}}
+    EMAIL_SERVICE_PUBLIC_URL: ${EMAIL_SERVICE_PUBLIC_URL:-https://${MACRO_DOMAIN}}
 
 x-healthcheck: &healthcheck
   interval: 30s
@@ -498,6 +501,8 @@ services:
   document_storage_service:
     <<: *service
     command: ["/app/out/document_storage_service"]
+    environment:
+      LOCAL_AWS_PUBLIC_URL: ${LOCAL_AWS_PUBLIC_URL:-${S3_ENDPOINT_URL:-https://${S3_DOMAIN}}}
     depends_on:
       postgres:
         condition: service_healthy
@@ -653,6 +658,8 @@ services:
   static_file_service:
     <<: *service
     command: ["/app/out/static_file_service"]
+    environment:
+      LOCAL_AWS_PUBLIC_URL: ${LOCAL_AWS_PUBLIC_URL:-${S3_ENDPOINT_URL:-https://${S3_DOMAIN}}}
     depends_on:
       postgres:
         condition: service_healthy

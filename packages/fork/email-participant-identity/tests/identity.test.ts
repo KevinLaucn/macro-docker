@@ -4,9 +4,11 @@ import {
 	buildThreadDisplay,
 	extractOutboundRecipients,
 	needOutboundRecipients,
+	resolveAvatarWithPriority,
 	resolveContactAvatar,
 	resolveParticipantIdentities,
 	resolveSelfEmails,
+	resolveTooltipPhotoUrl,
 } from "../index";
 
 const self = resolveSelfEmails([
@@ -195,5 +197,38 @@ describe("contact avatar policy", () => {
 		expect(
 			resolveContactAvatar("missing@example.com", contacts),
 		).toBeUndefined();
+	});
+
+	it("resolves tooltip photo URL with multiple property name fallbacks", () => {
+		expect(resolveTooltipPhotoUrl("https://direct.png")).toBe(
+			"https://direct.png",
+		);
+		expect(
+			resolveTooltipPhotoUrl(undefined, { photo_url: "https://photo_url.png" }),
+		).toBe("https://photo_url.png");
+		expect(
+			resolveTooltipPhotoUrl(undefined, { photoUrl: "https://photoUrl.png" }),
+		).toBe("https://photoUrl.png");
+		expect(
+			resolveTooltipPhotoUrl(undefined, {
+				sfs_photo_url: "https://sfs_photo_url.png",
+			}),
+		).toBe("https://sfs_photo_url.png");
+		expect(
+			resolveTooltipPhotoUrl(undefined, {
+				sfsPhotoUrl: "https://sfsPhotoUrl.png",
+			}),
+		).toBe("https://sfsPhotoUrl.png");
+		expect(resolveTooltipPhotoUrl(undefined, null)).toBeUndefined();
+	});
+
+	it("resolves avatar priority with fallback to Macro profile picture", () => {
+		expect(
+			resolveAvatarWithPriority("https://gmail.png", "https://macro.png"),
+		).toBe("https://gmail.png");
+		expect(
+			resolveAvatarWithPriority(undefined, "https://macro.png"),
+		).toBe("https://macro.png");
+		expect(resolveAvatarWithPriority(undefined, undefined)).toBeUndefined();
 	});
 });

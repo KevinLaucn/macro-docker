@@ -17,7 +17,9 @@ The unified gate must reject:
 - PRIVATE-HOOK entries without one explicit semantic customization owner;
 - missing/duplicated Hook markers or broken expected/context anchors;
 - retirement candidates that require deliberate review;
-- zero-cloud/privacy violations.
+- zero-cloud/privacy violations;
+- failed **Fork Contract Gate**: upstream dependency/schema changes that break private customization pipelines without adaptation;
+- failed **Self-host Smoke Gate**: upstream changes that break official core capabilities in self-hosted environments (e.g. paste screenshot upload, S3/presigned URLs, webhooks/tracking routing).
 
 For changed Rust SQL verify SQLx offline parity. For frontend work run scoped
 `just check`; use full checks for shared/core or broad changes. Run targeted

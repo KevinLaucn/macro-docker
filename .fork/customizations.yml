@@ -41,6 +41,14 @@ customizations:
     title: Unified Gmail self-identity and participant display
     rationale: Show all linked Gmail addresses as me while preserving distinct external contacts and existing inbox attribution avatars.
     risk: medium
+    contracts:
+      upstream_dependencies:
+        - Google Contact API
+        - contact backend photo field (photo_url / photoUrl / sfs_photo_url)
+        - email participant identity mapper
+        - EmailUserTooltip & UserIcon component seam
+      failure_mode: Missing avatar fallback to initials or empty image; schema desync
+      verification_gate: Fork Contract Gate
     paths:
       - packages/fork/email-participant-identity/**
       - apps/web/src/features/entity/extractors/entity-email-participants.tsx
@@ -70,6 +78,13 @@ customizations:
     title: Isolated read receipts and email tracking
     rationale: Keep send-side open tracking, status APIs, settings, pixel handling, and compatibility hooks in one fork-owned feature package without changing the public contract.
     risk: high
+    contracts:
+      upstream_dependencies:
+        - email tracking pixel gateway route (/t/*)
+        - email service public domain configuration
+        - email list envelope & sent status UI hooks
+      failure_mode: Tracking pixel 404; Suspense white screen / flicker on list query
+      verification_gate: Fork Contract Gate
     paths:
       - packages/fork/read-receipts/**
       - services/email_service/src/api.rs
@@ -445,16 +460,46 @@ customizations:
       - packages/fork/i18n/**
       - rules/ast-grep/**
       - sgconfig.yml
+      - apps/web/src/components/app/app-sidebar/sidebar.tsx
+      - apps/web/src/components/app/mobile/MobilePageCreateButton.tsx
       - apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
       - apps/web/src/features/auth/GmailReauthenticationPrompt.tsx
-      - apps/web/src/features/settings/ConnectedAccounts.tsx
       - apps/web/src/features/block-email/component/TopBar.tsx
-      - apps/web/src/features/email-view/components/EmailHeader.tsx
-      - apps/web/src/features/email-view/components/EmailSidebar.tsx
-      - apps/web/src/features/settings/Integrations.tsx
+      - apps/web/src/features/block-email/util/emailHotkeys.ts
+      - apps/web/src/features/block-project/component/ProjectCreateMenu.tsx
+      - apps/web/src/features/block-spreadsheet/components/SpreadsheetToolbarMenus.tsx
+      - apps/web/src/features/block-spreadsheet/core/toolbar-types.ts
+      - apps/web/src/features/calendar/utils/calendar-label.ts
+      - apps/web/src/features/channel/Channel/channel-tabs.ts
+      - apps/web/src/features/channel/CreateChannelModal.tsx
+      - apps/web/src/features/channels-view/components/ChannelsMobileView.tsx
+      - apps/web/src/features/channels-view/components/rail/ExpandedChannelsRail.tsx
+      - apps/web/src/features/command/CommandMenu.tsx
+      - apps/web/src/features/command/Launcher.tsx
       - apps/web/src/features/companies/Company/Company.tsx
       - apps/web/src/features/companies/Company/CompanyContactsSection.tsx
+      - apps/web/src/features/companies/core/crm-navigation.ts
       - apps/web/src/features/contacts/Contact/**
+      - apps/web/src/features/drive-view/core/types.ts
+      - apps/web/src/features/email-view/components/EmailHeader.tsx
+      - apps/web/src/features/email-view/components/EmailSidebar.tsx
+      - apps/web/src/features/email-view/constants.ts
+      - apps/web/src/features/entity/composed/list-entity/foreign.tsx
+      - apps/web/src/features/inbox-view/components/InboxTabs.tsx
+      - apps/web/src/features/next-soup/soup-view/empty-states.tsx
+      - apps/web/src/features/next-soup/soup-view/filters-bar/search/search-facets.tsx
+      - apps/web/src/features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx
+      - apps/web/src/features/next-soup/soup-view/group-options.ts
+      - apps/web/src/features/next-soup/soup-view/soup-view-create-button.tsx
+      - apps/web/src/features/next-soup/soup-view/tab-lists.ts
+      - apps/web/src/features/notifications/notification-event-catalog.ts
+      - apps/web/src/features/property/utils/errorHandling.ts
+      - apps/web/src/features/settings/ConnectedAccounts.tsx
+      - apps/web/src/features/settings/Integrations.tsx
+      - apps/web/src/features/settings/Shortcuts.tsx
+      - apps/web/src/features/tasks-view/constants.ts
+      - apps/web/src/lib/core/component/TopBar/linkShare.ts
+      - apps/web/src/lib/core/constant/PaywallState.tsx
       - apps/web/vite.base.ts
     owned_paths:
       - apps/web/src/components/app/app-sidebar/sidebar.tsx

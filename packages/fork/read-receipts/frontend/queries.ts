@@ -324,7 +324,7 @@ export function useEmailListEnvelopeHighlight(
 
   return () => {
     if (!isEligible()) return false;
-    const data = query.data;
+    const data = query.isSuccess ? query.data : undefined;
     return Boolean(data?.is_opened);
   };
 }

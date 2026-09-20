@@ -115,6 +115,7 @@ function ParticipantWithTooltip(props: {
           displayName={tooltipName()}
           email={props.participant.email}
           id={macroId()}
+          photoUrl={(props.participant as { photoUrl?: string }).photoUrl}
           onClose={() => setOpen(false)}
         />
       }
@@ -141,8 +142,12 @@ export function resolveParticipants(
       ) ?? {
         email: identity.email,
       };
+      const photoUrl =
+        (participant as { photoUrl?: string }).photoUrl ??
+        identity.photoUrl ??
+        undefined;
       return {
-        participant,
+        participant: { ...participant, photoUrl },
         displayName: identity.isSelf
           ? identity.label
           : resolveParticipantName(
@@ -218,6 +223,9 @@ export function EntityEmailParticipants(props: { entity: EmailEntity }) {
     return {
       email: props.entity.senderEmail,
       name: props.entity.senderName,
+      photoUrl:
+        (props.entity as { senderPhotoUrl?: string }).senderPhotoUrl ??
+        undefined,
     };
   };
 
@@ -237,8 +245,19 @@ export function EntityEmailParticipants(props: { entity: EmailEntity }) {
       const original = allParticipants.find(
         (p) => normalizeEmail(p.email) === normalizeEmail(identity.email)
       ) ?? { email: identity.email, name: identity.label };
+      const photoUrl =
+        (original as { photoUrl?: string }).photoUrl ??
+        identity.photoUrl ??
+        (normalizeEmail(identity.email) ===
+        normalizeEmail(props.entity.senderEmail ?? '')
+          ? (props.entity as { senderPhotoUrl?: string }).senderPhotoUrl ??
+            undefined
+          : undefined);
       return {
-        participant: original,
+        participant: {
+          ...original,
+          photoUrl,
+        },
         displayName: identity.isSelf
           ? identity.label
           : resolveParticipantName(original, fetchDisplayName(identity.email)),

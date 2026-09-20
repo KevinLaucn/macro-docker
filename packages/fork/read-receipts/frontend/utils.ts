@@ -67,7 +67,10 @@ export function formatReadReceiptTime(date: Date): string {
  * - Multiple opens: `Opened {time} · {count} times` / `{time} 已打开 · {count} 次`
  * - Tracking disabled: `Open tracking off` / `打开追踪已关闭`
  */
-export function formatReadReceiptStatus(status?: ReadReceiptStatusData): {
+export function formatReadReceiptStatus(status?: {
+  open_count?: number;
+  last_opened_at?: string | null;
+}): {
   label: string;
   tooltip: string;
 } {

@@ -4,7 +4,10 @@ import { cn, Tooltip } from '@ui';
 import { createMemo, Show } from 'solid-js';
 import { useEmail } from '@core/context/user';
 import { useEmailLinksQuery } from '@queries/email/link';
-import { useReadReceiptStatusQuery } from './queries';
+import {
+  useReadReceiptStatusQuery,
+  useThreadReadReceiptStatusQuery,
+} from './queries';
 import { formatReadReceiptStatus } from './utils';
 
 export interface ReadReceiptStatusProps {
@@ -79,6 +82,53 @@ export function ReadReceiptStatus(props: ReadReceiptStatusProps) {
           </Show>
           <Show when={!props.showIconOnly}>
             <span>{formatted().label}</span>
+          </Show>
+        </span>
+      </Tooltip>
+    </Show>
+  );
+}
+
+export interface ThreadReadReceiptStatusProps {
+  threadId: string;
+  class?: string;
+  showIconOnly?: boolean;
+}
+
+export function ThreadReadReceiptStatus(props: ThreadReadReceiptStatusProps) {
+  const query = useThreadReadReceiptStatusQuery(
+    () => props.threadId,
+    () => Boolean(props.threadId)
+  );
+
+  const isOpened = () =>
+    Boolean(query.isSuccess && query.data?.is_opened);
+
+  const formatted = createMemo(() => {
+    const data = query.isSuccess ? query.data : undefined;
+    return formatReadReceiptStatus(data);
+  });
+
+  return (
+    <Show when={Boolean(query.isSuccess && query.data?.latest_sent_message_id)}>
+      <Tooltip label={formatted().tooltip}>
+        <span
+          class={cn(
+            'inline-flex items-center justify-center text-xs cursor-default shrink-0',
+            isOpened() ? 'text-orange' : 'text-ink-extra-muted',
+            props.class
+          )}
+        >
+          <Show
+            when={isOpened()}
+            fallback={
+              <CheckIcon class="size-3.5 stroke-current [stroke-width:12px]" />
+            }
+          >
+            <ChecksIcon class="size-3.5 stroke-current [stroke-width:12px]" />
+          </Show>
+          <Show when={!props.showIconOnly}>
+            <span class="ml-1">{formatted().label}</span>
           </Show>
         </span>
       </Tooltip>

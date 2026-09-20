@@ -66,6 +66,24 @@ test, and retirement condition when upstream can absorb it.
 7. Prefer native Just/xtask/Compose/migration/reconcile paths over workarounds.
 8. Push/PR/merge/deploy only with explicit user intent.
 
+## Core Maintainer Hard Rule
+
+> **"No diff in fork-owned files does not mean the customization is preserved."**
+> Every fork customization must monitor and verify its upstream dependencies, API schemas, data flow, callers, and runtime configuration. When upstream refactors or modifies an integration seam, the customization must be verified and adapted end-to-end, rather than solely checking whether PRIVATE-HOOK markers exist.
+
+## Two-Gate Verification Contract
+
+Upstream sync and pre-push validation must enforce two complementary gates:
+
+1. **Fork Contract Gate**: Guarantees that private fork customizations are not silently or indirectly broken by upstream changes.
+   - **Canonical Case (Gmail Avatar)**:
+     `Google Contact → Backend photo field → API schema → Frontend mapper → EmailUserTooltip → UserIcon`
+     Even if `UserIcon.tsx` has 0 diff, when upstream changes field naming (`photo_url` vs `photoUrl`), serialization, or mapper signatures, the seam must be adapted to preserve avatar display.
+2. **Self-host Smoke Gate**: Guarantees that upstream official core capabilities continue to function properly under the self-hosted infrastructure and environment.
+   - **Canonical Case (Paste Screenshot)**:
+     `Paste → Static File upload → Presigned URL → Object storage (LocalStack/S3) → Public access`
+     Does not use PRIVATE-HOOK, but sync must smoke-test this pipeline to prevent broken host endpoints (such as `http://localhost:4566/... ERR_CONNECTION_REFUSED`).
+
 ## Machine governance
 
 `just fork-gate` is the only machine entrypoint. Normal development defaults to
