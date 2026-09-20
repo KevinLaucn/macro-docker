@@ -44,7 +44,12 @@ jobs:
               entry = manifest.fetch("customizations").find { |item| item.fetch("id") == "FORK-CI-001" }
               abort "FORK-CI-001 missing" unless entry
               entry.fetch("paths")
-                .select { |path| path.match?(%r{\\A\\.github/workflows/[^*?\\[]+\\.ya?ml\\z}) && File.file?(path) }
+                .select do |path|
+                  path.start_with?(".github/workflows/") &&
+                    (path.end_with?(".yml") || path.end_with?(".yaml")) &&
+                    !path.include?("*") && !path.include?("?") && !path.include?("[") &&
+                    File.file?(path)
+                end
                 .sort
                 .each { |path| puts path }
             '
