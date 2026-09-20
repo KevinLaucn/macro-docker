@@ -27,8 +27,14 @@ abort "manifest version must be 1" unless manifest.is_a?(Hash) && manifest["vers
 entries = manifest["customizations"]
 abort "customizations must be a non-empty array" unless entries.is_a?(Array) && !entries.empty?
 
+def covered?(pattern, path)
+  recursive_prefix = pattern.end_with?("/**") ? pattern.delete_suffix("/**") : nil
+  File.fnmatch?(pattern, path, File::FNM_PATHNAME | File::FNM_EXTGLOB) ||
+    (recursive_prefix && (path == recursive_prefix || path.start_with?("#{recursive_prefix}/")))
+end
+
 allowed_risks = %w[low medium high].freeze
-  allowed_tests = %w[auth-rust conventions email-identity email-rust email-translation i18n selfhost-config web workflow-lint].freeze
+allowed_tests = %w[auth-rust conventions email-identity email-rust email-translation i18n selfhost-config web workflow-lint].freeze
 ids = {}
 entries.each_with_index do |entry, index|
   prefix = "customizations[#{index}]"
@@ -49,6 +55,14 @@ entries.each_with_index do |entry, index|
     abort "#{id}.#{key} must be a non-empty string array" unless values.is_a?(Array) && !values.empty? && values.all? { |value| value.is_a?(String) && !value.empty? }
   end
   abort "#{id}.paths may not cover the entire repository" if entry["paths"].any? { |path| ["*", "**", "**/*"].include?(path) }
+
+  owned_paths = entry["owned_paths"] || []
+  abort "#{id}.owned_paths must be a string array" unless owned_paths.is_a?(Array) && owned_paths.all? { |value| value.is_a?(String) && !value.empty? }
+  wildcard_owned = owned_paths.select { |path| path.match?(/[?*\[]/) }
+  abort "#{id}.owned_paths must contain exact paths only: #{wildcard_owned.join(', ')}" unless wildcard_owned.empty?
+  outside_watch = owned_paths.reject { |path| entry["paths"].any? { |pattern| covered?(pattern, path) } }
+  abort "#{id}.owned_paths are outside paths watch scope: #{outside_watch.join(', ')}" unless outside_watch.empty?
+
   unknown_tests = entry["tests"] - allowed_tests
   abort "#{id}.tests contains unknown groups: #{unknown_tests.join(', ')}" unless unknown_tests.empty?
 end
@@ -59,11 +73,7 @@ changed_paths = stdout.lines(chomp: true).reject(&:empty?)
 
 hits = entries.map do |entry|
   matched = changed_paths.select do |path|
-    entry["paths"].any? do |pattern|
-      recursive_prefix = pattern.end_with?("/**") ? pattern.delete_suffix("/**") : nil
-      File.fnmatch?(pattern, path, File::FNM_PATHNAME | File::FNM_EXTGLOB) ||
-        (recursive_prefix && (path == recursive_prefix || path.start_with?("#{recursive_prefix}/")))
-    end
+    entry["paths"].any? { |pattern| covered?(pattern, path) }
   end
   entry.merge("matched_paths" => matched) unless matched.empty?
 end.compact
