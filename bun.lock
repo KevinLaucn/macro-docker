@@ -225,6 +225,80 @@
         "vitest": "5.0.1",
       },
     },
+    "packages/fork/adobe-preview": {
+      "name": "@macro/adobe-preview",
+      "version": "0.1.0",
+      "dependencies": {
+        "@macro/i18n": "workspace:*",
+        "solid-js": "^1.9.7",
+        "utif": "^3.1.0"
+      },
+      "devDependencies": {
+        "@types/utif": "^3.0.6",
+        "typescript": "^5.9.3"
+      }
+    },
+    "packages/fork/email-participant-identity": {
+      "name": "@macro/email-participant-identity",
+      "version": "0.1.0",
+      "dependencies": {
+        "solid-js": "^1.9.7"
+      },
+      "devDependencies": {
+        "@types/node": "^24.8.0",
+        "typescript": "^5.9.3",
+        "vite": "^6.4.1",
+        "vitest": "5.0.1"
+      }
+    },
+    "packages/fork/email-translation": {
+      "name": "@macro/email-translation",
+      "version": "0.1.0",
+      "dependencies": {
+        "@macro/i18n": "workspace:*",
+        "solid-js": "^1.9.7"
+      },
+      "devDependencies": {
+        "@types/node": "^24.8.0",
+        "typescript": "^5.9.3",
+        "vite": "^6.4.1",
+        "vitest": "5.0.1"
+      }
+    },
+    "packages/fork/i18n": {
+      "name": "@macro/i18n",
+      "version": "0.1.0",
+      "dependencies": {
+        "solid-js": "^1.9.7"
+      },
+      "devDependencies": {
+        "@babel/parser": "^7.26.0",
+        "@babel/traverse": "^7.26.0",
+        "@types/babel__traverse": "^7.20.6",
+        "magic-string": "^1.4.1",
+        "vite": "^6.4.3"
+      }
+    },
+    "packages/fork/read-receipts": {
+      "name": "@macro/fork-read-receipts",
+      "version": "0.1.0",
+      "dependencies": {
+        "@macro/i18n": "workspace:*",
+        "@tanstack/solid-query": "5.90.3",
+        "date-fns": "^4.1.0",
+        "neverthrow": "^8.2.0",
+        "solid-js": "^1.9.7"
+      }
+    },
+    "packages/fork/self-host-health": {
+      "name": "@macro/self-host-health",
+      "version": "0.1.0",
+      "dependencies": {
+        "@macro/i18n": "workspace:*",
+        "@tanstack/solid-query": "5.90.3",
+        "solid-js": "^1.9.7"
+      }
+    },
     "packages/lexical-core": {
       "name": "@macro-inc/lexical-core",
       "version": "0.2.2",
@@ -1188,6 +1262,18 @@
 
     "@macro-inc/spreadsheet": ["@macro-inc/spreadsheet@workspace:packages/spreadsheet"],
 
+    "@macro/adobe-preview": ["@macro/adobe-preview@workspace:packages/fork/adobe-preview"],
+
+    "@macro/email-participant-identity": ["@macro/email-participant-identity@workspace:packages/fork/email-participant-identity"],
+
+    "@macro/email-translation": ["@macro/email-translation@workspace:packages/fork/email-translation"],
+
+    "@macro/i18n": ["@macro/i18n@workspace:packages/fork/i18n"],
+
+    "@macro/fork-read-receipts": ["@macro/fork-read-receipts@workspace:packages/fork/read-receipts"],
+
+    "@macro/self-host-health": ["@macro/self-host-health@workspace:packages/fork/self-host-health"],
+
     "@marijn/find-cluster-break": ["@marijn/find-cluster-break@1.0.3", "", {}, "sha512-FY+MKLBoTsLNJF/eLWaOsXGdz6uh3Iu1axjPf6TUq92IYumcTcXWHoS747JARLkcdlJ/Waiaxc5wQfFO8jC6NA=="],
 
     "@mediapipe/tasks-vision": ["@mediapipe/tasks-vision@0.10.14", "", {}, "sha512-vOifgZhkndgybdvoRITzRkIueWWSiCKuEUXXK6Q4FaJsFvRJuwgg++vqFUMlL0Uox62U5aEXFhHxlhV7Ja5e3Q=="],
@@ -1733,6 +1819,8 @@
     "@types/unist": ["@types/unist@3.0.3", "", {}, "sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q=="],
 
     "@types/urijs": ["@types/urijs@1.19.26", "", {}, "sha512-wkXrVzX5yoqLnndOwFsieJA7oKM8cNkOKJtf/3vVGSUFkWDKZvFHpIl9Pvqb/T9UsawBBFMTTD8xu7sK5MWuvg=="],
+
+    "@types/utif": ["@types/utif@3.0.6", "", { "dependencies": { "@types/node": "*" } }, "sha512-4XHDJkLHoUeLA2P/VOd6dpDJpSTpV84tN9EyHojZrW22jtUR0VrdLwVRUAw+oI3g72vSzOo+YQOzfwcW6WYHLw=="],
 
     "@types/uuid": ["@types/uuid@10.0.0", "", {}, "sha512-7gqG38EyHgyP1S+7+xomFtL+ZNHcKv6DwNaCZmJmo1vgMugyF3TCnXVg4t1uk89mLNwnLtnY3TpOpCOyp1/xHQ=="],
 
@@ -3531,6 +3619,8 @@
     "util-deprecate": ["util-deprecate@1.0.2", "", {}, "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw=="],
 
     "utility-types": ["utility-types@3.11.0", "", {}, "sha512-6Z7Ma2aVEWisaL6TvBCy7P8rm2LQoPv6dJ7ecIaIixHcwfbJ0x7mWdbcwlIM5IGQxPZSFYeqRCqlOOeKoJYMkw=="],
+
+    "utif": ["utif@3.1.0", "", { "dependencies": { "pako": "^1.0.5" } }, "sha512-WEo4D/xOvFW53K5f5QTaTbbiORcm2/pCL9P6qmJnup+17eYfKaEhDeX9PeQkuyEoIxlbGklDuGl8xwuXYMrrXQ=="],
 
     "uuid": ["uuid@10.0.0", "", { "bin": { "uuid": "dist/bin/uuid" } }, "sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ=="],
 
