@@ -5,6 +5,7 @@ publish = false
 version = "0.1.0"
 
 [features]
+cli = ["dep:tokio"]
 comment-import = [
   "dep:clap",
   "dep:database_env_vars",
@@ -16,6 +17,10 @@ comment-import = [
   "dep:tokio",
   "dep:tracing",
 ]
+
+[[bin]]
+name = "macro_db_migrate"
+required-features = ["cli"]
 
 [[bin]]
 name = "comment_import"

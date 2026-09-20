@@ -48,6 +48,7 @@ RUN cd services/sync-service/bebop && npx bebopc build
 # BuildKit layer invalidations so branch reconciliation stays incremental.
 RUN --mount=type=cache,id=macro-sync-cargo-registry,target=/usr/local/cargo/registry \
     --mount=type=cache,id=macro-sync-cargo-target,target=/app/target \
+    sed -i '/search-upload-worker/d' /app/Cargo.toml && \
     cd services/sync-service && worker-build --profile sync-service-release
 
 # Runtime: wrangler dev serving the prebuilt worker. Needs node + the

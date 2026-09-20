@@ -1,886 +1,901 @@
 ---
 version: 2
-upstream_sha: "fb311529664c27e10c1ab4d3cd19a4a9ca928eb3"
+upstream_sha: fb311529664c27e10c1ab4d3cd19a4a9ca928eb3
 diffs:
-  - file: ".github/actions/setup-nix/action.yml"
-    owners:
-      - "FORK-CI-001"
-    hooks: []
-    override: false
-  - file: ".github/scripts/build-cloud-storage-lambdas-nix.sh"
-    owners:
-      - "FORK-CI-001"
-    hooks: []
-    override: false
-  - file: ".github/scripts/build-cloud-storage-lambdas.sh"
-    owners:
-      - "FORK-CI-001"
-    hooks: []
-    override: false
-  - file: "Cargo.toml"
-    owners:
-      - "SELFHOST-SEARCH-UPLOAD-001"
-    hooks:
-      - "search_upload_worker_workspace_member"
-    override: false
-  - file: "apps/web/src/components/app/Layout.tsx"
-    owners:
-      - "SELFHOST-HEALTH-001"
-    hooks:
-      - "self_host_health_prompt"
-      - "self_host_health_prompt_import"
-    override: false
-  - file: "apps/web/src/features/auth/GithubReauthenticationPrompt.tsx"
-    owners:
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/auth/GmailReauthenticationPrompt.tsx"
-    owners:
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/block-email/component/TopBar.tsx"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "I18N-ZH-CN-001"
-      - "READ-RECEIPTS-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/block-email/definition.ts"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/block-email/util/emailHotkeys.ts"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/block-unknown/component/Block.tsx"
-    owners:
-      - "ADOBE-ATTACHMENT-PREVIEW-001"
-    hooks:
-      - "adobe_preview_fallback_preview"
-    override: false
-  - file: "apps/web/src/features/companies/Company/Company.tsx"
-    owners:
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/companies/Company/CompanyContactsSection.tsx"
-    owners:
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/contacts/Contact/Contact.tsx"
-    owners:
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/contacts/Contact/ContactEmailsSection.tsx"
-    owners:
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/contacts/Contact/ContactHeader.tsx"
-    owners:
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/contacts/Contact/ContactMetadataSection.tsx"
-    owners:
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/contacts/Contact/ContactSharingSection.tsx"
-    owners:
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/email-compose/primitives/prepare-email-body.ts"
-    owners:
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_strip_own_pixels"
-    override: false
-  - file: "apps/web/src/features/email-message/attachment-action-adapter.ts"
-    owners:
-      - "ADOBE-ATTACHMENT-PREVIEW-001"
-      - "EMAIL-SELFHOST-001"
-    hooks:
-      - "adobe_preview_open_action"
-    override: false
-  - file: "apps/web/src/features/email-message/components/attachment-pill.tsx"
-    owners:
-      - "ADOBE-ATTACHMENT-PREVIEW-001"
-      - "EMAIL-SELFHOST-001"
-    hooks:
-      - "adobe_preview_pill_badge"
-    override: false
-  - file: "apps/web/src/features/email-message/components/collapsed-message.tsx"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "EMAIL-TRANSLATION-001"
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_sent_status_collapsed"
-      - "email_translation_collapsed_snippet"
-    override: false
-  - file: "apps/web/src/features/email-message/components/email-message-top-bar.tsx"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "EMAIL-TRANSLATION-001"
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_sent_status_topbar"
-      - "email_translation_message"
-    override: false
-  - file: "apps/web/src/features/email-message/components/email-user-tooltip.tsx"
-    owners:
-      - "EMAIL-PARTICIPANT-IDENTITY-001"
-      - "EMAIL-SELFHOST-001"
-    hooks:
-      - "email_identity_tooltip_photo"
-    override: false
-  - file: "apps/web/src/features/email-message/components/message-actions.tsx"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/email-message/core/email-message.ts"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/email-message/core/format-email-date.ts"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/email-message/primitives/email-message-body.ts"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "EMAIL-TRANSLATION-001"
-    hooks:
-      - "email_translation_body_props"
-      - "email_translation_body_render_source"
-    override: false
-  - file: "apps/web/src/features/email-message/rendering-adapter.ts"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "SELFHOST-MEDIA-001"
-    hooks:
-      - "self_host_media_bypass_image_proxy"
-    override: false
-  - file: "apps/web/src/features/email-message/views/email-message-body.tsx"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "EMAIL-TRANSLATION-001"
-    hooks:
-      - "email_translation_body_markdown"
-      - "email_translation_body_state"
-    override: false
-  - file: "apps/web/src/features/email-thread/primitives/thread-navigation.ts"
-    owners:
-      - "EMAIL-TRANSLATION-001"
-    hooks:
-      - "email_translation_thread_keyboard"
-    override: false
-  - file: "apps/web/src/features/email-thread/views/message-list.tsx"
-    owners:
-      - "EMAIL-TRANSLATION-001"
-    hooks:
-      - "email_translation_thread"
-    override: false
-  - file: "apps/web/src/features/email-view/components/EmailControls.tsx"
-    owners:
-      - "EMAIL-TRANSLATION-001"
-    hooks:
-      - "email_translation_email_list_toolbar"
-    override: false
-  - file: "apps/web/src/features/email-view/components/EmailHeader.tsx"
-    owners:
-      - "EMAIL-TRANSLATION-001"
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/email-view/components/EmailList.tsx"
-    owners:
-      - "EMAIL-TRANSLATION-001"
-    hooks:
-      - "email_translation_email_list_keyboard"
-    override: false
-  - file: "apps/web/src/features/email-view/components/EmailSidebar.tsx"
-    owners:
-      - "EMAIL-TRANSLATION-001"
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/email-view/email-view.tsx"
-    owners:
-      - "EMAIL-TRANSLATION-001"
-    hooks:
-      - "email_translation_view_provider"
-    override: false
-  - file: "apps/web/src/features/email-view/queries/use-email-query.ts"
-    owners:
-      - "EMAIL-PARTICIPANT-IDENTITY-001"
-      - "READ-RECEIPTS-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/entity/composed/list-entity/email.tsx"
-    owners:
-      - "EMAIL-TRANSLATION-001"
-    hooks:
-      - "email_translation_list_row"
-      - "email_translation_list_row_auto"
-    override: false
-  - file: "apps/web/src/features/entity/extractors/entity-email-participants.tsx"
-    owners:
-      - "EMAIL-PARTICIPANT-IDENTITY-001"
-    hooks:
-      - "email_identity_participants"
-    override: false
-  - file: "apps/web/src/features/entity/extractors/entity-icon.tsx"
-    owners:
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_list_envelope"
-    override: false
-  - file: "apps/web/src/features/entity/queries/email.ts"
-    owners:
-      - "EMAIL-PARTICIPANT-IDENTITY-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/entity/types/entity.ts"
-    owners:
-      - "EMAIL-PARTICIPANT-IDENTITY-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx"
-    owners:
-      - "EMAIL-TRANSLATION-001"
-    hooks:
-      - "email_translation_list_toolbar"
-    override: false
-  - file: "apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts"
-    owners:
-      - "EMAIL-TRANSLATION-001"
-    hooks:
-      - "email_translation_list_keyboard"
-    override: false
-  - file: "apps/web/src/features/notifications/notification-platform.ts"
-    owners:
-      - "READ-RECEIPTS-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/settings/ConnectedAccounts.tsx"
-    owners:
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/settings/Integrations.tsx"
-    owners:
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/features/settings/SettingsTabContent.tsx"
-    owners:
-      - "SELFHOST-HEALTH-001"
-    hooks:
-      - "self_host_health_settings_import"
-      - "self_host_health_settings_tab"
-    override: false
-  - file: "apps/web/src/index.css"
-    owners:
-      - "READ-RECEIPTS-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/lib/analytics/analytics.ts"
-    owners:
-      - "TELEMETRY-PRIVACY-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/lib/analytics/posthog.tsx"
-    owners:
-      - "TELEMETRY-PRIVACY-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/lib/core/component/UserIcon.tsx"
-    owners:
-      - "EMAIL-PARTICIPANT-IDENTITY-001"
-    hooks:
-      - "email_identity_avatar_priority"
-    override: false
-  - file: "apps/web/src/lib/core/constant/SettingsState.tsx"
-    owners:
-      - "SELFHOST-HEALTH-001"
-    hooks:
-      - "self_host_health_settings_tab_type"
-    override: false
-  - file: "apps/web/src/lib/core/constant/featureFlags.ts"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks:
-      - "selfhost_runtime_capabilities"
-      - "selfhost_runtime_direct_attachment_flag"
-      - "selfhost_runtime_feature_flag_overrides"
-    override: false
-  - file: "apps/web/src/lib/core/constant/settingsTabsConfig.tsx"
-    owners:
-      - "SELFHOST-HEALTH-001"
-    hooks:
-      - "self_host_health_settings_icon"
-      - "self_host_health_settings_item"
-      - "self_host_health_settings_slug"
-    override: false
-  - file: "apps/web/src/lib/queries/ai/createHomeRecommendations.ts"
-    owners:
-      - "AI-MODEL-POLICY-001"
-    hooks: []
-    override: true
-  - file: "apps/web/src/lib/queries/sync/SyncProvider.tsx"
-    owners:
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_realtime_event"
-    override: false
-  - file: "apps/web/src/lib/service-clients/service-auth/client.ts"
-    owners:
-      - "AUTH-SELFHOST-001"
-      - "SELFHOST-HEALTH-001"
-    hooks:
-      - "self_host_health_client_method"
-      - "self_host_health_client_type_import"
-      - "self_host_health_repair_method"
-    override: false
-  - file: "apps/web/src/lib/service-clients/service-email/client.ts"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/lib/service-clients/service-email/generated/client.ts"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "apps/web/src/routes/Root.tsx"
-    owners:
-      - "AUTH-SELFHOST-001"
-      - "EMAIL-SELFHOST-001"
-    hooks:
-      - "auth_selfhost_root_user_id"
-      - "email_selfhost_root_init_user_id"
-    override: false
-  - file: "apps/web/tsconfig.json"
-    owners:
-      - "ADOBE-ATTACHMENT-PREVIEW-001"
-      - "EMAIL-PARTICIPANT-IDENTITY-001"
-    hooks: []
-    override: false
-  - file: "apps/web/vite.base.ts"
-    owners:
-      - "ADOBE-ATTACHMENT-PREVIEW-001"
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "apps/web/vitest.config.ts"
-    owners:
-      - "READ-RECEIPTS-001"
-    hooks: []
-    override: false
-  - file: "bun.lock"
-    owners:
-      - "FORK-PACKAGES-001"
-    hooks: []
-    override: false
-  - file: "crates/ai_projections/src/domain/ai_projection_service.rs"
-    owners:
-      - "AI-MODEL-POLICY-001"
-    hooks:
-      - "ai_model_policy_free_tier_models"
-    override: false
-  - file: "crates/email/Cargo.toml"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "crates/email/src/outbound/email_pg_repo.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "crates/email_db_client/src/lib.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_db_module"
-    override: false
-  - file: "crates/email_db_client/src/links/get.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "crates/email_db_client/src/messages/mod.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "crates/email_db_client/src/settings.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_legacy_settings_api"
-    override: false
-  - file: "crates/email_utils/src/lib.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_utils_module"
-    override: false
-  - file: "crates/models_email/src/email/service/contact.rs"
-    owners:
-      - "EMAIL-PARTICIPANT-IDENTITY-001"
-    hooks: []
-    override: false
-  - file: "crates/soup/src/outbound/pg_soup_repo/candidate_gates.rs"
-    owners:
-      - "AUTH-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "docker/docker-compose-databases.yml"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "docker/sync-service.Dockerfile"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "docker/websocket-service.Dockerfile"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "nix/cloud-storage.nix"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-      - "SELFHOST-SEARCH-UPLOAD-001"
-    hooks: []
-    override: false
-  - file: "package.json"
-    owners:
-      - "FORK-PACKAGES-001"
-    hooks: []
-    override: false
-  - file: "packages/email-renderer/src/core/resource-policy.ts"
-    owners:
-      - "SELFHOST-MEDIA-001"
-    hooks: []
-    override: false
-  - file: "services/analytics-proxy/src/index.ts"
-    owners:
-      - "TELEMETRY-PRIVACY-001"
-    hooks: []
-    override: false
-  - file: "services/analytics-proxy/wrangler.jsonc"
-    owners:
-      - "TELEMETRY-PRIVACY-001"
-    hooks: []
-    override: false
-  - file: "services/authentication_service/Cargo.toml"
-    owners:
-      - "AUTH-SELFHOST-001"
-      - "SELFHOST-HEALTH-001"
-    hooks:
-      - "self_host_health_auth_sqs_gmail_feature"
-    override: false
-  - file: "services/authentication_service/src/api.rs"
-    owners:
-      - "SELFHOST-HEALTH-001"
-    hooks:
-      - "self_host_health_admin_route"
-    override: false
-  - file: "services/authentication_service/src/api/link/gmail.rs"
-    owners:
-      - "AUTH-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/authentication_service/src/api/link/gmail/test.rs"
-    owners:
-      - "AUTH-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/authentication_service/src/api/login/sso.rs"
-    owners:
-      - "AUTH-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/authentication_service/src/api/oauth.rs"
-    owners:
-      - "AUTH-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/authentication_service/src/api/oauth2.rs"
-    owners:
-      - "AUTH-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/authentication_service/src/api/utils.rs"
-    owners:
-      - "AUTH-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/authentication_service/src/main.rs"
-    owners:
-      - "AUTH-SELFHOST-001"
-      - "SELFHOST-HEALTH-001"
-    hooks:
-      - "self_host_health_features"
-      - "self_host_health_gmail_queue_probe_wiring"
-    override: false
-  - file: "services/authentication_service/src/openapi.rs"
-    owners:
-      - "SELFHOST-HEALTH-001"
-    hooks:
-      - "self_host_health_openapi_features"
-    override: false
-  - file: "services/document_cognition_service/src/service/chat_renamer.rs"
-    owners:
-      - "AI-MODEL-POLICY-001"
-    hooks:
-      - "ai_model_policy_chat_renamer"
-    override: false
-  - file: "services/document_storage_service/src/api/internal.rs"
-    owners:
-      - "SELFHOST-HEALTH-001"
-    hooks:
-      - "self_host_health_dss_internal_storage_probe"
-    override: false
-  - file: "services/email_service/Cargo.toml"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/api.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_public_router"
-    override: false
-  - file: "services/email_service/src/api/context.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/api/email/attachments.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/api/email/attachments/get.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/api/email/attachments/get_document_id.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/api/email/init.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/api/email/links.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/api/email/links/health_check.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "SELFHOST-HEALTH-001"
-    hooks:
-      - "self_host_health_email_probe"
-    override: false
-  - file: "services/email_service/src/api/email/links/list.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/api/email/messages.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_messages_router"
-    override: false
-  - file: "services/email_service/src/api/email/settings.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_settings_router"
-    override: false
-  - file: "services/email_service/src/api/swagger.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/bin/pubsub_workers/pubsub_workers.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks:
-      - "email_selfhost_local_poller_gate"
-    override: false
-  - file: "services/email_service/src/config.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/lib.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/main.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_features"
-    override: false
-  - file: "services/email_service/src/openapi.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_features_openapi"
-    override: false
-  - file: "services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs"
-    owners:
-      - "CRM-MULTI-INBOX-001"
-      - "EMAIL-SELFHOST-001"
-    hooks:
-      - "crm_backfill_depopulate_all_inboxes"
-    override: false
-  - file: "services/email_service/src/pubsub/backfill/error_handlers.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/pubsub/backfill/mod.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/pubsub/backfill/populate_crm_for_user.rs"
-    owners:
-      - "CRM-MULTI-INBOX-001"
-      - "EMAIL-SELFHOST-001"
-    hooks:
-      - "crm_backfill_populate_all_inboxes"
-    override: false
-  - file: "services/email_service/src/pubsub/backfill/process.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/pubsub/context.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/pubsub/inbox_sync/operations/upsert_message.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/pubsub/inbox_sync/operations/upsert_message/test.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/pubsub/mod.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/pubsub/scheduled/process.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_send_call"
-    override: false
-  - file: "services/email_service/src/pubsub/util.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/util/gmail/send.rs"
-    owners:
-      - "READ-RECEIPTS-001"
-    hooks:
-      - "email_read_receipts_send"
-      - "email_read_receipts_send_module"
-    override: false
-  - file: "services/email_service/src/util/sync_contacts.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/util/sync_contacts/test.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/email_service/src/util/upload_attachment.rs"
-    owners:
-      - "EMAIL-SELFHOST-001"
-    hooks: []
-    override: false
-  - file: "services/sync-service/wrangler.docker.toml"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "sgconfig.yml"
-    owners:
-      - "I18N-ZH-CN-001"
-    hooks: []
-    override: false
-  - file: "tooling/just/check.just"
-    owners:
-      - "FORK-GOVERNANCE-001"
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/just/ci.just"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/just/database.just"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/just/local_stack.just"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/just/rust.just"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/just/xtask.just"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/Cargo.toml"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/cli.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/cli/test.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/env_layer.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/frontend.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/fusionauth.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/instance.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/instance/test.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/inventory/test.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/kickstart.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/kickstart/test.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/local_env/test.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/localstack.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/sandbox_image.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/sandbox_image/test.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/snapshot/test.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/stack.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
-  - file: "tooling/xtask/crates/xtask_local/src/local/test.rs"
-    owners:
-      - "SELFHOST-RUNTIME-001"
-    hooks: []
-    override: false
+- file: ".github/actions/setup-nix/action.yml"
+  owners:
+  - FORK-CI-001
+  hooks: []
+  override: false
+- file: ".github/scripts/build-cloud-storage-lambdas-nix.sh"
+  owners:
+  - FORK-CI-001
+  hooks: []
+  override: false
+- file: ".github/scripts/build-cloud-storage-lambdas.sh"
+  owners:
+  - FORK-CI-001
+  hooks: []
+  override: false
+- file: ".github/workspace-dep-closures.json"
+  owners:
+  - SELFHOST-SEARCH-UPLOAD-001
+  hooks: []
+  override: false
+- file: Cargo.lock
+  owners:
+  - SELFHOST-SEARCH-UPLOAD-001
+  hooks: []
+  override: false
+- file: Cargo.toml
+  owners:
+  - SELFHOST-SEARCH-UPLOAD-001
+  hooks:
+  - search_upload_worker_workspace_member
+  override: false
+- file: apps/web/src/components/app/Layout.tsx
+  owners:
+  - SELFHOST-HEALTH-001
+  hooks:
+  - self_host_health_prompt
+  - self_host_health_prompt_import
+  override: false
+- file: apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/auth/GmailReauthenticationPrompt.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/block-email/component/TopBar.tsx
+  owners:
+  - EMAIL-SELFHOST-001
+  - I18N-ZH-CN-001
+  - READ-RECEIPTS-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/block-email/definition.ts
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/block-email/util/emailHotkeys.ts
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/block-unknown/component/Block.tsx
+  owners:
+  - ADOBE-ATTACHMENT-PREVIEW-001
+  hooks:
+  - adobe_preview_fallback_preview
+  override: false
+- file: apps/web/src/features/companies/Company/Company.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/companies/Company/CompanyContactsSection.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/contacts/Contact/Contact.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/contacts/Contact/ContactEmailsSection.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/contacts/Contact/ContactHeader.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/contacts/Contact/ContactMetadataSection.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/contacts/Contact/ContactSharingSection.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/email-compose/primitives/prepare-email-body.ts
+  owners:
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_strip_own_pixels
+  override: false
+- file: apps/web/src/features/email-message/attachment-action-adapter.ts
+  owners:
+  - ADOBE-ATTACHMENT-PREVIEW-001
+  - EMAIL-SELFHOST-001
+  hooks:
+  - adobe_preview_open_action
+  override: false
+- file: apps/web/src/features/email-message/components/attachment-pill.tsx
+  owners:
+  - ADOBE-ATTACHMENT-PREVIEW-001
+  - EMAIL-SELFHOST-001
+  hooks:
+  - adobe_preview_pill_badge
+  override: false
+- file: apps/web/src/features/email-message/components/collapsed-message.tsx
+  owners:
+  - EMAIL-SELFHOST-001
+  - EMAIL-TRANSLATION-001
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_sent_status_collapsed
+  - email_translation_collapsed_snippet
+  override: false
+- file: apps/web/src/features/email-message/components/email-message-top-bar.tsx
+  owners:
+  - EMAIL-SELFHOST-001
+  - EMAIL-TRANSLATION-001
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_sent_status_topbar
+  - email_translation_message
+  override: false
+- file: apps/web/src/features/email-message/components/email-user-tooltip.tsx
+  owners:
+  - EMAIL-PARTICIPANT-IDENTITY-001
+  - EMAIL-SELFHOST-001
+  hooks:
+  - email_identity_tooltip_photo
+  override: false
+- file: apps/web/src/features/email-message/components/message-actions.tsx
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/email-message/core/email-message.ts
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/email-message/core/format-email-date.ts
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/email-message/primitives/email-message-body.ts
+  owners:
+  - EMAIL-SELFHOST-001
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_body_props
+  - email_translation_body_render_source
+  override: false
+- file: apps/web/src/features/email-message/rendering-adapter.ts
+  owners:
+  - EMAIL-SELFHOST-001
+  - SELFHOST-MEDIA-001
+  hooks:
+  - self_host_media_bypass_image_proxy
+  override: false
+- file: apps/web/src/features/email-message/views/email-message-body.tsx
+  owners:
+  - EMAIL-SELFHOST-001
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_body_markdown
+  - email_translation_body_state
+  override: false
+- file: apps/web/src/features/email-thread/primitives/thread-navigation.ts
+  owners:
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_thread_keyboard
+  override: false
+- file: apps/web/src/features/email-thread/views/message-list.tsx
+  owners:
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_thread
+  override: false
+- file: apps/web/src/features/email-view/components/EmailControls.tsx
+  owners:
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_email_list_toolbar
+  override: false
+- file: apps/web/src/features/email-view/components/EmailHeader.tsx
+  owners:
+  - EMAIL-TRANSLATION-001
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/email-view/components/EmailList.tsx
+  owners:
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_email_list_keyboard
+  override: false
+- file: apps/web/src/features/email-view/components/EmailSidebar.tsx
+  owners:
+  - EMAIL-TRANSLATION-001
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/email-view/email-view.tsx
+  owners:
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_view_provider
+  override: false
+- file: apps/web/src/features/email-view/queries/use-email-query.ts
+  owners:
+  - EMAIL-PARTICIPANT-IDENTITY-001
+  - READ-RECEIPTS-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/entity/composed/list-entity/email.tsx
+  owners:
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_list_row
+  - email_translation_list_row_auto
+  override: false
+- file: apps/web/src/features/entity/extractors/entity-email-participants.tsx
+  owners:
+  - EMAIL-PARTICIPANT-IDENTITY-001
+  hooks:
+  - email_identity_participants
+  override: false
+- file: apps/web/src/features/entity/extractors/entity-icon.tsx
+  owners:
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_list_envelope
+  override: false
+- file: apps/web/src/features/entity/queries/email.ts
+  owners:
+  - EMAIL-PARTICIPANT-IDENTITY-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/entity/types/entity.ts
+  owners:
+  - EMAIL-PARTICIPANT-IDENTITY-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
+  owners:
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_list_toolbar
+  override: false
+- file: apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
+  owners:
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_list_keyboard
+  override: false
+- file: apps/web/src/features/notifications/notification-platform.ts
+  owners:
+  - READ-RECEIPTS-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/settings/ConnectedAccounts.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/settings/Integrations.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/settings/SettingsTabContent.tsx
+  owners:
+  - SELFHOST-HEALTH-001
+  hooks:
+  - self_host_health_settings_import
+  - self_host_health_settings_tab
+  override: false
+- file: apps/web/src/index.css
+  owners:
+  - READ-RECEIPTS-001
+  hooks: []
+  override: false
+- file: apps/web/src/lib/analytics/analytics.ts
+  owners:
+  - TELEMETRY-PRIVACY-001
+  hooks: []
+  override: false
+- file: apps/web/src/lib/analytics/posthog.tsx
+  owners:
+  - TELEMETRY-PRIVACY-001
+  hooks: []
+  override: false
+- file: apps/web/src/lib/core/component/UserIcon.tsx
+  owners:
+  - EMAIL-PARTICIPANT-IDENTITY-001
+  hooks:
+  - email_identity_avatar_priority
+  override: false
+- file: apps/web/src/lib/core/constant/SettingsState.tsx
+  owners:
+  - SELFHOST-HEALTH-001
+  hooks:
+  - self_host_health_settings_tab_type
+  override: false
+- file: apps/web/src/lib/core/constant/featureFlags.ts
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks:
+  - selfhost_runtime_capabilities
+  - selfhost_runtime_direct_attachment_flag
+  - selfhost_runtime_feature_flag_overrides
+  override: false
+- file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx
+  owners:
+  - SELFHOST-HEALTH-001
+  hooks:
+  - self_host_health_settings_icon
+  - self_host_health_settings_item
+  - self_host_health_settings_slug
+  override: false
+- file: apps/web/src/lib/queries/ai/createHomeRecommendations.ts
+  owners:
+  - AI-MODEL-POLICY-001
+  hooks: []
+  override: true
+- file: apps/web/src/lib/queries/sync/SyncProvider.tsx
+  owners:
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_realtime_event
+  override: false
+- file: apps/web/src/lib/service-clients/service-auth/client.ts
+  owners:
+  - AUTH-SELFHOST-001
+  - SELFHOST-HEALTH-001
+  hooks:
+  - self_host_health_client_method
+  - self_host_health_client_type_import
+  - self_host_health_repair_method
+  override: false
+- file: apps/web/src/lib/service-clients/service-email/client.ts
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: apps/web/src/lib/service-clients/service-email/generated/client.ts
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: apps/web/src/routes/Root.tsx
+  owners:
+  - AUTH-SELFHOST-001
+  - EMAIL-SELFHOST-001
+  hooks:
+  - auth_selfhost_root_user_id
+  - email_selfhost_root_init_user_id
+  override: false
+- file: apps/web/tsconfig.json
+  owners:
+  - ADOBE-ATTACHMENT-PREVIEW-001
+  - EMAIL-PARTICIPANT-IDENTITY-001
+  hooks: []
+  override: false
+- file: apps/web/vite.base.ts
+  owners:
+  - ADOBE-ATTACHMENT-PREVIEW-001
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/vitest.config.ts
+  owners:
+  - READ-RECEIPTS-001
+  hooks: []
+  override: false
+- file: bun.lock
+  owners:
+  - FORK-PACKAGES-001
+  hooks: []
+  override: false
+- file: crates/ai_projections/src/domain/ai_projection_service.rs
+  owners:
+  - AI-MODEL-POLICY-001
+  hooks:
+  - ai_model_policy_free_tier_models
+  override: false
+- file: crates/email/Cargo.toml
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: crates/email/src/outbound/email_pg_repo.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: crates/email_db_client/src/lib.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_db_module
+  override: false
+- file: crates/email_db_client/src/links/get.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: crates/email_db_client/src/messages/mod.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: crates/email_db_client/src/settings.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_legacy_settings_api
+  override: false
+- file: crates/email_utils/src/lib.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_utils_module
+  override: false
+- file: crates/macro_db_migrator/Cargo.toml
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: crates/models_email/src/email/service/contact.rs
+  owners:
+  - EMAIL-PARTICIPANT-IDENTITY-001
+  hooks: []
+  override: false
+- file: crates/soup/src/outbound/pg_soup_repo/candidate_gates.rs
+  owners:
+  - AUTH-SELFHOST-001
+  hooks: []
+  override: false
+- file: docker/docker-compose-databases.yml
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: docker/sync-service.Dockerfile
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: docker/websocket-service.Dockerfile
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: nix/cloud-storage.nix
+  owners:
+  - SELFHOST-RUNTIME-001
+  - SELFHOST-SEARCH-UPLOAD-001
+  hooks: []
+  override: false
+- file: package.json
+  owners:
+  - FORK-PACKAGES-001
+  hooks: []
+  override: false
+- file: packages/email-renderer/src/core/resource-policy.ts
+  owners:
+  - SELFHOST-MEDIA-001
+  hooks: []
+  override: false
+- file: services/analytics-proxy/src/index.ts
+  owners:
+  - TELEMETRY-PRIVACY-001
+  hooks: []
+  override: false
+- file: services/analytics-proxy/wrangler.jsonc
+  owners:
+  - TELEMETRY-PRIVACY-001
+  hooks: []
+  override: false
+- file: services/authentication_service/Cargo.toml
+  owners:
+  - AUTH-SELFHOST-001
+  - SELFHOST-HEALTH-001
+  hooks:
+  - self_host_health_auth_sqs_gmail_feature
+  override: false
+- file: services/authentication_service/src/api.rs
+  owners:
+  - SELFHOST-HEALTH-001
+  hooks:
+  - self_host_health_admin_route
+  override: false
+- file: services/authentication_service/src/api/link/gmail.rs
+  owners:
+  - AUTH-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/authentication_service/src/api/link/gmail/test.rs
+  owners:
+  - AUTH-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/authentication_service/src/api/login/sso.rs
+  owners:
+  - AUTH-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/authentication_service/src/api/oauth.rs
+  owners:
+  - AUTH-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/authentication_service/src/api/oauth2.rs
+  owners:
+  - AUTH-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/authentication_service/src/api/utils.rs
+  owners:
+  - AUTH-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/authentication_service/src/main.rs
+  owners:
+  - AUTH-SELFHOST-001
+  - SELFHOST-HEALTH-001
+  hooks:
+  - self_host_health_features
+  - self_host_health_gmail_queue_probe_wiring
+  override: false
+- file: services/authentication_service/src/openapi.rs
+  owners:
+  - SELFHOST-HEALTH-001
+  hooks:
+  - self_host_health_openapi_features
+  override: false
+- file: services/document_cognition_service/src/service/chat_renamer.rs
+  owners:
+  - AI-MODEL-POLICY-001
+  hooks:
+  - ai_model_policy_chat_renamer
+  override: false
+- file: services/document_storage_service/src/api/internal.rs
+  owners:
+  - SELFHOST-HEALTH-001
+  hooks:
+  - self_host_health_dss_internal_storage_probe
+  override: false
+- file: services/email_service/Cargo.toml
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/api.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_public_router
+  override: false
+- file: services/email_service/src/api/context.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/api/email/attachments.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/api/email/attachments/get.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/api/email/attachments/get_document_id.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/api/email/init.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/api/email/links.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/api/email/links/health_check.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  - SELFHOST-HEALTH-001
+  hooks:
+  - self_host_health_email_probe
+  override: false
+- file: services/email_service/src/api/email/links/list.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/api/email/messages.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_messages_router
+  override: false
+- file: services/email_service/src/api/email/settings.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_settings_router
+  override: false
+- file: services/email_service/src/api/swagger.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks:
+  - email_selfhost_local_poller_gate
+  override: false
+- file: services/email_service/src/config.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/lib.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/main.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_features
+  override: false
+- file: services/email_service/src/openapi.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_features_openapi
+  override: false
+- file: services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
+  owners:
+  - CRM-MULTI-INBOX-001
+  - EMAIL-SELFHOST-001
+  hooks:
+  - crm_backfill_depopulate_all_inboxes
+  override: false
+- file: services/email_service/src/pubsub/backfill/error_handlers.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/pubsub/backfill/mod.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
+  owners:
+  - CRM-MULTI-INBOX-001
+  - EMAIL-SELFHOST-001
+  hooks:
+  - crm_backfill_populate_all_inboxes
+  override: false
+- file: services/email_service/src/pubsub/backfill/process.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/pubsub/context.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/pubsub/inbox_sync/operations/upsert_message.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/pubsub/inbox_sync/operations/upsert_message/test.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/pubsub/mod.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/pubsub/scheduled/process.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_send_call
+  override: false
+- file: services/email_service/src/pubsub/util.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/util/gmail/send.rs
+  owners:
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_send
+  - email_read_receipts_send_module
+  override: false
+- file: services/email_service/src/util/sync_contacts.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/util/sync_contacts/test.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/util/upload_attachment.rs
+  owners:
+  - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/sync-service/wrangler.docker.toml
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: sgconfig.yml
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: tooling/just/check.just
+  owners:
+  - FORK-GOVERNANCE-001
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/just/ci.just
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/just/database.just
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/just/local_stack.just
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/just/rust.just
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/just/xtask.just
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/Cargo.toml
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/cli.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/cli/test.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/env_layer.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/frontend.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/fusionauth.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/instance.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/instance/test.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/inventory/test.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/kickstart.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/kickstart/test.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/local_env/test.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/localstack.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/sandbox_image.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/sandbox_image/test.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/snapshot/test.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/stack.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: tooling/xtask/crates/xtask_local/src/local/test.rs
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false

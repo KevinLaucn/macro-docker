@@ -209,12 +209,14 @@ customizations:
       - self-host/**
       - docker/**
       - nix/**
+      - crates/macro_db_migrator/**
       - tooling/xtask/crates/xtask_local/**
       - tooling/just/**
       - apps/web/src/lib/core/constant/featureFlags.ts
       - services/sync-service/wrangler.docker.toml
     owned_paths:
       - apps/web/src/lib/core/constant/featureFlags.ts
+      - crates/macro_db_migrator/Cargo.toml
       - docker/docker-compose-databases.yml
       - docker/sync-service.Dockerfile
       - docker/websocket-service.Dockerfile
@@ -261,8 +263,12 @@ customizations:
       - self-host/scripts/check-drift.py
       - nix/cloud-storage.nix
       - Cargo.toml
+      - Cargo.lock
+      - .github/workspace-dep-closures.json
       - .fork/private-hooks.yml
     owned_paths:
+      - .github/workspace-dep-closures.json
+      - Cargo.lock
       - Cargo.toml
       - nix/cloud-storage.nix
     tests:
