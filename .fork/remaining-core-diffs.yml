@@ -367,8 +367,11 @@ diffs:
     override: false
   - file: "apps/web/src/routes/Root.tsx"
     owners:
-      - "SELFHOST-HEALTH-001"
-    hooks: []
+      - "AUTH-SELFHOST-001"
+      - "EMAIL-SELFHOST-001"
+    hooks:
+      - "auth_selfhost_root_user_id"
+      - "email_selfhost_root_init_user_id"
     override: false
   - file: "apps/web/tsconfig.json"
     owners:
