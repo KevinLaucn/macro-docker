@@ -363,6 +363,16 @@ export function parseMixedChildren(
   }
 
   if (hasText && hasExpression) {
+    const names = new Set<string>();
+    const hasDuplicates = variables.some((v) => {
+      if (names.has(v.name)) return true;
+      names.add(v.name);
+      return false;
+    });
+    if (hasDuplicates) {
+      return undefined;
+    }
+
     const fullTemplate = templateParts.join('').trim().replace(/\s+/g, ' ');
     if (shouldTranslateText(fullTemplate)) {
       return { template: fullTemplate, variables };

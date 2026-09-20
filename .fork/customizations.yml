@@ -457,20 +457,50 @@ customizations:
       - apps/web/src/features/contacts/Contact/**
       - apps/web/vite.base.ts
     owned_paths:
+      - apps/web/src/components/app/app-sidebar/sidebar.tsx
+      - apps/web/src/components/app/mobile/MobilePageCreateButton.tsx
       - apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
       - apps/web/src/features/auth/GmailReauthenticationPrompt.tsx
       - apps/web/src/features/block-email/component/TopBar.tsx
+      - apps/web/src/features/block-email/util/emailHotkeys.ts
+      - apps/web/src/features/block-project/component/ProjectCreateMenu.tsx
+      - apps/web/src/features/block-spreadsheet/components/SpreadsheetToolbarMenus.tsx
+      - apps/web/src/features/block-spreadsheet/core/toolbar-types.ts
+      - apps/web/src/features/calendar/utils/calendar-label.ts
+      - apps/web/src/features/channel/Channel/channel-tabs.ts
+      - apps/web/src/features/channel/CreateChannelModal.tsx
+      - apps/web/src/features/channels-view/components/ChannelsMobileView.tsx
+      - apps/web/src/features/channels-view/components/rail/ExpandedChannelsRail.tsx
+      - apps/web/src/features/command/CommandMenu.tsx
+      - apps/web/src/features/command/Launcher.tsx
       - apps/web/src/features/companies/Company/Company.tsx
       - apps/web/src/features/companies/Company/CompanyContactsSection.tsx
+      - apps/web/src/features/companies/core/crm-navigation.ts
       - apps/web/src/features/contacts/Contact/Contact.tsx
       - apps/web/src/features/contacts/Contact/ContactEmailsSection.tsx
       - apps/web/src/features/contacts/Contact/ContactHeader.tsx
       - apps/web/src/features/contacts/Contact/ContactMetadataSection.tsx
       - apps/web/src/features/contacts/Contact/ContactSharingSection.tsx
+      - apps/web/src/features/drive-view/core/types.ts
       - apps/web/src/features/email-view/components/EmailHeader.tsx
       - apps/web/src/features/email-view/components/EmailSidebar.tsx
+      - apps/web/src/features/email-view/constants.ts
+      - apps/web/src/features/entity/composed/list-entity/foreign.tsx
+      - apps/web/src/features/inbox-view/components/InboxTabs.tsx
+      - apps/web/src/features/next-soup/soup-view/empty-states.tsx
+      - apps/web/src/features/next-soup/soup-view/filters-bar/search/search-facets.tsx
+      - apps/web/src/features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx
+      - apps/web/src/features/next-soup/soup-view/group-options.ts
+      - apps/web/src/features/next-soup/soup-view/soup-view-create-button.tsx
+      - apps/web/src/features/next-soup/soup-view/tab-lists.ts
+      - apps/web/src/features/notifications/notification-event-catalog.ts
+      - apps/web/src/features/property/utils/errorHandling.ts
       - apps/web/src/features/settings/ConnectedAccounts.tsx
       - apps/web/src/features/settings/Integrations.tsx
+      - apps/web/src/features/settings/Shortcuts.tsx
+      - apps/web/src/features/tasks-view/constants.ts
+      - apps/web/src/lib/core/component/TopBar/linkShare.ts
+      - apps/web/src/lib/core/constant/PaywallState.tsx
       - apps/web/vite.base.ts
       - sgconfig.yml
     tests:

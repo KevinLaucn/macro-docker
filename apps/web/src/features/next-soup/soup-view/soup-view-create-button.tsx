@@ -17,7 +17,7 @@ import {
   openFilePicker,
   openFolderPicker,
 } from '@core/util/upload';
-import { t } from '@fork/i18n';
+import { t } from '@macro/i18n';
 import BuildingsIcon from '@phosphor/buildings.svg';
 import ChevronDownIcon from '@phosphor/caret-down.svg';
 import PlusCircleIcon from '@phosphor/plus-circle.svg';

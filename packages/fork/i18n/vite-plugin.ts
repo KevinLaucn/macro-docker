@@ -110,6 +110,16 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
           }
           const unit = parseMixedChildren(path.node.children);
           if (unit && path.node.children.length > 0) {
+            const names = new Set<string>();
+            const hasDuplicates = unit.variables.some((v) => {
+              if (names.has(v.name)) return true;
+              names.add(v.name);
+              return false;
+            });
+            if (hasDuplicates) {
+              path.skip();
+              return;
+            }
             const firstChild = path.node.children[0];
             const lastChild = path.node.children[path.node.children.length - 1];
             const escaped = JSON.stringify(unit.template);

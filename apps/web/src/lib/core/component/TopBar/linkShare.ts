@@ -59,7 +59,7 @@ export type ShareStatus = {
   tooltip: string;
 };
 
-import { t } from '@fork/i18n';
+import { t } from '@macro/i18n';
 
 const LINK_SHARE_SCOPE_COPY: Record<LinkShareScope, LinkShareScopeCopy> = {
   NONE: {

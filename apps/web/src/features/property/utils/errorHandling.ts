@@ -1,5 +1,5 @@
 import { toast } from '@core/component/Toast/Toast';
-import { t } from '@fork/i18n';
+import { t } from '@macro/i18n';
 import type { Result } from '../types';
 
 /**

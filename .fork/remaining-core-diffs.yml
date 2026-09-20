@@ -40,6 +40,16 @@ diffs:
   - self_host_health_prompt
   - self_host_health_prompt_import
   override: false
+- file: apps/web/src/components/app/app-sidebar/sidebar.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/components/app/mobile/MobilePageCreateButton.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
 - file: apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
   owners:
   - I18N-ZH-CN-001
@@ -65,6 +75,22 @@ diffs:
 - file: apps/web/src/features/block-email/util/emailHotkeys.ts
   owners:
   - EMAIL-SELFHOST-001
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/block-project/component/ProjectCreateMenu.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/block-spreadsheet/components/SpreadsheetToolbarMenus.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/block-spreadsheet/core/toolbar-types.ts
+  owners:
+  - I18N-ZH-CN-001
   hooks: []
   override: false
 - file: apps/web/src/features/block-unknown/component/Block.tsx
@@ -73,12 +99,52 @@ diffs:
   hooks:
   - adobe_preview_fallback_preview
   override: false
+- file: apps/web/src/features/calendar/utils/calendar-label.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/channel/Channel/channel-tabs.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/channel/CreateChannelModal.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/channels-view/components/ChannelsMobileView.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/channels-view/components/rail/ExpandedChannelsRail.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/command/CommandMenu.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/command/Launcher.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
 - file: apps/web/src/features/companies/Company/Company.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
   override: false
 - file: apps/web/src/features/companies/Company/CompanyContactsSection.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/companies/core/crm-navigation.ts
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -104,6 +170,11 @@ diffs:
   hooks: []
   override: false
 - file: apps/web/src/features/contacts/Contact/ContactSharingSection.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/drive-view/core/types.ts
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -227,6 +298,11 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
+- file: apps/web/src/features/email-view/constants.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
 - file: apps/web/src/features/email-view/email-view.tsx
   owners:
   - EMAIL-TRANSLATION-001
@@ -245,6 +321,11 @@ diffs:
   hooks:
   - email_translation_list_row
   - email_translation_list_row_auto
+  override: false
+- file: apps/web/src/features/entity/composed/list-entity/foreign.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
   override: false
 - file: apps/web/src/features/entity/extractors/entity-email-participants.tsx
   owners:
@@ -268,11 +349,46 @@ diffs:
   - EMAIL-PARTICIPANT-IDENTITY-001
   hooks: []
   override: false
+- file: apps/web/src/features/inbox-view/components/InboxTabs.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/next-soup/soup-view/empty-states.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/next-soup/soup-view/filters-bar/search/search-facets.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
 - file: apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
   owners:
   - EMAIL-TRANSLATION-001
   hooks:
   - email_translation_list_toolbar
+  override: false
+- file: apps/web/src/features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/next-soup/soup-view/group-options.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/next-soup/soup-view/soup-view-create-button.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/next-soup/soup-view/tab-lists.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
   override: false
 - file: apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
   owners:
@@ -280,9 +396,19 @@ diffs:
   hooks:
   - email_translation_list_keyboard
   override: false
+- file: apps/web/src/features/notifications/notification-event-catalog.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
 - file: apps/web/src/features/notifications/notification-platform.ts
   owners:
   - READ-RECEIPTS-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/property/utils/errorHandling.ts
+  owners:
+  - I18N-ZH-CN-001
   hooks: []
   override: false
 - file: apps/web/src/features/settings/ConnectedAccounts.tsx
@@ -302,6 +428,16 @@ diffs:
   - self_host_health_settings_import
   - self_host_health_settings_tab
   override: false
+- file: apps/web/src/features/settings/Shortcuts.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/tasks-view/constants.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
 - file: apps/web/src/index.css
   owners:
   - READ-RECEIPTS-001
@@ -317,11 +453,21 @@ diffs:
   - TELEMETRY-PRIVACY-001
   hooks: []
   override: false
+- file: apps/web/src/lib/core/component/TopBar/linkShare.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
 - file: apps/web/src/lib/core/component/UserIcon.tsx
   owners:
   - EMAIL-PARTICIPANT-IDENTITY-001
   hooks:
   - email_identity_avatar_priority
+  override: false
+- file: apps/web/src/lib/core/constant/PaywallState.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
   override: false
 - file: apps/web/src/lib/core/constant/SettingsState.tsx
   owners:
