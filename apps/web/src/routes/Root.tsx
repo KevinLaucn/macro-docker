@@ -27,7 +27,10 @@ import { useInvalidateQueriesOnReconnect } from '@app/lib/queries/invalidate-on-
 import { useSoupBackfills } from '@app/lib/queries/soup/backfill';
 import { setHotkeyRoot } from '@app/signal/hotkeyRoot';
 import { globalSplitManager } from '@app/signal/splitLayout';
+import { IncomingCallEvents } from '@block-call/sidebar/incoming-calls';
 import { CallProvider } from '@channel/Call/CallContext';
+import { CallStartedNotifier } from '@channel/Call/CallStartedNotifier';
+import { CallKitSync } from '@channel/Call/use-callkit';
 import { GlobalAppStateProvider } from '@components/app/GlobalAppState';
 import { Layout } from '@components/app/Layout';
 import { ReactiveFavicon } from '@components/app/ReactiveFavicon';
@@ -114,6 +117,7 @@ import {
   Suspense,
 } from 'solid-js';
 import { BasePathComponent } from './BasePath';
+import { TaskRoute } from './TaskRoute';
 
 /** Syncs login cookie with auth state. Only updates on successful query (not errors/loading). */
 function useSyncLoginCookie() {
@@ -223,6 +227,10 @@ function OnboardingRoute() {
 }
 
 const ROUTES: RouteDefinition[] = [
+  {
+    path: '/task-slug/:taskSlug',
+    component: TaskRoute,
+  },
   LAYOUT_ROUTE,
   /** BEGIN - APP ROUTES */
   {
@@ -259,6 +267,10 @@ const ROUTES: RouteDefinition[] = [
   },
   {
     path: '/channels',
+    component: LAYOUT_ROUTE.component,
+  },
+  {
+    path: '/calls',
     component: LAYOUT_ROUTE.component,
   },
   {
@@ -441,6 +453,7 @@ function UserInfoSideEffects() {
       // attributed to a signed-out user. Logout flips userInfo client-side,
       // and on native mobile it's an SPA navigation with no page reload, so
       // this effect is what clears it there.
+      // PRIVATE-HOOK: auth_selfhost:user-id-fallback
       Telemetry.config.setUser(
         user?.authenticated ? (user.id ?? user.userId) : undefined
       );
@@ -531,6 +544,7 @@ function InitialInteractiveOnboardingModal() {
   createEffect(() => {
     const data = userInfoQuery.data;
     if (data?.authenticated !== true || data.tutorialComplete !== false) return;
+    // PRIVATE-HOOK: email_selfhost:init-user-id-fallback
     const uid = data.id ?? data.userId;
     if (!uid || emailInitForUserId === uid) return;
     emailInitForUserId = uid;
@@ -601,6 +615,9 @@ export function Root() {
                       <MutationUndoProvider>
                         <ChannelsContextProvider>
                           <CallProvider>
+                            <CallKitSync />
+                            <CallStartedNotifier />
+                            <IncomingCallEvents />
                             <QuickAccessProvider>
                               <SearchProvider>
                                 <ChatAttachmentsInit />
