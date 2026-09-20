@@ -475,3 +475,20 @@ hooks:
     expected: "export const enableDirectAttachmentDownload = defineFlag({"
     context:
       - "env: 'ENABLE_DIRECT_ATTACHMENT_DOWNLOAD',"
+
+  - id: auth_selfhost_root_user_id
+    customization: AUTH-SELFHOST-001
+    file: apps/web/src/routes/Root.tsx
+    marker: "PRIVATE-HOOK: auth_selfhost:user-id-fallback"
+    expected: "const userId = user.id ?? user.userId;"
+    context:
+      - "Telemetry.config.setUser("
+      - "analytics.identify(userId, {"
+
+  - id: email_selfhost_root_init_user_id
+    customization: EMAIL-SELFHOST-001
+    file: apps/web/src/routes/Root.tsx
+    marker: "PRIVATE-HOOK: email_selfhost:init-user-id-fallback"
+    expected: "const uid = data.id ?? data.userId;"
+    context:
+      - "initAndStartEmailSync().match("
