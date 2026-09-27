@@ -136,7 +136,7 @@ async fn fetch_new_contacts_from_google(
             new_other_contacts_token = Some(contact_list.next_sync_token);
             all_new_contacts.extend(contact_list.contacts.into_iter().map(|contact| {
                 SourcedContact {
-                    contact,
+                    contact: normalize_other_contact(contact),
                     source: ContactSource::Other,
                 }
             }));
@@ -209,6 +209,18 @@ fn merge_contacts_by_source(contacts: Vec<SourcedContact>) -> Vec<Contact> {
 enum ContactListKind {
     Primary,
     Other,
+}
+
+/// Google builds "other contacts" from mail headers, not from anything the
+/// user saved, so their names get the same treatment as header names at
+/// message ingest. Without it, a shared sender such as `notifications@cal.com`
+/// keeps the name of the first person who wrote through it, and the address
+/// book then pins that person onto every message the address sends.
+fn normalize_other_contact(mut contact: Contact) -> Contact {
+    if let Some(email) = &contact.email_address {
+        contact.name = email_utils::normalize_contact_name(email, contact.name.as_deref());
+    }
+    contact
 }
 
 /// Lists one contact collection, retrying once from scratch when the stored

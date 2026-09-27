@@ -94,7 +94,7 @@ hooks:
       - "use models_email::service::attachment::{AttachmentDraft, AttachmentToSend};"
   - id: email_read_receipts_send_call
     customization: READ-RECEIPTS-001
-    file: services/email_service/src/pubsub/scheduled/process.rs
+    file: services/email_service/src/outbound/scheduled_delivery.rs
     marker: "// PRIVATE-HOOK: read_receipts:schedule-call"
     expected: "attach_open_tracking_pixel(&ctx.db, &mut message_to_send).await;"
     context:
@@ -371,7 +371,7 @@ hooks:
     marker: "// PRIVATE-HOOK: self_host_health:settings_icon"
     expected: "import HeartbeatIcon from '@phosphor/heartbeat.svg';"
     context:
-      - "import HardDrivesIcon from '@phosphor/hard-drives.svg';"
+      - "import DeviceMobileIcon from '@phosphor/device-mobile-speaker.svg';"
   - id: self_host_health_settings_item
     customization: SELFHOST-HEALTH-001
     file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx

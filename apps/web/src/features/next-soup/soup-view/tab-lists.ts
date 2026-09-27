@@ -5,7 +5,7 @@ import { t } from '@macro/i18n';
 /** Views that have tab definitions. Shared between VIEW_TAB_LISTS and VIEW_TAB_PRESETS. */
 export type TabbedListView = Extract<
   ListView,
-  | 'inbox'
+  | 'home'
   | 'agents'
   | 'mail'
   | 'documents'
@@ -18,7 +18,7 @@ export type TabbedListView = Extract<
 
 /** Tab definitions for each list view. */
 export const VIEW_TAB_LISTS: Record<TabbedListView, TabItem[]> = {
-  inbox: [
+  home: [
     { value: 'signal', label: t('Signal') },
     { value: 'noise', label: t('Noise') },
     { value: 'all', label: t('All') },

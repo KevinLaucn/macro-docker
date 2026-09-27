@@ -162,7 +162,7 @@ export function EmptyState(props: {
           connect-email gate — its empty copy is the same with or without a
           linked inbox. */}
       <Match
-        when={props.listView === 'inbox' && soup.activeTab() === 'reminders'}
+        when={props.listView === 'home' && soup.activeTab() === 'reminders'}
       >
         <EmptyStatePanel
           graphic={EmptyStateInboxTrayGraphic}
@@ -190,7 +190,7 @@ export function EmptyState(props: {
         />
       </Match>
 
-      <Match when={props.listView === 'inbox' && !emailActive()}>
+      <Match when={props.listView === 'home' && !emailActive()}>
         <EmptyStatePanel
           graphic={EmptyStateInboxTrayGraphic}
           title="Your inbox is empty"
@@ -216,7 +216,7 @@ export function EmptyState(props: {
         />
       </Match>
 
-      <Match when={props.listView === 'inbox' && emailActive()}>
+      <Match when={props.listView === 'home' && emailActive()}>
         {(() => {
           // Each inbox tab filters to a different slice, so the empty copy
           // should match: Signal is the important stuff, Noise is explicitly

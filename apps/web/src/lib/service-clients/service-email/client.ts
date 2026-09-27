@@ -6,20 +6,26 @@ import {
 import type { ObjectLike, ResultError } from '@core/util/result';
 import type { SafeFetchInit } from '@core/util/safeFetch';
 import { getMacroApiToken } from '@service-auth/fetch';
+import type {
+  CalendarEvent,
+  CreateCalendarEventRequest,
+  ListCalendarsResponse,
+  RsvpCalendarEventRequest,
+  UpdateCalendarEventRequest,
+} from '@service-calendar/generated/schemas';
+import { CalendarMutationErrorCode } from '@service-calendar/generated/schemas/calendarMutationErrorCode';
 import type { Result } from 'neverthrow';
 import type {
   AddDraftAttachmentRequest,
   AddDraftAttachmentResponse,
   ApiPaginatedThreadCursor,
-  CalendarEvent,
-  CreateCalendarEventRequest,
   CreateDraftRequest,
   CreateDraftResponse,
   GetAttachmentDocumentIDResponse,
   GetAttachmentResponse,
+  GetScheduledResponse,
   GetThreadResponse,
   ListBackfillJobsResponse,
-  ListCalendarsResponse,
   ListContactsResponse,
   ListEmailFiltersResponse,
   ListLabelsResponse,
@@ -27,11 +33,9 @@ import type {
   PatchSettingsRequest,
   PatchSettingsResponse,
   ResyncResponse,
-  RsvpCalendarEventRequest,
   SendMessageRequest,
   SendMessageResponse,
   SharedInboxConflictResponse,
-  UpdateCalendarEventRequest,
   UpdateLabelBatchRequest,
   UpdateLabelBatchResponse,
   UpdateThreadLabelRequest,
@@ -41,10 +45,10 @@ import type {
   UpsertScheduledRequest,
   UpsertScheduledResponse,
 } from './generated/schemas';
-import { CalendarMutationErrorCode } from './generated/schemas/calendarMutationErrorCode';
 import type { EmptyResponse } from './generated/schemas/emptyResponse';
 
 const emailHost: string = SERVER_HOSTS['email-service'];
+const calendarHost: string = SERVER_HOSTS['calendar-service'];
 
 /**
  * Header that scopes a mutating email request to a specific inbox. Omitted for
@@ -326,6 +330,23 @@ export const emailClient = {
         }
       )
     ).map((result) => result);
+  },
+
+  async getScheduledMessages(
+    args: { offset: number; limit: number },
+    linkId?: string
+  ) {
+    const params = new URLSearchParams({
+      offset: String(args.offset),
+      limit: String(args.limit),
+    });
+    return emailFetch<GetScheduledResponse>(
+      `/email/drafts/scheduled?${params.toString()}`,
+      {
+        method: 'GET',
+        headers: emailLinkHeaders(linkId),
+      }
+    );
   },
 
   async getLinks() {
@@ -619,16 +640,13 @@ export const emailClient = {
     });
   },
   async listCalendars() {
-    return fetchWithToken<ListCalendarsResponse>(
-      `${emailHost}/calendar/calendars`,
-      {
-        method: 'GET',
-      }
-    );
+    return fetchWithToken<ListCalendarsResponse>(`${calendarHost}/calendars`, {
+      method: 'GET',
+    });
   },
   async createCalendarEvent(args: CreateCalendarEventRequest) {
     return fetchWithToken<CalendarEvent, CalendarMutationErrorCode>(
-      `${emailHost}/calendar/events`,
+      `${calendarHost}/events`,
       {
         method: 'POST',
         body: JSON.stringify(args),
@@ -638,7 +656,7 @@ export const emailClient = {
   },
   async updateCalendarEvent(eventId: string, args: UpdateCalendarEventRequest) {
     return fetchWithToken<CalendarEvent, CalendarMutationErrorCode>(
-      `${emailHost}/calendar/events/${eventId}`,
+      `${calendarHost}/events/${eventId}`,
       {
         method: 'PATCH',
         body: JSON.stringify(args),
@@ -666,7 +684,7 @@ export const emailClient = {
     }
     const query = params.toString();
     return fetchWithToken<EmptyResponse, CalendarMutationErrorCode>(
-      `${emailHost}/calendar/events/${eventId}${query ? `?${query}` : ''}`,
+      `${calendarHost}/events/${eventId}${query ? `?${query}` : ''}`,
       {
         method: 'DELETE',
         errorResponseHandler: calendarMutationErrorHandler,
@@ -675,7 +693,7 @@ export const emailClient = {
   },
   async rsvpCalendarEvent(eventId: string, args: RsvpCalendarEventRequest) {
     return fetchWithToken<CalendarEvent, CalendarMutationErrorCode>(
-      `${emailHost}/calendar/events/${eventId}/rsvp`,
+      `${calendarHost}/events/${eventId}/rsvp`,
       {
         method: 'PUT',
         body: JSON.stringify(args),

@@ -445,6 +445,7 @@
             "--bin connection_gateway_openapi"
             "--bin contacts_service_openapi"
             "--bin unfurl_service_openapi"
+            "--bin calendar_service_openapi"
             "--bin email_service_openapi"
             "--bin search_service_openapi"
             "--bin scheduled_action_openapi"
@@ -495,6 +496,11 @@
           serviceName = "authentication-service";
           packageName = "authentication_service";
           binaries = [ "authentication_service" ];
+        }
+        {
+          serviceName = "calendar-service";
+          packageName = "calendar_service";
+          binaries = [ "calendar_service" ];
         }
         {
           serviceName = "connection-gateway";
@@ -674,6 +680,7 @@
       localStackDeployServiceNames = [
         "agent-harness-service"
         "agent-schedule-service"
+        "calendar-service"
         "connection-gateway"
         "contacts-service"
         "document-cognition-service"
@@ -1350,6 +1357,7 @@
               connection_gateway = "service-connection";
               contacts_service = "service-contacts";
               unfurl_service = "service-unfurl";
+              calendar_service = "service-calendar";
               email_service = "service-email";
               search_service = "service-search";
               scheduled_action = "service-scheduled-action";

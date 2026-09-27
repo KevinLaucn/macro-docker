@@ -3,18 +3,11 @@ use crate::pubsub::backfill::increment_counters::{
 };
 use crate::pubsub::context::PubSubContext;
 use crate::pubsub::util::cg_refresh_email;
-#[cfg(feature = "calendar")]
-use calendar_events::domain::{
-    models::{CalendarBackfillFailureDisposition, CalendarBackfillJobKey},
-    service::GoogleCalendarBackfillRunError,
-};
 use models_email::api::refresh::{BackfillStatus, RefreshEmailEvent};
 use models_email::email::service::backfill::{
     BackfillMessagePayload, BackfillOperation, BackfillPubsubMessage, JobScopedPayload,
 };
 use models_email::email::service::pubsub::DetailedError;
-#[cfg(feature = "calendar")]
-use models_email::email::service::pubsub::{FailureReason, LinkManagerMessage};
 use sqs_worker::cleanup_message;
 use uuid::Uuid;
 
@@ -65,49 +58,6 @@ pub async fn handle_non_retryable_error(
             })
             .ok();
         }
-        #[cfg(feature = "calendar")]
-        BackfillOperation::CalendarGoogleBackfill(scope) => {
-            let coordinator_reauth_transitioned = coordinator_reauth_edge(&e.source);
-            let prelease_reauth_transitioned = if coordinator_reauth_transitioned.is_none() {
-                let disposition = if e.reason == FailureReason::AccessTokenFetchFailed {
-                    CalendarBackfillFailureDisposition::ReauthRequired
-                } else {
-                    CalendarBackfillFailureDisposition::Permanent
-                };
-                ctx.calendar_backfills
-                    .google_failure
-                    .fail_unclaimed(
-                        CalendarBackfillJobKey {
-                            job_id: scope.payload.calendar_job_id,
-                            email_link_id: scope.link_id,
-                        },
-                        disposition,
-                        &format!("{:#}", e.source),
-                    )
-                    .await
-                    .map_err(|error| anyhow::anyhow!("{error:?}"))?
-                    .link_reauth_transitioned
-            } else {
-                false
-            };
-            if coordinator_reauth_transitioned == Some(true) || prelease_reauth_transitioned {
-                ctx.sqs_client
-                    .enqueue_link_manager_notification(LinkManagerMessage::NotifyReauthRequired {
-                        link_id: scope.link_id,
-                    })
-                    .await
-                    .inspect_err(|error| {
-                        tracing::error!(
-                            error=?error,
-                            link_id=%scope.link_id,
-                            "Failed to enqueue reauth notification after calendar backfill failure"
-                        );
-                    })
-                    .ok();
-            }
-        }
-        #[cfg(not(feature = "calendar"))]
-        BackfillOperation::CalendarGoogleBackfill(_) => {}
         // Best-effort side seed — a failure must not fail the backfill job.
         BackfillOperation::SeedSentContact(_) => {}
         BackfillOperation::PopulateCrmContact(_) => {}
@@ -119,24 +69,6 @@ pub async fn handle_non_retryable_error(
     cleanup_message(&ctx.sqs_worker, message).await?;
     Ok(())
 }
-
-#[cfg(feature = "calendar")]
-fn coordinator_reauth_edge(error: &anyhow::Error) -> Option<bool> {
-    error.chain().find_map(|cause| {
-        cause
-            .downcast_ref::<GoogleCalendarBackfillRunError>()
-            .map(|error| {
-                matches!(
-                    error,
-                    GoogleCalendarBackfillRunError::ReauthRequired {
-                        link_reauth_transitioned: true,
-                        ..
-                    }
-                )
-            })
-    })
-}
-
 #[tracing::instrument(skip(ctx), err)]
 async fn mark_job_failed(ctx: &PubSubContext, job_id: Uuid) -> anyhow::Result<()> {
     let transitioned =
@@ -173,9 +105,6 @@ async fn notify_job_failed(ctx: &PubSubContext, job_id: Uuid) {
         .await;
     }
 }
-
-#[cfg(test)]
-mod test;
 
 /// Handles retryable errors by updating status to InProgress and adding the error message
 #[tracing::instrument(
@@ -225,12 +154,6 @@ pub async fn handle_retryable_error(
             tracing::warn!(
                 job_id = %scope.job_id,
                 "Retryable error finalizing completed backfill"
-            )
-        }
-        BackfillOperation::CalendarGoogleBackfill(scope) => {
-            tracing::warn!(
-                calendar_job_id = %scope.payload.calendar_job_id,
-                "Retryable error backfilling Google Calendar"
             )
         }
         BackfillOperation::SeedSentContact(scope) => {

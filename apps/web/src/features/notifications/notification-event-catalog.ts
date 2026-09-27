@@ -12,6 +12,7 @@ export const EMAIL_DIGEST_NOTIFICATION_TYPE =
 
 export type NotificationEventGroupId =
   | 'channels'
+  | 'projects'
   | 'documents'
   | 'tasks'
   | 'calendar'
@@ -108,6 +109,18 @@ export const NOTIFICATION_EVENT_GROUPS: readonly NotificationEventGroup[] = [
         get description() {
           return t('Comments on documents you own');
         },
+      },
+    ],
+  },
+  {
+    id: 'projects',
+    label: 'Projects',
+    events: [
+      {
+        type: 'initiative_discussion',
+        label: 'Discussion',
+        description:
+          'Mentions, replies, and comments on projects you own or are assigned to',
       },
     ],
   },
@@ -278,6 +291,7 @@ export const MUTED_ENTITY_TYPE_LABELS: Record<string, string> = {
   foreign: 'GitHub',
   foreign_entity: 'GitHub',
   project: 'Folder',
+  initiative: 'Project',
   reminder: 'Reminder',
   team: 'Team',
 };

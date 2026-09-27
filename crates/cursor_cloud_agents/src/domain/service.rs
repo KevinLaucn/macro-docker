@@ -39,7 +39,7 @@
 mod test;
 
 use crate::domain::artifact::{ArtifactListing, CollectedArtifact, inline_text, mime_type};
-use crate::domain::error::SessionError;
+use crate::domain::error::{PromptRefusal, SessionError};
 use crate::domain::event::CursorEvent;
 use crate::domain::journal::{CursorJournal, JournalEntry, JournalInput, ReplayMachine};
 use crate::domain::model::{
@@ -259,30 +259,41 @@ fn captured_content(
         .collect()
 }
 
-/// Restate a repository rejection as something the person who prompted can
-/// act on, leaving every other failure exactly as it arrived.
+/// Restate a rejection the person who prompted can act on - a repository
+/// Cursor cannot reach, a Cursor account out of budget - in their terms,
+/// leaving every other failure exactly as it arrived.
 ///
 /// The result is a [`SessionError::Rejected`], so it takes the same path a
 /// [`PromptRejected`](crate::domain::error::PromptRejected) already takes:
-/// the prompt is journalled as aborted and the message travels to the client
+/// the prompt is journalled as aborted and the refusal travels to the client
 /// as the `session/prompt` error. Cursor's own body stays in the tracing event —
 /// it names codes and ids that mean nothing to a reader of the chip.
-fn explain_repository_rejection(error: SessionError) -> SessionError {
+fn explain_rejection(error: SessionError) -> SessionError {
     let SessionError::Cursor(report) = &error else {
         return error;
     };
-    let Some(unavailable) =
+    if let Some(unavailable) =
         report.downcast_current_context::<crate::domain::error::RepositoryUnavailable>()
-    else {
-        return error;
-    };
-    tracing::warn!(
-        repo = %unavailable.repo,
-        reason = %unavailable.reason,
-        detail = %unavailable.detail,
-        "cursor rejected the prompt: it could not use the session's repository"
-    );
-    SessionError::Rejected(unavailable.user_message())
+    {
+        tracing::warn!(
+            repo = %unavailable.repo,
+            reason = %unavailable.reason,
+            detail = %unavailable.detail,
+            "cursor rejected the prompt: it could not use the session's repository"
+        );
+        return SessionError::Rejected(PromptRefusal::plain(unavailable.user_message()));
+    }
+    if let Some(exceeded) =
+        report.downcast_current_context::<crate::domain::error::UsageLimitExceeded>()
+    {
+        tracing::warn!(
+            code = %exceeded.code,
+            detail = %exceeded.detail,
+            "cursor rejected the prompt: the account's usage limit is exhausted"
+        );
+        return SessionError::Rejected(exceeded.refusal());
+    }
+    error
 }
 
 /// Whether a failed create is a definite refusal — the prompt never ran, so
@@ -418,15 +429,6 @@ struct SessionState {
 struct Session {
     /// ACP working directory, used by the standalone repository chooser.
     cwd: PathBuf,
-    /// The model id this session was using before the process restarted, when
-    /// it was restored and had one. An id rather than a [`ModelChoice`]: only
-    /// the id is persisted, and its params must be re-resolved against the
-    /// live model table anyway, which can have drifted across the restart.
-    ///
-    /// May also be a value that was never a Cursor id at all — the harness
-    /// seeds its session records with a deployment slug like `claude` — so
-    /// resolution tolerates a miss instead of trusting this.
-    restored_model_id: Option<String>,
     /// Serializes turns against background foreign-run syncs, so a mirror of
     /// cursor.com activity never interleaves its frames with a live turn's.
     /// A prompt waits on it; a sync skips its tick instead. Never held by
@@ -451,6 +453,14 @@ pub struct CursorSessionService<Cursor, Notifier, Chooser, Store> {
     /// A model id this deployment pins, applied to every new session. `None`
     /// leaves the choice to Cursor's own default resolution.
     default_model_id: Option<String>,
+    /// The model this one session runs on, from the host's own session record:
+    /// what its owner picked for it, or the slug the host seeded it with.
+    /// Outranks [`Self::default_model_id`], which is only what a session gets
+    /// when nobody said otherwise.
+    ///
+    /// A whole service per session is how the hosted deployment serves them,
+    /// so this sits beside the deployment default rather than on [`Session`].
+    host_model_id: Option<String>,
     /// `GET /v1/models`, fetched once. The table is static for the life of a
     /// process and every `session/new` would otherwise re-fetch it.
     models: tokio::sync::Mutex<Option<Vec<CursorModel>>>,
@@ -480,6 +490,7 @@ where
             sessions: Mutex::new(HashMap::new()),
             next_session: Mutex::new(0),
             default_model_id: None,
+            host_model_id: None,
             models: tokio::sync::Mutex::new(None),
         }
     }
@@ -495,6 +506,20 @@ where
         self
     }
 
+    /// Pin the model this session runs on, by id, ahead of the deployment
+    /// default.
+    ///
+    /// The host's session record, which holds the model its owner chose for
+    /// this session - before it ever ran, or by selecting one mid-session -
+    /// and otherwise whatever slug the host seeded the record with. Resolved
+    /// like any other id, so a value that is not a Cursor model is no opinion
+    /// and the deployment default still answers.
+    #[must_use]
+    pub fn with_host_model(mut self, model_id: Option<String>) -> Self {
+        self.host_model_id = model_id;
+        self
+    }
+
     /// Open a session.
     ///
     /// No repository is chosen here: a session's repository follows from what
@@ -504,7 +529,6 @@ where
     pub fn new_session(&self, cwd: &Path, mcp_servers: Vec<McpServer>) -> SessionId {
         let session = Arc::new(Session {
             cwd: cwd.to_path_buf(),
-            restored_model_id: None,
             turn_gate: Arc::new(tokio::sync::Mutex::new(())),
             state: Mutex::new(SessionState {
                 mcp_servers,
@@ -611,36 +635,40 @@ where
         {
             return Ok(Some(model));
         }
-        // The restored id outranks the deployment default: it is what this
-        // session was actually using before the restart, and the default is
-        // what a session gets when nobody ever said otherwise.
-        let fallback_id = session
-            .restored_model_id
-            .as_deref()
-            .or(self.default_model_id.as_deref());
-        let Some(fallback_id) = fallback_id else {
-            return Ok(None);
-        };
-        // A failure to *fetch* the model table degrades like a failed lookup
-        // in it: the fallback is a preference, and Cursor being unreachable
-        // for `GET /v1/models` must cost the preference, never the prompt —
-        // the run itself may well still work.
-        let choice = match self.resolve_model_id(fallback_id).await {
-            Ok(choice) => choice,
-            Err(error) => {
-                tracing::warn!(
-                    fallback_id,
-                    %error,
-                    "could not resolve the fallback model; using Cursor's default"
-                );
-                None
-            }
-        };
-        let Some(choice) = choice else {
-            return Ok(None);
-        };
-        session.state.lock().expect("session state poisoned").model = Some(choice.clone());
-        Ok(Some(choice))
+        // Session before deployment: the session's own id is what its owner
+        // chose for it (or was using before a restart), and the default is
+        // what a session gets when nobody ever said otherwise. Each is only a
+        // preference, so one that resolves to nothing hands the question to
+        // the next rather than answering it with silence.
+        for fallback_id in [
+            self.host_model_id.as_deref(),
+            self.default_model_id.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            // A failure to *fetch* the model table degrades like a failed
+            // lookup in it: the fallback is a preference, and Cursor being
+            // unreachable for `GET /v1/models` must cost the preference, never
+            // the prompt — the run itself may well still work.
+            let choice = match self.resolve_model_id(fallback_id).await {
+                Ok(choice) => choice,
+                Err(error) => {
+                    tracing::warn!(
+                        fallback_id,
+                        %error,
+                        "could not resolve the fallback model; using Cursor's default"
+                    );
+                    None
+                }
+            };
+            let Some(choice) = choice else {
+                continue;
+            };
+            session.state.lock().expect("session state poisoned").model = Some(choice.clone());
+            return Ok(Some(choice));
+        }
+        Ok(None)
     }
 
     /// The id resolved to a choice Cursor will accept, or `None` for an id
@@ -908,15 +936,14 @@ where
                     // request there, which no later correction undoes.
                     Err(error) => {
                         tracing::warn!(error = ?error, "could not choose a repository for this session");
-                        Err(SessionError::Rejected(
-                            "Couldn't prepare repository access for this session. Please retry; if this persists, check your GitHub connection."
-                                .to_owned(),
-                        ))
+                        Err(SessionError::Rejected(PromptRefusal::plain(
+                            "Couldn't prepare repository access for this session. Please retry; if this persists, check your GitHub connection.",
+                        )))
                     }
                 }
             }
         };
-        let (agent, run) = match created.map_err(explain_repository_rejection) {
+        let (agent, run) = match created.map_err(explain_rejection) {
             Ok(created) => created,
             Err(error) => {
                 if is_prompt_rejection(&error) {
@@ -936,7 +963,7 @@ where
                     // the agent can see.
                     if creating_agent {
                         let reason = match &error {
-                            SessionError::Rejected(message) => Some(message.clone()),
+                            SessionError::Rejected(refusal) => Some(refusal.message.clone()),
                             _ => None,
                         };
                         session
@@ -1012,7 +1039,7 @@ where
         // up on a run still going, not a prompt refused before it ran.
         let interrupted = match &outcome {
             Err(SessionError::Cursor(error)) => Some(error.to_string()),
-            Err(SessionError::Rejected(message)) => Some(message.clone()),
+            Err(SessionError::Rejected(refusal)) => Some(refusal.message.clone()),
             _ => None,
         };
         if let Some(interrupted) = interrupted {
@@ -1184,9 +1211,8 @@ where
         id: SessionId,
         agent: Option<CursorAgentId>,
         repo: Option<RepoUrl>,
-        model_id: Option<String>,
     ) {
-        self.restore_session_with_watermark(id, agent, repo, model_id, None);
+        self.restore_session_with_watermark(id, agent, repo, None);
     }
 
     /// Restore a session together with its durable run-delivery checkpoint.
@@ -1195,7 +1221,6 @@ where
         id: SessionId,
         agent: Option<CursorAgentId>,
         repo: Option<RepoUrl>,
-        model_id: Option<String>,
         last_run: Option<CursorRunId>,
     ) {
         // No MCP servers here on purpose: the host never had the truth to
@@ -1203,7 +1228,6 @@ where
         // restates it on `session/load`, which is where it re-enters.
         let session = Arc::new(Session {
             cwd: PathBuf::new(),
-            restored_model_id: model_id,
             turn_gate: Arc::new(tokio::sync::Mutex::new(())),
             state: Mutex::new(SessionState {
                 repo,
@@ -1677,13 +1701,12 @@ where
                 attempts = POLL_ATTEMPTS,
                 "gave up waiting; Cursor still reports a non-terminal status"
             );
-            return Err(SessionError::Rejected(
+            return Err(SessionError::Rejected(PromptRefusal::plain(
                 "Cursor has been working on this for over two hours and Macro stopped \
                  waiting. Send another message to continue: if Cursor has finished by \
                  then, that message picks up what it did, and if not, the run is \
-                 cancelled and the conversation starts fresh from there."
-                    .into(),
-            ));
+                 cancelled and the conversation starts fresh from there.",
+            )));
         };
         if strict
             && !session
@@ -2263,9 +2286,10 @@ where
                 state.ready_for_sync = false;
                 SessionError::Journal(error)
             })?;
-        let (updates, completion, pull_request) = {
+        let (updates, completion, pull_request, working_branches) = {
             let mut state = session.state.lock().expect("session state poisoned");
             let previous_pr = state.machine.pull_request_url().map(str::to_owned);
+            let previous_branches = state.machine.working_branches().clone();
             let before = run.and_then(|run| state.machine.terminal_status(run));
             state.journal_entries.push(entry.clone());
             let SessionState {
@@ -2294,9 +2318,27 @@ where
                 .pull_request_url()
                 .filter(|url| Some(*url) != previous_pr.as_deref())
                 .map(str::to_owned);
-            (updates, completion, pull_request)
+            let working_branches: Vec<_> = state
+                .machine
+                .working_branches()
+                .iter()
+                .filter(|(repository, branch)| previous_branches.get(*repository) != Some(*branch))
+                .map(|(repository, branch)| (repository.clone(), branch.clone()))
+                .collect();
+            (updates, completion, pull_request, working_branches)
         };
         if emit {
+            for (repository, branch) in working_branches {
+                self.notifier
+                    .set_working_branch(id, &repository, &branch)
+                    .await
+                    .map_err(|error| {
+                        let mut state = session.state.lock().expect("session state poisoned");
+                        state.capture_failed = true;
+                        state.ready_for_sync = false;
+                        SessionError::Journal(error)
+                    })?;
+            }
             if let Some(url) = pull_request {
                 self.notifier
                     .set_pull_request(id, &url)
@@ -2509,6 +2551,11 @@ where
         // to a disconnected session by loading it, so a load that refuses is
         // also every future prompt refused as disconnected, with no way back.
         let (machine, updates) = history_projection(&entries, HistoryGap::IsServedAnyway)?;
+        for (repository, branch) in machine.working_branches() {
+            self.notifier
+                .set_working_branch(id, repository, branch)
+                .await?;
+        }
         if let Some(url) = machine.pull_request_url() {
             self.notifier.set_pull_request(id, url).await?;
         }

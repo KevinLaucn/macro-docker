@@ -1,19 +1,21 @@
 import { useCalendarUiFlag } from '@app/features/calendar/hooks/use-calendar-ui-flag';
+import { useOpenEventComposer } from '@app/features/calendar-view/components/use-open-event-composer';
 import {
   setCreateMenuOpen,
   useCreateMenuBlocks,
 } from '@app/features/command/Launcher';
 import { openCreateCompanyModal } from '@app/features/companies/CreateCompanyModal';
-import { useOpenEventComposer } from '@block-calendar/components/use-open-event-composer';
 import { hapticImpact } from '@core/mobile/haptics';
 import { virtualKeyboardVisible } from '@core/mobile/virtualKeyboard';
 import { t } from '@macro/i18n';
+import BellIcon from '@phosphor/bell.svg';
 import CalendarIcon from '@phosphor/calendar-blank.svg';
 import MessageIcon from '@phosphor/chat-circle.svg';
 import MoreIcon from '@phosphor/dots-three.svg';
 import EmailIcon from '@phosphor/envelope-simple.svg';
 import DocumentIcon from '@phosphor/file-text.svg';
 import TaskIcon from '@phosphor/list-checks.svg';
+import PhoneIcon from '@phosphor/phone.svg';
 import CreateIcon from '@phosphor/plus.svg';
 import { Show } from 'solid-js';
 import {
@@ -63,6 +65,42 @@ export function MobilePageCreateButton() {
     }),
     { label: t('More'), icon: MoreIcon, onSelect: openCreateMenu },
   ];
+  const calendarActions = (): MobileCreateMenuItem[] => {
+    const blocks = createBlocks();
+    const call = blocks.find((block) => block.blockName === 'call');
+    const reminder = blocks.find((block) => block.blockName === 'reminder');
+    return [
+      {
+        get label() {
+          return t('Event');
+        },
+        icon: CalendarIcon,
+        onSelect: () => openEventComposer(),
+      },
+      ...(call
+        ? [
+            {
+              get label() {
+                return t('Call');
+              },
+              icon: PhoneIcon,
+              onSelect: () => void call.keyDownHandler(),
+            },
+          ]
+        : []),
+      ...(reminder
+        ? [
+            {
+              get label() {
+                return t('Reminder');
+              },
+              icon: BellIcon,
+              onSelect: () => void reminder.keyDownHandler(),
+            },
+          ]
+        : []),
+    ];
+  };
   const action = () =>
     actionForView(foregroundView()) ?? {
       label: t('New'),
@@ -72,24 +110,31 @@ export function MobilePageCreateButton() {
   return (
     <Show when={foregroundView() !== 'agents' && !virtualKeyboardVisible()}>
       <Show
-        when={foregroundView() === 'inbox'}
+        when={foregroundView() === 'home'}
         fallback={
-          <MobileDockIsland class="shrink-0">
-            <button
-              type="button"
-              aria-label={
-                action().label === t('New')
-                  ? t('New')
-                  : `${t('New')} ${action().label.toLowerCase()}`
-              }
-              onPointerDown={() => hapticImpact('light')}
-              onClick={() => action().onSelect()}
-              class="relative flex h-(--mobile-chrome-button-size) shrink-0 items-center justify-center gap-1.5 rounded-full pl-3 pr-4 text-base font-medium whitespace-nowrap"
-            >
-              <CreateIcon class="size-5.5 shrink-0" />
-              <span>{action().label}</span>
-            </button>
-          </MobileDockIsland>
+          <Show
+            when={foregroundView() === 'calendar' && calendarEnabled()}
+            fallback={
+              <MobileDockIsland class="shrink-0">
+                <button
+                  type="button"
+                  aria-label={
+                    action().label === t('New')
+                      ? t('New')
+                      : `${t('New')} ${action().label.toLowerCase()}`
+                  }
+                  onPointerDown={() => hapticImpact('light')}
+                  onClick={() => action().onSelect()}
+                  class="relative flex h-(--mobile-chrome-button-size) shrink-0 items-center justify-center gap-1.5 rounded-full pl-3 pr-4 text-base font-medium whitespace-nowrap"
+                >
+                  <CreateIcon class="size-5.5 shrink-0" />
+                  <span>{action().label}</span>
+                </button>
+              </MobileDockIsland>
+            }
+          >
+            <MobileCreateMenu items={calendarActions()} />
+          </Show>
         }
       >
         <MobileCreateMenu items={quickActions()} />

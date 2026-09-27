@@ -1,17 +1,21 @@
 import { useViewTabHotkeys, ViewSidebar } from '@app/components/view-shell';
-import { SidebarCreateHeader } from '@app/components/view-shell/SidebarCreateButton';
+import { SidebarCreateButton } from '@app/components/view-shell/SidebarCreateButton';
+import { useSplitLayout } from '@components/app/split-layout/layout';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
+import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { t } from '@macro/i18n';
 import CalendarBlankIcon from '@phosphor/calendar-blank.svg';
+import ClockIcon from '@phosphor/clock.svg';
 import EnvelopeIcon from '@phosphor/envelope.svg';
 import FileIcon from '@phosphor/file.svg';
 import PaperPlaneTiltIcon from '@phosphor/paper-plane-tilt.svg';
+import StarIcon from '@phosphor/star.svg';
 import UsersThreeIcon from '@phosphor/users-three.svg';
 import SignalIcon from '@phosphor/wave-sine.svg';
 import NoiseIcon from '@phosphor/waveform.svg';
 import { SidebarTagsSection } from '@property/tags/SidebarTagsSection';
 import { pressHandlers } from '@ui';
-import { type Component, For } from 'solid-js';
+import { type Component, For, Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { composeEmail } from '../compose-email';
 import { EMAIL_TAB_IDS, EMAIL_TABS, type EmailTabItem } from '../constants';
@@ -22,7 +26,9 @@ import { EmailInboxList } from './EmailInboxSelector';
 const TAB_ICONS: Record<EmailTab, Component<{ class?: string }>> = {
   important: SignalIcon,
   noise: NoiseIcon,
+  favorites: StarIcon,
   sent: PaperPlaneTiltIcon,
+  scheduled: ClockIcon,
   calendar: CalendarBlankIcon,
   drafts: FileIcon,
   shared: UsersThreeIcon,
@@ -60,6 +66,7 @@ export function EmailNavigation(props: { onNavigate?: () => void }) {
 
 export function EmailSidebar() {
   const panel = useSplitPanelOrThrow();
+  const { openWithSplit } = useSplitLayout();
   const {
     state,
     setTab,
@@ -78,14 +85,22 @@ export function EmailSidebar() {
 
   return (
     <ViewSidebar.Root aria-label={t('Email navigation@@email')}>
-      <SidebarCreateHeader
-        title={t('Email')}
-        label={t('New email@@email')}
-        onCreate={() => composeEmail()}
-      />
+      <Show when={!isTouchDevice()}>
+        <ViewSidebar.Header>
+          <div class="flex min-w-0 items-center gap-1">
+            <ViewSidebar.CloseButton class="shrink-0" />
+            <ViewSidebar.Title>{t('Email')}</ViewSidebar.Title>
+          </div>
+        </ViewSidebar.Header>
+      </Show>
 
       <ViewSidebar.Content>
         <EmailInboxList />
+
+        <SidebarCreateButton
+          label={t('New email@@email')}
+          onCreate={() => composeEmail(openWithSplit, state.inboxIds)}
+        />
 
         <EmailNavigation />
 

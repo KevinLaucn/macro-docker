@@ -1,8 +1,5 @@
-import {
-  EntityDetailNavigationStack,
-  useEntityDetailNavigationStack,
-} from '@app/components/entity-detail/EntityDetailNavigationStack';
 import { ViewBreadcrumbs, ViewShell } from '@app/components/view-shell';
+import { SplitRouter } from '@app/lib/split-router';
 import { type PillTabItem, PillTabs } from '@components/app/mobile/PillTabs';
 import { SplitHeaderLeft } from '@components/app/split-layout/components/SplitHeader';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
@@ -13,14 +10,11 @@ import { ListEntityMetadataQueryProvider } from '@entity';
 import SpinnerIcon from '@phosphor/spinner.svg';
 import {
   createSignal,
-  Match,
   onMount,
   type ParentProps,
   Show,
   Suspense,
-  Switch,
 } from 'solid-js';
-import { EmailDetailView } from './components/EmailDetailView';
 import { EmailFilterDrawer } from './components/EmailFilterDrawer';
 import {
   EmailHeader,
@@ -40,18 +34,17 @@ export type EmailViewProps = {
 };
 
 function EmailViewBreadcrumbs(props: ParentProps) {
-  const { closeThread } = useEmailView();
-  const navigationStack = useEntityDetailNavigationStack();
+  const { closeThread, selectedThread } = useEmailView();
+  const value = () => {
+    const thread = selectedThread();
+    return thread ? `email-thread:${thread.id}` : 'email-view';
+  };
 
   return (
     <ViewBreadcrumbs.Root
-      value={navigationStack.active()?.value ?? 'email-view'}
-      onChange={(value) => {
-        if (value === 'email-view') {
-          closeThread();
-          return;
-        }
-        navigationStack.popTo(value);
+      value={value()}
+      onChange={(next) => {
+        if (next === 'email-view') closeThread();
       }}
     >
       <EmailViewBreadcrumbItem />
@@ -71,7 +64,15 @@ function EmailListFallback() {
 function EmailDesktopLayout(
   props: ParentProps<{ onSearchEscape: () => void }>
 ) {
-  const { selectedThread } = useEmailView();
+  const list = () => (
+    <>
+      <EmailTopBar />
+      <ViewShell.Header>
+        <EmailHeader onSearchEscape={props.onSearchEscape} />
+      </ViewShell.Header>
+      <ViewShell.Content>{props.children}</ViewShell.Content>
+    </>
+  );
 
   return (
     <ViewShell.Root
@@ -84,18 +85,7 @@ function EmailDesktopLayout(
         <EmailSidebar />
       </ViewShell.Aside>
       <ViewShell.Main>
-        <Switch>
-          <Match when={selectedThread()}>
-            {(thread) => <EmailDetailView thread={thread()} />}
-          </Match>
-          <Match when={true}>
-            <EmailTopBar />
-            <ViewShell.Header>
-              <EmailHeader onSearchEscape={props.onSearchEscape} />
-            </ViewShell.Header>
-            <ViewShell.Content>{props.children}</ViewShell.Content>
-          </Match>
-        </Switch>
+        <SplitRouter.Outlet fallback={list} />
       </ViewShell.Main>
     </ViewShell.Root>
   );

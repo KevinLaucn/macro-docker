@@ -9,7 +9,9 @@ export type EmailTabItem = {
 export const EMAIL_TABS: EmailTabItem[] = [
   { id: 'important', label: t('Signal') },
   { id: 'noise', label: t('Noise') },
+  { id: 'favorites', label: t('Favorites') },
   { id: 'sent', label: t('Sent') },
+  { id: 'scheduled', label: t('Scheduled') },
   { id: 'calendar', label: t('Calendar') },
   { id: 'drafts', label: t('Drafts') },
   { id: 'shared', label: t('Shared') },

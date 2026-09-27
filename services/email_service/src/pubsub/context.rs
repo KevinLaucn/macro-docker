@@ -1,13 +1,5 @@
 use crate::outbound::email_api::GmailApi;
-#[cfg(feature = "calendar")]
-use crate::pubsub::calendar_backfill_adapters::RedisCalendarRequestGate;
 use crate::util::redis::RedisClient;
-#[cfg(feature = "calendar")]
-use calendar_events::{
-    domain::models::GoogleWatchConfig,
-    domain::service::{GoogleCalendarBackfillCoordinator, GoogleCalendarBackfillFailureService},
-    outbound::{google::GoogleCalendarClient, pg::PgCalendarRepository},
-};
 use connection_gateway_client::client::ConnectionGatewayClient;
 use contacts::domain::service::SqsContactsIngress;
 use contacts::outbound::ingress::SqsContactsQueue;
@@ -40,81 +32,6 @@ pub type PubSubEventBroker = NoopMacroEventBroker;
 /// The concrete notification ingress service type.
 pub type NotificationIngressType = SqsNotificationIngress<SqsQueue>;
 
-/// Concrete Google Calendar backfill application service.
-#[cfg(feature = "calendar")]
-pub type GoogleCalendarBackfillService = GoogleCalendarBackfillCoordinator<
-    PgCalendarRepository,
-    GoogleCalendarClient<RedisCalendarRequestGate>,
-    PgCalendarRepository,
-    PubSubEventBroker,
->;
-
-/// Concrete pre-lease Google Calendar failure application service.
-#[cfg(feature = "calendar")]
-pub type GoogleCalendarBackfillFailureHandler =
-    GoogleCalendarBackfillFailureService<PgCalendarRepository>;
-
-/// Calendar application services composed once when a worker starts.
-#[derive(Clone)]
-pub struct CalendarBackfillServices {
-    #[cfg(feature = "calendar")]
-    /// Google provider backfill coordinator.
-    pub google: Arc<GoogleCalendarBackfillService>,
-    #[cfg(feature = "calendar")]
-    /// Applies terminal provider failures that happen before a lease is claimed.
-    pub google_failure: Arc<GoogleCalendarBackfillFailureHandler>,
-}
-
-impl CalendarBackfillServices {
-    /// Compose calendar application services from process-level adapters.
-    #[cfg(feature = "calendar")]
-    pub fn new(
-        db: PgPool,
-        redis_client: RedisClient,
-        macro_event_broker: PubSubEventBroker,
-    ) -> Self {
-        let repository = PgCalendarRepository::new(db);
-        Self {
-            google: Arc::new(GoogleCalendarBackfillCoordinator::new(
-                repository.clone(),
-                GoogleCalendarClient::with_gate(
-                    reqwest::Client::builder()
-                        .timeout(std::time::Duration::from_secs(30))
-                        .build()
-                        .expect("calendar client configuration is valid"),
-                    RedisCalendarRequestGate::new(redis_client),
-                ),
-                repository.clone(),
-                macro_event_broker,
-                calendar_watch_config(),
-            )),
-            google_failure: Arc::new(GoogleCalendarBackfillFailureService::new(repository)),
-        }
-    }
-
-    #[cfg(not(feature = "calendar"))]
-    pub fn new(
-        _db: PgPool,
-        _redis_client: RedisClient,
-        _macro_event_broker: PubSubEventBroker,
-    ) -> Self {
-        Self {}
-    }
-}
-
-#[cfg(feature = "calendar")]
-pub fn calendar_watch_config() -> Option<GoogleWatchConfig> {
-    // A variable set to an empty string must count as unset: a blank token
-    // would verify blank-header webhook requests.
-    let read = |name| {
-        macro_env_var::maybe_read_env(name)
-            .map(|value| value.trim().to_owned())
-            .filter(|value| !value.is_empty())
-    };
-    let address = read("CALENDAR_WATCH_WEBHOOK_URL")?;
-    let token = read("CALENDAR_WATCH_TOKEN")?;
-    Some(GoogleWatchConfig { address, token })
-}
 
 /// The unfurl-backed resolver used when Apollo enrichment is disabled.
 type UnfurlResolver = UnfurlCompanyMetadataResolver<
@@ -165,7 +82,5 @@ pub struct PubSubContext {
     pub crm_service: CrmServiceType,
     pub macro_event_broker: PubSubEventBroker,
     pub notifications_enabled: bool,
-    pub calendar_sync_enabled: bool,
     pub retry_worker: bool,
-    pub calendar_backfills: CalendarBackfillServices,
 }
