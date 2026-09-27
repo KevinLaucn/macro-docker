@@ -388,19 +388,16 @@ customizations:
       - services/email_service/src/api/swagger.rs
       - services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
       - services/email_service/src/config.rs
-      - services/email_service/src/lib.rs
       - services/email_service/src/main.rs
       - services/email_service/src/openapi.rs
       - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
       - services/email_service/src/pubsub/backfill/error_handlers.rs
-      - services/email_service/src/pubsub/backfill/mod.rs
       - services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
       - services/email_service/src/pubsub/backfill/process.rs
       - services/email_service/src/pubsub/context.rs
       - services/email_service/src/pubsub/inbox_sync/operations/upsert_message.rs
       - services/email_service/src/pubsub/inbox_sync/operations/upsert_message/test.rs
       - services/email_service/src/pubsub/mod.rs
-      - services/email_service/src/pubsub/scheduled/process.rs
       - services/email_service/src/pubsub/util.rs
       - services/email_service/src/util/sync_contacts.rs
       - services/email_service/src/util/sync_contacts/test.rs
@@ -485,7 +482,7 @@ customizations:
       - apps/web/src/features/email-view/components/EmailSidebar.tsx
       - apps/web/src/features/email-view/constants.ts
       - apps/web/src/features/entity/composed/list-entity/foreign.tsx
-      - apps/web/src/features/inbox-view/components/InboxTabs.tsx
+      - apps/web/src/features/home/components/HomeTabs.tsx
       - apps/web/src/features/next-soup/soup-view/empty-states.tsx
       - apps/web/src/features/next-soup/soup-view/filters-bar/search/search-facets.tsx
       - apps/web/src/features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx
@@ -531,7 +528,7 @@ customizations:
       - apps/web/src/features/email-view/components/EmailSidebar.tsx
       - apps/web/src/features/email-view/constants.ts
       - apps/web/src/features/entity/composed/list-entity/foreign.tsx
-      - apps/web/src/features/inbox-view/components/InboxTabs.tsx
+      - apps/web/src/features/home/components/HomeTabs.tsx
       - apps/web/src/features/next-soup/soup-view/empty-states.tsx
       - apps/web/src/features/next-soup/soup-view/filters-bar/search/search-facets.tsx
       - apps/web/src/features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx

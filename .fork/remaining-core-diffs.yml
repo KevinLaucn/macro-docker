@@ -1,6 +1,6 @@
 ---
 version: 2
-upstream_sha: fb311529664c27e10c1ab4d3cd19a4a9ca928eb3
+upstream_sha: b82642c4422e67067f5fa93b833cb9adee613de8
 diffs:
 - file: ".github/actions/setup-nix/action.yml"
   owners:
@@ -349,7 +349,7 @@ diffs:
   - EMAIL-PARTICIPANT-IDENTITY-001
   hooks: []
   override: false
-- file: apps/web/src/features/inbox-view/components/InboxTabs.tsx
+- file: apps/web/src/features/home/components/HomeTabs.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -830,11 +830,6 @@ diffs:
   - EMAIL-SELFHOST-001
   hooks: []
   override: false
-- file: services/email_service/src/lib.rs
-  owners:
-  - EMAIL-SELFHOST-001
-  hooks: []
-  override: false
 - file: services/email_service/src/main.rs
   owners:
   - EMAIL-SELFHOST-001
@@ -849,6 +844,12 @@ diffs:
   hooks:
   - email_read_receipts_features_openapi
   override: false
+- file: services/email_service/src/outbound/scheduled_delivery.rs
+  owners:
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_send_call
+  override: false
 - file: services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
   owners:
   - CRM-MULTI-INBOX-001
@@ -857,11 +858,6 @@ diffs:
   - crm_backfill_depopulate_all_inboxes
   override: false
 - file: services/email_service/src/pubsub/backfill/error_handlers.rs
-  owners:
-  - EMAIL-SELFHOST-001
-  hooks: []
-  override: false
-- file: services/email_service/src/pubsub/backfill/mod.rs
   owners:
   - EMAIL-SELFHOST-001
   hooks: []
@@ -897,13 +893,6 @@ diffs:
   owners:
   - EMAIL-SELFHOST-001
   hooks: []
-  override: false
-- file: services/email_service/src/pubsub/scheduled/process.rs
-  owners:
-  - EMAIL-SELFHOST-001
-  - READ-RECEIPTS-001
-  hooks:
-  - email_read_receipts_send_call
   override: false
 - file: services/email_service/src/pubsub/util.rs
   owners:
