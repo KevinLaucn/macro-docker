@@ -235,14 +235,18 @@ customizations:
       - crates/macro_db_migrator/**
       - tooling/xtask/crates/xtask_local/**
       - tooling/just/**
+      - apps/web/src/features/settings/Harness.tsx
       - apps/web/src/lib/core/constant/featureFlags.ts
       - apps/web/src/lib/queries/agents/models.ts
       - apps/web/src/lib/queries/auth/codex.ts
+      - apps/web/src/lib/queries/claude-auth/connection.ts
       - services/sync-service/wrangler.docker.toml
     owned_paths:
+      - apps/web/src/features/settings/Harness.tsx
       - apps/web/src/lib/core/constant/featureFlags.ts
       - apps/web/src/lib/queries/agents/models.ts
       - apps/web/src/lib/queries/auth/codex.ts
+      - apps/web/src/lib/queries/claude-auth/connection.ts
       - crates/macro_db_migrator/Cargo.toml
       - docker/docker-compose-databases.yml
       - docker/sync-service.Dockerfile

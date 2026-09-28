@@ -490,6 +490,30 @@ hooks:
     context:
       - "export function useCodexStatusQuery(enabled: () => boolean = () => true) {"
 
+  - id: selfhost_runtime_claude_auth_capability_gate
+    customization: SELFHOST-RUNTIME-001
+    file: apps/web/src/lib/queries/claude-auth/connection.ts
+    marker: "// PRIVATE-HOOK: selfhost_runtime:claude-auth-capability-gate"
+    expected: "enabled: getAppCapabilities().agents && !!owner() && enabled(),"
+    context:
+      - "export function useClaudeConnectionStatusQuery("
+
+  - id: selfhost_runtime_claude_harness_ui_gate
+    customization: SELFHOST-RUNTIME-001
+    file: apps/web/src/features/settings/Harness.tsx
+    marker: "{/* PRIVATE-HOOK: selfhost_runtime:claude-harness-ui-gate */}"
+    expected: "<Show when={getAppCapabilities().agents}>"
+    context:
+      - "<ClaudeConnection />"
+
+  - id: selfhost_runtime_codex_harness_ui_gate
+    customization: SELFHOST-RUNTIME-001
+    file: apps/web/src/features/settings/Harness.tsx
+    marker: "{/* PRIVATE-HOOK: selfhost_runtime:codex-harness-ui-gate */}"
+    expected: "<Show when={getAppCapabilities().codex}>"
+    context:
+      - "<CodexHarness />"
+
   - id: self_host_health_auth_models_email_dep
     customization: SELFHOST-HEALTH-001
     file: services/authentication_service/Cargo.toml

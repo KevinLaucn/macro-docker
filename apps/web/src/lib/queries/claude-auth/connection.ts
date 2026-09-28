@@ -1,3 +1,4 @@
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { throwOnErr } from '@core/util/result';
 import { claudeAuthClient } from '@service-agent-harness/claude-auth';
 import { useQuery, useQueryClient } from '@tanstack/solid-query';
@@ -12,7 +13,8 @@ export function useClaudeConnectionStatusQuery(
   return useQuery(() => ({
     queryKey: claudeAuthKeys.status(owner()).queryKey,
     queryFn: ({ signal }) => throwOnErr(() => claudeAuthClient.status(signal)),
-    enabled: !!owner() && enabled(),
+    // PRIVATE-HOOK: selfhost_runtime:claude-auth-capability-gate
+    enabled: getAppCapabilities().agents && !!owner() && enabled(),
     staleTime: 0,
     gcTime: 0,
     retry: false,

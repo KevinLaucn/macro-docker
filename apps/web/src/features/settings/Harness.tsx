@@ -1,6 +1,7 @@
 import { ModelCatalogPicker } from '@core/component/AI/component/input/ModelCatalogPicker';
 import { isLargeModelCatalog } from '@core/component/AI/component/input/modelCatalog';
 import { toast } from '@core/component/Toast/Toast';
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { MACRO_HARNESS_NAME } from '@core/constant/macroAgent';
 import { ThrownResultError } from '@core/util/result';
 import CursorIcon from '@icon/wide-cursor-ide.svg';
@@ -214,7 +215,10 @@ export function Harness(
                 </div>
               </section>
 
-              <ClaudeConnection />
+              {/* PRIVATE-HOOK: selfhost_runtime:claude-harness-ui-gate */}
+              <Show when={getAppCapabilities().agents}>
+                <ClaudeConnection />
+              </Show>
 
               <section class="flex gap-4 px-6 py-5">
                 <HarnessIcon>
@@ -403,7 +407,10 @@ export function Harness(
                 </div>
               </section>
 
-              <CodexHarness />
+              {/* PRIVATE-HOOK: selfhost_runtime:codex-harness-ui-gate */}
+              <Show when={getAppCapabilities().codex}>
+                <CodexHarness />
+              </Show>
             </SettingsCard>
           </div>
 
