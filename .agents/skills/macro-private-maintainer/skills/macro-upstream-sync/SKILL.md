@@ -50,7 +50,7 @@ Every merge from `upstream/main` must follow this 7-step workflow:
 3b. **Upstream Capability & Routing Surface Diff**:
    - Compare `tooling/xtask/crates/xtask_local/src/local/proxy.rs` and `inventory.rs` against `self-host/Caddyfile` and `docker-compose.yml`. Ensure all special routes (`/sync`, `/websocket`, `/i`, `/lexical`, `/ai-editing`, `/static-file`) are preserved and aligned.
    - Inspect upstream feature flags in `apps/web/src/lib/core/constant/featureFlags.ts`. If upstream adds new services or tools (e.g. `codex`, `agents`, `calendar`), explicitly gate them off in `AppCapabilities` and `env-config.js` (`codex: false`, `agents: false`). Never mock backend endpoints with fake `respond "[]" 200` in Caddy.
-   - Verify Cloudflare Worker / sync-service origin policy (`ALLOWED_ORIGINS` in `sync-service/src/durable_object.rs`) and ensure Caddy passes `header_up Origin https://macro.com` to prevent 403 Forbidden on document sync.
+   - Verify Cloudflare Worker / sync-service origin policy (`ALLOWED_ORIGINS` in `sync-service/src/durable_object.rs`) and ensure Caddy passes `header_up Origin http://localhost:3000` to prevent 403 Forbidden on document sync.
    - Verify `@no_cache` headers for `env-config.js` and `index.html` to eliminate stale asset 404 storms.
 4. **Adapt Affected Customizations**:
    Adapt fork packages (`packages/fork/`) to the new upstream schemas and contracts, adhering strictly to zero core drift in upstream source files.

@@ -53,8 +53,8 @@ def verify_caddyfile(caddy_text: str) -> list[str]:
     # Check @sync route exists and proxies to sync-service:8787 with Origin rewrite
     if not re.search(r'@sync\s+path\s+/sync\s+/sync/\*\s*handle\s+@sync\s*\{[^}]*reverse_proxy\s+sync-service:8787', caddy_text, re.S):
         errors.append("Caddyfile missing canonical @sync route to sync-service:8787")
-    if 'header_up Origin https://macro.com' not in caddy_text:
-        errors.append("Caddyfile @sync route must set 'header_up Origin https://macro.com' for sync-service CORS parity")
+    if 'header_up Origin http://localhost:3000' not in caddy_text:
+        errors.append("Caddyfile @sync route must set 'header_up Origin http://localhost:3000' for sync-service CORS parity")
 
     return errors
 

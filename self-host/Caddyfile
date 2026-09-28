@@ -114,7 +114,7 @@
 	handle @sync {
 		uri strip_prefix /sync
 		reverse_proxy sync-service:8787 {
-			header_up Origin https://macro.com
+			header_up Origin http://localhost:3000
 		}
 	}
 	handle_path /lexical/* {

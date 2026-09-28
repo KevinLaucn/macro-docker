@@ -146,8 +146,8 @@ else:
             fail(f"special route '{route}' from proxy.rs is missing from self-host/Caddyfile")
         if route == "/sync":
             sync_match = re.search(r"@sync path /sync /sync/\*[\s\S]*?handle @sync \{([\s\S]*?)\}", caddy)
-            if not sync_match or "header_up Origin https://macro.com" not in sync_match.group(1):
-                fail("Caddyfile @sync route must include 'header_up Origin https://macro.com' to satisfy sync-service origin policy")
+            if not sync_match or "header_up Origin http://localhost:3000" not in sync_match.group(1):
+                fail("Caddyfile @sync route must include 'header_up Origin http://localhost:3000' to satisfy sync-service origin policy")
         if route == "/websocket":
             if "@websocket" not in caddy or "uri strip_prefix /websocket" not in caddy:
                 fail("Caddyfile @websocket route must strip prefix and handle /websocket")

@@ -89,7 +89,7 @@ Upstream sync and pre-push validation must enforce two complementary gates:
 Whenever upstream merges, run a capability and routing surface diff before testing:
 1. **Route & Service Parity**: Diff `tooling/xtask/crates/xtask_local/src/local/proxy.rs` and `inventory.rs` against `self-host/Caddyfile` and `self-host/docker-compose.yml`. Ensure all special routes (`/sync`, `/websocket`, `/i`, `/lexical`, `/ai-editing`, `/static-file`) are declared and mapped correctly.
 2. **Capability Gating vs Fake 200s**: If upstream adds new features or services (e.g., `codex`, `agent-harness`, `calendar_service`) that are not deployed in the default self-host Email topology, gate them off via `AppCapabilities` and `env-config.js` (`codex: false`, `agents: false`). Never mock endpoints with fake `respond "[]" 200` in Caddy.
-3. **Origin & WebSocket Contracts**: Upstream Cloudflare Worker / sync services validate `ALLOWED_ORIGINS`. Verify Caddy `@sync` rewrites `header_up Origin https://macro.com` to prevent 403 Forbidden handshake failures.
+3. **Origin & WebSocket Contracts**: Upstream Cloudflare Worker / sync services validate `ALLOWED_ORIGINS`. Verify Caddy `@sync` rewrites `header_up Origin http://localhost:3000` to prevent 403 Forbidden handshake failures while adhering to zero-cloud invariants.
 4. **Cache & Assets Invariants**: Verify `env-config.js` and HTML entrypoints carry `Cache-Control: no-cache, no-store, must-revalidate` to prevent stale chunk 404s after updates.
 5. **Gate Execution**: Run `just fork-gate` (enforcing `check-drift.py` and `verify-release.py`).
 
