@@ -46,6 +46,7 @@ services:
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
       ACME_CA: ${ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}
     volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - web_assets:/srv/frontend:ro
       - caddy_data:/data
       - caddy_config:/config
@@ -73,7 +74,7 @@ services:
       - "sh"
       - "-c"
       - |
-        rm -rf /out/* && cp -a /srv/frontend/. /out/
+        cp -a /srv/frontend/. /out/ && find /out -type f -name '*-*.js*' -mtime +14 -delete 2>/dev/null || true
         # 自动化修补前端生产产物 (避免修改官方源码并保持上游合并 0 冲突)
         for f in /out/app-*.js; do
           if [ -f "$$f" ]; then
@@ -82,6 +83,8 @@ services:
             # 自动化修复文档组件卸载时 cDe.get 未捕获异常导致的侧边栏点击卡死问题
             sed -i 's/const I=cDe\.get();/const I=cDe?.get?.();/g' "$$f"
             sed -i 's/xe(()=>{h\.stop(),u\.destroy();const I=i()?.documentId;I&&o(I)})/xe(()=>{h.stop(),u.destroy();try{const I=i()?.documentId;I\&\&o(I)}catch{}})/g' "$$f"
+            # 自动化修补发件人默认优先为 etsy@chnprints.com
+            sed -i 's/accounts:{\.\.\.l,primaryId:i}/accounts:{...l,primaryId:(()=>{const p=i;return()=>l?.inboxes?.()?.find(x=>x.email_address?.toLowerCase()==="etsy@chnprints.com")?.id??p()})()}/g' "$$f"
           fi
         done
         cat <<EOF > /out/env-config.js

@@ -25,6 +25,10 @@
 }
 
 {$MACRO_DOMAIN} {
+	log {
+		output stdout
+		format json
+	}
 	encode zstd gzip
 
 	header {
@@ -95,8 +99,16 @@
 	handle_path /image-proxy/* {
 		reverse_proxy image-proxy-service:8080
 	}
+	# Agent Harness Service (自托管未部署沙箱容器时返回空列表防前端 502)
 	handle_path /agent-harness/* {
-		reverse_proxy agent-harness-service:8080
+		header Content-Type "application/json"
+		respond "[]" 200
+	}
+
+	# Calendar Service (自托管未部署独立日历同步微服务时返回空数据防前端解析失败)
+	handle_path /calendar/* {
+		header Content-Type "application/json"
+		respond `{"calendars":[],"events":[]}` 200
 	}
 	# --- end generated service routes ---------------------------------------
 
@@ -137,6 +149,21 @@
 	handle_path /static-file/* {
 		rewrite * /static-file-storage{path}
 		reverse_proxy localstack:4566
+	}
+
+	# Root static assets fallback (PWA manifest, favicons, dev logos)
+	handle /manifest.json {
+		root * /srv/frontend
+		header Cache-Control "no-cache, no-store, must-revalidate"
+		file_server
+	}
+	handle /favicon.ico {
+		root * /srv/frontend
+		file_server
+	}
+	handle /dev/* {
+		root * /srv/frontend
+		file_server
 	}
 
 	# The app bundle. Built with base `/app`, so the URL space maps onto the
@@ -191,12 +218,25 @@
 }
 
 {$S3_DOMAIN} {
+	log {
+		output stdout
+		format json
+	}
 	encode zstd gzip
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		-Server
 	}
+
+	# Compatibility rewrite: map legacy /macro-email-attachments to active bucket /macro-email-attach
+	@legacy_attachments path /macro-email-attachments/*
+	handle @legacy_attachments {
+		uri strip_prefix /macro-email-attachments
+		rewrite * /macro-email-attach{path}
+		reverse_proxy localstack:4566
+	}
+
 	# Host header passes through unchanged, which is what makes the SigV4
 	# presigned signature verify at the origin.
 	reverse_proxy localstack:4566
