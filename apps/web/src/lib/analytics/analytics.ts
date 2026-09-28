@@ -121,6 +121,7 @@ const POSTHOG_RECORDER_SCRIPT_NAME = 'posthog-recorder.js';
 const POSTHOG_RECORDER_PROXY_SCRIPT_NAME = 'runtime.js';
 
 function isPrivateCallPage() {
+  if (typeof window === 'undefined') return false;
   const path = window.location.pathname + window.location.hash;
   return redactCallLinkTokens(path) !== path;
 }

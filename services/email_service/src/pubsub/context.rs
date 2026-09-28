@@ -32,7 +32,6 @@ pub type PubSubEventBroker = NoopMacroEventBroker;
 /// The concrete notification ingress service type.
 pub type NotificationIngressType = SqsNotificationIngress<SqsQueue>;
 
-
 /// The unfurl-backed resolver used when Apollo enrichment is disabled.
 type UnfurlResolver = UnfurlCompanyMetadataResolver<
     unfurl::domain::service::UnfurlServiceImpl<unfurl::outbound::ReqwestUnfurlFetcher>,

@@ -1,5 +1,3 @@
-#[cfg(feature = "calendar")]
-use crate::pubsub::backfill::calendar_google_backfill;
 use crate::pubsub::backfill::{
     backfill_attachment, backfill_message, backfill_thread, depopulate_crm_contact,
     depopulate_crm_for_user, error_handlers, increment_counters, init, list_threads,
