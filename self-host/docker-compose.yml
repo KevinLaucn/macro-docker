@@ -67,6 +67,7 @@ services:
 
   # One-shot: unpack the built frontend bundle into the volume Caddy serves.
   web_assets:
+    <<: *env
     image: ${MACRO_IMAGE_WEB:-ghcr.io/kevinlaucn/macro-web}:${MACRO_VERSION:?set MACRO_VERSION in .env}
     command:
       - "sh"

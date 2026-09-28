@@ -1,6 +1,7 @@
 import { parse } from '@babel/parser';
 import traverseModule from '@babel/traverse';
 import MagicString from 'magic-string';
+import type { ExistingRawSourceMap } from 'rollup';
 import type { Plugin } from 'vite';
 import {
   getContextKey,
@@ -401,9 +402,18 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
         if (!code.includes('@macro/i18n')) {
           s.prepend(`import { __t } from "@macro/i18n";\n`);
         }
+        const map = s.generateMap({ hires: true });
+        const rollupMap: ExistingRawSourceMap = {
+          file: map.file,
+          mappings: map.mappings,
+          names: map.names,
+          sources: map.sources,
+          sourcesContent: map.sourcesContent?.map((c) => c ?? '') ?? [],
+          version: map.version,
+        };
         return {
           code: s.toString(),
-          map: s.generateMap({ hires: true }),
+          map: rollupMap,
         };
       }
 

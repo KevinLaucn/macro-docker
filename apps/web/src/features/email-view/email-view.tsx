@@ -162,17 +162,15 @@ function EmailViewRoot() {
 /** Email shares one list across desktop sidebar and mobile pill layouts. */
 export function EmailView(props: EmailViewProps) {
   return (
-    <EntityDetailNavigationStack.Root>
+    <EmailListTranslationProvider>
       {/* PRIVATE-HOOK: email_translation:view-provider */}
-      <EmailListTranslationProvider>
-        <ListEntityMetadataQueryProvider>
-          <EmailViewProvider initialState={props.initialState}>
-            <EmailViewBreadcrumbs>
-              <EmailViewRoot />
-            </EmailViewBreadcrumbs>
-          </EmailViewProvider>
-        </ListEntityMetadataQueryProvider>
-      </EmailListTranslationProvider>
-    </EntityDetailNavigationStack.Root>
+      <ListEntityMetadataQueryProvider>
+        <EmailViewProvider initialState={props.initialState}>
+          <EmailViewBreadcrumbs>
+            <EmailViewRoot />
+          </EmailViewBreadcrumbs>
+        </EmailViewProvider>
+      </ListEntityMetadataQueryProvider>
+    </EmailListTranslationProvider>
   );
 }

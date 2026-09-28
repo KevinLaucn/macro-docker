@@ -46,6 +46,21 @@ need_env() {
   [ -f "$ENV_FILE" ] || die "no $ENV_FILE — run './macroctl generate-secrets' first"
 }
 
+resolve_profiles() {
+  local env_profiles=""
+  if [ -f "$ENV_FILE" ]; then
+    env_profiles=$(grep -E '^[[:space:]]*COMPOSE_PROFILES=' "$ENV_FILE" | cut -d= -f2- | tr -d '"'"'"' || true)
+  fi
+  env_profiles="${COMPOSE_PROFILES:-$env_profiles}"
+  if [ -n "$env_profiles" ]; then
+    local IFS=','
+    for p in $env_profiles; do
+      p=$(echo "$p" | tr -d ' ')
+      [ -n "$p" ] && printf -- '--profile\n%s\n' "$p"
+    done
+  fi
+}
+
 # ---------------------------------------------------------------------------
 # Secret generation. /dev/urandom only, so there is no openssl dependency.
 # ---------------------------------------------------------------------------
@@ -274,6 +289,11 @@ cmd_up() {
       *) die "unknown flag: $1" ;;
     esac
   done
+  if [ "${#profiles[@]}" -eq 0 ]; then
+    while IFS= read -r flag && IFS= read -r val; do
+      [ -n "$flag" ] && [ -n "$val" ] && profiles+=("$flag" "$val")
+    done < <(resolve_profiles)
+  fi
 
   bold "Pulling images"
   "${COMPOSE[@]}" "${profiles[@]}" pull --quiet
@@ -384,7 +404,11 @@ cmd_activate() {
   # consumers for them fail on a stack that only ever ran `up` once.
   "${COMPOSE[@]}" run --rm init
   "${COMPOSE[@]}" run --rm kafka_init
-  "${COMPOSE[@]}" up -d --remove-orphans
+  local profiles=()
+  while IFS= read -r flag && IFS= read -r val; do
+    [ -n "$flag" ] && [ -n "$val" ] && profiles+=("$flag" "$val")
+  done < <(resolve_profiles)
+  "${COMPOSE[@]}" "${profiles[@]}" up -d --remove-orphans
   if [ -f "./scripts/reconcile_fusionauth_idp.py" ]; then
     nohup python3 ./scripts/reconcile_fusionauth_idp.py > /tmp/macro_reconcile.log 2>&1 &
   fi
