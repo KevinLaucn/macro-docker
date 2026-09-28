@@ -491,11 +491,23 @@ diffs:
   - self_host_health_settings_item
   - self_host_health_settings_slug
   override: false
+- file: apps/web/src/lib/queries/agents/models.ts
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks:
+  - selfhost_runtime_agent_models_capability_gate
+  override: false
 - file: apps/web/src/lib/queries/ai/createHomeRecommendations.ts
   owners:
   - AI-MODEL-POLICY-001
   hooks: []
   override: true
+- file: apps/web/src/lib/queries/auth/codex.ts
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks:
+  - selfhost_runtime_codex_capability_gate
+  override: false
 - file: apps/web/src/lib/queries/sync/SyncProvider.tsx
   owners:
   - READ-RECEIPTS-001
