@@ -4963,5 +4963,8 @@
   "Built in · runs in Macro's cloud": "内置 · 运行于 Macro 云端",
   "Cloud agents · connected with your Cursor API key": "云端智能体 · 已通过您的 Cursor API 密钥连接",
   "Cloud agents · connect with your Cursor API key": "云端智能体 · 使用您的 Cursor API 密钥连接",
-  "Click": "点击"
+  "Click": "点击",
+  "Awaiting reply badge": "待回复标记",
+  "Automatically add a tag to threads awaiting reply.": "自动为待回复的邮件线程添加标签。",
+  "Automatically add teammates@@chat": "自动添加团队成员"
 }
