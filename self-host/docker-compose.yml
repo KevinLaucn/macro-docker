@@ -111,7 +111,7 @@ services:
           ENABLE_RECENT_VIEW: "$${ENABLE_RECENT_VIEW:-true}",
           ENABLE_TAG_TEAM_SHARING: "$${ENABLE_TAG_TEAM_SHARING:-true}",
           ENABLE_AGENTS: "$${ENABLE_AGENTS:-false}",
-          ENABLE_CODEX_AGENTS: "$${ENABLE_CODEX_AGENTS:-false}",
+          ENABLE_CODEX_AGENTS: "$${ENABLE_CODEX_AGENTS:-true}",
           ENABLE_DOCS_COLLAB: "$${ENABLE_DOCS_COLLAB:-true}",
           ENABLE_CRM: "$${ENABLE_CRM:-true}",
           INLINE_AI_EDITING: "$${INLINE_AI_EDITING:-true}",
@@ -150,7 +150,7 @@ services:
             cognition: $${ENABLE_COGNITION:-true},
             scheduledActions: $${ENABLE_SCHEDULED_ACTIONS:-true},
             agents: $${ENABLE_AGENTS:-false},
-            codex: $${ENABLE_CODEX_AGENTS:-false},
+            codex: $${ENABLE_CODEX_AGENTS:-true},
             docsCollab: false,
             enableNewAppViews: $${ENABLE_NEW_APP_VIEWS:-true},
             enableSidebarNext: $${ENABLE_SIDEBAR_NEXT:-true},
@@ -429,6 +429,8 @@ services:
     command: ["/app/out/authentication_service"]
     environment:
       DOCUMENT_STORAGE_SERVICE_AUTH_KEY: ${DOCUMENT_STORAGE_SERVICE_AUTH_KEY:-}
+      CURSOR_API_KEY_KMS_KEY_ID: ${CURSOR_API_KEY_KMS_KEY_ID:-alias/macro-selfhost-cursor-api-key}
+      CODEX_OAUTH_KMS_KEY_ID: ${CODEX_OAUTH_KMS_KEY_ID:-alias/macro-selfhost-codex-oauth}
     depends_on:
       postgres:
         condition: service_healthy
@@ -714,6 +716,7 @@ services:
     environment:
       OVERRIDE_CONNECTION_GATEWAY_URL: http://connection-gateway:8080
       LOCAL_CONTAINER_NETWORK: macro-selfhost_services
+      CODEX_OAUTH_KMS_KEY_ID: ${CODEX_OAUTH_KMS_KEY_ID:-alias/macro-selfhost-codex-oauth}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:

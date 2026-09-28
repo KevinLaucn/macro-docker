@@ -11,6 +11,10 @@ Probes deep-water business contracts across:
 from __future__ import annotations
 import os, sys, json, subprocess
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+repo_dir = os.path.dirname(script_dir)
+env_path = os.path.join(repo_dir, ".env") if os.path.exists(os.path.join(repo_dir, ".env")) else ".env"
+
 def run_cmd(cmd: str) -> tuple[int, str]:
     res = subprocess.run(cmd, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if res.returncode != 0 and not res.stdout:
@@ -105,8 +109,7 @@ else:
 
 # 6. Frontend Default Compose Sender Priority
 print("\n[6/7] Checking Frontend Default Compose Sender (etsy@chnprints.com)...")
-web_asset_vol = "/var/lib/docker/volumes/macro-selfhost_web_assets/_data"
-code, out = run_cmd(f"sudo grep -s 'etsy@chnprints.com' {web_asset_vol}/app-*.js")
+code, out = run_cmd("docker exec macro-selfhost-caddy-1 sh -c 'grep -s etsy@chnprints.com /srv/frontend/app-*.js' 2>/dev/null || sudo grep -s 'etsy@chnprints.com' /var/lib/docker/volumes/macro-selfhost_web_assets/_data/app-*.js 2>/dev/null")
 if code == 0 and "etsy@chnprints.com" in out:
     print("  ✅ Frontend Default Sender: etsy@chnprints.com prioritized for new compose")
 else:
@@ -137,7 +140,7 @@ if code == 0:
         print(f"  ✅ SFS Presigned URL: external endpoint configured to {public_s3}")
 else:
     # Fallback to checking .env directly if containers are offline
-    code_env, out_env = run_cmd("grep -E '^(LOCAL_AWS_PUBLIC_URL|S3_ENDPOINT_URL|S3_DOMAIN)=' .env 2>/dev/null")
+    code_env, out_env = run_cmd(f"grep -E '^(LOCAL_AWS_PUBLIC_URL|S3_ENDPOINT_URL|S3_DOMAIN)=' {env_path} 2>/dev/null")
     if code_env == 0 and out_env:
         if "4566" in out_env:
             msg = "  ❌ SFS Presigned URL: .env contains internal port 4566 in public S3 config"
@@ -149,14 +152,14 @@ else:
 
 # 8. Caddy Reverse Proxy, Security Headers & Document Sync WebSocket
 print("\n[8/9] Checking Caddy Proxy & Document Sync WebSocket Smoke Probe...")
-code_domain, out_domain = run_cmd("grep -E '^MACRO_DOMAIN=' .env 2>/dev/null | cut -d= -f2-")
+code_domain, out_domain = run_cmd(f"grep -E '^MACRO_DOMAIN=' {env_path} 2>/dev/null | cut -d= -f2-")
 domain = out_domain.strip().strip('"').strip("'") or "localhost"
 
 # Check /_healthz
 c_code, c_out = run_cmd(
+    f"curl -kfsSL https://{domain}/_healthz 2>/dev/null || "
     f"curl -kfsSL --resolve {domain}:443:127.0.0.1 https://{domain}/_healthz 2>/dev/null || "
-    f"curl -kfsSL -H 'Host: {domain}' http://127.0.0.1/_healthz 2>/dev/null || "
-    f"curl -kfsSL https://{domain}/_healthz 2>/dev/null"
+    f"curl -kfsSL -H 'Host: {domain}' http://127.0.0.1/_healthz 2>/dev/null"
 )
 if c_code == 0 and c_out.strip() == "ok":
     print("  ✅ Caddy Liveness: /_healthz returns 200 ok")
@@ -166,6 +169,13 @@ else:
 
 # Check Document Sync reachability and origin policy
 ws_cmd = (
+    f"curl -ki -s -N --max-time 3 "
+    f"-H 'Origin: https://{domain}' "
+    f"-H 'Connection: Upgrade' "
+    f"-H 'Upgrade: websocket' "
+    f"-H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' "
+    f"-H 'Sec-WebSocket-Version: 13' "
+    f"https://{domain}/sync 2>/dev/null || "
     f"curl -ki -s -N --max-time 3 --resolve {domain}:443:127.0.0.1 "
     f"-H 'Origin: https://{domain}' "
     f"-H 'Connection: Upgrade' "
@@ -196,17 +206,15 @@ else:
 # 9. Capability Gating & Web Bundle Runtime Config Smoke Check
 print("\n[9/9] Checking Capabilities & Web Bundle Runtime Config Smoke...")
 cfg_cmd = (
+    f"curl -kfsSL https://{domain}/app/env-config.js 2>/dev/null || "
     f"curl -kfsSL --resolve {domain}:443:127.0.0.1 https://{domain}/app/env-config.js 2>/dev/null || "
-    f"curl -kfsSL -H 'Host: {domain}' http://127.0.0.1/app/env-config.js 2>/dev/null || "
-    f"curl -kfsSL https://{domain}/app/env-config.js 2>/dev/null"
+    f"curl -kfsSL -H 'Host: {domain}' http://127.0.0.1/app/env-config.js 2>/dev/null"
 )
 cfg_code, cfg_out = run_cmd(cfg_cmd)
 if cfg_code == 0:
-    if "codex: false" in cfg_out or 'codex: "false"' in cfg_out or 'ENABLE_CODEX_AGENTS: "false"' in cfg_out:
-        print("  ✅ Runtime Capabilities: codex feature flag disabled")
-    else:
-        msg = "  ❌ Runtime Capabilities: codex flag not disabled in env-config.js"
-        print(msg); failures.append(msg)
+    print("  ✅ Web Config: env-config.js fetched successfully")
+    if "ENABLE_CODEX_AGENTS" in cfg_out:
+        print("  ✅ Runtime Capabilities: codex configuration rendered")
     if "agents: false" in cfg_out or 'agents: "false"' in cfg_out or 'ENABLE_AGENTS: "false"' in cfg_out:
         print("  ✅ Runtime Capabilities: agents sandbox feature flag disabled")
     else:
@@ -215,11 +223,27 @@ else:
     msg = f"  ❌ Web Config: failed to fetch /app/env-config.js (code {cfg_code})"
     print(msg); failures.append(msg)
 
+# Verify Codex authentication service endpoint is active and never 503
+codex_probe_cmd = (
+    f"curl -k -s -o /dev/null -w '%{{http_code}}' https://{domain}/auth/codex 2>/dev/null || "
+    f"curl -k -s -o /dev/null -w '%{{http_code}}' --resolve {domain}:443:127.0.0.1 https://{domain}/auth/codex 2>/dev/null || "
+    f"curl -k -s -o /dev/null -w '%{{http_code}}' -H 'Host: {domain}' http://127.0.0.1/auth/codex 2>/dev/null"
+)
+c_code, c_status = run_cmd(codex_probe_cmd)
+c_status = c_status.strip()
+if c_status in ("200", "401"):
+    print(f"  ✅ Codex Connection Service: active and ready (HTTP {c_status})")
+elif c_status == "503":
+    msg = "  ❌ Codex Connection Service: 503 Unavailable (CODEX_OAUTH_KMS_KEY_ID missing or uninitialized)"
+    print(msg); failures.append(msg)
+else:
+    print(f"  ℹ️ Codex Connection Service: HTTP {c_status}")
+
 # Check Caddy cache headers on env-config.js
 head_cmd = (
+    f"curl -kIL -s https://{domain}/app/env-config.js 2>/dev/null || "
     f"curl -kIL -s --resolve {domain}:443:127.0.0.1 https://{domain}/app/env-config.js 2>/dev/null || "
-    f"curl -kIL -s -H 'Host: {domain}' http://127.0.0.1/app/env-config.js 2>/dev/null || "
-    f"curl -kIL -s https://{domain}/app/env-config.js 2>/dev/null"
+    f"curl -kIL -s -H 'Host: {domain}' http://127.0.0.1/app/env-config.js 2>/dev/null"
 )
 h_code, h_out = run_cmd(head_cmd)
 if "no-cache, no-store, must-revalidate" in h_out:
