@@ -132,7 +132,7 @@ jobs:
               run_bundle=true
             fi
           else
-            if matches '^(services/|crates/|packages/fork/.*/backend/|Cargo\.toml$|Cargo\.lock$|flake\.nix$|nix/|\.cargo/|\.config/)'; then
+            if matches '^(services/|crates/|packages/fork/.*/backend/|Cargo\.toml$|Cargo\.lock$|flake\.nix$|nix/|\.cargo/|\.config/|\.github/(workspace-dep-closures\.json|workflows/self-host-images\.yml))'; then
               run_services=true
               run_workers=true
               run_scheduled_action=true
