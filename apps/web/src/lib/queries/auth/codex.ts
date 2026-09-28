@@ -1,3 +1,4 @@
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { throwOnErr } from '@core/util/result';
 import { queryClient } from '@queries/client';
 import {
@@ -19,8 +20,10 @@ const invalidateConnection = async () => {
 export function useCodexStatusQuery(enabled: () => boolean = () => true) {
   return useQuery(() => ({
     queryKey: authKeys.codexStatus.queryKey,
-    enabled: enabled(),
+    // PRIVATE-HOOK: selfhost_runtime:codex-capability-gate
+    enabled: getAppCapabilities().codex && enabled(),
     queryFn: () => throwOnErr(codexClient.status),
+    retry: false,
     placeholderData: {
       connected: false,
       email: null,

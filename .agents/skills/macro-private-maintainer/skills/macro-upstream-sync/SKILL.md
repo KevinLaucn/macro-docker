@@ -47,14 +47,19 @@ Every merge from `upstream/main` must follow this 7-step workflow:
 2. **Check Fork Files**: Verify whether fork-owned files or `.fork/` definitions were directly touched or have conflicts.
 3. **Trace Upstream Integration Seams & Dependencies**:
    Inspect whether upstream interfaces, data structures, schemas, or call chains depended on by fork customizations have shifted (e.g. backend photo attributes, contact serialization, auth claims, tracking routes).
+3b. **Upstream Capability & Routing Surface Diff**:
+   - Compare `tooling/xtask/crates/xtask_local/src/local/proxy.rs` and `inventory.rs` against `self-host/Caddyfile` and `docker-compose.yml`. Ensure all special routes (`/sync`, `/websocket`, `/i`, `/lexical`, `/ai-editing`, `/static-file`) are preserved and aligned.
+   - Inspect upstream feature flags in `apps/web/src/lib/core/constant/featureFlags.ts`. If upstream adds new services or tools (e.g. `codex`, `agents`, `calendar`), explicitly gate them off in `AppCapabilities` and `env-config.js` (`codex: false`, `agents: false`). Never mock backend endpoints with fake `respond "[]" 200` in Caddy.
+   - Verify Cloudflare Worker / sync-service origin policy (`ALLOWED_ORIGINS` in `sync-service/src/durable_object.rs`) and ensure Caddy passes `header_up Origin https://macro.com` to prevent 403 Forbidden on document sync.
+   - Verify `@no_cache` headers for `env-config.js` and `index.html` to eliminate stale asset 404 storms.
 4. **Adapt Affected Customizations**:
    Adapt fork packages (`packages/fork/`) to the new upstream schemas and contracts, adhering strictly to zero core drift in upstream source files.
 5. **Run Fork Contract Gate**:
    Execute contract and unit tests for every affected customization (e.g. `identity.test.ts`, read-receipts query tests) to ensure private features are not silently broken.
 6. **Run Self-host Smoke Gate**:
-   Execute smoke tests for official core capabilities under self-hosted infrastructure (e.g. paste screenshot upload, presigned S3 URLs, public asset access, email webhooks/pixels).
+   Execute smoke tests for official core capabilities under self-hosted infrastructure (e.g. paste screenshot upload, presigned S3 URLs, document sync WebSocket upgrade, public asset access, email webhooks/pixels).
 7. **Complete Governance Validation**:
-   Validate that `just private-hook-check` (exact hook context) and `check-core-drift.rb` pass with 0 unauthorized drift before concluding sync.
+   Validate that `just private-hook-check` (exact hook context), `python3 self-host/scripts/check-drift.py`, `python3 self-host/scripts/verify-release.py`, and `check-core-drift.rb` pass with 0 unauthorized drift before concluding sync.
 
 ## Two-Gate Acceptance Criteria
 

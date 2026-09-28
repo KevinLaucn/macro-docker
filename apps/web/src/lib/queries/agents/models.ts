@@ -1,3 +1,4 @@
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { throwOnErr } from '@core/util/result';
 import { agentHarnessServiceClient } from '@service-agent-harness/client';
 import type {
@@ -37,6 +38,8 @@ export function agentModelsQueryOptions(target: AgentModelTarget) {
       target.harness,
       target.harnessId ?? null,
     ] as const,
+    // PRIVATE-HOOK: selfhost_runtime:agent-models-capability-gate
+    enabled: getAppCapabilities().agents,
     queryFn: async ({
       signal,
     }: {

@@ -731,6 +731,7 @@ export interface AppCapabilities {
   scheduledActions: boolean;
   agents: boolean;
   docsCollab: boolean;
+  codex: boolean;
 }
 
 export function isSelfHost(): boolean {
@@ -786,6 +787,7 @@ export function getAppCapabilities(): AppCapabilities {
       features?.docsCollab,
       selfHost
     ),
+    codex: resolveCapability('ENABLE_CODEX_AGENTS', features?.codex, selfHost),
   };
 }
 

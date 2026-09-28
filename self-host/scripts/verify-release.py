@@ -28,6 +28,7 @@ REQUIRED_IMAGES = [
 
 REQUIRED_BUNDLE_PATHS = [
     "docker-compose.yml",
+    "Caddyfile",
     "macroctl",
     "scripts/check-drift.py",
     "scripts/verify-release.py",
@@ -48,6 +49,12 @@ def verify_caddyfile(caddy_text: str) -> list[str]:
     # Check that scheduled-action route exists and proxies to scheduled-action-service:8080
     if not re.search(r'handle_path\s+/scheduled-action/\*\s*\{\s*reverse_proxy\s+scheduled-action-service:8080\s*\}', caddy_text):
         errors.append("Caddyfile missing canonical reverse_proxy to scheduled-action-service:8080")
+
+    # Check @sync route exists and proxies to sync-service:8787 with Origin rewrite
+    if not re.search(r'@sync\s+path\s+/sync\s+/sync/\*\s*handle\s+@sync\s*\{[^}]*reverse_proxy\s+sync-service:8787', caddy_text, re.S):
+        errors.append("Caddyfile missing canonical @sync route to sync-service:8787")
+    if 'header_up Origin https://macro.com' not in caddy_text:
+        errors.append("Caddyfile @sync route must set 'header_up Origin https://macro.com' for sync-service CORS parity")
 
     return errors
 
@@ -77,12 +84,12 @@ def verify_compose(compose_text: str, caddy_text: str) -> list[str]:
         if "scheduled-action-service" not in sched_body:
             errors.append("scheduled_action_service missing network alias 'scheduled-action-service'")
 
-    # Check caddy does not mount host ./Caddyfile
+    # Check caddy binds release-owned ./Caddyfile
     caddy_match = re.search(r'^\s\scaddy:\n(.*?)(?=^\s\s\w|\Z)', compose_text, re.M | re.S)
     if caddy_match:
         caddy_body = caddy_match.group(1)
-        if "./Caddyfile:/etc/caddy/Caddyfile" in caddy_body:
-            errors.append("caddy service must not bind-mount host ./Caddyfile; use immutable macro-caddy image")
+        if "./Caddyfile:/etc/caddy/Caddyfile:ro" not in caddy_body and "./Caddyfile:/etc/caddy/Caddyfile" not in caddy_body:
+            errors.append("caddy service must bind-mount release-owned ./Caddyfile:/etc/caddy/Caddyfile:ro")
 
     # Verify web_assets env-config.js generation template syntax and evaluation
     errors.extend(verify_env_config_template(compose_text))

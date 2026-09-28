@@ -19,7 +19,8 @@ The unified gate must reject:
 - retirement candidates that require deliberate review;
 - zero-cloud/privacy violations;
 - failed **Fork Contract Gate**: upstream dependency/schema changes that break private customization pipelines without adaptation;
-- failed **Self-host Smoke Gate**: upstream changes that break official core capabilities in self-hosted environments (e.g. paste screenshot upload, S3/presigned URLs, webhooks/tracking routing).
+- failed **Self-host Smoke Gate**: upstream changes that break official core capabilities in self-hosted environments (e.g. paste screenshot upload, S3/presigned URLs, webhooks/tracking routing);
+- upstream capability, route, or self-host contract drift: missing special routes in Caddyfile (`/sync`, `/websocket`, `/i`, `/lexical`, `/ai-editing`, `/static-file`), missing sync-service Origin header rewrite, fake 200 JSON mocks in Caddy, or failures in `python3 self-host/scripts/check-drift.py` and `python3 self-host/scripts/verify-release.py`.
 
 For changed Rust SQL verify SQLx offline parity. For frontend work run scoped
 `just check`; use full checks for shared/core or broad changes. Run targeted

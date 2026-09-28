@@ -474,6 +474,22 @@ hooks:
     context:
       - "export function getAppCapabilities(): AppCapabilities {"
 
+  - id: selfhost_runtime_agent_models_capability_gate
+    customization: SELFHOST-RUNTIME-001
+    file: apps/web/src/lib/queries/agents/models.ts
+    marker: "// PRIVATE-HOOK: selfhost_runtime:agent-models-capability-gate"
+    expected: "enabled: getAppCapabilities().agents,"
+    context:
+      - "export function agentModelsQueryOptions(target: AgentModelTarget) {"
+
+  - id: selfhost_runtime_codex_capability_gate
+    customization: SELFHOST-RUNTIME-001
+    file: apps/web/src/lib/queries/auth/codex.ts
+    marker: "// PRIVATE-HOOK: selfhost_runtime:codex-capability-gate"
+    expected: "enabled: getAppCapabilities().codex && enabled(),"
+    context:
+      - "export function useCodexStatusQuery(enabled: () => boolean = () => true) {"
+
   - id: self_host_health_auth_models_email_dep
     customization: SELFHOST-HEALTH-001
     file: services/authentication_service/Cargo.toml

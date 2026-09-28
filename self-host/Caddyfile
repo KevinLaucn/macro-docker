@@ -99,16 +99,8 @@
 	handle_path /image-proxy/* {
 		reverse_proxy image-proxy-service:8080
 	}
-	# Agent Harness Service (自托管未部署沙箱容器时返回空列表防前端 502)
 	handle_path /agent-harness/* {
-		header Content-Type "application/json"
-		respond "[]" 200
-	}
-
-	# Calendar Service (自托管未部署独立日历同步微服务时返回空数据防前端解析失败)
-	handle_path /calendar/* {
-		header Content-Type "application/json"
-		respond `{"calendars":[],"events":[]}` 200
+		reverse_proxy agent-harness-service:8080
 	}
 	# --- end generated service routes ---------------------------------------
 
@@ -121,7 +113,9 @@
 	@sync path /sync /sync/*
 	handle @sync {
 		uri strip_prefix /sync
-		reverse_proxy sync-service:8787
+		reverse_proxy sync-service:8787 {
+			header_up Origin https://macro.com
+		}
 	}
 	handle_path /lexical/* {
 		reverse_proxy lexical-service:8096

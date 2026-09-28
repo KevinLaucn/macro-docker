@@ -134,6 +134,31 @@ for cargo_bin in compose_bins:
         elif s["is_websocket"] and "uri strip_prefix " + s["path_prefix"] not in caddy:
             fail(f'service {s["compose_name"]}: websocket route {s["path_prefix"]} is not a strip_prefix handler')
 
+# --- special routes from proxy.rs ------------------------------------------
+proxy_rs = (ROOT / "tooling/xtask/crates/xtask_local/src/local/proxy.rs").read_text()
+special_routes_match = re.search(r'frontend_path_prefixes.*?\.chain\(\[([\s\S]*?)\]\)', proxy_rs, re.S)
+if not special_routes_match:
+    fail("could not parse special routes from tooling/xtask/crates/xtask_local/src/local/proxy.rs")
+else:
+    special_routes = re.findall(r'"(/[^"]+)"', special_routes_match.group(1))
+    for route in special_routes:
+        if route not in caddy:
+            fail(f"special route '{route}' from proxy.rs is missing from self-host/Caddyfile")
+        if route == "/sync":
+            sync_match = re.search(r"@sync path /sync /sync/\*[\s\S]*?handle @sync \{([\s\S]*?)\}", caddy)
+            if not sync_match or "header_up Origin https://macro.com" not in sync_match.group(1):
+                fail("Caddyfile @sync route must include 'header_up Origin https://macro.com' to satisfy sync-service origin policy")
+        if route == "/websocket":
+            if "@websocket" not in caddy or "uri strip_prefix /websocket" not in caddy:
+                fail("Caddyfile @websocket route must strip prefix and handle /websocket")
+        if route == "/static-file":
+            if "@static_file_api" not in caddy or "/static-file-storage" not in caddy:
+                fail("Caddyfile must handle /static-file via service and LocalStack storage fallback")
+
+# Ensure no fake 200 API mock responses exist in Caddyfile (capability gating must be used instead)
+if 'respond "[]" 200' in caddy or 'respond `{"calendars"' in caddy:
+    fail("Caddyfile must not contain fake 200 JSON mocks; use frontend capability gating instead")
+
 # --- localstack_provision single-source-of-truth wiring checks -------------
 # Upstream resources.rs and localstack.rs are the SOLE source of truth.
 # We no longer duplicate or mirror SQS/S3/DynamoDB/KMS schemas in Python.

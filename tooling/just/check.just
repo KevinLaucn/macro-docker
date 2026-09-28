@@ -26,6 +26,8 @@ fork-gate:
     ruby .github/scripts/check-telemetry-privacy.rb --base "$base" --head HEAD
     ruby .github/scripts/check-upstream-overlap.rb --base "$base" --head HEAD
     ruby .github/scripts/check-core-drift.rb --upstream "$base"
+    python3 self-host/scripts/check-drift.py
+    python3 self-host/scripts/verify-release.py
 
 check *ARGS:
     #!/usr/bin/env bash

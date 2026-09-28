@@ -85,6 +85,8 @@ jobs:
         run: echo "value=${{ inputs.version || (github.ref_type == 'branch' && 'latest') || github.ref_name }}" >> "$GITHUB_OUTPUT"
       - name: Check for drift from the service inventory
         run: python3 self-host/scripts/check-drift.py
+      - name: Verify release contract invariants
+        run: python3 self-host/scripts/verify-release.py
       - name: Check for SQLx compile-time query drift
         shell: bash
         run: |
@@ -144,7 +146,7 @@ jobs:
             matches '^(self-host/init/|self-host/images/Dockerfile\.init)' && run_init=true
             matches '^(self-host/images/Dockerfile\.(scheduled-action|workers)|docker/(sync-service|websocket-service)\.Dockerfile|services/(sync|websocket))' && run_workers=true
             matches '^(services/agent_schedule|self-host/images/Dockerfile\.scheduled-action)' && run_scheduled_action=true
-            matches '^(self-host/(Caddyfile|images/Dockerfile\.caddy))' && run_caddy=true
+            matches '^(self-host/(Caddyfile|images/Dockerfile\.caddy|docker-compose\.yml|scripts/))' && run_caddy=true
 
             # A release bundle must contain images built by this run. Do not
             # combine a targeted image with stale registry tags, and do not

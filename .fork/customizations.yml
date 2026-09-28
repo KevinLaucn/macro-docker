@@ -236,9 +236,13 @@ customizations:
       - tooling/xtask/crates/xtask_local/**
       - tooling/just/**
       - apps/web/src/lib/core/constant/featureFlags.ts
+      - apps/web/src/lib/queries/agents/models.ts
+      - apps/web/src/lib/queries/auth/codex.ts
       - services/sync-service/wrangler.docker.toml
     owned_paths:
       - apps/web/src/lib/core/constant/featureFlags.ts
+      - apps/web/src/lib/queries/agents/models.ts
+      - apps/web/src/lib/queries/auth/codex.ts
       - crates/macro_db_migrator/Cargo.toml
       - docker/docker-compose-databases.yml
       - docker/sync-service.Dockerfile

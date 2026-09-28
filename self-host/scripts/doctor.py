@@ -122,7 +122,7 @@ else:
         print(msg); failures.append(msg)
 
 # 7. Object Storage & SFS Presigned URL Smoke Check
-print("\n[7/7] Checking Object Storage Presigned URL & SFS External Endpoint...")
+print("\n[7/9] Checking Object Storage Presigned URL & SFS External Endpoint...")
 code, out = run_cmd("docker exec macro-selfhost-static_file_service-1 env")
 if code == 0:
     sfs_env = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
@@ -146,6 +146,75 @@ else:
             print(f"  ✅ SFS Presigned URL: validated configuration from .env")
     else:
         print("  ℹ️ SFS Presigned URL: container not running and .env not found in current dir")
+
+# 8. Caddy Reverse Proxy, Security Headers & Document Sync WebSocket
+print("\n[8/9] Checking Caddy Proxy & Document Sync WebSocket Smoke Probe...")
+code_domain, out_domain = run_cmd("grep -E '^MACRO_DOMAIN=' .env 2>/dev/null | cut -d= -f2-")
+domain = out_domain.strip().strip('"').strip("'") or "localhost"
+
+# Check /_healthz
+c_code, c_out = run_cmd(f"curl -kfsS -H 'Host: {domain}' http://127.0.0.1/_healthz 2>/dev/null || curl -kfsS https://{domain}/_healthz 2>/dev/null")
+if c_code == 0 and c_out.strip() == "ok":
+    print("  ✅ Caddy Liveness: /_healthz returns 200 ok")
+else:
+    msg = f"  ❌ Caddy Liveness: /_healthz unreachable (code {c_code}, out: {c_out[:100]})"
+    print(msg); failures.append(msg)
+
+# Check Document Sync WebSocket Handshake with Origin header (Cloudflare Worker 403 guard)
+ws_cmd = (
+    f"curl -ki -s -N "
+    f"-H 'Host: {domain}' "
+    f"-H 'Origin: https://{domain}' "
+    f"-H 'Connection: Upgrade' "
+    f"-H 'Upgrade: websocket' "
+    f"-H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' "
+    f"-H 'Sec-WebSocket-Version: 13' "
+    f"http://127.0.0.1/sync 2>/dev/null || "
+    f"curl -ki -s -N "
+    f"-H 'Origin: https://{domain}' "
+    f"-H 'Connection: Upgrade' "
+    f"-H 'Upgrade: websocket' "
+    f"-H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' "
+    f"-H 'Sec-WebSocket-Version: 13' "
+    f"https://{domain}/sync 2>/dev/null"
+)
+ws_code, ws_out = run_cmd(ws_cmd)
+if "101 Switching Protocols" in ws_out or "HTTP/1.1 101" in ws_out:
+    print("  ✅ Document Sync WebSocket: handshake upgraded (101 Switching Protocols with Origin rewritten)")
+elif "403 Forbidden" in ws_out:
+    msg = "  ❌ Document Sync WebSocket: received 403 Forbidden (Origin rewrite missing in Caddy)"
+    print(msg); failures.append(msg)
+else:
+    first_line = ws_out.splitlines()[0] if ws_out.splitlines() else "empty response"
+    msg = f"  ❌ Document Sync WebSocket: upgrade failed ({first_line})"
+    print(msg); failures.append(msg)
+
+# 9. Capability Gating & Web Bundle Runtime Config Smoke Check
+print("\n[9/9] Checking Capabilities & Web Bundle Runtime Config Smoke...")
+cfg_cmd = f"curl -kfsS -H 'Host: {domain}' http://127.0.0.1/app/env-config.js 2>/dev/null || curl -kfsS https://{domain}/app/env-config.js 2>/dev/null"
+cfg_code, cfg_out = run_cmd(cfg_cmd)
+if cfg_code == 0:
+    if "codex: false" in cfg_out or 'codex: "false"' in cfg_out:
+        print("  ✅ Runtime Capabilities: codex feature flag disabled")
+    else:
+        msg = "  ❌ Runtime Capabilities: codex flag not disabled in env-config.js"
+        print(msg); failures.append(msg)
+    if "agents: false" in cfg_out or 'agents: "false"' in cfg_out:
+        print("  ✅ Runtime Capabilities: agents sandbox feature flag disabled")
+    else:
+        print("  ℹ️ Runtime Capabilities: agents flag enabled or default")
+else:
+    msg = f"  ❌ Web Config: failed to fetch /app/env-config.js (code {cfg_code})"
+    print(msg); failures.append(msg)
+
+# Check Caddy cache headers on env-config.js
+head_cmd = f"curl -ki -s -H 'Host: {domain}' http://127.0.0.1/app/env-config.js 2>/dev/null || curl -ki -s https://{domain}/app/env-config.js 2>/dev/null"
+h_code, h_out = run_cmd(head_cmd)
+if "no-cache, no-store, must-revalidate" in h_out:
+    print("  ✅ Cache-Control: env-config.js protected with no-cache, no-store, must-revalidate")
+else:
+    msg = "  ❌ Cache-Control: env-config.js missing no-cache header"
+    print(msg); failures.append(msg)
 
 print("\n--------------------------------------------------")
 if not failures:
