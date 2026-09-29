@@ -191,4 +191,72 @@ describe('independent email body', () => {
       expect(resolveImages).not.toHaveBeenCalled();
     }
   );
+  it('never mounts our own tracking pixel for a sent message', async () => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      }
+    );
+    const resolveImages = vi.fn(async () => {});
+    const sent = message('sent-with-pixel', {
+      is_sent: true,
+      body_html_sanitized:
+        '<p>Hello world</p><img src="https://email-service-dev.macro.com/t/o/00000000-0000-0000-0000-000000000001"><img src="https://cdn.example.com/logo.png"><img src="https://tracker.example.com/t/o/banner.jpg">',
+    });
+    const root = createRoot((dispose) => {
+      const body = createEmailMessageBody(
+        {
+          message: sent,
+          ...bodyOptions,
+        },
+        { theme: () => theme, resolveImages }
+      );
+      return { dispose, body };
+    });
+    try {
+      await Promise.resolve();
+      const shadowHtml = root.body.host()?.shadowRoot?.innerHTML ?? '';
+      expect(shadowHtml).not.toContain('00000000-0000-0000-0000-000000000001');
+      expect(shadowHtml).toContain('https://cdn.example.com/logo.png');
+      expect(shadowHtml).toContain('https://tracker.example.com/t/o/banner.jpg');
+      expect(shadowHtml).toContain('Hello world');
+    } finally {
+      root.dispose();
+    }
+  });
+  it('keeps normal images intact for received messages', async () => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      }
+    );
+    const resolveImages = vi.fn(async () => {});
+    const received = message('received-with-images', {
+      is_sent: false,
+      body_html_sanitized:
+        '<p>Inbox message</p><img src="https://external.example.com/banner.png">',
+    });
+    const root = createRoot((dispose) => {
+      const body = createEmailMessageBody(
+        {
+          message: received,
+          ...bodyOptions,
+        },
+        { theme: () => theme, resolveImages }
+      );
+      return { dispose, body };
+    });
+    try {
+      await Promise.resolve();
+      const shadowHtml = root.body.host()?.shadowRoot?.innerHTML ?? '';
+      expect(shadowHtml).toContain('https://external.example.com/banner.png');
+      expect(shadowHtml).toContain('Inbox message');
+    } finally {
+      root.dispose();
+    }
+  });
 });

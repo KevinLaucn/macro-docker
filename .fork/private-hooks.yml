@@ -148,6 +148,20 @@ hooks:
     expected: "return replyingTo.is_sent ? stripOwnTrackingPixelsFromHtml(html) : html;"
     context:
       - "function getComposerQuotedBodyHtml("
+  - id: email_read_receipts_strip_sent_render_pixel_import
+    customization: READ-RECEIPTS-001
+    file: apps/web/src/features/email-message/primitives/email-message-body.ts
+    marker: "// PRIVATE-HOOK: read_receipts:strip-sent-import"
+    expected: "import { stripOwnTrackingPixelsFromHtml } from '@macro/fork-read-receipts';"
+    context:
+      - "import { mountEmailBody } from '@macro-inc/email-renderer/browser';"
+  - id: email_read_receipts_strip_sent_render_pixel
+    customization: READ-RECEIPTS-001
+    file: apps/web/src/features/email-message/primitives/email-message-body.ts
+    marker: "// PRIVATE-HOOK: read_receipts:strip-sent-body-pixel"
+    expected: "html: stripOwnPixel("
+    context:
+      - "id: props.message.db_id,"
   - id: email_read_receipts_realtime_event
     customization: READ-RECEIPTS-001
     file: apps/web/src/lib/queries/sync/SyncProvider.tsx
@@ -236,9 +250,9 @@ hooks:
     customization: EMAIL-TRANSLATION-001
     file: apps/web/src/features/email-message/primitives/email-message-body.ts
     marker: "// PRIVATE-HOOK: email_translation:body-render-source"
-    expected: "html: props.translatedHtml ?? props.message.body_html_sanitized,"
+    expected: "props.translatedHtml ?? props.message.body_html_sanitized,"
     context:
-      - "replylessHtml:"
+      - "html: stripOwnPixel("
   - id: email_translation_body_markdown
     customization: EMAIL-TRANSLATION-001
     file: apps/web/src/features/email-message/views/email-message-body.tsx

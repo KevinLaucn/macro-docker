@@ -1,6 +1,8 @@
 import { deepEqual } from '@core/util/compareUtils';
 import { prepareEmailBody } from '@macro-inc/email-renderer';
 import { mountEmailBody } from '@macro-inc/email-renderer/browser';
+// PRIVATE-HOOK: read_receipts:strip-sent-import
+import { stripOwnTrackingPixelsFromHtml } from '@macro/fork-read-receipts';
 import {
   type Accessor,
   createEffect,
@@ -25,6 +27,11 @@ export interface EmailMessageBodyProps {
   isFocused: boolean;
 }
 
+const stripOwnPixel = (
+  html: string | null | undefined,
+  isSent: boolean | null | undefined
+) => (isSent && html ? stripOwnTrackingPixelsFromHtml(html) : html);
+
 /** Solid only translates reactive inputs and owns the renderer's lifetime. */
 export function createEmailMessageBody(
   props: EmailMessageBodyProps,
@@ -36,10 +43,16 @@ export function createEmailMessageBody(
   const content = createMemo(
     () => ({
       id: props.message.db_id,
+      // PRIVATE-HOOK: read_receipts:strip-sent-body-pixel
       // PRIVATE-HOOK: email_translation:body-render-source
-      html: props.translatedHtml ?? props.message.body_html_sanitized,
-      replylessHtml:
+      html: stripOwnPixel(
+        props.translatedHtml ?? props.message.body_html_sanitized,
+        props.message.is_sent
+      ),
+      replylessHtml: stripOwnPixel(
         props.translatedReplylessHtml ?? props.message.body_replyless,
+        props.message.is_sent
+      ),
       text: props.message.body_text,
       macro: props.message.body_macro,
       attachments: props.message.attachments,

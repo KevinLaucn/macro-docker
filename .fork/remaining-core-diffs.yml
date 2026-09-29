@@ -243,7 +243,10 @@ diffs:
   owners:
   - EMAIL-SELFHOST-001
   - EMAIL-TRANSLATION-001
+  - READ-RECEIPTS-001
   hooks:
+  - email_read_receipts_strip_sent_render_pixel
+  - email_read_receipts_strip_sent_render_pixel_import
   - email_translation_body_props
   - email_translation_body_render_source
   override: false

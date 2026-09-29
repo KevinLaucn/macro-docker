@@ -71,6 +71,15 @@ test, and retirement condition when upstream can absorb it.
 > **"No diff in fork-owned files does not mean the customization is preserved."**
 > Every fork customization must monitor and verify its upstream dependencies, API schemas, data flow, callers, and runtime configuration. When upstream refactors or modifies an integration seam, the customization must be verified and adapted end-to-end, rather than solely checking whether PRIVATE-HOOK markers exist.
 
+### Dependency Surface Hard Rule
+对 `risk=high` 的 customization，不允许只保护 fork-owned 文件和 PRIVATE-HOOK。`customizations.yml.paths` 必须覆盖其上游运行时依赖链，包括调用者、被调用者、renderer/serializer/schema/router/adapters。上游修改任意依赖节点时必须触发对应 contract test。
+
+### Side-effect Negative Contract Rule
+对 tracking、webhook、notification、upload、auth 等有外部副作用的二开，必须同时验证“应该发生”和“绝不能发生”的行为。
+对 read receipts 就是：
+- **必须发生**：收件人请求 pixel → open。
+- **绝不能发生**：发送者查看 Sent → open；回复/转发加载历史正文 → open；Macro 自己渲染邮件 → open。
+
 ## Two-Gate Verification Contract
 
 Upstream sync and pre-push validation must enforce two complementary gates:

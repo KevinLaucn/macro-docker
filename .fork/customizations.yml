@@ -87,20 +87,22 @@ customizations:
       verification_gate: Fork Contract Gate
     paths:
       - packages/fork/read-receipts/**
+      - services/email_service/src/outbound/**
+      - services/email_service/src/util/gmail/**
       - services/email_service/src/api.rs
       - services/email_service/src/api/email/messages.rs
       - services/email_service/src/api/email/settings.rs
       - services/email_service/src/features/mod.rs
       - services/email_service/src/main.rs
       - services/email_service/src/openapi.rs
-      - services/email_service/src/outbound/scheduled_delivery.rs
-      - services/email_service/src/util/gmail/send.rs
       - crates/email_db_client/src/lib.rs
       - crates/email_db_client/src/settings.rs
       - crates/email_utils/src/lib.rs
-      - apps/web/src/features/email-compose/primitives/prepare-email-body.ts
-      - apps/web/src/features/email-message/components/collapsed-message.tsx
-      - apps/web/src/features/email-message/components/email-message-top-bar.tsx
+      - apps/web/src/features/email-message/**
+      - apps/web/src/features/email-compose/**
+      - packages/email-renderer/**
+      - apps/web/src/lib/queries/email/**
+      - apps/web/src/lib/service-clients/service-email/**
       - apps/web/src/features/extensions/Extensions.tsx
       - apps/web/src/features/settings/ReadReceiptsSection.tsx
       - apps/web/src/features/block-email/util/readReceipts.ts
@@ -108,9 +110,7 @@ customizations:
       - apps/web/src/features/next-soup/actions/make-delete-action.ts
       - apps/web/src/features/next-soup/utils.ts
       - apps/web/src/features/notifications/notification-platform.ts
-      - apps/web/src/lib/queries/email/readReceipts.ts
       - apps/web/src/lib/queries/sync/SyncProvider.tsx
-      - apps/web/src/lib/service-clients/service-email/readReceiptsClient.ts
       - apps/web/src/features/entity/extractors/entity-icon.tsx
       - apps/web/src/features/email-view/queries/use-email-query.ts
       - apps/web/src/index.css
@@ -123,6 +123,7 @@ customizations:
       - apps/web/src/features/email-compose/primitives/prepare-email-body.ts
       - apps/web/src/features/email-message/components/collapsed-message.tsx
       - apps/web/src/features/email-message/components/email-message-top-bar.tsx
+      - apps/web/src/features/email-message/primitives/email-message-body.ts
       - apps/web/src/features/email-view/queries/use-email-query.ts
       - apps/web/src/features/entity/extractors/entity-icon.tsx
       - apps/web/src/features/notifications/notification-platform.ts
@@ -142,6 +143,7 @@ customizations:
     tests:
       - conventions
       - email-rust
+      - read-receipts-contract
       - web
 
   - id: CRM-MULTI-INBOX-001

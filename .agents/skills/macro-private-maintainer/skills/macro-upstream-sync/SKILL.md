@@ -66,6 +66,8 @@ Every merge from `upstream/main` must follow this 7-step workflow:
 ### 1. Fork Contract Gate
 - **Focus**: Customization integrity across integration seams.
 - **Rule**: "No diff in fork-owned files does not mean the customization is preserved."
+- **Dependency Surface Hard Rule**: 对 `risk=high` 的 customization，不允许只保护 fork-owned 文件和 PRIVATE-HOOK。`customizations.yml.paths` 必须覆盖其上游运行时依赖链（调用者/被调用者/renderer/serializer/schema/router/adapters）。上游修改任意依赖节点时必须触发对应 contract test。
+- **Side-effect Negative Contract Rule**: 对 tracking、webhook、notification、upload、auth 等有外部副作用的二开，必须同时验证“应该发生”和“绝不能发生”的行为（例如：收件人请求 pixel 必须 open；发送者查看 Sent / 回复转发加载正文 / Macro 自身渲染邮件绝不能 open）。
 - **Verification**: Run declared contract tests in `customizations.yml`. Verify that UI components, API mappers, and backend adapters correctly handle upstream payload changes.
 
 ### 2. Self-host Smoke Gate
