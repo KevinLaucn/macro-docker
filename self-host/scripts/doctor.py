@@ -13,7 +13,13 @@ import os, sys, json, subprocess
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 repo_dir = os.path.dirname(script_dir)
-env_path = os.path.join(repo_dir, ".env") if os.path.exists(os.path.join(repo_dir, ".env")) else ".env"
+candidate_env_paths = [
+    os.path.join(repo_dir, ".env"),
+    os.path.join(os.path.dirname(repo_dir), ".env"),
+    os.path.join(os.getcwd(), ".env"),
+    ".env"
+]
+env_path = next((p for p in candidate_env_paths if os.path.exists(p)), ".env")
 
 def run_cmd(cmd: str) -> tuple[int, str]:
     res = subprocess.run(cmd, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
