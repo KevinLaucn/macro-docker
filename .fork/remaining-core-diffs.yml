@@ -416,11 +416,6 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
-- file: apps/web/src/features/settings/Harness.tsx
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/settings/Integrations.tsx
   owners:
   - I18N-ZH-CN-001
@@ -508,11 +503,6 @@ diffs:
   hooks: []
   override: true
 - file: apps/web/src/lib/queries/auth/codex.ts
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
-- file: apps/web/src/lib/queries/claude-auth/connection.ts
   owners:
   - SELFHOST-RUNTIME-001
   hooks: []
