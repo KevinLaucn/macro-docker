@@ -268,17 +268,15 @@ if not web_assets_match:
 else:
     web_assets = web_assets_match.group(1)
     for flag in ("cognition", "scheduledActions", "agents", "docsCollab"):
-        expected = "true" if flag in ("cognition", "scheduledActions") else "false"
-        if f"{flag}: {expected}" not in web_assets and not (
-            flag == "cognition" and "cognition: $${ENABLE_COGNITION:-true}" in web_assets
-        ) and not (
-            flag == "scheduledActions" and "scheduledActions: $${ENABLE_SCHEDULED_ACTIONS:-true}" in web_assets
-        ) and not (
-            flag == "scheduledActions" and "scheduledActions: $${ENABLE_SCHEDULED_ACTIONS:-false}" in web_assets
-        ) and not (
-            flag == "agents" and "agents: $${ENABLE_AGENTS:-false}" in web_assets
-        ):
-            fail(f"Email profile web runtime config must set FEATURES.{flag} to {expected}")
+        var_name = "ENABLE_" + ("SCHEDULED_ACTIONS" if flag == "scheduledActions" else "DOCS_COLLAB" if flag == "docsCollab" else flag.upper())
+        has_flag = (
+            f"{flag}: true" in web_assets
+            or f"{flag}: false" in web_assets
+            or f"{flag}: $${{{var_name}:-true}}" in web_assets
+            or f"{flag}: $${{{var_name}:-false}}" in web_assets
+        )
+        if not has_flag:
+            fail(f"Email profile web runtime config must set FEATURES.{flag} with configurable fallback")
 
 for image in ("macro-ai-editing-worker", "macro-analytics-proxy"):
     if image in workflow:

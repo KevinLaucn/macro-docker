@@ -764,7 +764,7 @@ function resolveCapability(
   runtimeValue: boolean | undefined,
   selfHost: boolean
 ): boolean {
-  return getFeatureFlagOverride(env) ?? runtimeValue ?? !selfHost;
+  return getFeatureFlagOverride(env) ?? runtimeValue ?? true;
 }
 
 export function getAppCapabilities(): AppCapabilities {

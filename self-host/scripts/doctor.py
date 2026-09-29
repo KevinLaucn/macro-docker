@@ -221,10 +221,21 @@ if cfg_code == 0:
     print("  ✅ Web Config: env-config.js fetched successfully")
     if "ENABLE_CODEX_AGENTS" in cfg_out:
         print("  ✅ Runtime Capabilities: codex configuration rendered")
-    if "agents: false" in cfg_out or 'agents: "false"' in cfg_out or 'ENABLE_AGENTS: "false"' in cfg_out:
-        print("  ✅ Runtime Capabilities: agents sandbox feature flag disabled")
+    if 'ENABLE_CHAT_V3_AGENTS: "false"' in cfg_out:
+        msg = "  ❌ Runtime Capabilities: ENABLE_CHAT_V3_AGENTS is disabled (hides Agents & Harness settings)"
+        print(msg); failures.append(msg)
     else:
-        print("  ℹ️ Runtime Capabilities: agents flag enabled or default")
+        print("  ✅ Runtime Capabilities: chat v3 agents active")
+    if 'agents: false' in cfg_out or 'agents: "false"' in cfg_out or 'ENABLE_AGENTS: "false"' in cfg_out:
+        msg = "  ❌ Runtime Capabilities: agents capability disabled"
+        print(msg); failures.append(msg)
+    else:
+        print("  ✅ Runtime Capabilities: agents capability active")
+    if 'codex: false' in cfg_out or 'codex: "false"' in cfg_out or 'ENABLE_CODEX_AGENTS: "false"' in cfg_out:
+        msg = "  ❌ Runtime Capabilities: codex capability disabled"
+        print(msg); failures.append(msg)
+    else:
+        print("  ✅ Runtime Capabilities: codex capability active")
 else:
     msg = f"  ❌ Web Config: failed to fetch /app/env-config.js (code {cfg_code})"
     print(msg); failures.append(msg)

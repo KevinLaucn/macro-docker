@@ -119,6 +119,16 @@ if (!env.FEATURES || typeof env.FEATURES !== 'object') throw new Error("FEATURES
 if (typeof env.ENABLE_SCHEDULED_ACTIONS !== 'string') throw new Error("ENABLE_SCHEDULED_ACTIONS missing");
 if (typeof env.ENABLE_COGNITION !== 'string') throw new Error("ENABLE_COGNITION missing");
 if (!env.PERMISSIONS || typeof env.PERMISSIONS !== 'object') throw new Error("PERMISSIONS missing");
+
+// Invariants for self-host AI & Collaboration capabilities:
+if (env.FEATURES.agents !== true) throw new Error("FEATURES.agents must default to true");
+if (env.FEATURES.codex !== true) throw new Error("FEATURES.codex must default to true");
+if (env.FEATURES.docsCollab !== true) throw new Error("FEATURES.docsCollab must default to true");
+if (env.ENABLE_CHAT_V3_AGENTS !== 'true') throw new Error("ENABLE_CHAT_V3_AGENTS must default to 'true'");
+if (env.ENABLE_AGENT_SESSION_COMPOSER !== 'true') throw new Error("ENABLE_AGENT_SESSION_COMPOSER must default to 'true'");
+if (env.ENABLE_CURSOR_AGENTS !== 'true') throw new Error("ENABLE_CURSOR_AGENTS must default to 'true'");
+if (env.ENABLE_CODEX_AGENTS !== 'true') throw new Error("ENABLE_CODEX_AGENTS must default to 'true'");
+if (env.ENABLE_AGENTS !== 'true') throw new Error("ENABLE_AGENTS must default to 'true'");
 """)
         temp_path = tf.name
 
