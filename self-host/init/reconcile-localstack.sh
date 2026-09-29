@@ -39,6 +39,78 @@ while true; do
         aws --endpoint-url="$ENDPOINT" s3api put-bucket-notification-configuration \
           --bucket doc-storage \
           --notification-configuration "{\"QueueConfigurations\":[{\"Id\":\"document-upload-finalizer\",\"QueueArn\":\"$finalizer_queue_arn\",\"Events\":[\"s3:ObjectCreated:*\"]},{\"Id\":\"document-search-upload\",\"QueueArn\":\"$search_queue_arn\",\"Events\":[\"s3:ObjectCreated:*\"]}]}" >/dev/null 2>&1 || true
+
+        # Self-host extension: heal and sync public SFS avatars from email_sfs_mappings
+        python3 - << 'PYEOF' || true
+import os, subprocess, urllib.request
+from concurrent.futures import ThreadPoolExecutor
+
+db_url = os.environ.get("DATABASE_URL")
+endpoint = os.environ.get("AWS_ENDPOINT", "http://localstack:4566")
+if not db_url:
+    exit(0)
+
+rows = []
+try:
+    import psycopg2
+    conn = psycopg2.connect(db_url)
+    cur = conn.cursor()
+    cur.execute("SELECT source, destination FROM email_sfs_mappings;")
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+except Exception:
+    try:
+        out = subprocess.check_output([
+            "psql", db_url, "-t", "-A", "-F", "|||",
+            "-c", "SELECT source, destination FROM email_sfs_mappings;"
+        ]).decode("utf-8")
+        rows = [line.strip().split("|||", 1) for line in out.splitlines() if "|||" in line]
+    except Exception:
+        rows = []
+
+if not rows:
+    exit(0)
+
+try:
+    s3_out = subprocess.check_output([
+        "aws", "--endpoint-url=" + endpoint, "s3", "ls", "s3://static-file-storage/file/"
+    ]).decode("utf-8")
+    existing = {parts[-1].strip() for line in s3_out.splitlines() if (parts := line.split())}
+except Exception:
+    existing = set()
+
+missing = []
+for source, dest in rows:
+    file_id = dest.rstrip("/").split("/")[-1]
+    if file_id not in existing:
+        missing.append((source, file_id))
+
+if missing:
+    print(f"LocalStack SFS reconciler: healing {len(missing)} missing items...")
+    os.makedirs("/tmp/sfs_heal/file", exist_ok=True)
+    def download_and_upload(item):
+        source, file_id = item
+        path = f"/tmp/sfs_heal/file/{file_id}"
+        try:
+            req = urllib.request.Request(source, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = resp.read()
+            with open(path, "wb") as f:
+                f.write(data)
+            subprocess.check_call([
+                "aws", "--endpoint-url=" + endpoint, "s3", "cp",
+                path, f"s3://static-file-storage/file/{file_id}",
+                "--content-type", "image/png"
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            os.remove(path)
+        except Exception:
+            pass
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(download_and_upload, missing))
+    print("LocalStack SFS reconciler: healing completed.")
+PYEOF
+
         touch /tmp/localstack-ready
         prev_state="up"
       else

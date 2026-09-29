@@ -87,6 +87,9 @@ services:
             sed -i 's/accounts:{\.\.\.l,primaryId:i}/accounts:{...l,primaryId:(()=>{const p=i;return()=>l?.inboxes?.()?.find(x=>x.email_address?.toLowerCase()==="etsy@chnprints.com")?.id??p()})()}/g' "$$f"
           fi
         done
+        if ! grep -q "env-config.js" /out/index.html 2>/dev/null; then
+          sed -i 's|<head>|<head><script src="/app/env-config.js"></script>|' /out/index.html 2>/dev/null || true
+        fi
         cat <<EOF > /out/env-config.js
         window.__MACRO_ENV__ = {
           ADMIN_EMAIL: "$${ADMIN_EMAIL:-hello@chnprints.com}",
@@ -110,7 +113,7 @@ services:
           ENABLE_ACTIVITY_FEED: "$${ENABLE_ACTIVITY_FEED:-true}",
           ENABLE_RECENT_VIEW: "$${ENABLE_RECENT_VIEW:-true}",
           ENABLE_TAG_TEAM_SHARING: "$${ENABLE_TAG_TEAM_SHARING:-true}",
-          ENABLE_AGENTS: "$${ENABLE_AGENTS:-false}",
+          ENABLE_AGENTS: "$${ENABLE_AGENTS:-true}",
           ENABLE_CODEX_AGENTS: "$${ENABLE_CODEX_AGENTS:-true}",
           ENABLE_DOCS_COLLAB: "$${ENABLE_DOCS_COLLAB:-true}",
           ENABLE_CRM: "$${ENABLE_CRM:-true}",
@@ -343,6 +346,7 @@ services:
     volumes:
       # Persistent application data belongs to the named deployment volume;
       # a release directory must never carry a second, path-dependent copy.
+      - localstack_data:/var/lib/localstack
       - localstack_data:/persisted-data
     networks:
       databases:
