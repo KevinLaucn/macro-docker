@@ -3,10 +3,11 @@
 use axum::{
     Router,
     extract::{Path, State},
-    http::header,
+    http::{HeaderMap, header},
     response::{IntoResponse, Response},
     routing::get,
 };
+use axum_extra::extract::CookieJar;
 use uuid::Uuid;
 
 use crate::api::context::ApiContext;
@@ -28,10 +29,62 @@ pub fn router() -> Router<ApiContext> {
     Router::new().route("/o/{token}", get(open_pixel_handler))
 }
 
+fn extract_caller_macro_user_id(
+    headers: &HeaderMap,
+    jar: &CookieJar,
+    jwt_args: &macro_auth::middleware::decode_jwt::JwtValidationArgs,
+) -> Option<String> {
+    // 1. Try Authorization header: Bearer <token>
+    if let Some(auth_val) = headers.get(header::AUTHORIZATION).and_then(|h| h.to_str().ok()) {
+        if let Some(token) = auth_val.strip_prefix("Bearer ") {
+            if let Ok(user_id) =
+                macro_auth::middleware::decode_jwt::decode_macro_access_token_allow_expired(
+                    token.trim(),
+                    jwt_args,
+                )
+            {
+                return Some(user_id.as_ref().to_string());
+            }
+        }
+    }
+
+    // 2. Try cookie jar: macro-access-token, dev-macro-access-token, local-macro-access-token
+    for cookie_name in &[
+        macro_auth::constant::MACRO_ACCESS_TOKEN_COOKIE,
+        "dev-macro-access-token",
+        "local-macro-access-token",
+    ] {
+        if let Some(cookie) = jar.get(cookie_name) {
+            if let Ok(user_id) =
+                macro_auth::middleware::decode_jwt::decode_macro_access_token_allow_expired(
+                    cookie.value_trimmed(),
+                    jwt_args,
+                )
+            {
+                return Some(user_id.as_ref().to_string());
+            }
+        }
+    }
+
+    None
+}
+
 #[tracing::instrument(skip_all)]
-async fn open_pixel_handler(State(ctx): State<ApiContext>, Path(token): Path<String>) -> Response {
+async fn open_pixel_handler(
+    State(ctx): State<ApiContext>,
+    headers: HeaderMap,
+    jar: CookieJar,
+    Path(token): Path<String>,
+) -> Response {
     if let Ok(token) = Uuid::parse_str(token.trim()) {
-        match email_db_client::read_receipts::record_message_open(&ctx.db, token).await {
+        let caller_macro_id = extract_caller_macro_user_id(&headers, &jar, &ctx.jwt_args);
+        match email_db_client::read_receipts::record_message_open(
+            &ctx.db,
+            token,
+            caller_macro_id.as_deref(),
+        )
+        .await
+        {
             Ok(Some(open)) => {
                 tracing::debug!(
                     message_id = %open.message_id,
@@ -64,7 +117,15 @@ async fn open_pixel_handler(State(ctx): State<ApiContext>, Path(token): Path<Str
                     broadcast_open_event(&db, &internal_api_key, &open).await;
                 });
             }
-            Ok(None) => {}
+            Ok(None) => {
+                if caller_macro_id.is_some() {
+                    tracing::debug!(
+                        token = %token,
+                        caller = ?caller_macro_id,
+                        "Ignored self-open tracking request from message sender"
+                    );
+                }
+            }
             Err(error) => {
                 tracing::error!(?error, "Failed to record email open");
             }

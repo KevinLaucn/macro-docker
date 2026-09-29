@@ -60,6 +60,7 @@ pub struct RecordedOpen {
 pub async fn record_message_open(
     pool: &PgPool,
     token: Uuid,
+    caller_macro_id: Option<&str>,
 ) -> anyhow::Result<Option<RecordedOpen>> {
     let row = sqlx::query_as::<_, (Uuid, Uuid, Uuid, i32, bool)>(
         r#"
@@ -72,10 +73,23 @@ pub async fn record_message_open(
                 ELSE email_messages.open_count
             END
         FROM (
-            SELECT id, first_opened_at
-            FROM email_messages
-            WHERE open_tracking_token = $1 AND is_sent = true
-            FOR UPDATE
+            SELECT m.id, m.first_opened_at
+            FROM email_messages m
+            WHERE m.open_tracking_token = $1 AND m.is_sent = true
+              AND (
+                $2::text IS NULL
+                OR NOT EXISTS (
+                  SELECT 1 FROM email_links l
+                  WHERE l.id = m.link_id AND (
+                    l.macro_id = $2::text
+                    OR EXISTS (
+                      SELECT 1 FROM macro_user_links mul
+                      WHERE mul.child_macro_id = l.macro_id AND mul.primary_macro_id = $2::text
+                    )
+                  )
+                )
+              )
+            FOR UPDATE OF m
         ) old
         WHERE email_messages.id = old.id
         RETURNING email_messages.id, email_messages.link_id, email_messages.thread_id,
@@ -83,6 +97,7 @@ pub async fn record_message_open(
         "#,
     )
     .bind(token)
+    .bind(caller_macro_id)
     .fetch_optional(pool)
     .await?;
 
