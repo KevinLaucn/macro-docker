@@ -1,0 +1,5 @@
+{
+  "extends": "../../../apps/web/tsconfig.json",
+  "files": ["../../../apps/web/src/lib/core/directive/dnd.d.ts"],
+  "include": ["./**/*"]
+}

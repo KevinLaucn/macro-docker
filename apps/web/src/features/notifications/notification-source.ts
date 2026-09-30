@@ -1,6 +1,7 @@
 import { ENABLE_DOCUMENT_MENTION_NOTIFICATIONS } from '@core/constant/featureFlags';
 import type { Entity } from '@core/types';
 import { muteItemForRef } from '@entity/utils/notification';
+import { parseBrowserNewEmailNotification } from '@macro/email-realtime';
 import { createSocketEffect } from '@macro-inc/collaboration/websocket';
 import { updateSoupForNotification } from '@queries/notification/notification-soup';
 import {
@@ -434,6 +435,23 @@ export function createNotificationSource(
   };
 
   createSocketEffect(ws, (wsData) => {
+    // PRIVATE-HOOK: email_realtime:browser-new-email
+    if (wsData.type === 'browser_new_email_notification') {
+      const notification = parseBrowserNewEmailNotification(wsData.data);
+      if (!notification) {
+        console.warn(
+          'Failed to parse browser new email notification',
+          wsData.data
+        );
+        return;
+      }
+      dispatchIncomingNotification({
+        ...notification,
+        notification_metadata: notification.notification_metadata as NotifEvent,
+      });
+      return;
+    }
+
     if (wsData.type !== NOTIFICATION_EVENT_TYPE || usesGraphql()) {
       return;
     }

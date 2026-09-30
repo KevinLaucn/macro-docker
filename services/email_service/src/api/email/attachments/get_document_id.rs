@@ -96,12 +96,8 @@ pub async fn handler(
     link: Extension<Link>,
     Path(attachment_id): Path<Uuid>,
 ) -> Result<Json<GetAttachmentDocumentIDResponse>, GetAttachmentDocumentIdError> {
-    // Fast path: return ID if attachment already exists in Macro
-    if let Some(document_id) =
-        email_db_client::attachments::provider::get_document_id_by_att_id(&ctx.db, attachment_id)
-            .await
-            .map_err(GetAttachmentDocumentIdError::DatabaseError)?
-    {
+    // PRIVATE-HOOK: self_host_resilience:verify_attachment_s3_presence
+    if let Some(document_id) = verify_and_get_cached_document_id(&ctx, attachment_id).await? {
         return Ok(Json(GetAttachmentDocumentIDResponse {
             attachment_id,
             document_id,
@@ -117,11 +113,7 @@ pub async fn handler(
         .map_err(|e| GetAttachmentDocumentIdError::DatabaseError(e.into()))?;
 
     // Re-check after acquiring lock — another request may have completed the upload
-    if let Some(document_id) =
-        email_db_client::attachments::provider::get_document_id_by_att_id(&ctx.db, attachment_id)
-            .await
-            .map_err(GetAttachmentDocumentIdError::DatabaseError)?
-    {
+    if let Some(document_id) = verify_and_get_cached_document_id(&ctx, attachment_id).await? {
         return Ok(Json(GetAttachmentDocumentIDResponse {
             attachment_id,
             document_id,
@@ -240,3 +232,81 @@ async fn upload_and_get_document_id(
         .await
         .map_err(GetAttachmentDocumentIdError::UploadError)
 }
+
+#[derive(sqlx::FromRow)]
+struct CachedAttachmentDocRow {
+    document_id: String,
+    owner: String,
+    version_id: Option<i64>,
+}
+
+async fn verify_and_get_cached_document_id(
+    ctx: &ApiContext,
+    attachment_id: Uuid,
+) -> Result<Option<String>, GetAttachmentDocumentIdError> {
+    let row: Option<CachedAttachmentDocRow> = sqlx::query_as(
+        r#"
+        SELECT de.document_id, d.owner, di.id as version_id
+        FROM document_email de
+        INNER JOIN "Document" d ON de.document_id = d.id
+        LEFT JOIN "DocumentInstance" di ON di."documentId" = d.id
+        WHERE de.email_attachment_id = $1 AND d."deletedAt" IS NULL
+        ORDER BY di."createdAt" DESC
+        LIMIT 1
+        "#,
+    )
+    .bind(attachment_id)
+    .fetch_optional(&ctx.db)
+    .await
+    .map_err(|e| GetAttachmentDocumentIdError::DatabaseError(e.into()))?;
+
+    let Some(record) = row else {
+        return Ok(None);
+    };
+
+    let document_id = record.document_id;
+    let Some(version_id) = record.version_id else {
+        return Ok(Some(document_id));
+    };
+
+    let bucket = std::env::var("DOCUMENT_STORAGE_BUCKET")
+        .unwrap_or_else(|_| "doc-storage".to_string());
+    let s3_key = format!("{}/{}/{}", record.owner, document_id, version_id);
+
+    match ctx.s3_client.exists(&bucket, &s3_key).await {
+        Ok(true) => Ok(Some(document_id)),
+        Ok(false) => {
+            tracing::warn!(
+                attachment_id = %attachment_id,
+                document_id = %document_id,
+                s3_key = %s3_key,
+                "Attachment document S3 object missing, purging stale mapping to trigger re-upload"
+            );
+            let _ = sqlx::query(
+                r#"DELETE FROM document_email WHERE email_attachment_id = $1"#
+            )
+            .bind(attachment_id)
+            .execute(&ctx.db)
+            .await;
+
+            let _ = sqlx::query(
+                r#"UPDATE "Document" SET "deletedAt" = NOW() WHERE id = $1"#
+            )
+            .bind(&document_id)
+            .execute(&ctx.db)
+            .await;
+
+            Ok(None)
+        }
+        Err(e) => {
+            tracing::warn!(
+                error = ?e,
+                attachment_id = %attachment_id,
+                document_id = %document_id,
+                "Failed to probe S3 object existence, proceeding with cached document_id"
+            );
+            Ok(Some(document_id))
+        }
+    }
+}
+

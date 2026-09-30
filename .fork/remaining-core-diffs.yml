@@ -192,6 +192,11 @@ diffs:
   hooks:
   - adobe_preview_open_action
   override: false
+- file: apps/web/src/features/email-message/components/attachment-pill.test.tsx
+  owners:
+  - ADOBE-ATTACHMENT-PREVIEW-001
+  hooks: []
+  override: false
 - file: apps/web/src/features/email-message/components/attachment-pill.tsx
   owners:
   - ADOBE-ATTACHMENT-PREVIEW-001
@@ -407,6 +412,17 @@ diffs:
 - file: apps/web/src/features/notifications/notification-platform.ts
   owners:
   - READ-RECEIPTS-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/notifications/notification-source.ts
+  owners:
+  - EMAIL-REALTIME-001
+  hooks:
+  - email_realtime_browser_new_email
+  override: false
+- file: apps/web/src/features/notifications/tests/notification-source.test.ts
+  owners:
+  - EMAIL-REALTIME-001
   hooks: []
   override: false
 - file: apps/web/src/features/property/utils/errorHandling.ts
@@ -790,7 +806,8 @@ diffs:
 - file: services/email_service/src/api/email/attachments/get_document_id.rs
   owners:
   - EMAIL-SELFHOST-001
-  hooks: []
+  hooks:
+  - self_host_resilience_verify_attachment_s3_presence
   override: false
 - file: services/email_service/src/api/email/init.rs
   owners:

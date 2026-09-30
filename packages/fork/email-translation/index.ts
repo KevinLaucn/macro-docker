@@ -1,4 +1,5 @@
 export * from './debugLog';
+export * from './browserTranslation';
 export * from './EmailThreadTranslateButton';
 export * from './EmailTranslateButton';
 export * from './EmailTranslationSection';

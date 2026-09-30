@@ -16,11 +16,30 @@ const EmailListTranslationContext =
 
 export const EmailListTranslationProvider: FlowComponent = (props) => {
   const [items, setItems] = createSignal<EmailListTranslationItem[]>([]);
+
+  const setItemsIfChanged = (nextItems: EmailListTranslationItem[]) => {
+    setItems((previousItems) => {
+      if (
+        previousItems.length === nextItems.length &&
+        previousItems.every(
+          (item, index) =>
+            item.id === nextItems[index]?.id &&
+            item.name === nextItems[index]?.name &&
+            item.snippet === nextItems[index]?.snippet
+        )
+      ) {
+        return previousItems;
+      }
+
+      return nextItems;
+    });
+  };
+
   return (
     <EmailListTranslationContext.Provider
       value={{
         items,
-        setItems,
+        setItems: setItemsIfChanged,
       }}
     >
       {props.children}

@@ -143,6 +143,41 @@ describe('createNotificationSource', () => {
     };
   });
 
+  it('dispatches the fork browser new-email event as upstream new_email', () => {
+    mocks.notificationsQuery = {
+      transport: 'rest',
+      data: [],
+      isLoading: false,
+    };
+    const receive = vi.fn();
+    const dispose = createRoot((dispose) => {
+      createNotificationSource({} as ConnectionGatewayWebsocket, receive);
+      return dispose;
+    });
+
+    try {
+      mocks.socketCallback?.({
+        type: 'browser_new_email_notification',
+        data: JSON.stringify({
+          toEmail: 'ada@example.com',
+          threadId: 'thread-1',
+          subject: 'Hello',
+          snippet: 'New message',
+          sentAt: '2026-09-30T00:00:00.000Z',
+        }),
+      });
+      expect(receive).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entity_id: 'thread-1',
+          notification_event_type: 'new_email',
+          notification_metadata: expect.objectContaining({ tag: 'new_email' }),
+        })
+      );
+    } finally {
+      dispose();
+    }
+  });
+
   it.each([true, false])(
     'keeps an unused GraphQL feed asleep (document mentions enabled=%s)',
     async (enabled) => {

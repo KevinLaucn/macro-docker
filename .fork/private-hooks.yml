@@ -57,6 +57,15 @@ hooks:
     expected: "mod features;"
     context:
       - "mod api;"
+  - id: email_realtime_browser_new_email
+    customization: EMAIL-REALTIME-001
+    file: apps/web/src/features/notifications/notification-source.ts
+    marker: "// PRIVATE-HOOK: email_realtime:browser-new-email"
+    expected: "const notification = parseBrowserNewEmailNotification(wsData.data);"
+    context:
+      - "createSocketEffect(ws, (wsData) => {"
+      - "if (wsData.type !== NOTIFICATION_EVENT_TYPE || usesGraphql()) {"
+
   - id: email_selfhost_local_poller_gate
     customization: EMAIL-SELFHOST-001
     file: services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
@@ -428,11 +437,18 @@ hooks:
     expected: "pub async fn health_check_handler("
     context:
       - "LinkManagerMessage::HealthCheck"
+  - id: self_host_resilience_verify_attachment_s3_presence
+    customization: EMAIL-SELFHOST-001
+    file: services/email_service/src/api/email/attachments/get_document_id.rs
+    marker: "// PRIVATE-HOOK: self_host_resilience:verify_attachment_s3_presence"
+    expected: "if let Some(document_id) = verify_and_get_cached_document_id(&ctx, attachment_id).await? {"
+    context:
+      - "pub async fn handler("
   - id: adobe_preview_open_action
     customization: ADOBE-ATTACHMENT-PREVIEW-001
     file: apps/web/src/features/email-message/attachment-action-adapter.ts
     marker: "// PRIVATE-HOOK: adobe_preview:open_action"
-    expected: "const adobeExt = attachment.filename?.split('.').pop()?.toLowerCase();"
+    expected: "const blockName = await resolveAdobeAttachmentBlockName("
     context:
       - "const openAttachment = async (attachment: EmailAttachment) => {"
   - id: adobe_preview_pill_badge

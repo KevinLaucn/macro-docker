@@ -8,7 +8,9 @@ import {
 } from '@queries/email/integration';
 import { refetchSoupEntity } from '@queries/soup/cache';
 import { FileTypeMap } from '@service-storage/fileTypeMap';
-import type { FileType } from '@service-storage/generated/schemas/fileType';
+import { resolveAdobeAttachmentBlockName } from '@macro/adobe-preview';
+import { platformFetch } from '@core/util/platformFetch';
+import { fetchBinaryDocumentData } from '@queries/storage/binary-document';
 import type { EmailAttachment } from './core/email-message';
 export function createEmailAttachmentOpener() {
   const { openWithSplit } = useSplitLayout();
@@ -42,16 +44,26 @@ export function createEmailAttachmentOpener() {
     const fileType = Object.values(FileTypeMap).findLast(
       (type) => type.mime === attachment.mime_type
     )?.extension;
+    const defaultBlockName = fileType
+      ? fileTypeToBlockName(fileType as any)
+      : 'unknown';
+
     // PRIVATE-HOOK: adobe_preview:open_action
-    const adobeExt = attachment.filename?.split('.').pop()?.toLowerCase();
-    const effectiveBlockName = (() => {
-      if (adobeExt === 'ai') return 'pdf';
-      if (adobeExt === 'eps') return 'unknown';
-      return fileType ? fileTypeToBlockName(fileType as FileType) : 'unknown';
-    })();
+    const blockName = await resolveAdobeAttachmentBlockName(
+      attachment.filename,
+      defaultBlockName,
+      async () => {
+        const docResult = await fetchBinaryDocumentData(document_id);
+        if (docResult.isErr()) return undefined;
+        const res = await platformFetch(docResult.value.blobUrl, {
+          headers: { Range: 'bytes=0-1023' },
+        });
+        return res.ok || res.status === 206 ? await res.blob() : undefined;
+      }
+    );
 
     openWithSplit(
-      { type: effectiveBlockName, id: document_id },
+      { type: blockName, id: document_id },
       { preferNewSplit: true }
     );
   };

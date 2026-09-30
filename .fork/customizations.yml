@@ -162,6 +162,37 @@ customizations:
       - conventions
       - email-rust
 
+  - id: EMAIL-REALTIME-001
+    title: Browser new-email realtime compatibility adapter
+    rationale: Preserve the fork's legacy browser_new_email_notification producer while routing it through the upstream new_email cache refresh path.
+    risk: high
+    contracts:
+      upstream_dependencies:
+        - connection gateway websocket event envelope
+        - notification-source websocket dispatch
+        - notification update subscriber
+        - Soup emailThread refetch and invalidation
+        - email thread message query invalidation
+      failure_mode: New inbox messages or messages in an open thread remain stale until a full page refresh.
+      verification_gate: Fork Contract Gate
+    paths:
+      - packages/fork/email-realtime/**
+      - apps/web/src/features/notifications/notification-source.ts
+      - apps/web/src/features/notifications/tests/notification-source.test.ts
+      - apps/web/src/features/notifications/use-notification-updates.ts
+      - apps/web/src/lib/queries/soup/normalized-cache/operations.ts
+      - apps/web/src/lib/queries/email/keys.ts
+      - apps/web/src/lib/queries/email/thread.ts
+      - services/email_service/src/pubsub/inbox_sync/operations/upsert_message.rs
+      - .fork/private-hooks.yml
+    owned_paths:
+      - apps/web/src/features/notifications/notification-source.ts
+      - apps/web/src/features/notifications/tests/notification-source.test.ts
+    tests:
+      - conventions
+      - email-rust
+      - web
+
   - id: SELFHOST-HEALTH-001
     title: Isolated self-host health diagnostics
     rationale: Preserve the self-host health report, permission gate, routes, probes, and admin UI while keeping fork implementation code out of upstream-owned directories.
@@ -628,7 +659,13 @@ customizations:
       - packages/fork/adobe-preview/**
       - apps/web/src/features/email-message/attachment-action-adapter.ts
       - apps/web/src/features/email-message/components/attachment-pill.tsx
-      - apps/web/src/features/block-unknown/component/Block.tsx
+      - apps/web/src/features/email-message/components/attachment-pill.test.tsx
+      - apps/web/src/features/block-unknown/**
+      - apps/web/src/lib/queries/storage/**
+      - apps/web/src/lib/service-clients/service-storage/util/**
+      - services/document_storage_service/**
+      - crates/s3_key/**
+      - apps/web/src/features/block-pdf/definition.ts
       - apps/web/tsconfig.json
       - apps/web/vite.base.ts
       - .fork/private-hooks.yml
@@ -636,6 +673,7 @@ customizations:
       - apps/web/src/features/block-unknown/component/Block.tsx
       - apps/web/src/features/email-message/attachment-action-adapter.ts
       - apps/web/src/features/email-message/components/attachment-pill.tsx
+      - apps/web/src/features/email-message/components/attachment-pill.test.tsx
       - apps/web/tsconfig.json
       - apps/web/vite.base.ts
     tests:
