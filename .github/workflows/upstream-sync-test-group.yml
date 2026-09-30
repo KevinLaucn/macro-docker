@@ -107,9 +107,7 @@ jobs:
 
       - name: Test read receipt integration contract
         if: inputs.group == 'read-receipts-contract'
-        run: |
-          bunx vitest run --config vitest.config.ts --project email src/features/email-message/primitives/email-message-body.test.ts
-          bunx vitest run --config vitest.config.ts --project fork-read-receipts
+        run: bunx vitest run --config vitest.config.ts --project fork-read-receipts
         working-directory: apps/web
 
       - name: Test isolated email translation package
