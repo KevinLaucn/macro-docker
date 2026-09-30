@@ -255,6 +255,16 @@
         "vitest": "5.0.1",
       },
     },
+    "packages/fork/email-realtime": {
+      "name": "@macro/email-realtime",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@types/node": "^24.8.0",
+        "typescript": "^5.9.3",
+        "vite": "^6.4.1",
+        "vitest": "5.0.1",
+      },
+    },
     "packages/fork/email-translation": {
       "name": "@macro/email-translation",
       "version": "0.1.0",
@@ -1270,6 +1280,8 @@
     "@macro/adobe-preview": ["@macro/adobe-preview@workspace:packages/fork/adobe-preview"],
 
     "@macro/email-participant-identity": ["@macro/email-participant-identity@workspace:packages/fork/email-participant-identity"],
+
+    "@macro/email-realtime": ["@macro/email-realtime@workspace:packages/fork/email-realtime"],
 
     "@macro/email-translation": ["@macro/email-translation@workspace:packages/fork/email-translation"],
 
