@@ -55,9 +55,16 @@ jobs:
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
+      - name: Read selected upstream target
+        id: target
+        run: |
+          target=$(ruby -ryaml -e 'puts YAML.safe_load_file(".fork/upstream.yml").fetch("last_merged_upstream_sha")')
+          git merge-base --is-ancestor "$target" upstream/main
+          echo "sha=$target" >> "$GITHUB_OUTPUT"
+
       - name: Run unified fork gate
         env:
-          CHECK_BASE: ${{ github.event_name == 'workflow_dispatch' && inputs.base || 'upstream/main' }}
+          CHECK_BASE: ${{ github.event_name == 'workflow_dispatch' && inputs.base || contains(github.event.pull_request.labels.*.name, 'sync-target-pinned') && steps.target.outputs.sha || 'upstream/main' }}
           FORK_SYNC_STRICT: "1"
         run: just fork-gate
 

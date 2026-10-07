@@ -9,6 +9,11 @@ Run `just fork-gate` first. Normal development uses the recorded upstream SHA
 from `.fork/upstream.yml`; upstream-sync CI sets live `upstream/main` and strict
 ancestry.
 
+If the user explicitly fixes a sync cutoff, label that PR `sync-target-pinned`.
+CI then validates the recorded immutable upstream SHA with strict ancestry and
+all existing contracts, and verifies it belongs to upstream history. This label
+applies only to that PR; other syncs retain the live upstream default.
+
 The unified gate must reject:
 - any difference anywhere inside an upstream-provided Skill directory;
 - deletion of an upstream-owned file;
