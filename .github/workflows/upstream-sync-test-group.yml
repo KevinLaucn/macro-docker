@@ -14,6 +14,8 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -63,15 +65,17 @@ jobs:
 
       - name: Validate self-host artifacts
         if: inputs.group == 'selfhost-config'
-        run: nix develop --command just self-host-check
+        run: |
+          python3 self-host/scripts/check-drift.py
+          python3 self-host/scripts/verify-release.py
 
       - name: Check email Rust crates
         if: inputs.group == 'email-rust'
-        run: nix develop --command cargo check -p email_service -p email_db_client
+        run: nix develop --command env SQLX_OFFLINE=true cargo check -p email_service -p email_db_client
 
       - name: Check authentication Rust crates
         if: inputs.group == 'auth-rust'
-        run: nix develop --command cargo check -p authentication_service -p authentication_service_client
+        run: nix develop --command env SQLX_OFFLINE=true cargo check -p authentication_service -p authentication_service_client
 
       - name: Set up Bun
         if: inputs.group == 'i18n' || inputs.group == 'web' || inputs.group == 'email-translation' || inputs.group == 'email-identity' || inputs.group == 'read-receipts-contract'
