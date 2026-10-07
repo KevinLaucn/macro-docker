@@ -52,3 +52,36 @@ describe('i18n UI fallback detection', () => {
     ).toEqual([]);
   });
 });
+
+import {
+  extractLiteralString,
+  getExportedConstants,
+  resolveModulePath,
+} from './ast-utils';
+import path from 'node:path';
+
+describe('i18n AST symbol resolution', () => {
+  test('extractLiteralString extracts string and single quasi template literals', () => {
+    expect(
+      extractLiteralString({ type: 'StringLiteral', value: 'Hello' })
+    ).toBe('Hello');
+    expect(
+      extractLiteralString({
+        type: 'TemplateLiteral',
+        quasis: [{ value: { raw: 'World' } }],
+        expressions: [],
+      })
+    ).toBe('World');
+  });
+
+  test('resolveModulePath resolves relative and alias imports', () => {
+    const webSrcDir = path.resolve(__dirname, '../../../apps/web/src');
+    const tabListsPath = path.resolve(
+      webSrcDir,
+      'features/next-soup/soup-view/tab-lists.ts'
+    );
+    const resolved = resolveModulePath('./tab-lists', tabListsPath, webSrcDir);
+    expect(resolved).toBe(tabListsPath);
+  });
+});
+

@@ -32,12 +32,14 @@ function normalizeKey(str: string): string {
 
 import {
   getContextKey,
+  getExportedConstants,
   getObjectPropertyName,
   IGNORED_TAGS,
   isIgnoredPath,
   isUiFallbackStringLiteral,
   parseMixedChildren,
   parseSimpleTemplateLiteral,
+  resolveModulePath,
   shouldTranslateText,
   TRANSLATABLE_ATTRIBUTES,
   TRANSLATABLE_OBJECT_KEYS,
@@ -117,6 +119,59 @@ async function run() {
       });
 
       const fileContext = getContextKey(file);
+
+      // Map imported local identifiers to external module file paths and imported symbol names
+      const importedSymbols = new Map<string, { modulePath: string; importedName: string }>();
+      const localConstants = new Map<string, string>();
+
+      // Pre-pass: collect imports and top-level const definitions for symbol resolution
+      for (const statement of ast.program.body) {
+        if (statement.type === 'ImportDeclaration') {
+          const importSource = statement.source.value;
+          const resolvedPath = resolveModulePath(importSource, file, webSrcDir);
+          if (resolvedPath) {
+            for (const spec of statement.specifiers) {
+              if (spec.type === 'ImportSpecifier') {
+                const importedName =
+                  spec.imported.type === 'Identifier'
+                    ? spec.imported.name
+                    : spec.imported.value;
+                importedSymbols.set(spec.local.name, {
+                  modulePath: resolvedPath,
+                  importedName,
+                });
+              }
+            }
+          }
+        } else if (statement.type === 'VariableDeclaration' && statement.kind === 'const') {
+          for (const decl of statement.declarations) {
+            if (decl.id.type === 'Identifier' && decl.init) {
+              if (decl.init.type === 'StringLiteral') {
+                localConstants.set(decl.id.name, decl.init.value);
+              }
+            }
+          }
+        }
+      }
+
+      function resolveConstantValue(node: any): string | undefined {
+        if (!node) return undefined;
+        if (node.type === 'StringLiteral') return node.value;
+        if (node.type === 'Identifier') {
+          if (localConstants.has(node.name)) {
+            return localConstants.get(node.name);
+          }
+          if (importedSymbols.has(node.name)) {
+            const sym = importedSymbols.get(node.name)!;
+            const exportsMap = getExportedConstants(sym.modulePath);
+            const exp = exportsMap.get(sym.importedName);
+            if (exp?.literalValue) {
+              return exp.literalValue;
+            }
+          }
+        }
+        return undefined;
+      }
 
       traverse(ast, {
         CallExpression(p: any) {
@@ -382,6 +437,25 @@ async function run() {
                       }
                     }
                   }
+                } else if (node.type === 'Identifier') {
+                  const resolved = resolveConstantValue(node);
+                  if (resolved) {
+                    const val = normalizeKey(resolved);
+                    if (shouldTranslateText(val) || existingZh[val]) {
+                      const dictKey = fileContext
+                        ? `${val}@@${fileContext}`
+                        : val;
+                      recordCall(
+                        dictKey,
+                        rel,
+                        fileContext,
+                        false,
+                        node.loc?.start?.line || line,
+                        `JSXAttribute(${attrName})`,
+                        attrName
+                      );
+                    }
+                  }
                 } else if (node.type === 'ConditionalExpression') {
                   checkExpNode(node.consequent);
                   checkExpNode(node.alternate);
@@ -482,6 +556,23 @@ async function run() {
                       propName
                     );
                   }
+                }
+              }
+            } else if (valNode.type === 'Identifier') {
+              const resolved = resolveConstantValue(valNode);
+              if (resolved) {
+                const val = normalizeKey(resolved);
+                if (shouldTranslateText(val) || existingZh[val]) {
+                  const dictKey = fileContext ? `${val}@@${fileContext}` : val;
+                  recordCall(
+                    dictKey,
+                    rel,
+                    fileContext,
+                    false,
+                    valNode.loc?.start?.line || line,
+                    `ObjectProperty(${propName})`,
+                    propName
+                  );
                 }
               }
             } else if (valNode.type === 'ConditionalExpression') {

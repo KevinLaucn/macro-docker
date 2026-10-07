@@ -1,3 +1,10 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { parse } from '@babel/parser';
+import traverseModule from '@babel/traverse';
+
+const traverse = (traverseModule as any).default || traverseModule;
+
 export const TRANSLATABLE_ATTRIBUTES = new Set([
   'placeholder',
   'title',
@@ -410,3 +417,150 @@ export function parseSimpleTemplateLiteral(
 
   return undefined;
 }
+
+/**
+ * Extracts a literal string or simple template value from an AST expression node.
+ */
+export function extractLiteralString(node: any): string | undefined {
+  if (!node) return undefined;
+  if (node.type === 'StringLiteral') {
+    return node.value;
+  }
+  if (node.type === 'TemplateLiteral') {
+    if (
+      node.quasis.length === 1 &&
+      (!node.expressions || node.expressions.length === 0)
+    ) {
+      return node.quasis[0].value.raw;
+    }
+    const unit = parseSimpleTemplateLiteral(node);
+    if (unit) return unit.template;
+  }
+  return undefined;
+}
+
+/**
+ * Resolves a TypeScript/JavaScript module import specifier relative to a file or aliases.
+ */
+export function resolveModulePath(
+  importSource: string,
+  fromFilePath: string,
+  webSrcDir: string
+): string | undefined {
+  let candidateBase: string;
+
+  if (importSource.startsWith('.')) {
+    candidateBase = path.resolve(path.dirname(fromFilePath), importSource);
+  } else if (importSource.startsWith('@app/')) {
+    candidateBase = path.join(webSrcDir, importSource.slice(5));
+  } else if (importSource.startsWith('@core/')) {
+    candidateBase = path.join(webSrcDir, 'core', importSource.slice(6));
+  } else if (importSource.startsWith('@features/')) {
+    candidateBase = path.join(webSrcDir, 'features', importSource.slice(10));
+  } else if (importSource.startsWith('@macro/')) {
+    // Monorepo package imports, e.g. @macro/i18n, generally external to web src
+    return undefined;
+  } else {
+    // node_modules or unhandled alias
+    return undefined;
+  }
+
+  const extensions = ['.ts', '.tsx', '.js', '.jsx'];
+  if (fs.existsSync(candidateBase) && fs.statSync(candidateBase).isFile()) {
+    return candidateBase;
+  }
+  for (const ext of extensions) {
+    const candidateFile = `${candidateBase}${ext}`;
+    if (fs.existsSync(candidateFile) && fs.statSync(candidateFile).isFile()) {
+      return candidateFile;
+    }
+  }
+  for (const ext of extensions) {
+    const candidateIndex = path.join(candidateBase, `index${ext}`);
+    if (fs.existsSync(candidateIndex) && fs.statSync(candidateIndex).isFile()) {
+      return candidateIndex;
+    }
+  }
+  return undefined;
+}
+
+export interface SymbolExportInfo {
+  literalValue?: string;
+  sourceAstNode?: any;
+}
+
+const fileExportsCache = new Map<string, Map<string, SymbolExportInfo>>();
+
+/**
+ * Parses a module file and extracts top-level exported constants that resolve to string literals.
+ */
+export function getExportedConstants(filePath: string): Map<string, SymbolExportInfo> {
+  if (fileExportsCache.has(filePath)) {
+    return fileExportsCache.get(filePath)!;
+  }
+
+  const exportsMap = new Map<string, SymbolExportInfo>();
+  fileExportsCache.set(filePath, exportsMap);
+
+  if (!fs.existsSync(filePath)) return exportsMap;
+
+  let code: string;
+  try {
+    code = fs.readFileSync(filePath, 'utf-8');
+  } catch {
+    return exportsMap;
+  }
+
+  try {
+    const ast = parse(code, {
+      sourceType: 'module',
+      plugins: ['jsx', 'typescript'],
+    });
+
+    const localConsts = new Map<string, string>();
+
+    traverse(ast, {
+      VariableDeclaration(p: any) {
+        if (p.node.kind !== 'const') return;
+        for (const decl of p.node.declarations) {
+          if (decl.id?.type === 'Identifier' && decl.init) {
+            const literal = extractLiteralString(decl.init);
+            if (literal) {
+              localConsts.set(decl.id.name, literal);
+              if (p.parentPath?.isExportNamedDeclaration()) {
+                exportsMap.set(decl.id.name, {
+                  literalValue: literal,
+                  sourceAstNode: decl.init,
+                });
+              }
+            }
+          }
+        }
+      },
+      ExportNamedDeclaration(p: any) {
+        if (p.node.specifiers) {
+          for (const spec of p.node.specifiers) {
+            if (spec.type === 'ExportSpecifier' && spec.local && spec.exported) {
+              const localName = spec.local.name;
+              const exportedName =
+                spec.exported.type === 'Identifier'
+                  ? spec.exported.name
+                  : spec.exported.value;
+              if (localConsts.has(localName)) {
+                exportsMap.set(exportedName, {
+                  literalValue: localConsts.get(localName),
+                });
+              }
+            }
+          }
+        }
+      },
+    });
+  } catch {
+    // Ignore AST parse errors in dependency files
+  }
+
+  return exportsMap;
+}
+
+

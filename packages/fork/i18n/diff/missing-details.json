@@ -1080,6 +1080,21 @@
       }
     ]
   },
+  "I confirm this archive belongs to this team's Slack workspace, including when its identity is unknown.": {
+    "baseKey": "I confirm this archive belongs to this team's Slack workspace, including when its identity is unknown.",
+    "isExplicit": false,
+    "occurrences": [
+      "features/slack-import/views/import-dialog.tsx"
+    ],
+    "locs": [
+      {
+        "file": "features/slack-import/views/import-dialog.tsx",
+        "line": 502,
+        "type": "JSXAttribute(aria-label)",
+        "attrName": "aria-label"
+      }
+    ]
+  },
   "The source binding is permanent: this team cannot import another Slack workspace later.": {
     "baseKey": "The source binding is permanent: this team cannot import another Slack workspace later.",
     "isExplicit": false,
@@ -6590,6 +6605,21 @@
         "file": "features/block-md/views/compose-document.tsx",
         "line": 228,
         "type": "JSXText"
+      }
+    ]
+  },
+  "Unknown option": {
+    "baseKey": "Unknown option",
+    "isExplicit": false,
+    "occurrences": [
+      "features/database-query/core/answer-cell.ts"
+    ],
+    "locs": [
+      {
+        "file": "features/database-query/core/answer-cell.ts",
+        "line": 67,
+        "type": "ObjectProperty(label)",
+        "attrName": "label"
       }
     ]
   },
@@ -12172,6 +12202,28 @@
         "line": 97,
         "type": "JSXAttribute(aria-label)",
         "attrName": "aria-label"
+      }
+    ]
+  },
+  "[Text]": {
+    "baseKey": "[Text]",
+    "isExplicit": false,
+    "occurrences": [
+      "features/block-pptx/components/smartart/smartart-stage.tsx",
+      "features/block-pptx/components/smartart/text-pane.tsx"
+    ],
+    "locs": [
+      {
+        "file": "features/block-pptx/components/smartart/smartart-stage.tsx",
+        "line": 108,
+        "type": "JSXAttribute(placeholder)",
+        "attrName": "placeholder"
+      },
+      {
+        "file": "features/block-pptx/components/smartart/text-pane.tsx",
+        "line": 256,
+        "type": "JSXAttribute(placeholder)",
+        "attrName": "placeholder"
       }
     ]
   },
@@ -44685,6 +44737,21 @@
       }
     ]
   },
+  "An error was encountered with your session. Send another message to continue": {
+    "baseKey": "An error was encountered with your session. Send another message to continue",
+    "isExplicit": false,
+    "occurrences": [
+      "features/block-agent/component/AgentMessage.tsx"
+    ],
+    "locs": [
+      {
+        "file": "features/block-agent/component/AgentMessage.tsx",
+        "line": 365,
+        "type": "JSXAttribute(label)",
+        "attrName": "label"
+      }
+    ]
+  },
   "This session is archived": {
     "baseKey": "This session is archived",
     "isExplicit": false,
@@ -46061,6 +46128,48 @@
       }
     ]
   },
+  "This form was edited by a newer version of Macro.": {
+    "baseKey": "This form was edited by a newer version of Macro.",
+    "isExplicit": false,
+    "occurrences": [
+      "features/block-form/queries/form-collaboration.ts"
+    ],
+    "locs": [
+      {
+        "file": "features/block-form/queries/form-collaboration.ts",
+        "line": 303,
+        "type": "ObjectProperty(message)",
+        "attrName": "message"
+      }
+    ]
+  },
+  "This form could not be opened.": {
+    "baseKey": "This form could not be opened.",
+    "isExplicit": false,
+    "occurrences": [
+      "features/block-form/queries/form-collaboration.ts"
+    ],
+    "locs": [
+      {
+        "file": "features/block-form/queries/form-collaboration.ts",
+        "line": 588,
+        "type": "ObjectProperty(message)",
+        "attrName": "message"
+      },
+      {
+        "file": "features/block-form/queries/form-collaboration.ts",
+        "line": 600,
+        "type": "ObjectProperty(message)",
+        "attrName": "message"
+      },
+      {
+        "file": "features/block-form/queries/form-collaboration.ts",
+        "line": 679,
+        "type": "ObjectProperty(message)",
+        "attrName": "message"
+      }
+    ]
+  },
   "Unable to connect to this form.": {
     "baseKey": "Unable to connect to this form.",
     "isExplicit": false,
@@ -46244,6 +46353,47 @@
         "line": 642,
         "type": "ObjectProperty(label)",
         "attrName": "label"
+      }
+    ]
+  },
+  "Book a time": {
+    "baseKey": "Book a time",
+    "isExplicit": false,
+    "occurrences": [
+      "features/block-form/primitives/create-builder.ts",
+      "features/block-form/components/builder/booking-card.tsx",
+      "features/block-form/views/respond-view.tsx",
+      "features/block-form/views/booking-step-view.tsx"
+    ],
+    "locs": [
+      {
+        "file": "features/block-form/primitives/create-builder.ts",
+        "line": 1013,
+        "type": "ObjectProperty(title)",
+        "attrName": "title"
+      },
+      {
+        "file": "features/block-form/components/builder/booking-card.tsx",
+        "line": 170,
+        "type": "JSXAttribute(placeholder)",
+        "attrName": "placeholder"
+      },
+      {
+        "file": "features/block-form/views/respond-view.tsx",
+        "line": 389,
+        "type": "JSXText"
+      },
+      {
+        "file": "features/block-form/views/booking-step-view.tsx",
+        "line": 24,
+        "type": "JSXAttribute(aria-label)",
+        "attrName": "aria-label"
+      },
+      {
+        "file": "features/block-form/views/booking-step-view.tsx",
+        "line": 44,
+        "type": "JSXAttribute(title)",
+        "attrName": "title"
       }
     ]
   },
@@ -47260,40 +47410,6 @@
         "line": 169,
         "type": "JSXAttribute(aria-label)",
         "attrName": "aria-label"
-      }
-    ]
-  },
-  "Book a time": {
-    "baseKey": "Book a time",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-form/components/builder/booking-card.tsx",
-      "features/block-form/views/respond-view.tsx",
-      "features/block-form/views/booking-step-view.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-form/components/builder/booking-card.tsx",
-        "line": 170,
-        "type": "JSXAttribute(placeholder)",
-        "attrName": "placeholder"
-      },
-      {
-        "file": "features/block-form/views/respond-view.tsx",
-        "line": 389,
-        "type": "JSXText"
-      },
-      {
-        "file": "features/block-form/views/booking-step-view.tsx",
-        "line": 24,
-        "type": "JSXAttribute(aria-label)",
-        "attrName": "aria-label"
-      },
-      {
-        "file": "features/block-form/views/booking-step-view.tsx",
-        "line": 44,
-        "type": "JSXAttribute(title)",
-        "attrName": "title"
       }
     ]
   },
@@ -56606,6 +56722,33 @@
       }
     ]
   },
+  "Generate with AI...": {
+    "baseKey": "Generate with AI...",
+    "isExplicit": false,
+    "occurrences": [
+      "lib/core/component/AI/component/InlineAi.tsx"
+    ],
+    "locs": [
+      {
+        "file": "lib/core/component/AI/component/InlineAi.tsx",
+        "line": 60,
+        "type": "JSXAttribute(placeholder)",
+        "attrName": "placeholder"
+      },
+      {
+        "file": "lib/core/component/AI/component/InlineAi.tsx",
+        "line": 115,
+        "type": "JSXAttribute(placeholder)",
+        "attrName": "placeholder"
+      },
+      {
+        "file": "lib/core/component/AI/component/InlineAi.tsx",
+        "line": 134,
+        "type": "JSXAttribute(placeholder)",
+        "attrName": "placeholder"
+      }
+    ]
+  },
   "Created routine": {
     "baseKey": "Created routine",
     "isExplicit": false,
@@ -57604,6 +57747,21 @@
         "line": 241,
         "type": "ObjectProperty(tooltip)",
         "attrName": "tooltip"
+      }
+    ]
+  },
+  "Fix mentions": {
+    "baseKey": "Fix mentions",
+    "isExplicit": false,
+    "occurrences": [
+      "lib/core/component/LexicalMarkdown/component/decorator/browser-test/agent-session-mention.tsx"
+    ],
+    "locs": [
+      {
+        "file": "lib/core/component/LexicalMarkdown/component/decorator/browser-test/agent-session-mention.tsx",
+        "line": 21,
+        "type": "ObjectProperty(label)",
+        "attrName": "label"
       }
     ]
   },

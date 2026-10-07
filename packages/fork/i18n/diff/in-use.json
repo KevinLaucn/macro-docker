@@ -7636,6 +7636,9 @@
   "attributed by Slack name": [
     "features/slack-import/views/import-dialog.tsx"
   ],
+  "I confirm this archive belongs to this team's Slack workspace, including when its identity is unknown.": [
+    "features/slack-import/views/import-dialog.tsx"
+  ],
   "The source binding is permanent: this team cannot import another Slack workspace later.": [
     "features/slack-import/views/import-dialog.tsx"
   ],
@@ -17183,6 +17186,9 @@
   "Create Document": [
     "features/block-md/views/compose-document.tsx"
   ],
+  "Unknown option": [
+    "features/database-query/core/answer-cell.ts"
+  ],
   "entities": [
     "features/database-query/core/answer-cell.ts",
     "features/property/editors/selectors/PropertyEntitySelector.tsx",
@@ -18953,6 +18959,10 @@
   ],
   "SmartArt shape text": [
     "features/block-pptx/components/smartart/smartart-stage.tsx"
+  ],
+  "[Text]": [
+    "features/block-pptx/components/smartart/smartart-stage.tsx",
+    "features/block-pptx/components/smartart/text-pane.tsx"
   ],
   "Hide the Text Pane": [
     "features/block-pptx/components/smartart/smartart-stage.tsx"
@@ -30279,6 +30289,9 @@
   "Stop sharing": [
     "features/block-agent/component/AgentPreviewBanner.tsx"
   ],
+  "An error was encountered with your session. Send another message to continue": [
+    "features/block-agent/component/AgentMessage.tsx"
+  ],
   "This session is archived": [
     "features/block-agent/component/ArchivedSessionFooter.tsx"
   ],
@@ -31990,6 +32003,12 @@
   "A form needs a name.": [
     "features/block-form/queries/form-entity.ts"
   ],
+  "This form was edited by a newer version of Macro.": [
+    "features/block-form/queries/form-collaboration.ts"
+  ],
+  "This form could not be opened.": [
+    "features/block-form/queries/form-collaboration.ts"
+  ],
   "Unable to connect to this form.": [
     "features/block-form/queries/form-collaboration.ts"
   ],
@@ -32032,6 +32051,12 @@
   ],
   "Option 1": [
     "features/block-form/primitives/create-builder.ts"
+  ],
+  "Book a time": [
+    "features/block-form/primitives/create-builder.ts",
+    "features/block-form/components/builder/booking-card.tsx",
+    "features/block-form/views/respond-view.tsx",
+    "features/block-form/views/booking-step-view.tsx"
   ],
   "Add file": [
     "features/block-form/components/respond/question-field.tsx"
@@ -32238,11 +32263,6 @@
   ],
   "Booking step title": [
     "features/block-form/components/builder/booking-card.tsx"
-  ],
-  "Book a time": [
-    "features/block-form/components/builder/booking-card.tsx",
-    "features/block-form/views/respond-view.tsx",
-    "features/block-form/views/booking-step-view.tsx"
   ],
   "Booking step description": [
     "features/block-form/components/builder/booking-card.tsx"
@@ -37267,6 +37287,9 @@
   "Failed to open AI instructions document": [
     "lib/core/component/AI/util/instructions.ts"
   ],
+  "Generate with AI...": [
+    "lib/core/component/AI/component/InlineAi.tsx"
+  ],
   "AI Data Sharing": [
     "lib/core/component/AI/component/input/useAiDataConsent.tsx"
   ],
@@ -38169,6 +38192,9 @@
   ],
   "Waiting…": [
     "lib/core/component/LexicalMarkdown/component/decorator/Await.tsx"
+  ],
+  "Fix mentions": [
+    "lib/core/component/LexicalMarkdown/component/decorator/browser-test/agent-session-mention.tsx"
   ],
   "Revoke access": [
     "lib/core/component/LexicalMarkdown/component/decorator/browser-test/agent-session-mention.tsx"
