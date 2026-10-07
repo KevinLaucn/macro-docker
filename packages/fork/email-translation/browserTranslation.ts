@@ -7,5 +7,5 @@ import { t } from '@macro/i18n';
  * lightweight affordance that points the user to that control.
  */
 export function requestBrowserTranslation(): void {
-  toast.info(t('请点击浏览器地址栏中的翻译按钮')); 
+  toast.success(t('请点击浏览器地址栏中的翻译按钮'));
 }

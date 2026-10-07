@@ -309,6 +309,13 @@ Full email client. Tabs: `Signal` / `Noise` / `Favorites` / `Sent` / `Scheduled`
 shows `Connect your email` (Gmail/Google Workspace OAuth) — most functionality needs a
 connected account. Search is `Ctrl+F` within the surface.
 
+Fork read-receipt acceptance requires an authorized test mailbox: send a reply
+and verify its checkmark appears without reloading; open it in the recipient
+client and verify the double check and Sent envelope update. A later reply starts
+unopened even when the earlier message was opened. Viewing Sent or preparing a
+reply/forward must not request the sender's own `/t/o/` pixels. Do not send test
+messages to real recipients without authorization.
+
 `Favorites`, directly below Noise, lists starred Macro emails across Signal,
 Noise, and archived mail. It respects the selected inboxes and filters; search
 within the tab is also restricted to favorites. Removing a star removes the row

@@ -123,7 +123,7 @@ credentials in `.env`, then `./macroctl up` again.
 | **GitHub** — SSO, PR linking | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | |
 | **Calls** | `LIVEKIT_*` | Self-host LiveKit or use LiveKit Cloud |
 | **Full workspace services** | Full image names plus `./macroctl up --profile full` | Adds cognition, scheduled actions, MCP and AI editing |
-| **Agents** | `./macroctl up --profile agents` | Read the warning below first |
+| **Agents** | `COMPOSE_PROFILES=agents` (default in `.env.example`) | Read the warning below first |
 | **Analytics** | `./macroctl up --profile analytics` | Only useful pointed at your own PostHog |
 
 Billing is off. The signup path detects the placeholder Stripe key and stores a

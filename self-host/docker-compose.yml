@@ -707,8 +707,8 @@ services:
     healthcheck:
       <<: *healthcheck
 
-  # gets the daemon socket — root-equivalent on the host. Opt in deliberately:
-  #   macroctl up --profile agents
+  # gets the daemon socket — root-equivalent on the host. The profile must be
+  # explicitly listed in COMPOSE_PROFILES when Agent capability is enabled.
   agent_harness_service:
     <<: *service
     profiles: ["agents"]

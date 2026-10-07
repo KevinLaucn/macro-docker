@@ -1,10 +1,11 @@
+import { useEmail } from '@core/context/user';
 import CheckIcon from '@phosphor-icons/core/bold/check-bold.svg?component-solid';
 import ChecksIcon from '@phosphor-icons/core/bold/checks-bold.svg?component-solid';
+import { useEmailLinksQuery } from '@queries/email/link';
 import { cn, Tooltip } from '@ui';
 import { createMemo, Show } from 'solid-js';
-import { useEmail } from '@core/context/user';
-import { useEmailLinksQuery } from '@queries/email/link';
 import {
+  useReadReceiptSentConfirmation,
   useReadReceiptStatusQuery,
   useThreadReadReceiptStatusQuery,
 } from './queries';
@@ -25,6 +26,9 @@ export interface ReadReceiptStatusProps {
 export function ReadReceiptStatus(props: ReadReceiptStatusProps) {
   const viewerEmail = useEmail();
   const accounts = useEmailLinksQuery();
+  const sentConfirmed = useReadReceiptSentConfirmation(
+    () => props.message.db_id
+  );
 
   const isSent = () => {
     if (props.message.is_sent != null) return Boolean(props.message.is_sent);
@@ -33,14 +37,15 @@ export function ReadReceiptStatus(props: ReadReceiptStatusProps) {
     if (viewerEmail()?.toLowerCase() === fromEmail) return true;
     const links = accounts.isSuccess ? accounts.data?.links : undefined;
     return Boolean(
-      links?.some(
-        (acc) => acc.email_address?.toLowerCase() === fromEmail
-      )
+      links?.some((acc) => acc.email_address?.toLowerCase() === fromEmail)
     );
   };
 
   const isEligible = () => {
-    return Boolean(isSent() && !props.message.is_draft && props.message.db_id);
+    return Boolean(
+      props.message.db_id &&
+        (sentConfirmed() || (isSent() && !props.message.is_draft))
+    );
   };
 
   const query = useReadReceiptStatusQuery(
@@ -101,8 +106,7 @@ export function ThreadReadReceiptStatus(props: ThreadReadReceiptStatusProps) {
     () => Boolean(props.threadId)
   );
 
-  const isOpened = () =>
-    Boolean(query.isSuccess && query.data?.is_opened);
+  const isOpened = () => Boolean(query.isSuccess && query.data?.is_opened);
 
   const formatted = createMemo(() => {
     const data = query.isSuccess ? query.data : undefined;

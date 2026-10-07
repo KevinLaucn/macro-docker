@@ -34,7 +34,7 @@ def covered?(pattern, path)
 end
 
 allowed_risks = %w[low medium high].freeze
-allowed_tests = %w[auth-rust conventions email-identity email-rust email-translation i18n selfhost-config web workflow-lint].freeze
+allowed_tests = %w[attachment-recovery-contract auth-rust conventions email-identity email-rust email-translation i18n read-receipts-contract selfhost-config web workflow-lint].freeze
 ids = {}
 entries.each_with_index do |entry, index|
   prefix = "customizations[#{index}]"

@@ -20,7 +20,9 @@ target. Put Fork instructions only in Fork-owned Skills.
 | Upstream merge/drift/conflict review | `skills/macro-upstream-sync/SKILL.md` |
 | Push, PR, release or build contract | `../macro-pre-push-gate/SKILL.md` |
 | i18n extraction/audit | `references/i18n-workflow.md` |
+| Email pixels, read receipts, send/reply status, or their upstream dependencies | `references/read-receipts-contract.md` |
 | Production operations | `references/production-deployment.md` |
+| Email attachment availability, provider fallback, or storage migration | `references/storage-attachments.md` |
 
 Read relevant AGENTS.md/CLAUDE.md and source before editing. Use CodeGraph when
 present and `rg` for literals, config, URLs, and PRIVATE-HOOK markers.

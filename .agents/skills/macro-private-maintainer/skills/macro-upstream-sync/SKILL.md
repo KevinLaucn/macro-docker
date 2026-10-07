@@ -47,6 +47,8 @@ Every merge from `upstream/main` must follow this 7-step workflow:
 2. **Check Fork Files**: Verify whether fork-owned files or `.fork/` definitions were directly touched or have conflicts.
 3. **Trace Upstream Integration Seams & Dependencies**:
    Inspect whether upstream interfaces, data structures, schemas, or call chains depended on by fork customizations have shifted (e.g. backend photo attributes, contact serialization, auth claims, tracking routes).
+   For any `READ-RECEIPTS-001` overlap, load `../../references/read-receipts-contract.md`; verify successful reply completion and the rendered checkmark without reload, as well as pixel side-effect exclusions.
+   For any `EMAIL-ATTACHMENT-RECOVERY-001` overlap, load `../../references/storage-attachments.md` and run `just test-email-attachment-recovery`. Storage-volume changes also require historical attachment spot checks; source checks alone do not verify data migration.
 3b. **Upstream Capability & Routing Surface Diff**:
    - Compare `tooling/xtask/crates/xtask_local/src/local/proxy.rs` and `inventory.rs` against `self-host/Caddyfile` and `docker-compose.yml`. Ensure all special routes (`/sync`, `/websocket`, `/i`, `/lexical`, `/ai-editing`, `/static-file`) are preserved and aligned.
    - Inspect upstream feature flags in `apps/web/src/lib/core/constant/featureFlags.ts`. If upstream adds new services or tools (e.g. `codex`, `agents`, `calendar`), explicitly gate them off in `AppCapabilities` and `env-config.js` (`codex: false`, `agents: false`). Never mock backend endpoints with fake `respond "[]" 200` in Caddy.

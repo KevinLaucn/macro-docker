@@ -107,4 +107,29 @@ describe('prepareEmailBodyFromHtml', () => {
     expect(quotes).toHaveLength(1);
     expect(quotes[0].textContent).toContain('already quoted');
   });
+
+  it('normalizes relative static-file image src to absolute url with window origin', () => {
+    const originalOrigin = window.location.origin;
+    try {
+      const prepared = prepareEmailBodyFromHtml(
+        '<p>Look at this:</p><img src="/static-file/file/test-uuid-123" width="500" height="200" alt="img">'
+      );
+      const decoded = decodeBase64Utf8(prepared.bodyHtml);
+      expect(decoded).toContain(
+        `src="${window.location.origin}/static-file/file/test-uuid-123"`
+      );
+    } finally {
+      // restore
+    }
+  });
+
+  it('restores image src from data-image-id if src is empty or blob', () => {
+    const prepared = prepareEmailBodyFromHtml(
+      '<p>Uploading:</p><img src="blob:http://localhost/abc" data-image-id="restored-uuid-456" width="300" height="150" alt="pasted">'
+    );
+    const decoded = decodeBase64Utf8(prepared.bodyHtml);
+    expect(decoded).toContain(
+      `src="${window.location.origin}/static-file/file/restored-uuid-456"`
+    );
+  });
 });

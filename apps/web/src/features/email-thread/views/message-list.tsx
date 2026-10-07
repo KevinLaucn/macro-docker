@@ -1,8 +1,5 @@
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
-import {
-  EmailThreadTranslateButton,
-  getTranslatedThreadTitle,
-} from '@macro/email-translation';
+import { EmailThreadTranslateButton } from '@macro/email-translation';
 import { Key } from '@solid-primitives/keyed';
 import { cn, Layer } from '@ui';
 import {
@@ -126,12 +123,7 @@ export function MessageList(props: MessageListProps) {
           >
             <EmailThreadTitle
               onCopy={viewContext.copySubject}
-              title={
-                getTranslatedThreadTitle(
-                  context.thread()?.db_id,
-                  props.title
-                ) ?? ''
-              }
+              title={props.title ?? ''}
               copyReveal={viewContext.thread.isTouch() ? 'always' : 'hover'}
               class={
                 viewContext.thread.isTouch()

@@ -15,10 +15,7 @@ import {
 } from '@components/app/split-layout/components/SplitToolbar';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
-import {
-  emailTranslationEnabled,
-  SoupListTranslateButton,
-} from '@macro/email-translation';
+import { SoupListTranslateButton } from '@macro/email-translation';
 import { createMemo, createSignal, Show } from 'solid-js';
 
 export function SoupFiltersBar(props: { variant?: 'default' | 'tag' }) {
@@ -38,6 +35,11 @@ export function SoupFiltersBar(props: { variant?: 'default' | 'tag' }) {
     return content.type === 'component' && content.id === 'companies';
   });
   const isTagView = createMemo(() => props.variant === 'tag');
+  const isEmailView = createMemo(() => {
+    const content = panel.handle.content();
+    return content.type === 'component' &&
+      (content.id === 'inbox' || content.id === 'mail');
+  });
 
   // The inbox hides sort (it's fixed to updated_at for this view).
   const isHomeView = createMemo(() => {
@@ -89,7 +91,7 @@ export function SoupFiltersBar(props: { variant?: 'default' | 'tag' }) {
       </SplitToolbarLeft>
       <SplitToolbarRight>
         {/* PRIVATE-HOOK: email_translation:list-toolbar */}
-        <Show when={emailTranslationEnabled()}>
+        <Show when={isEmailView()}>
           <CollapsibleToolbarItem id="soup-toolbar-translate" priority={2}>
             {() => <SoupListTranslateButton hideLabel={true} />}
           </CollapsibleToolbarItem>

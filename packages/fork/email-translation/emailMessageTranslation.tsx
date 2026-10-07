@@ -1,82 +1,31 @@
 import type { EmailMessage } from '@app/features/email-message/core/email-message';
 import { Show } from 'solid-js';
 import { EmailTranslateButton } from './EmailTranslateButton';
-import {
-  emailTranslationEnabled,
-  getCachedMessageTranslation,
-  isMessageTranslated,
-  setCachedMessageTranslation,
-  setMessageOverride,
-} from './emailTranslationState';
-import { translateSingleMessage } from './translateMessage';
-import { isTranslationSupported } from './translatorClient';
+import { requestBrowserTranslation } from './browserTranslation';
 
 export function EmailMessageTranslateButton(props: { message: EmailMessage }) {
-  const messageId = () => props.message.db_id;
-  const threadId = () => props.message.thread_db_id;
-  const translated = () => isMessageTranslated(threadId(), messageId());
-  const cached = () => getCachedMessageTranslation(messageId());
-  const btnState = () => {
-    if (cached()?.status === 'loading') return 'loading' as const;
-    if (translated()) return 'translated' as const;
-    return 'idle' as const;
-  };
-
-  const handleToggle = async () => {
-    const mid = messageId();
-    if (translated()) {
-      setMessageOverride(mid, 'original');
-      return;
-    }
-
-    setMessageOverride(mid, 'translated');
-    if (cached()?.status !== 'translated') {
-      setCachedMessageTranslation(mid, { status: 'loading' });
-      const data = await translateSingleMessage(props.message);
-      setCachedMessageTranslation(mid, data);
-    }
-  };
-
   return (
-    <Show when={emailTranslationEnabled() && isTranslationSupported()}>
+    <Show when={props.message.db_id}>
       <EmailTranslateButton
-        state={btnState()}
+        state="idle"
         scope="message"
-        onClick={handleToggle}
+        onClick={requestBrowserTranslation}
       />
     </Show>
   );
 }
 
-export function useEmailMessageTranslation(message: () => EmailMessage) {
-  const messageId = () => message().db_id;
-  const threadId = () => message().thread_db_id;
-  const isTranslated = () =>
-    emailTranslationEnabled() &&
-    isTranslationSupported() &&
-    isMessageTranslated(threadId(), messageId());
-  const cachedTranslation = () => getCachedMessageTranslation(messageId());
-
+export function useEmailMessageTranslation(_message: () => EmailMessage) {
   return {
-    isTranslated,
-    cachedTranslation,
-    translatedHtml: () =>
-      isTranslated() ? cachedTranslation()?.translatedHtml : undefined,
-    translatedReplylessHtml: () =>
-      isTranslated() ? cachedTranslation()?.translatedReplylessHtml : undefined,
-    translatedText: () =>
-      isTranslated() ? cachedTranslation()?.translatedText : undefined,
+    isTranslated: () => false,
+    cachedTranslation: () => undefined,
+    translatedHtml: () => undefined,
+    translatedReplylessHtml: () => undefined,
+    translatedText: () => undefined,
   };
 }
 
 export function getEmailCollapsedSnippet(message: EmailMessage): string {
-  if (emailTranslationEnabled() && isTranslationSupported()) {
-    if (isMessageTranslated(message.thread_db_id, message.db_id)) {
-      const cached = getCachedMessageTranslation(message.db_id);
-      if (cached?.translatedSnippet) return cached.translatedSnippet;
-    }
-  }
-
   if (message.body_text) {
     return message.body_text.replace(/\s+/g, ' ').trim();
   }

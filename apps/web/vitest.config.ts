@@ -174,6 +174,7 @@ export default defineConfig({
           environment: 'jsdom',
           include: [
             '../../packages/fork/read-receipts/frontend/**/*.{test,spec}.{ts,tsx}',
+            'src/features/email-message/primitives/email-message-body.test.ts',
           ],
           name: 'fork-read-receipts',
         },

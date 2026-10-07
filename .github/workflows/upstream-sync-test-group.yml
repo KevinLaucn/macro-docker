@@ -19,13 +19,13 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Reject unknown test group
-        if: ${{ !contains(fromJSON('["conventions","workflow-lint","selfhost-config","email-rust","auth-rust","i18n","web","email-translation","email-identity","read-receipts-contract"]'), inputs.group) }}
+        if: ${{ !contains(fromJSON('["conventions","workflow-lint","selfhost-config","email-rust","auth-rust","i18n","web","email-translation","email-identity","read-receipts-contract","attachment-recovery-contract"]'), inputs.group) }}
         run: |
           echo "Unknown upstream-sync test group: ${{ inputs.group }}"
           exit 1
 
       - name: Set up Nix
-        if: inputs.group != 'i18n' && inputs.group != 'workflow-lint' && inputs.group != 'read-receipts-contract'
+        if: inputs.group != 'i18n' && inputs.group != 'workflow-lint' && inputs.group != 'read-receipts-contract' && inputs.group != 'attachment-recovery-contract'
         uses: ./.github/actions/setup-nix
 
       - name: Run conventions
@@ -109,6 +109,10 @@ jobs:
         if: inputs.group == 'read-receipts-contract'
         run: bunx vitest run --config vitest.config.ts --project fork-read-receipts
         working-directory: apps/web
+
+      - name: Test attachment recovery contract
+        if: inputs.group == 'attachment-recovery-contract'
+        run: ruby .github/scripts/check-email-attachment-contract.rb
 
       - name: Test isolated email translation package
         if: inputs.group == 'email-translation'

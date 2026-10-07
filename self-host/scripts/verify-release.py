@@ -60,6 +60,12 @@ def verify_caddyfile(caddy_text: str) -> list[str]:
 
 def verify_compose(compose_text: str, caddy_text: str) -> list[str]:
     errors = []
+    agents_match = re.search(r'^  agent_harness_service:\n(.*?)(?=^  \w|\Z)', compose_text, re.M | re.S)
+    if not agents_match or 'profiles: ["agents"]' not in agents_match.group(1):
+        errors.append("agent_harness_service must remain isolated behind the agents profile")
+    env_example = (SELF_HOST / ".env.example").read_text()
+    if not re.search(r'^COMPOSE_PROFILES=.*\bagents\b', env_example, re.M):
+        errors.append(".env.example must enable the agents Compose profile when Agent capability is enabled")
     # Find all reverse_proxy targets in Caddyfile: host:port
     proxy_targets = re.findall(r'reverse_proxy\s+([a-zA-Z0-9_-]+):(\d+)', caddy_text)
     

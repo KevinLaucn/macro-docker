@@ -386,6 +386,41 @@ function getAppendedReplyElement(
   return wrapper;
 }
 
+function normalizeEmailImages(container: Element) {
+  const images = container.querySelectorAll<HTMLImageElement>('img');
+  const baseOrigin =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : typeof globalThis !== 'undefined' && globalThis.location?.origin
+      ? globalThis.location.origin
+      : '';
+
+  images.forEach((img) => {
+    let src = img.getAttribute('src') || '';
+    const dataId =
+      img.getAttribute('data-image-id') || img.getAttribute('data-id');
+
+    // If src is a relative path to static-file, prepend origin
+    if (src.startsWith('/static-file/file/')) {
+      if (baseOrigin) {
+        src = `${baseOrigin}${src}`;
+        img.setAttribute('src', src);
+      }
+    } else if (
+      (src.startsWith('blob:') || !src || src.trim() === '') &&
+      dataId
+    ) {
+      // If image upload already registered an ID but src wasn't updated yet or is still blob
+      if (baseOrigin) {
+        src = `${baseOrigin}/static-file/file/${dataId}`;
+        img.setAttribute('src', src);
+      } else {
+        img.setAttribute('src', `/static-file/file/${dataId}`);
+      }
+    }
+  });
+}
+
 function applyMediaScale(container: Element) {
   const mediaElements = container.querySelectorAll<HTMLElement>(
     'img[data-scale], video[data-scale]'
@@ -441,6 +476,9 @@ export function prepareEmailBodyFromHtml(
   const parsed = new DOMParser().parseFromString(generatedHtml, 'text/html');
 
   flattenConsecutiveParagraphs(parsed.body);
+
+  // Normalize image URLs (convert relative /static-file/file/ to absolute origin URLs and recover data-image-id)
+  normalizeEmailImages(parsed.body);
 
   // Apply image scale to width/height attributes so the recipient sees the resized dimensions
   applyMediaScale(parsed.body);

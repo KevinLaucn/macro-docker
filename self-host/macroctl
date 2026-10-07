@@ -2,7 +2,7 @@
 # macroctl — operate a self-hosted Macro deployment.
 #
 #   ./macroctl generate-secrets   write .env with fresh secrets for your domain
-#   ./macroctl up                 provision and start (add --profile agents)
+#   ./macroctl up                 provision and start (profiles come from .env)
 #   ./macroctl down               stop, keeping all data
 #   ./macroctl pull               pull all images
 #   ./macroctl restart [service]  restart services

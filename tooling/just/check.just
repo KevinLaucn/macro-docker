@@ -25,9 +25,14 @@ fork-gate:
     ruby .github/scripts/check-zero-cloud.rb --base "$base" --head HEAD
     ruby .github/scripts/check-telemetry-privacy.rb --base "$base" --head HEAD
     ruby .github/scripts/check-upstream-overlap.rb --base "$base" --head HEAD
+    bun run --cwd packages/fork/read-receipts test
+    just test-email-attachment-recovery
     ruby .github/scripts/check-core-drift.rb --upstream "$base"
     python3 self-host/scripts/check-drift.py
     python3 self-host/scripts/verify-release.py
+
+test-email-attachment-recovery:
+    ruby .github/scripts/check-email-attachment-contract.rb
 
 check *ARGS:
     #!/usr/bin/env bash

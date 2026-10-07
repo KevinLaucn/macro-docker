@@ -128,6 +128,20 @@ export function useReadReceiptStatusQuery(
   });
 }
 
+/** A successful delivery is authoritative while thread metadata catches up. */
+export function useReadReceiptSentConfirmation(
+  messageId: Accessor<string | undefined | null>
+): Accessor<boolean> {
+  const query = useQuery(() => ({
+    queryKey: ['email', 'read-receipt-sent', messageId()],
+    // This is a local delivery receipt, never a server request.
+    enabled: false,
+    queryFn: () => false,
+    staleTime: Infinity,
+  }));
+  return () => Boolean(query.isSuccess && query.data);
+}
+
 export function handleReadReceiptOpenedEvent(
   payload: unknown,
   queryClient: QueryClient
@@ -465,21 +479,35 @@ export function useSetGlobalPixelBlockingMutation(
 
 export function handleReadReceiptSentMessage(
   message: { db_id?: string | null; thread_db_id?: string | null },
-  queryClient?: QueryClient
+  queryClient: QueryClient
 ): void {
   if (!message.db_id) return;
-  queryClient?.setQueryData(['email', 'read-receipt', message.db_id], {
+  // An open event can arrive before the send response. Never erase it.
+  const status = queryClient.getQueryData<ReadReceiptStatusData>([
+    'email',
+    'read-receipt',
+    message.db_id,
+  ]) ?? {
     message_id: message.db_id,
     first_opened_at: null,
     last_opened_at: null,
     open_count: 0,
-  });
+  };
+  queryClient.setQueryData(['email', 'read-receipt', message.db_id], status);
+  queryClient.setQueryData(['email', 'read-receipt-sent', message.db_id], true);
   if (message.thread_db_id) {
-    import('@queries/email/thread')
-      .then(({ fetchAndCacheThread }) => {
-        void fetchAndCacheThread(message.thread_db_id!);
-      })
-      .catch(() => {});
+    queryClient.setQueryData<ThreadReadReceiptStatusData>(
+      ['email', 'read-receipt-thread', message.thread_db_id],
+      {
+        thread_id: message.thread_db_id,
+        latest_sent_message_id: message.db_id,
+        latest_message_id: message.db_id,
+        is_last_message_sent: true,
+        is_opened: status.open_count > 0,
+        open_count: status.open_count,
+        first_opened_at: status.first_opened_at,
+        last_opened_at: status.last_opened_at,
+      }
+    );
   }
 }
-
