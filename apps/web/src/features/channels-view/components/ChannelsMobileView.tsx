@@ -16,7 +16,6 @@ import { isMutedItem } from '@entity/utils/notification';
 import { t } from '@macro/i18n';
 import SpinnerIcon from '@phosphor/spinner.svg';
 import XIcon from '@phosphor/x.svg';
-import { hydrateChannelNotificationSelection } from '@queries/channel/notification-selection';
 import { createElementSize } from '@solid-primitives/resize-observer';
 import { Button, EmptyStatePanel } from '@ui';
 import {
@@ -126,12 +125,7 @@ export function ChannelsMobileView(props: {
   const openChannel = async (channel: ChannelEntity) => {
     const request = ++opening;
     try {
-      const full = await hydrateChannelNotificationSelection(
-        channel,
-        notificationSource.withLocalOverrides
-      );
-      if (request !== opening) return;
-      await openEntityInSplitFromUnifiedList(full, {
+      await openEntityInSplitFromUnifiedList(channel, {
         splitHandle: panel.handle,
         referredFrom: 'channels',
         notificationSource,
