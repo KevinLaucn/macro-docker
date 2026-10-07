@@ -129,7 +129,7 @@ jobs:
 
       - name: Typecheck isolated email translation package
         if: inputs.group == 'email-translation'
-        run: bun x tsc -p packages/fork/email-translation/tsconfig.json --noEmit
+        run: bun node_modules/typescript-native/bin/tsc --project packages/fork/email-translation/tsconfig.json --noEmit
 
       - name: Test isolated email identity package
         if: inputs.group == 'email-identity'

@@ -594,7 +594,7 @@ export const authServiceClient = {
             aiDataConsent: true,
             referralCode: null,
             createdAt: new Date().toISOString(),
-          } as any);
+          });
         }
       } catch {}
     }

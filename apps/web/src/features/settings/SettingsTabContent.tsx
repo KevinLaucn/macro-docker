@@ -5,6 +5,7 @@ import { SelfHostHealth } from '@macro/self-host-health';
 import { Show, Suspense } from 'solid-js';
 import { CalendarSettings } from '../calendar/calendar-settings';
 import { CrmSettings as Crm } from '../crm/crm-settings';
+import { Extensions } from '../extensions/Extensions';
 import { SchedulingSettings } from '../scheduling/scheduling';
 import { Usage } from '../usage/usage';
 import { Account } from './Account';

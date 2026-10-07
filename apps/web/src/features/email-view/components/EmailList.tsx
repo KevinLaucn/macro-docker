@@ -28,7 +28,10 @@ import {
   ListLayoutProvider,
   type WithNotification,
 } from '@entity';
-import { createEmailListTranslationHotkey } from '@macro/email-translation';
+import {
+  createEmailListTranslationHotkey,
+  useEmailListTranslationContext,
+} from '@macro/email-translation';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import CheckIcon from '@phosphor/check.svg';
 import SpinnerIcon from '@phosphor/spinner.svg';
@@ -52,7 +55,6 @@ import {
   soupNavigationTouchHighlight,
 } from '../../next-soup/soup-view/soup-navigation-touch-highlight';
 import { openEntityInSplitFromUnifiedList } from '../../next-soup/utils';
-import { useEmailListTranslationContext } from '../email-list-translation-context';
 import {
   type EmailListActivationMetadata,
   useEmailView,

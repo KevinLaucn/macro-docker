@@ -10,6 +10,7 @@ import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component
 import { enableReminders } from '@core/constant/featureFlags';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { ListEntityMetadataQueryProvider } from '@entity';
+import { EmailListTranslationProvider } from '@macro/email-translation';
 import SpinnerIcon from '@phosphor/spinner.svg';
 import {
   createSignal,
@@ -27,7 +28,6 @@ import {
 import { EmailList } from './components/EmailList';
 import { EmailSidebar } from './components/EmailSidebar';
 import { EMAIL_TABS } from './constants';
-import { EmailListTranslationProvider } from './email-list-translation-context';
 import { EmailViewProvider, useEmailView } from './email-view-context';
 import { emailTour } from './tour';
 import type { EmailTab, EmailViewStateOptions } from './types';

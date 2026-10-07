@@ -112,11 +112,11 @@ export async function inspectAi(blob: Blob): Promise<AdobePreviewResult> {
  * - EPS: unconditionally routes to 'unknown' (AdobePreviewContainer TIFF preview / download). Never enters 'pdf'.
  * - Other: returns defaultBlockName.
  */
-export async function resolveAdobeAttachmentBlockName(
+export async function resolveAdobeAttachmentBlockName<T extends string>(
   fileName: string | null | undefined,
-  defaultBlockName: string,
+  defaultBlockName: T,
   inspectBlobFn?: () => Promise<Blob | undefined>
-): Promise<string> {
+): Promise<T | 'pdf' | 'unknown'> {
   const format = getAdobeFormatFromFileName(fileName);
   if (!format) return defaultBlockName;
 

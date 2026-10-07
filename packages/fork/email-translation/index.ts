@@ -4,6 +4,7 @@ export * from './EmailThreadTranslateButton';
 export * from './EmailTranslateButton';
 export * from './EmailTranslationSection';
 export * from './emailListTranslation';
+export * from './emailListTranslationContext';
 export * from './emailMessageTranslation';
 export * from './emailMessageTranslationMarkdown';
 export * from './emailTranslationState';
