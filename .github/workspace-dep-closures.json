@@ -10990,6 +10990,7 @@
       "crates/cowlike",
       "crates/document_storage_service_client",
       "crates/document_sub_type",
+      "crates/entity_registry/shared_entity_registry",
       "crates/genai_telemetry",
       "crates/harness_id",
       "crates/harness_token",
