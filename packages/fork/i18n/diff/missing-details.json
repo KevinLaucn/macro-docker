@@ -244,90 +244,6 @@
       }
     ]
   },
-  "Import interrupted. Recover the job if necessary, then explicitly finalize with skips or cancel.": {
-    "baseKey": "Import interrupted. Recover the job if necessary, then explicitly finalize with skips or cancel.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/slack-import/primitives/import-controller.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/slack-import/primitives/import-controller.ts",
-        "line": 442,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "The archive could not be read. Choose a new file.": {
-    "baseKey": "The archive could not be read. Choose a new file.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/slack-import/primitives/import-controller.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/slack-import/primitives/import-controller.ts",
-        "line": 520,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "The local file could not be protected.": {
-    "baseKey": "The local file could not be protected.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/slack-import/primitives/import-controller.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/slack-import/primitives/import-controller.ts",
-        "line": 577,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "The job receipt could not be recovered. Retry with the same import.": {
-    "baseKey": "The job receipt could not be recovered. Retry with the same import.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/slack-import/primitives/import-controller.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/slack-import/primitives/import-controller.ts",
-        "line": 598,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "Finalization was not confirmed. Retry or cancel.": {
-    "baseKey": "Finalization was not confirmed. Retry or cancel.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/slack-import/primitives/import-controller.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/slack-import/primitives/import-controller.ts",
-        "line": 615,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "Cancellation was not confirmed. Retry cancel.": {
-    "baseKey": "Cancellation was not confirmed. Retry cancel.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/slack-import/primitives/import-controller.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/slack-import/primitives/import-controller.ts",
-        "line": 641,
-        "type": "ErrorState"
-      }
-    ]
-  },
   "Open channel": {
     "baseKey": "Open channel",
     "isExplicit": false,
@@ -870,20 +786,6 @@
         "file": "features/slack-import/components/conversation-picker.tsx",
         "line": 240,
         "type": "JSXText"
-      }
-    ]
-  },
-  "Cancellation was not confirmed. Refresh progress or retry cancel.": {
-    "baseKey": "Cancellation was not confirmed. Refresh progress or retry cancel.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/slack-import/views/import-dialog.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/slack-import/views/import-dialog.tsx",
-        "line": 249,
-        "type": "ErrorState"
       }
     ]
   },
@@ -3185,67 +3087,6 @@
       }
     ]
   },
-  "Signature imported from Gmail": {
-    "baseKey": "Signature imported from Gmail",
-    "isExplicit": false,
-    "occurrences": [
-      "features/settings/SignatureSection.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/settings/SignatureSection.tsx",
-        "line": 130,
-        "type": "toast.success"
-      }
-    ]
-  },
-  "No signature found in Gmail": {
-    "baseKey": "No signature found in Gmail",
-    "isExplicit": false,
-    "occurrences": [
-      "features/settings/SignatureSection.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/settings/SignatureSection.tsx",
-        "line": 132,
-        "type": "toast.failure"
-      }
-    ]
-  },
-  "Couldn't import images from your Gmail signature. Add the text here and use the image button to add images.": {
-    "baseKey": "Couldn't import images from your Gmail signature. Add the text here and use the image button to add images.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/settings/SignatureSection.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/settings/SignatureSection.tsx",
-        "line": 134,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "Failed to import signature. Please try again.": {
-    "baseKey": "Failed to import signature. Please try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/settings/SignatureSection.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/settings/SignatureSection.tsx",
-        "line": 138,
-        "type": "toast.failure"
-      },
-      {
-        "file": "features/settings/SignatureSection.tsx",
-        "line": 142,
-        "type": "toast.failure"
-      }
-    ]
-  },
   "Needs reconnecting": {
     "baseKey": "Needs reconnecting",
     "isExplicit": false,
@@ -3341,36 +3182,6 @@
         "file": "features/settings/connections/slack-channel-import/SlackChannelImportCard.tsx",
         "line": 93,
         "type": "JSXFallback"
-      }
-    ]
-  },
-  "Failed to find Slack channels@@chat": {
-    "baseKey": "Failed to find Slack channels",
-    "context": "chat",
-    "isExplicit": false,
-    "occurrences": [
-      "features/settings/connections/slack-channel-import/SlackChannelImportCard.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/settings/connections/slack-channel-import/SlackChannelImportCard.tsx",
-        "line": 146,
-        "type": "toast.failure"
-      }
-    ]
-  },
-  "Failed to import Slack channels@@chat": {
-    "baseKey": "Failed to import Slack channels",
-    "context": "chat",
-    "isExplicit": false,
-    "occurrences": [
-      "features/settings/connections/slack-channel-import/SlackChannelImportCard.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/settings/connections/slack-channel-import/SlackChannelImportCard.tsx",
-        "line": 157,
-        "type": "toast.failure"
       }
     ]
   },
@@ -3901,20 +3712,6 @@
         "file": "features/settings/components/signature-form.tsx",
         "line": 111,
         "type": "JSXFallback"
-      }
-    ]
-  },
-  "Could not update notifications. Try again.": {
-    "baseKey": "Could not update notifications. Try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/settings/Notifications.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/settings/Notifications.tsx",
-        "line": 75,
-        "type": "toast.failure"
       }
     ]
   },
@@ -5081,20 +4878,6 @@
       }
     ]
   },
-  "Couldn’t unlink the agent session.": {
-    "baseKey": "Couldn’t unlink the agent session.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-pr/component/sidepanel/PrAgentSessionsSection.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-pr/component/sidepanel/PrAgentSessionsSection.tsx",
-        "line": 78,
-        "type": "toast.failure"
-      }
-    ]
-  },
   "Link agent session": {
     "baseKey": "Link agent session",
     "isExplicit": false,
@@ -5163,20 +4946,6 @@
         "line": 119,
         "type": "ObjectProperty(searchPlaceholder)",
         "attrName": "searchPlaceholder"
-      }
-    ]
-  },
-  "Couldn’t link the agent session.": {
-    "baseKey": "Couldn’t link the agent session.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-pr/component/sidepanel/PrAgentSessionsSection.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-pr/component/sidepanel/PrAgentSessionsSection.tsx",
-        "line": 128,
-        "type": "toast.failure"
       }
     ]
   },
@@ -5308,20 +5077,6 @@
       }
     ]
   },
-  "Merged {name}": {
-    "baseKey": "Merged {name}",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-pr/primitives/create-merge-pull-request-action.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/block-pr/primitives/create-merge-pull-request-action.ts",
-        "line": 57,
-        "type": "toast.success"
-      }
-    ]
-  },
   "Open Changes pane": {
     "baseKey": "Open Changes pane",
     "isExplicit": false,
@@ -5334,20 +5089,6 @@
         "line": 332,
         "type": "JSXAttribute(aria-label)",
         "attrName": "aria-label"
-      }
-    ]
-  },
-  "Could not connect your calendar. Please try again.": {
-    "baseKey": "Could not connect your calendar. Please try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/calendar/calendar-settings.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/calendar/calendar-settings.tsx",
-        "line": 68,
-        "type": "toast.failure"
       }
     ]
   },
@@ -5761,34 +5502,6 @@
       }
     ]
   },
-  "You are offline. Reconnect to send your response.": {
-    "baseKey": "You are offline. Reconnect to send your response.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/calendar/hooks/create-calendar-rsvp-controller.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/calendar/hooks/create-calendar-rsvp-controller.ts",
-        "line": 27,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "Could not save your response. Please try again.": {
-    "baseKey": "Could not save your response. Please try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/calendar/hooks/create-calendar-rsvp-controller.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/calendar/hooks/create-calendar-rsvp-controller.ts",
-        "line": 46,
-        "type": "ErrorState"
-      }
-    ]
-  },
   "Draft recovery@@email": {
     "baseKey": "Draft recovery",
     "context": "email",
@@ -6153,20 +5866,6 @@
       }
     ]
   },
-  "This form’s sharing couldn’t be loaded.": {
-    "baseKey": "This form’s sharing couldn’t be loaded.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/sharing/global-share-modal/GlobalShareModal.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/sharing/global-share-modal/GlobalShareModal.tsx",
-        "line": 24,
-        "type": "toast.failure"
-      }
-    ]
-  },
   "{length} attachment(s) couldn't upload.": {
     "baseKey": "{length} attachment(s) couldn't upload.",
     "isExplicit": false,
@@ -6222,54 +5921,6 @@
         "line": 503,
         "type": "JSXAttribute(body)",
         "attrName": "body"
-      }
-    ]
-  },
-  "Task created, but could not be added to the project. Use Add to project from the task menu to try again.": {
-    "baseKey": "Task created, but could not be added to the project. Use Add to project from the task menu to try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-md/util/taskComposerProperties.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/block-md/util/taskComposerProperties.ts",
-        "line": 129,
-        "type": "toast.failure"
-      }
-    ]
-  },
-  "Failed to create Document": {
-    "baseKey": "Failed to create Document",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-md/queries/create-document-with-tags.ts",
-      "features/block-md/views/compose-document.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-md/queries/create-document-with-tags.ts",
-        "line": 36,
-        "type": "toast.failure"
-      },
-      {
-        "file": "features/block-md/views/compose-document.tsx",
-        "line": 94,
-        "type": "toast.failure"
-      }
-    ]
-  },
-  "Document created, but tags could not be saved. Add them from the document.": {
-    "baseKey": "Document created, but tags could not be saved. Add them from the document.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-md/queries/create-document-with-tags.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/block-md/queries/create-document-with-tags.ts",
-        "line": 85,
-        "type": "toast.failure"
       }
     ]
   },
@@ -6338,34 +5989,6 @@
       }
     ]
   },
-  "Markdown copied to clipboard": {
-    "baseKey": "Markdown copied to clipboard",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-md/component/useMarkdownDocumentDownload.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/block-md/component/useMarkdownDocumentDownload.ts",
-        "line": 37,
-        "type": "toast.success"
-      }
-    ]
-  },
-  "Failed to copy markdown": {
-    "baseKey": "Failed to copy markdown",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-md/component/useMarkdownDocumentDownload.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/block-md/component/useMarkdownDocumentDownload.ts",
-        "line": 40,
-        "type": "toast.failure"
-      }
-    ]
-  },
   "words ·": {
     "baseKey": "words ·",
     "isExplicit": false,
@@ -6377,34 +6000,6 @@
         "file": "features/block-md/component/sidepanel/MarkdownSidePanelSections.tsx",
         "line": 252,
         "type": "JSXText"
-      }
-    ]
-  },
-  "Prompt copied to clipboard": {
-    "baseKey": "Prompt copied to clipboard",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-md/component/DispatchAgentMenu.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-md/component/DispatchAgentMenu.tsx",
-        "line": 270,
-        "type": "toast.success"
-      }
-    ]
-  },
-  "Failed to generate prompt": {
-    "baseKey": "Failed to generate prompt",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-md/component/DispatchAgentMenu.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-md/component/DispatchAgentMenu.tsx",
-        "line": 276,
-        "type": "toast.failure"
       }
     ]
   },
@@ -6674,20 +6269,6 @@
         "line": 95,
         "type": "ObjectProperty(message)",
         "attrName": "message"
-      }
-    ]
-  },
-  "This record could not be opened.": {
-    "baseKey": "This record could not be opened.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/database-query/answer-display.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/database-query/answer-display.tsx",
-        "line": 38,
-        "type": "toast.failure"
       }
     ]
   },
@@ -22772,46 +22353,6 @@
       }
     ]
   },
-  "Booking link copied": {
-    "baseKey": "Booking link copied",
-    "isExplicit": false,
-    "occurrences": [
-      "features/scheduling/calendar-actions.tsx",
-      "features/scheduling/scheduling.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/scheduling/calendar-actions.tsx",
-        "line": 33,
-        "type": "toast.success"
-      },
-      {
-        "file": "features/scheduling/scheduling.tsx",
-        "line": 77,
-        "type": "toast.success"
-      }
-    ]
-  },
-  "Could not copy booking link": {
-    "baseKey": "Could not copy booking link",
-    "isExplicit": false,
-    "occurrences": [
-      "features/scheduling/calendar-actions.tsx",
-      "features/scheduling/scheduling.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/scheduling/calendar-actions.tsx",
-        "line": 34,
-        "type": "toast.failure"
-      },
-      {
-        "file": "features/scheduling/scheduling.tsx",
-        "line": 78,
-        "type": "toast.failure"
-      }
-    ]
-  },
   "Copy booking link": {
     "baseKey": "Copy booking link",
     "isExplicit": false,
@@ -22853,34 +22394,6 @@
         "line": 51,
         "type": "JSXAttribute(label)",
         "attrName": "label"
-      }
-    ]
-  },
-  "Availability could not be loaded. Please retry or contact the host.": {
-    "baseKey": "Availability could not be loaded. Please retry or contact the host.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/scheduling/primitives/booking-flow.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/scheduling/primitives/booking-flow.ts",
-        "line": 49,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "We could not verify the response. Your time may already be reserved. Retry this same request to check it; do not make another booking.": {
-    "baseKey": "We could not verify the response. Your time may already be reserved. Retry this same request to check it; do not make another booking.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/scheduling/primitives/booking-flow.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/scheduling/primitives/booking-flow.ts",
-        "line": 78,
-        "type": "ErrorState"
       }
     ]
   },
@@ -23498,34 +23011,6 @@
         "file": "features/scheduling/components/availability-panel.tsx",
         "line": 128,
         "type": "JSXText"
-      }
-    ]
-  },
-  "Could not load replacement times.": {
-    "baseKey": "Could not load replacement times.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/scheduling/components/reschedule-form.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/scheduling/components/reschedule-form.tsx",
-        "line": 38,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "Could not reschedule this meeting. Refresh before trying again.": {
-    "baseKey": "Could not reschedule this meeting. Refresh before trying again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/scheduling/components/reschedule-form.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/scheduling/components/reschedule-form.tsx",
-        "line": 51,
-        "type": "ErrorState"
       }
     ]
   },
@@ -24147,20 +23632,6 @@
         "file": "features/scheduling/components/bookings-panel.tsx",
         "line": 476,
         "type": "JSXText"
-      }
-    ]
-  },
-  "Remove former team members from the selected hosts before saving.": {
-    "baseKey": "Remove former team members from the selected hosts before saving.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/scheduling/components/event-editor.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/scheduling/components/event-editor.tsx",
-        "line": 52,
-        "type": "ErrorState"
       }
     ]
   },
@@ -26242,20 +25713,6 @@
         "line": 298,
         "type": "JSXAttribute(description)",
         "attrName": "description"
-      }
-    ]
-  },
-  "Cancellation failed. Your booking has not been marked cancelled. Please try again.": {
-    "baseKey": "Cancellation failed. Your booking has not been marked cancelled. Please try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/scheduling/views/booking-receipt-view.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/scheduling/views/booking-receipt-view.tsx",
-        "line": 26,
-        "type": "ErrorState"
       }
     ]
   },
@@ -31816,20 +31273,6 @@
       }
     ]
   },
-  "Could not post the comment": {
-    "baseKey": "Could not post the comment",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-fig/views/macro-comments.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-fig/views/macro-comments.tsx",
-        "line": 94,
-        "type": "toast.failure"
-      }
-    ]
-  },
   "Previous frame": {
     "baseKey": "Previous frame",
     "isExplicit": false,
@@ -33452,20 +32895,6 @@
       }
     ]
   },
-  "Failed to finish connecting your account. Please try again from Settings.": {
-    "baseKey": "Failed to finish connecting your account. Please try again from Settings.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/auth/EmailAuth.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/auth/EmailAuth.tsx",
-        "line": 217,
-        "type": "toast.failure"
-      }
-    ]
-  },
   "Finishing account connection…": {
     "baseKey": "Finishing account connection…",
     "isExplicit": false,
@@ -34190,20 +33619,6 @@
       }
     ]
   },
-  "Project created": {
-    "baseKey": "Project created",
-    "isExplicit": false,
-    "occurrences": [
-      "features/projects/project-view.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/projects/project-view.tsx",
-        "line": 97,
-        "type": "toast.success"
-      }
-    ]
-  },
   "New project": {
     "baseKey": "New project",
     "isExplicit": false,
@@ -34312,20 +33727,6 @@
         "file": "features/projects/views/project-tasks-list.tsx",
         "line": 93,
         "type": "JSXText"
-      }
-    ]
-  },
-  "{length} tasks could not be updated. {error}": {
-    "baseKey": "{length} tasks could not be updated. {error}",
-    "isExplicit": false,
-    "occurrences": [
-      "features/projects/views/project-assignment.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/projects/views/project-assignment.tsx",
-        "line": 39,
-        "type": "ErrorState"
       }
     ]
   },
@@ -34494,20 +33895,6 @@
         "file": "features/projects/views/projects-collection.tsx",
         "line": 442,
         "type": "JSXFallback"
-      }
-    ]
-  },
-  "Could not set project": {
-    "baseKey": "Could not set project",
-    "isExplicit": false,
-    "occurrences": [
-      "features/projects/views/project-picker.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/projects/views/project-picker.tsx",
-        "line": 56,
-        "type": "toast.failure"
       }
     ]
   },
@@ -34807,34 +34194,6 @@
         "file": "features/projects/views/add-project-tasks.tsx",
         "line": 109,
         "type": "JSXFallback"
-      }
-    ]
-  },
-  "Could not update collaborators": {
-    "baseKey": "Could not update collaborators",
-    "isExplicit": false,
-    "occurrences": [
-      "features/projects/project-share.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/projects/project-share.tsx",
-        "line": 25,
-        "type": "toast.failure"
-      }
-    ]
-  },
-  "Could not open sharing for this project": {
-    "baseKey": "Could not open sharing for this project",
-    "isExplicit": false,
-    "occurrences": [
-      "features/projects/project-share.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/projects/project-share.tsx",
-        "line": 82,
-        "type": "toast.failure"
       }
     ]
   },
@@ -38364,20 +37723,6 @@
       }
     ]
   },
-  "Created “{name}”": {
-    "baseKey": "Created “{name}”",
-    "isExplicit": false,
-    "occurrences": [
-      "features/drive-view/drive-create-menu.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/drive-view/drive-create-menu.tsx",
-        "line": 82,
-        "type": "toast.success"
-      }
-    ]
-  },
   "In {label}": {
     "baseKey": "In {label}",
     "isExplicit": false,
@@ -38601,21 +37946,6 @@
         "file": "features/crm/views/company-header.tsx",
         "line": 110,
         "type": "JSXText"
-      }
-    ]
-  },
-  "Enter the part of the email before the @@@crm": {
-    "baseKey": "Enter the part of the email before the ",
-    "context": "crm",
-    "isExplicit": false,
-    "occurrences": [
-      "features/crm/views/create-contact.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/crm/views/create-contact.tsx",
-        "line": 79,
-        "type": "ErrorState"
       }
     ]
   },
@@ -39305,20 +38635,6 @@
       }
     ]
   },
-  "This related record could not be opened.": {
-    "baseKey": "This related record could not be opened.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-database/component/Block.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-database/component/Block.tsx",
-        "line": 128,
-        "type": "toast.failure"
-      }
-    ]
-  },
   "Search database": {
     "baseKey": "Search database",
     "isExplicit": false,
@@ -39503,34 +38819,6 @@
         "file": "features/block-database/component/GridCell.tsx",
         "line": 549,
         "type": "JSXMixedChildren"
-      }
-    ]
-  },
-  "Enter a valid number": {
-    "baseKey": "Enter a valid number",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-database/component/GridCell.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-database/component/GridCell.tsx",
-        "line": 638,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "Could not save. Try again.": {
-    "baseKey": "Could not save. Try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-database/component/GridCell.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-database/component/GridCell.tsx",
-        "line": 851,
-        "type": "ErrorState"
       }
     ]
   },
@@ -39810,34 +39098,6 @@
         "line": 132,
         "type": "JSXAttribute(label)",
         "attrName": "label"
-      }
-    ]
-  },
-  "Another option already has this name.": {
-    "baseKey": "Another option already has this name.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-database/components/option-editor.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-database/components/option-editor.tsx",
-        "line": 49,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "Enter a number.": {
-    "baseKey": "Enter a number.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-database/components/option-editor.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-database/components/option-editor.tsx",
-        "line": 56,
-        "type": "ErrorState"
       }
     ]
   },
@@ -41128,34 +40388,6 @@
       }
     ]
   },
-  "Enter a valid number for this group.": {
-    "baseKey": "Enter a valid number for this group.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-database/components/database-board.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-database/components/database-board.tsx",
-        "line": 581,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "A group with this name already exists.": {
-    "baseKey": "A group with this name already exists.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-database/components/database-board.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-database/components/database-board.tsx",
-        "line": 591,
-        "type": "ErrorState"
-      }
-    ]
-  },
   "group": {
     "baseKey": "group",
     "isExplicit": false,
@@ -42277,20 +41509,6 @@
         "file": "features/block-database/views/database-board-view.tsx",
         "line": 384,
         "type": "JSXText"
-      }
-    ]
-  },
-  "CSV imported": {
-    "baseKey": "CSV imported",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-database/views/database-page-actions.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-database/views/database-page-actions.tsx",
-        "line": 110,
-        "type": "toast.success"
       }
     ]
   },
@@ -44077,48 +43295,6 @@
       }
     ]
   },
-  "Couldn't save Auto-Reload settings. Please try again.": {
-    "baseKey": "Couldn't save Auto-Reload settings. Please try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/usage/views/auto-reload.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/usage/views/auto-reload.tsx",
-        "line": 37,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "Couldn't open payment methods. Please try again.": {
-    "baseKey": "Couldn't open payment methods. Please try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/usage/views/auto-reload.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/usage/views/auto-reload.tsx",
-        "line": 53,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "Couldn't turn off usage billing. Please try again.": {
-    "baseKey": "Couldn't turn off usage billing. Please try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/usage/views/usage-settings.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/usage/views/usage-settings.tsx",
-        "line": 36,
-        "type": "ErrorState"
-      }
-    ]
-  },
   "AI billing changes take effect on October 8, 2026.": {
     "baseKey": "AI billing changes take effect on October 8, 2026.",
     "isExplicit": false,
@@ -44638,20 +43814,6 @@
       }
     ]
   },
-  "The queued message could not be steered": {
-    "baseKey": "The queued message could not be steered",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-agent/context/create-queue-controller.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/block-agent/context/create-queue-controller.ts",
-        "line": 165,
-        "type": "toast.failure"
-      }
-    ]
-  },
   "Session": {
     "baseKey": "Session",
     "isExplicit": false,
@@ -44664,48 +43826,6 @@
         "line": 52,
         "type": "JSXAttribute(title)",
         "attrName": "title"
-      }
-    ]
-  },
-  "Allow popups to open the preview.": {
-    "baseKey": "Allow popups to open the preview.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-agent/component/AgentPreviewBanner.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-agent/component/AgentPreviewBanner.tsx",
-        "line": 20,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "Unable to open this preview. It may have ended or your access may have changed.": {
-    "baseKey": "Unable to open this preview. It may have ended or your access may have changed.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-agent/component/AgentPreviewBanner.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-agent/component/AgentPreviewBanner.tsx",
-        "line": 52,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "Unable to stop sharing. Please try again.": {
-    "baseKey": "Unable to stop sharing. Please try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-agent/component/AgentPreviewBanner.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-agent/component/AgentPreviewBanner.tsx",
-        "line": 65,
-        "type": "ErrorState"
       }
     ]
   },
@@ -45950,40 +45070,6 @@
         "line": 40,
         "type": "JSXAttribute(aria-label)",
         "attrName": "aria-label"
-      }
-    ]
-  },
-  "Could not create the form": {
-    "baseKey": "Could not create the form",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-form/form-composer-actions.tsx",
-      "features/command/Launcher.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-form/form-composer-actions.tsx",
-        "line": 150,
-        "type": "toast.failure"
-      },
-      {
-        "file": "features/command/Launcher.tsx",
-        "line": 479,
-        "type": "toast.failure"
-      }
-    ]
-  },
-  "Add a question and the form joins your message.": {
-    "baseKey": "Add a question and the form joins your message.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/block-form/form-composer-actions.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/block-form/form-composer-actions.tsx",
-        "line": 163,
-        "type": "toast.success"
       }
     ]
   },
@@ -50021,20 +49107,6 @@
       }
     ]
   },
-  "Could not update routine": {
-    "baseKey": "Could not update routine",
-    "isExplicit": false,
-    "occurrences": [
-      "features/routines/routines-page.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/routines/routines-page.tsx",
-        "line": 41,
-        "type": "toast.alert"
-      }
-    ]
-  },
   "Loading routines…": {
     "baseKey": "Loading routines…",
     "isExplicit": false,
@@ -50971,34 +50043,6 @@
       }
     ]
   },
-  "Prompt copied": {
-    "baseKey": "Prompt copied",
-    "isExplicit": false,
-    "occurrences": [
-      "features/routines/routine-detail.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/routines/routine-detail.tsx",
-        "line": 93,
-        "type": "toast.success"
-      }
-    ]
-  },
-  "Could not copy prompt": {
-    "baseKey": "Could not copy prompt",
-    "isExplicit": false,
-    "occurrences": [
-      "features/routines/routine-detail.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/routines/routine-detail.tsx",
-        "line": 94,
-        "type": "toast.alert"
-      }
-    ]
-  },
   "What should this routine do? Type @ to add context…": {
     "baseKey": "What should this routine do? Type @ to add context…",
     "isExplicit": false,
@@ -51354,20 +50398,6 @@
       }
     ]
   },
-  "Could not create the database": {
-    "baseKey": "Could not create the database",
-    "isExplicit": false,
-    "occurrences": [
-      "features/command/Launcher.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/command/Launcher.tsx",
-        "line": 460,
-        "type": "toast.failure"
-      }
-    ]
-  },
   "Run a model or agent on a schedule or Macro activity": {
     "baseKey": "Run a model or agent on a schedule or Macro activity",
     "isExplicit": false,
@@ -51513,34 +50543,6 @@
         "line": 806,
         "type": "ObjectProperty(description)",
         "attrName": "description"
-      }
-    ]
-  },
-  "Could not list your devices. Check browser permissions and try again.": {
-    "baseKey": "Could not list your devices. Check browser permissions and try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/meetings/primitives/meeting-media.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/meetings/primitives/meeting-media.ts",
-        "line": 132,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "Couldn’t apply the background. Your camera is off. Choose another background or None, then turn the camera on to retry.": {
-    "baseKey": "Couldn’t apply the background. Your camera is off. Choose another background or None, then turn the camera on to retry.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/meetings/primitives/meeting-media.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/meetings/primitives/meeting-media.ts",
-        "line": 169,
-        "type": "ErrorState"
       }
     ]
   },
@@ -54049,36 +53051,6 @@
       }
     ]
   },
-  "Couldn’t confirm the change. Your time is still here; retrying this request is safe.@@email": {
-    "baseKey": "Couldn’t confirm the change. Your time is still here; retrying this request is safe.",
-    "context": "email",
-    "isExplicit": false,
-    "occurrences": [
-      "features/reminders/views/email-reminder-composer.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/reminders/views/email-reminder-composer.tsx",
-        "line": 62,
-        "type": "ErrorState"
-      }
-    ]
-  },
-  "The reminder was not set. The conversation has been restored.@@email": {
-    "baseKey": "The reminder was not set. The conversation has been restored.",
-    "context": "email",
-    "isExplicit": false,
-    "occurrences": [
-      "features/reminders/views/email-reminder-composer.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/reminders/views/email-reminder-composer.tsx",
-        "line": 71,
-        "type": "ErrorState"
-      }
-    ]
-  },
   "Email reminder@@email": {
     "baseKey": "Email reminder",
     "context": "email",
@@ -54092,22 +53064,6 @@
         "line": 77,
         "type": "ObjectProperty(label)",
         "attrName": "label"
-      }
-    ]
-  },
-  "Couldn’t load this email reminder.@@email": {
-    "baseKey": "Couldn’t load this email reminder.",
-    "context": "email",
-    "isExplicit": false,
-    "occurrences": [
-      "features/reminders/views/email-reminder-composer.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/reminders/views/email-reminder-composer.tsx",
-        "line": 145,
-        "type": "JSXAttribute(error)",
-        "attrName": "error"
       }
     ]
   },
@@ -54416,20 +53372,6 @@
         "file": "features/onboarding/tests/invite-offer-stub.tsx",
         "line": 13,
         "type": "JSXText"
-      }
-    ]
-  },
-  "Couldn't open Google. Please try again.": {
-    "baseKey": "Couldn't open Google. Please try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "features/onboarding/primitives/signup-journey.ts"
-    ],
-    "locs": [
-      {
-        "file": "features/onboarding/primitives/signup-journey.ts",
-        "line": 32,
-        "type": "ErrorState"
       }
     ]
   },
@@ -56031,22 +54973,6 @@
         "file": "features/onboarding/views/tools-step.tsx",
         "line": 78,
         "type": "JSXText"
-      }
-    ]
-  },
-  "Couldn't load your connected accounts.@@email": {
-    "baseKey": "Couldn't load your connected accounts.",
-    "context": "email",
-    "isExplicit": false,
-    "occurrences": [
-      "features/onboarding/views/email-step.tsx"
-    ],
-    "locs": [
-      {
-        "file": "features/onboarding/views/email-step.tsx",
-        "line": 24,
-        "type": "JSXAttribute(error)",
-        "attrName": "error"
       }
     ]
   },
@@ -58233,34 +57159,6 @@
       }
     ]
   },
-  "Unable to load shared attachments": {
-    "baseKey": "Unable to load shared attachments",
-    "isExplicit": false,
-    "occurrences": [
-      "lib/tauri/androidShares.ts"
-    ],
-    "locs": [
-      {
-        "file": "lib/tauri/androidShares.ts",
-        "line": 47,
-        "type": "toast.failure"
-      }
-    ]
-  },
-  "Unable to clear this share. Please try again.": {
-    "baseKey": "Unable to clear this share. Please try again.",
-    "isExplicit": false,
-    "occurrences": [
-      "lib/tauri/ShareTargetProvider.tsx"
-    ],
-    "locs": [
-      {
-        "file": "lib/tauri/ShareTargetProvider.tsx",
-        "line": 156,
-        "type": "toast.failure"
-      }
-    ]
-  },
   "Email cache is unavailable for this local draft@@email": {
     "baseKey": "Email cache is unavailable for this local draft",
     "context": "email",
@@ -58274,34 +57172,6 @@
         "line": 176,
         "type": "ObjectProperty(message)",
         "attrName": "message"
-      }
-    ]
-  },
-  "Some files in the folder could not be uploaded": {
-    "baseKey": "Some files in the folder could not be uploaded",
-    "isExplicit": false,
-    "occurrences": [
-      "lib/service-clients/service-connection/bulkUpload.ts"
-    ],
-    "locs": [
-      {
-        "file": "lib/service-clients/service-connection/bulkUpload.ts",
-        "line": 70,
-        "type": "toast.alert"
-      }
-    ]
-  },
-  "Unable to save file": {
-    "baseKey": "Unable to save file",
-    "isExplicit": false,
-    "occurrences": [
-      "lib/filesystem/download.ts"
-    ],
-    "locs": [
-      {
-        "file": "lib/filesystem/download.ts",
-        "line": 24,
-        "type": "toast.failure"
       }
     ]
   }

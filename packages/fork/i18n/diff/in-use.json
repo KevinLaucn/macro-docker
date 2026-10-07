@@ -11599,6 +11599,10 @@
     "features/settings/browser-test/fixture.tsx",
     "features/settings/SignatureSection.tsx"
   ],
+  "Signature imported from Gmail": [
+    "features/settings/browser-test/fixture.tsx",
+    "features/settings/SignatureSection.tsx"
+  ],
   "Failed to upload image": [
     "features/settings/SignatureEditor.tsx",
     "features/block-canvas/signal/fileDrop.ts",
@@ -11734,9 +11738,6 @@
     "features/settings/SignatureSection.tsx"
   ],
   "Failed to remove signature. Please try again.": [
-    "features/settings/SignatureSection.tsx"
-  ],
-  "Signature imported from Gmail": [
     "features/settings/SignatureSection.tsx"
   ],
   "No signature found in Gmail": [
@@ -16439,7 +16440,9 @@
     "features/email-compose/views/compose-recipients.tsx"
   ],
   "This form’s sharing couldn’t be loaded.": [
-    "features/sharing/global-share-modal/GlobalShareModal.tsx"
+    "features/sharing/global-share-modal/GlobalShareModal.tsx",
+    "features/block-form/form-global-sharing.tsx",
+    "features/block-form/form-global-sharing.test.tsx"
   ],
   "Can't share {name} from iOS yet": [
     "features/sharing/native-share-sheet/uploadPendingShareAttachment.ts"
@@ -17057,7 +17060,8 @@
     "features/block-md/component/DispatchAgentMenu.tsx"
   ],
   "Failed to generate prompt": [
-    "features/block-md/component/DispatchAgentMenu.tsx"
+    "features/block-md/component/DispatchAgentMenu.tsx",
+    "features/block-md/component/DispatchAgentMenu.test.tsx"
   ],
   "MCP setup instructions": [
     "features/block-md/component/DispatchAgentMenu.tsx"
@@ -25122,7 +25126,8 @@
     "features/projects/project-detail.tsx"
   ],
   "Project created": [
-    "features/projects/project-view.tsx"
+    "features/projects/project-view.tsx",
+    "features/projects/project-view.test.tsx"
   ],
   "New project": [
     "features/projects/views/create-project.tsx",
@@ -25179,7 +25184,8 @@
     "features/projects/views/projects-collection.tsx"
   ],
   "Could not set project": [
-    "features/projects/views/project-picker.tsx"
+    "features/projects/views/project-picker.tsx",
+    "features/projects/views/project-picker.test.tsx"
   ],
   "Add to project...": [
     "features/projects/views/project-picker.tsx"
@@ -27931,6 +27937,13 @@
   "Stored name": [
     "features/block-database/browser-test/records.tsx"
   ],
+  "Enter a valid number": [
+    "features/block-database/browser-test/table.browser.e2e.ts",
+    "features/block-database/component/GridCell.tsx",
+    "features/block-database/component/GridCell.test.tsx",
+    "features/block-database/components/database-table.test.tsx",
+    "features/block-database/views/database-records-view.test.tsx"
+  ],
   "Remote update": [
     "features/block-database/browser-test/table.tsx"
   ],
@@ -28010,9 +28023,6 @@
   "{name}:": [
     "features/block-database/component/GridCell.tsx"
   ],
-  "Enter a valid number": [
-    "features/block-database/component/GridCell.tsx"
-  ],
   "Could not save. Try again.": [
     "features/block-database/component/GridCell.tsx"
   ],
@@ -28071,10 +28081,13 @@
     "features/block-database/components/board-menu.tsx"
   ],
   "Another option already has this name.": [
-    "features/block-database/components/option-editor.tsx"
+    "features/block-database/components/option-editor.tsx",
+    "features/block-database/components/option-editor.test.tsx"
   ],
   "Enter a number.": [
-    "features/block-database/components/option-editor.tsx"
+    "features/block-database/components/option-editor.tsx",
+    "features/block-form/core/answers.ts",
+    "features/block-form/core/answers.test.ts"
   ],
   "Option name": [
     "features/block-database/components/option-editor.tsx"
@@ -28358,7 +28371,8 @@
     "features/block-database/components/database-board.tsx"
   ],
   "A group with this name already exists.": [
-    "features/block-database/components/database-board.tsx"
+    "features/block-database/components/database-board.tsx",
+    "features/block-database/components/database-board.test.tsx"
   ],
   "group": [
     "features/block-database/components/database-board.tsx"
@@ -33046,10 +33060,12 @@
     "components/app/split-layout/components/SplitFileMenu.tsx"
   ],
   "Prompt copied": [
-    "features/routines/routine-detail.tsx"
+    "features/routines/routine-detail.tsx",
+    "features/routines/routine-detail.test.tsx"
   ],
   "Could not copy prompt": [
-    "features/routines/routine-detail.tsx"
+    "features/routines/routine-detail.tsx",
+    "features/routines/routine-detail.test.tsx"
   ],
   "What should this routine do? Type @ to add context…": [
     "features/routines/routine-prompt-editor.tsx"
