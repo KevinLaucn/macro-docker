@@ -86,6 +86,7 @@ customizations:
       failure_mode: Tracking pixel 404; Suspense white screen / flicker on list query
       verification_gate: Fork Contract Gate
     paths:
+      - docs/AGENT_GUIDE/surfaces.md
       - packages/fork/read-receipts/**
       - services/email_service/src/outbound/**
       - services/email_service/src/util/gmail/**
@@ -142,6 +143,8 @@ customizations:
       - services/email_service/src/lib.rs
       - services/email_service/src/outbound/scheduled_delivery.rs
       - services/email_service/src/util/gmail/send.rs
+      - apps/web/src/features/email-compose/primitives/prepare-email-body.test.ts
+      - docs/AGENT_GUIDE/surfaces.md
     tests:
       - conventions
       - email-rust
@@ -447,8 +450,6 @@ customizations:
       - services/email_service/src/api/swagger.rs
       - services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
       - services/email_service/src/config.rs
-      - services/email_service/src/main.rs
-      - services/email_service/src/openapi.rs
       - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
       - services/email_service/src/pubsub/backfill/error_handlers.rs
       - services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
@@ -502,7 +503,6 @@ customizations:
       - services/authentication_service/src/api/oauth.rs
       - services/authentication_service/src/api/oauth2.rs
       - services/authentication_service/src/api/utils.rs
-      - services/authentication_service/src/main.rs
       - apps/web/src/routes/Root.tsx
     tests:
       - conventions
@@ -513,6 +513,7 @@ customizations:
     rationale: Preserve the fork's explicit i18n runtime, extraction rules, and zh-CN coverage.
     risk: medium
     paths:
+      - apps/web/src/features/crm/**
       - packages/fork/i18n/**
       - rules/ast-grep/**
       - sgconfig.yml
@@ -574,18 +575,9 @@ customizations:
       - apps/web/src/features/channels-view/components/rail/ExpandedChannelsRail.tsx
       - apps/web/src/features/command/CommandMenu.tsx
       - apps/web/src/features/command/Launcher.tsx
-      - apps/web/src/features/companies/Company/Company.tsx
-      - apps/web/src/features/companies/Company/CompanyContactsSection.tsx
-      - apps/web/src/features/companies/core/crm-navigation.ts
-      - apps/web/src/features/contacts/Contact/Contact.tsx
-      - apps/web/src/features/contacts/Contact/ContactEmailsSection.tsx
-      - apps/web/src/features/contacts/Contact/ContactHeader.tsx
-      - apps/web/src/features/contacts/Contact/ContactMetadataSection.tsx
-      - apps/web/src/features/contacts/Contact/ContactSharingSection.tsx
       - apps/web/src/features/drive-view/core/types.ts
       - apps/web/src/features/email-view/components/EmailHeader.tsx
       - apps/web/src/features/email-view/components/EmailSidebar.tsx
-      - apps/web/src/features/email-view/constants.ts
       - apps/web/src/features/entity/composed/list-entity/foreign.tsx
       - apps/web/src/features/home/components/HomeTabs.tsx
       - apps/web/src/features/next-soup/soup-view/empty-states.tsx
@@ -604,6 +596,9 @@ customizations:
       - apps/web/src/lib/core/constant/PaywallState.tsx
       - apps/web/vite.base.ts
       - sgconfig.yml
+      - apps/web/src/features/crm/core/navigation.ts
+      - apps/web/src/features/crm/views/company-contacts-section.tsx
+      - apps/web/src/features/crm/views/contact-sharing-section.tsx
     tests:
       - conventions
       - i18n

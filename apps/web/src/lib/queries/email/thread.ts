@@ -8,6 +8,8 @@ import {
 import { DEFAULT_THREAD_MESSAGES_LIMIT } from '@core/constant/pagination';
 import { catchToResult, throwOnErr } from '@core/util/result';
 import { Telemetry } from '@macro-inc/observability';
+// PRIVATE-HOOK: read_receipts:send-completion-import
+import { handleReadReceiptSentMessage } from '@macro/fork-read-receipts/queries';
 import ArrowCounterClockwise from '@phosphor-icons/core/regular/arrow-counter-clockwise.svg?component-solid';
 import { emailClient } from '@service-email/client';
 import type {
@@ -658,6 +660,8 @@ export function useSendMessageMutation(
     ...withCallbacks<SendMessageResponse, Error, SendMessageParams>(
       {
         onSuccess: (data, vars) => {
+          // PRIVATE-HOOK: read_receipts:send-completion
+          handleReadReceiptSentMessage(data.message, queryClient);
           try {
             analytics.track('email_message_sent');
           } catch (error) {

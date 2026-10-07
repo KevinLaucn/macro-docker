@@ -4,6 +4,20 @@ version: 1
 # Keep hooks small: marker + the expected one-line import/call/router/component
 # entry that connects upstream code to private feature modules.
 hooks:
+  - id: email_read_receipts_send_completion_import
+    customization: READ-RECEIPTS-001
+    file: apps/web/src/lib/queries/email/thread.ts
+    marker: "// PRIVATE-HOOK: read_receipts:send-completion-import"
+    expected: "import { handleReadReceiptSentMessage } from '@macro/fork-read-receipts/queries';"
+    context:
+      - "export function useSendMessageMutation("
+  - id: email_read_receipts_send_completion
+    customization: READ-RECEIPTS-001
+    file: apps/web/src/lib/queries/email/thread.ts
+    marker: "// PRIVATE-HOOK: read_receipts:send-completion"
+    expected: "handleReadReceiptSentMessage(data.message, queryClient);"
+    context:
+      - "onSuccess: (data, vars) => {"
   - id: email_identity_participants
     customization: EMAIL-PARTICIPANT-IDENTITY-001
     file: apps/web/src/features/entity/extractors/entity-email-participants.tsx
