@@ -17,7 +17,6 @@ const mocks = vi.hoisted(() => ({
   resolveMarkEntitiesDoneVariables: vi.fn(() => ({
     emailIds: [] as string[],
     notificationIds: [] as string[],
-    reminderIds: [] as string[],
   })),
   toNotificationEntityRef: vi.fn(),
   undoableOptionsFactory: vi.fn(),
@@ -134,6 +133,10 @@ describe('canExecuteMarkDoneOnView', () => {
     expect(canExecuteMarkDoneOnView('mail', 'drafts')).toBe(false);
     expect(canExecuteMarkDoneOnView('mail', 'sent')).toBe(false);
   });
+
+  it('allows mark done on the archived tab', () => {
+    expect(canExecuteMarkDoneOnView('mail', 'archived')).toBe(true);
+  });
 });
 
 describe('makeMarkDoneAction', () => {
@@ -144,13 +147,13 @@ describe('makeMarkDoneAction', () => {
     mocks.executeMarkEntitiesDone.mockResolvedValue([]);
     mocks.executeMarkEntitiesUndone.mockClear();
     mocks.graphqlSoupEnabled.mockReturnValue(false);
-    mocks.mutateAsync.mockClear();
+    mocks.mutateAsync.mockReset();
+    mocks.mutateAsync.mockResolvedValue(undefined);
     mocks.openEntityInSplitFromUnifiedList.mockClear();
     mocks.resolveMarkEntitiesDoneVariables.mockReset();
     mocks.resolveMarkEntitiesDoneVariables.mockReturnValue({
       emailIds: [],
       notificationIds: [],
-      reminderIds: [],
     });
     mocks.toNotificationEntityRef.mockReset();
   });
@@ -175,7 +178,6 @@ describe('makeMarkDoneAction', () => {
     mocks.resolveMarkEntitiesDoneVariables.mockReturnValue({
       emailIds: [],
       notificationIds: ['agent-notification'],
-      reminderIds: [],
     });
     mocks.toNotificationEntityRef.mockReturnValue({
       type: 'agent_session',
@@ -242,7 +244,6 @@ describe('makeMarkDoneAction', () => {
     mocks.resolveMarkEntitiesDoneVariables.mockReturnValue({
       emailIds: ['current'],
       notificationIds: ['notification-1'],
-      reminderIds: [],
     });
     const { action, dispose } = createAction();
 
@@ -264,7 +265,6 @@ describe('makeMarkDoneAction', () => {
     mocks.resolveMarkEntitiesDoneVariables.mockReturnValue({
       emailIds: ['current'],
       notificationIds: ['notification-1'],
-      reminderIds: [],
     });
     mocks.toNotificationEntityRef.mockReturnValue({
       type: 'email',
@@ -290,7 +290,6 @@ describe('makeMarkDoneAction', () => {
     mocks.resolveMarkEntitiesDoneVariables.mockReturnValue({
       emailIds: [],
       notificationIds: ['channel-notification'],
-      reminderIds: [],
     });
     mocks.toNotificationEntityRef.mockReturnValue({
       type: 'channel',
@@ -316,7 +315,6 @@ describe('makeMarkDoneAction', () => {
     mocks.resolveMarkEntitiesDoneVariables.mockReturnValue({
       emailIds: [],
       notificationIds: ['thread-notification'],
-      reminderIds: [],
     });
     mocks.toNotificationEntityRef.mockReturnValue({
       type: 'channel_thread',
@@ -347,12 +345,69 @@ describe('makeMarkDoneAction', () => {
     dispose();
   });
 
+  it('applies Undo before its server reply and settles only afterwards', async () => {
+    const { dispose } = createAction();
+    const variables = {
+      emailIds: ['current'],
+      exactNotificationIds: { current: ['exact-id'] },
+    };
+    const context = {
+      applyUndone: vi.fn(),
+      reapply: vi.fn(),
+      settle: vi.fn(),
+      releaseGraphql: vi.fn(),
+    };
+    const options = mocks.undoableOptionsFactory() as {
+      undoFn: (input: typeof variables, ctx: typeof context) => Promise<void>;
+    };
+    let finish!: () => void;
+    mocks.executeMarkEntitiesUndone.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        })
+    );
+    const undo = options.undoFn(variables, context);
+    expect(context.applyUndone).toHaveBeenCalledOnce();
+    expect(context.settle).not.toHaveBeenCalled();
+    finish();
+    await undo;
+    expect(context.settle).toHaveBeenCalledWith(['exact-id']);
+    dispose();
+  });
+
+  it('does not pin guessed GraphQL state after a partially failed reversal', async () => {
+    const { dispose } = createAction();
+    const variables = {
+      emailIds: ['current'],
+      exactNotificationIds: { current: ['exact-id'] },
+    };
+    const context = {
+      applyUndone: vi.fn(),
+      reapply: vi.fn(),
+      settle: vi.fn(),
+      releaseGraphql: vi.fn(),
+    };
+    const options = mocks.undoableOptionsFactory() as {
+      undoFn: (input: typeof variables, ctx: typeof context) => Promise<void>;
+    };
+    mocks.executeMarkEntitiesUndone.mockRejectedValueOnce(
+      new Error('partial failure')
+    );
+    await expect(options.undoFn(variables, context)).rejects.toThrow(
+      'partial failure'
+    );
+    expect(context.reapply).toHaveBeenCalledOnce();
+    expect(context.releaseGraphql).toHaveBeenCalledOnce();
+    expect(context.settle).not.toHaveBeenCalled();
+    dispose();
+  });
+
   it('retains authoritative entity results for exact undo and ID-scoped redo', async () => {
     mocks.graphqlSoupEnabled.mockReturnValue(true);
     mocks.resolveMarkEntitiesDoneVariables.mockReturnValue({
       emailIds: ['current'],
       notificationIds: ['optimistic-notification'],
-      reminderIds: [],
     });
     mocks.toNotificationEntityRef.mockReturnValue({
       type: 'email',
@@ -367,7 +422,6 @@ describe('makeMarkDoneAction', () => {
       emailIds: string[];
       exactNotificationIds: { current: string[] };
       notificationEntities: Array<{ type: string; id: string }>;
-      reminderIds: string[];
     };
     const mutationOptions = mocks.undoableOptionsFactory() as {
       mutationFn: (input: typeof variables) => Promise<void>;
@@ -380,7 +434,6 @@ describe('makeMarkDoneAction', () => {
       emailIds: ['current'],
       notificationIds: [],
       notificationEntities: [{ type: 'email', id: 'current' }],
-      reminderIds: [],
     });
     expect(variables.exactNotificationIds.current).toEqual([
       'authoritative-notification',
@@ -390,7 +443,6 @@ describe('makeMarkDoneAction', () => {
     expect(mocks.executeMarkEntitiesUndone).toHaveBeenCalledWith({
       emailIds: ['current'],
       notificationIds: ['authoritative-notification'],
-      reminderIds: [],
     });
 
     mocks.executeMarkEntitiesDone.mockClear();
@@ -398,7 +450,6 @@ describe('makeMarkDoneAction', () => {
     expect(mocks.executeMarkEntitiesDone).toHaveBeenCalledWith({
       emailIds: ['current'],
       notificationIds: ['authoritative-notification'],
-      reminderIds: [],
     });
     dispose();
   });

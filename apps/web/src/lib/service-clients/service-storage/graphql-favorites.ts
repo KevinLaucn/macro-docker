@@ -44,6 +44,9 @@ const FAVORITE_ENTITY_TYPE_TO_GRAPHQL = {
   agent_session: 'AGENT_SESSION',
   scheduled_action: 'SCHEDULED_ACTION',
   initiative: 'INITIATIVE',
+  database: 'DATABASE',
+  database_row: 'DATABASE_ROW',
+  form: 'FORM',
 } satisfies Record<FavoriteEntityType, GraphqlEntityType>;
 
 const GRAPHQL_ENTITY_TYPE_TO_FAVORITE = {
@@ -55,9 +58,12 @@ const GRAPHQL_ENTITY_TYPE_TO_FAVORITE = {
   CHAT: 'chat',
   CRM_COMPANY: 'crm_company',
   CRM_CONTACT: 'crm_contact',
+  DATABASE: 'database',
+  DATABASE_ROW: 'database_row',
   DOCUMENT: 'document',
   EMAIL_THREAD: 'email_thread',
   FOREIGN_ENTITY: 'foreign_entity',
+  FORM: 'form',
   INITIATIVE: 'initiative',
   PROJECT: 'project',
   REMINDER: 'reminder',
@@ -123,6 +129,7 @@ function favoriteSoupEffects(
   const typenames = {
     document: 'GraphqlSoupDocument',
     project: 'GraphqlSoupProject',
+    reminder: undefined,
     chat: 'GraphqlSoupChat',
     channel: 'GraphqlSoupChannel',
     channel_message: 'GraphqlSoupChannelMessage',
@@ -131,7 +138,6 @@ function favoriteSoupEffects(
     call: 'GraphqlSoupCall',
     crm_company: 'GraphqlSoupCrmCompany',
     foreign_entity: 'GraphqlSoupForeignEntity',
-    reminder: 'GraphqlSoupReminder',
     agent_session: 'GraphqlSoupAgentSession',
     user: undefined,
     team: undefined,
@@ -140,6 +146,10 @@ function favoriteSoupEffects(
     skill: undefined,
     scheduled_action: undefined,
     initiative: 'GraphqlSoupInitiative',
+    database: undefined,
+    database_row: undefined,
+    // Forms are not favoritable; the service refuses them.
+    form: undefined,
   } as const satisfies Record<FavoriteEntityType, string | undefined>;
   const typename = typenames[args.entityType];
   return typename

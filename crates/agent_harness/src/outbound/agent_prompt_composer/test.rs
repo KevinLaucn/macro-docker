@@ -1,6 +1,6 @@
 use super::*;
 use crate::domain::model::{
-    CommentAnchor, ContextMessage, ContextThread, MarkedPassage, ReplyTarget,
+    CommentAnchor, ContextMessage, ContextThread, MarkedPassage, PromptPeople, ReplyTarget,
 };
 use axum::{Json, Router, routing::post};
 use macro_uuid::Uuid;
@@ -21,7 +21,10 @@ async fn composition_preserves_lexical_output_without_tool_instructions() {
     ));
 
     for context in [None, Some(&ConversationContext::default())] {
-        let prompt = composer.compose("Raw prompt", None, context).await.unwrap();
+        let prompt = composer
+            .compose("Raw prompt", None, None, None, context)
+            .await
+            .unwrap();
         assert_eq!(prompt, "Sanitized prompt and context");
         assert!(!prompt.contains("set_pull_request"));
     }
@@ -55,6 +58,8 @@ async fn the_comment_anchor_reaches_the_lexical_service_beside_the_history() {
     composer
         .compose(
             "Raw prompt",
+            Some("Never force-push."),
+            None,
             None,
             Some(&ConversationContext {
                 anchor: Some(CommentAnchor::Mark {
@@ -79,11 +84,14 @@ async fn the_comment_anchor_reaches_the_lexical_service_beside_the_history() {
         body["anchor"]["surroundingText"],
         "Around the edited phrase."
     );
+    assert_eq!(body["instructions"], "Never force-push.");
 
     // A thread anchored before snapshots existed still names its mark.
     composer
         .compose(
             "Raw prompt",
+            None,
+            None,
             None,
             Some(&ConversationContext {
                 anchor: Some(CommentAnchor::Mark {
@@ -108,6 +116,8 @@ async fn the_comment_anchor_reaches_the_lexical_service_beside_the_history() {
             composer
                 .compose(
                     "Raw prompt",
+                    None,
+                    None,
                     None,
                     Some(&ConversationContext {
                         anchor: Some(anchor),
@@ -145,6 +155,15 @@ async fn the_comment_anchor_reaches_the_lexical_service_beside_the_history() {
         })
         .await,
         serde_json::json!({ "type": "pdfPin", "anchorId": "pin-1" })
+    );
+    assert_eq!(
+        sent(CommentAnchor::Spreadsheet {
+            sheet_id: "sheet-1".into(),
+            sheet_name: "Budget".into(),
+            range: "B4:C9".into(),
+        })
+        .await,
+        serde_json::json!({"type": "spreadsheet", "sheetId": "sheet-1", "sheetName": "Budget", "range": "B4:C9"})
     );
     server.abort();
 }
@@ -204,7 +223,7 @@ async fn the_thread_channel_and_reply_target_reach_the_lexical_service() {
         let context = context(target);
         async move {
             composer
-                .compose("Raw prompt", None, Some(&context))
+                .compose("Raw prompt", None, None, None, Some(&context))
                 .await
                 .unwrap();
             received.lock().unwrap().clone().unwrap()
@@ -247,5 +266,72 @@ async fn the_thread_channel_and_reply_target_reach_the_lexical_service() {
 
     let body = sent(ReplyTarget::None).await;
     assert_eq!(body["replyTarget"], serde_json::json!({ "kind": "none" }));
+    server.abort();
+}
+
+/// Owner and sender cross the same boundary and are named by email, like
+/// message authors; a prompt with no person behind it sends no sender.
+#[tokio::test]
+async fn the_owner_and_sender_reach_the_lexical_service() {
+    let received: Arc<Mutex<Option<serde_json::Value>>> = Arc::default();
+    let seen = received.clone();
+    let app = Router::new().route(
+        "/agent-context",
+        post(move |Json(body): Json<serde_json::Value>| {
+            let seen = seen.clone();
+            async move {
+                *seen.lock().unwrap() = Some(body);
+                Json(serde_json::json!({ "markdown": "composed" }))
+            }
+        }),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    let composer = LexicalAgentPromptComposer::new(LexicalClient::new(
+        "test".into(),
+        format!("http://{address}"),
+    ));
+    let owner = MacroUserIdStr::try_from_email("owner@example.com").unwrap();
+    let sender = MacroUserIdStr::try_from_email("asker@example.com").unwrap();
+
+    composer
+        .compose(
+            "Raw prompt",
+            None,
+            None,
+            Some(&PromptPeople {
+                owner: owner.clone(),
+                sender: Some(sender),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+    let body = received.lock().unwrap().clone().unwrap();
+    assert_eq!(
+        body["owner"],
+        serde_json::json!({ "id": "macro|owner@example.com", "name": "owner@example.com" })
+    );
+    assert_eq!(
+        body["sender"],
+        serde_json::json!({ "id": "macro|asker@example.com", "name": "asker@example.com" })
+    );
+
+    composer
+        .compose(
+            "Raw prompt",
+            None,
+            None,
+            Some(&PromptPeople {
+                owner,
+                sender: None,
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+    let body = received.lock().unwrap().clone().unwrap();
+    assert!(body.get("sender").is_none());
     server.abort();
 }

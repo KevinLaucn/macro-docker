@@ -90,8 +90,9 @@ impl Storage for BrowserStorage {
     async fn load_search_documents(
         &self,
         profile: SearchProfile,
+        bucket: &str,
     ) -> Result<Vec<SearchDocument>, Self::Error> {
-        self.inner.load_search_documents(profile).await
+        self.inner.load_search_documents(profile, bucket).await
     }
 
     async fn browse_search_documents(
@@ -155,9 +156,10 @@ impl Storage for BrowserStorage {
         claim: MutationClaimToken,
         next_attempt_at_ms: i64,
         error: String,
+        server_failure: bool,
     ) -> Result<bool, Self::Error> {
         self.inner
-            .defer_mutation(id, claim, next_attempt_at_ms, error)
+            .defer_mutation(id, claim, next_attempt_at_ms, error, server_failure)
             .await
     }
 

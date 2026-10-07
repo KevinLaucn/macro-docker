@@ -12,6 +12,9 @@ fn entity(parent: &MessageParent) -> Entity<'static> {
         MessageParent::Channel(_) => EntityType::Channel,
         MessageParent::Document(_) => EntityType::Document,
         MessageParent::Initiative(_) => EntityType::Initiative,
+        MessageParent::CrmCompany(_) => EntityType::CrmCompany,
+        MessageParent::CrmContact(_) => EntityType::CrmContact,
+        MessageParent::Call(_) => EntityType::Call,
     };
     kind.with_entity_string(parent.entity_id())
 }

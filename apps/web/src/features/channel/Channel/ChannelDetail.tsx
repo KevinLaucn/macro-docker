@@ -21,6 +21,7 @@ import {
 } from '@components/app/split-layout/components/PriorityCollapseOverflowSensor';
 import {
   useRegisterPriorityCollapseItem,
+  useSplitDisplayName,
   useSplitPanelOrThrow,
 } from '@components/app/split-layout/layoutUtils';
 import type { PriorityCollapser } from '@components/app/split-layout/utils/createPriorityCollapser';
@@ -77,7 +78,7 @@ export type ChannelDetailProps = {
    */
   target?: ChannelTargetRequest;
   /** Re-aim the current target without remounting the channel. */
-  navigationRequest?: number;
+  navigationRequest?: number | string;
   /** Name shown until the channel loads. */
   fallbackName?: string;
   /** Whether the composer grabs focus on mount. Defaults to false. */
@@ -123,7 +124,6 @@ export function ChannelDetailTabs(props: {
 }) {
   const { activeTab, setActiveTab } = useChannelTab();
   const tabs = useChannelTabItems(props.channelId);
-  // Read once by design: a registration lives for the component's lifetime.
   const isCollapsed = props.collapser
     ? useRegisterPriorityCollapseItem(props.collapser, {
         id: 'channel-tabs',
@@ -159,7 +159,7 @@ export function ChannelDetailActions(props: ChannelDetailHeaderProps) {
   };
 
   return (
-    <div class="header-actions ml-auto flex shrink-0 items-center gap-2">
+    <div class="header-actions ml-auto flex shrink-0 items-center gap-1">
       <DebugSuspense name="ChannelDetail.live-indicators">
         <ChannelLiveIndicators channelId={props.channelId} />
       </DebugSuspense>
@@ -197,8 +197,6 @@ export function ChannelDetailTopBar(
   const collapse = createPriorityCollapseController();
 
   return (
-    // py-0 gives the clipping sensor the bar's full height; the tab track is
-    // taller than the padded content box and would be cut off.
     <ViewShell.TopBar ref={collapse.setRow} class="gap-3 py-0">
       <PriorityCollapseOverflowSensor
         controller={collapse}
@@ -249,6 +247,7 @@ function ChannelDetailContent(props: ChannelDetailProps) {
   const orchestrator = useGlobalBlockOrchestrator();
   const channelId = props.channelId;
   const channelName = useChannelName(channelId, props.fallbackName);
+  useSplitDisplayName(() => channelName() ?? 'New Channel');
 
   const requestFromTarget = (
     target: ChannelTargetRequest | undefined
@@ -367,7 +366,10 @@ function ChannelDetailContent(props: ChannelDetailProps) {
               }}
             />
           </DebugSuspense>
-          <div class="flex min-h-0 flex-1 flex-col px-2">
+          <div
+            class="flex min-h-0 flex-1 flex-col px-2"
+            data-channel-tab-content
+          >
             <Switch>
               <Match when={activeTab() === 'messages'}>
                 <DebugSuspense name="ChannelDetail.messages">

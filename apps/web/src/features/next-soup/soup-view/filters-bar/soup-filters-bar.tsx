@@ -4,15 +4,8 @@ import { SoupViewContextGroup } from '@app/features/next-soup/soup-view/filters-
 import { SoupViewContextSort } from '@app/features/next-soup/soup-view/filters-bar/soup-view-context-sort';
 import { UnifiedFilterDropdown } from '@app/features/next-soup/soup-view/filters-bar/unified-filter-dropdown';
 import { useFilterRefinements } from '@app/features/next-soup/soup-view/filters-bar/use-filter-refinements';
-import {
-  CompanyDisplayMenu,
-  CompanyViewsMenu,
-} from '@app/features/next-soup/soup-view/views/companies/CompanyViewsMenu';
 import { CollapsibleToolbarItem } from '@components/app/split-layout/components/CollapsibleItem';
-import {
-  SplitToolbarLeft,
-  SplitToolbarRight,
-} from '@components/app/split-layout/components/SplitToolbar';
+import { SplitToolbarLeft } from '@components/app/split-layout/components/SplitToolbar';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { SoupListTranslateButton } from '@macro/email-translation';
@@ -29,10 +22,6 @@ export function SoupFiltersBar(props: { variant?: 'default' | 'tag' }) {
   const isSearchView = createMemo(() => {
     const content = panel.handle.content();
     return content.type === 'component' && content.id === 'search';
-  });
-  const isCompaniesView = createMemo(() => {
-    const content = panel.handle.content();
-    return content.type === 'component' && content.id === 'companies';
   });
   const isTagView = createMemo(() => props.variant === 'tag');
   const isEmailView = createMemo(() => {
@@ -84,24 +73,8 @@ export function SoupFiltersBar(props: { variant?: 'default' | 'tag' }) {
           </Show>
           <CollapsibleGroup />
           <CollapsibleFilter />
-          <Show when={isCompaniesView()}>
-            <CompanyDisplayMenu />
-          </Show>
         </Show>
       </SplitToolbarLeft>
-      <SplitToolbarRight>
-        {/* PRIVATE-HOOK: email_translation:list-toolbar */}
-        <Show when={isEmailView()}>
-          <CollapsibleToolbarItem id="soup-toolbar-translate" priority={2}>
-            {() => <SoupListTranslateButton hideLabel={true} />}
-          </CollapsibleToolbarItem>
-        </Show>
-        <Show when={isCompaniesView()}>
-          <CollapsibleToolbarItem id="soup-toolbar-views" priority={2}>
-            {(isCollapsed) => <CompanyViewsMenu hideLabel={isCollapsed()} />}
-          </CollapsibleToolbarItem>
-        </Show>
-      </SplitToolbarRight>
       {/* Active filters bar - shown below the toolbar when there are filters */}
       <Show when={!isSearchView() && !isTagView()}>
         <SoupActiveFiltersBar

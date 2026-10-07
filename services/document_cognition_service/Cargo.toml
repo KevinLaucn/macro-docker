@@ -37,6 +37,7 @@ ai_toolset = { path = "../../crates/ai_toolset" }
 anyhow = { workspace = true }
 async-openai = { workspace = true }
 async-stream = { workspace = true }
+bots = { path = "../../crates/bots", default-features = false, features = ["outbound"] }
 async-trait = { workspace = true }
 aws-sdk-dynamodb = { workspace = true }
 aws-sdk-s3 = { workspace = true }
@@ -51,6 +52,11 @@ connection_gateway = { path = "../connection_gateway" }
 connection_gateway_client = { path = "../../crates/connection_gateway_client" }
 cookie = { workspace = true }
 crm = { path = "../../crates/crm" }
+# `ai_tools` for the toolset, `gateway` for the table-changed fan-out, and
+# `postgres` for the adapters behind the service.
+databases = { path = "../../crates/databases", features = ["ai_tools", "gateway", "postgres"] }
+# The SQL tools' types, to read their receipts in a structured completion.
+databases_sql = { path = "../../crates/databases_sql", features = ["ai_tools"] }
 document_storage_service_client = { path = "../../crates/document_storage_service_client" }
 documents = { path = "../../crates/documents", features = ["ai_tools", "attachment"] }
 doppleganger = { workspace = true }
@@ -59,7 +65,10 @@ email = { path = "../../crates/email", features = ["outbound", "attachment"] }
 email_service_client = { path = "../../crates/email_service_client" }
 entity_access = { path = "../../crates/entity_access" }
 entity_access_management = { path = "../../crates/entity_access_management" }
+entity_registry = { path = "../../crates/entity_registry/entity_registry" }
+entity_registry_db_utils = { path = "../../crates/entity_registry/entity_registry_db_utils" }
 foreign_entity = { path = "../../crates/foreign_entity" }
+github_pull_requests = { path = "../../crates/github_pull_requests" }
 frecency = { path = "../../crates/frecency", features = ["outbound", "postgres"] }
 futures = { workspace = true }
 http = { workspace = true }
@@ -112,7 +121,6 @@ redis = { workspace = true, features = [
 ] }
 regex = { workspace = true }
 reqwest.workspace = true
-reminders = { path = "../../crates/reminders", default-features = false, features = ["ports"] }
 teams = { path = "../../crates/teams", default-features = false, features = [
   "outbound",
   "ports",

@@ -15,7 +15,10 @@ import {
   type EntityFilterCacheResult,
   INITIAL_CACHE_REVISION,
 } from '../protocol';
-import { createTauriCacheHost } from './tauri-host';
+import {
+  createTauriCacheHost,
+  NativeCacheUpgradeRequiredError,
+} from './tauri-host';
 
 type EventCallback = (event: { payload: Record<string, unknown> }) => void;
 
@@ -49,6 +52,33 @@ describe('createTauriCacheHost', () => {
       eventCallbacks.set(event, cb);
       return Promise.resolve(unlisten);
     });
+  });
+
+  it('reads the database generation after native initialization', async () => {
+    const generation = '00000000-0000-4000-8000-000000000001';
+    invokeMock.mockImplementation(async (command: string) =>
+      command === 'graphql_cache_current_storage_generation' ? generation : null
+    );
+    const host = createTauriCacheHost({ scope: 'scope-1' });
+    await expect(host.currentStorageGeneration()).resolves.toBe(generation);
+    expect(invokeMock.mock.calls.map(([command]) => command)).toEqual([
+      'graphql_cache_init',
+      'graphql_cache_inspect_mutations',
+      'graphql_cache_current_storage_generation',
+    ]);
+    host.dispose();
+  });
+
+  it('reports logical storage resets to generation subscribers', () => {
+    const host = createTauriCacheHost({ scope: 'scope-1' });
+    const changed = vi.fn();
+    host.onCacheGenerationChanged(changed);
+    const notify = eventCallbacks.get('graphql-cache://cache-changed')!;
+    notify({ payload: { revision: INITIAL_CACHE_REVISION } });
+    expect(changed).not.toHaveBeenCalled();
+    notify({ payload: { revision: INITIAL_CACHE_REVISION, reset: true } });
+    expect(changed).toHaveBeenCalledExactlyOnceWith({ storage: 'reset' });
+    host.dispose();
   });
 
   it('initializes the native cache once and prefixes op ids', async () => {
@@ -106,6 +136,42 @@ describe('createTauriCacheHost', () => {
     expect(onInitializationError).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'init failed' })
     );
+    host.dispose();
+  });
+
+  it('preserves the old queue and refuses writes when an OTA outpaces the native runtime', async () => {
+    const onInitializationError = vi.fn();
+    invokeMock.mockImplementation(async (command: string) => {
+      if (command === 'graphql_cache_inspect_mutations')
+        throw 'Command graphql_cache_inspect_mutations not found';
+      return null;
+    });
+    const host = createTauriCacheHost({
+      scope: 'old-native',
+      onInitializationError,
+    });
+    await expect(
+      host.claimNextMutation('runner', 10, 100)
+    ).rejects.toBeInstanceOf(NativeCacheUpgradeRequiredError);
+    await expect(
+      host.enqueueOptimisticMutation(
+        {
+          uuid: '00000000-0000-4000-8000-000000000001',
+          query: 'mutation Save { save { id } }',
+          data: {},
+        },
+        { owner: 'runner', nowMs: 10, leaseExpiresAtMs: 100 }
+      )
+    ).rejects.toBeInstanceOf(NativeCacheUpgradeRequiredError);
+    expect(onInitializationError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('Update Macro'),
+      })
+    );
+    expect(invokeMock.mock.calls.map(([command]) => command)).toEqual([
+      'graphql_cache_init',
+      'graphql_cache_inspect_mutations',
+    ]);
     host.dispose();
   });
 
@@ -509,6 +575,54 @@ describe('createTauriCacheHost', () => {
     }
   );
 
+  it.each(
+    [[], ['note']].map((searchChangedBuckets) => ({ searchChangedBuckets }))
+  )(
+    'forwards native bucket metadata $searchChangedBuckets across windows',
+    async ({ searchChangedBuckets }) => {
+      const host = createTauriCacheHost({ scope: 'scope-1' });
+      const listener = vi.fn();
+      host.onCacheChanged(listener, { includeHydration: true });
+      invokeMock.mockImplementation(async (command: string) =>
+        command === 'graphql_cache_hydrate'
+          ? {
+              kind: 'void',
+              revision: '7',
+              revisionAdvanced: true,
+              searchChangedBuckets,
+            }
+          : null
+      );
+      await host.hydrateQuery({ query: '{ x }', data: { x: 1 } });
+      expect(emitMock).toHaveBeenCalledWith('graphql-cache://cache-hydrated', {
+        revision: '7',
+        searchChangedBuckets,
+      });
+      eventCallbacks.get('graphql-cache://cache-hydrated')?.({
+        payload: { revision: '7', searchChangedBuckets },
+      });
+      expect(listener).toHaveBeenCalledWith('7', { searchChangedBuckets });
+      host.dispose();
+    }
+  );
+
+  it.each(
+    [[], ['note']].map((searchChangedBuckets) => ({ searchChangedBuckets }))
+  )(
+    'forwards ordinary native writes and keeps resets conservative: $searchChangedBuckets',
+    ({ searchChangedBuckets }) => {
+      const host = createTauriCacheHost({ scope: 'scope-1' });
+      const listener = vi.fn();
+      host.onCacheChanged(listener);
+      const notify = eventCallbacks.get('graphql-cache://cache-changed')!;
+      notify({ payload: { revision: '7', searchChangedBuckets } });
+      expect(listener).toHaveBeenLastCalledWith('7', { searchChangedBuckets });
+      notify({ payload: { revision: '8', searchChangedBuckets, reset: true } });
+      expect(listener).toHaveBeenLastCalledWith('8');
+      host.dispose();
+    }
+  );
+
   it('delivers cross-window hydration only to opted-in listeners', async () => {
     const host = createTauriCacheHost({ scope: 'scope-1' });
     const foreground = vi.fn();
@@ -640,6 +754,22 @@ describe('createTauriCacheHost', () => {
         error: 'invalid property',
       }
     );
+    await host.rollbackOptimisticWrite(
+      '2',
+      claim,
+      'already sent',
+      'DRAFT_ALREADY_SENT'
+    );
+    expect(invokeMock).toHaveBeenCalledWith(
+      'graphql_cache_rollback_optimistic_write',
+      {
+        transactionId: '2',
+        leaseOwner: 'runner',
+        leaseGeneration: '2',
+        error: 'already sent',
+        errorCode: 'DRAFT_ALREADY_SENT',
+      }
+    );
   });
 
   it('inspects generated query variants through the native commands', async () => {
@@ -723,23 +853,27 @@ describe('createTauriCacheHost', () => {
     expect(calls).toBe(1);
   });
 
-  it('delivers queued mutation settlements from the broadcast event', async () => {
-    const host = createTauriCacheHost({ scope: 'scope-1' });
-    const seen: unknown[] = [];
-    host.onMutationSettled((settlement) => seen.push(settlement));
-    await Promise.resolve();
+  it.each([undefined, 'DRAFT_ALREADY_SENT'])(
+    'delivers queued mutation settlements with optional code %s',
+    async (errorCode) => {
+      const host = createTauriCacheHost({ scope: 'scope-1' });
+      const seen: unknown[] = [];
+      host.onMutationSettled((settlement) => seen.push(settlement));
+      await Promise.resolve();
 
-    const settlement = {
-      transactionId: '12',
-      status: 'permanently-failed' as const,
-      error: 'invalid property',
-    };
-    eventCallbacks.get('graphql-cache://mutation-settled')?.({
-      payload: settlement,
-    });
+      const settlement = {
+        transactionId: '12',
+        status: 'permanently-failed' as const,
+        error: 'invalid property',
+        ...(errorCode === undefined ? {} : { errorCode }),
+      };
+      eventCallbacks.get('graphql-cache://mutation-settled')?.({
+        payload: settlement,
+      });
 
-    expect(seen).toEqual([settlement]);
-  });
+      expect(seen).toEqual([settlement]);
+    }
+  );
 
   it('normalizes string command errors to Error rejections', async () => {
     const host = createTauriCacheHost({ scope: 'scope-1' });
@@ -762,7 +896,8 @@ describe('createTauriCacheHost', () => {
         requestTimeoutMs: 50,
       });
       invokeMock.mockImplementation((command: string) =>
-        command === 'graphql_cache_init'
+        command === 'graphql_cache_init' ||
+        command === 'graphql_cache_inspect_mutations'
           ? Promise.resolve(null)
           : new Promise(() => {})
       );
@@ -782,7 +917,8 @@ describe('createTauriCacheHost', () => {
     vi.useFakeTimers();
     try {
       invokeMock.mockImplementation((command: string) =>
-        command === 'graphql_cache_init'
+        command === 'graphql_cache_init' ||
+        command === 'graphql_cache_inspect_mutations'
           ? Promise.resolve(null)
           : new Promise(() => {})
       );

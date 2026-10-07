@@ -1,14 +1,15 @@
 import { openAgentComposer } from '@app/features/agents-view/primitives/open-composer';
 import { startPendingSession } from '@app/features/block-agent/context/pending-session';
 import { AGENT_INPUT_TEXT_AREA_ID } from '@app/features/block-agent/ui/AgentInput';
+import { createAiDocument } from '@app/features/block-ai/queries/create-ai';
+import { createFigDocument } from '@app/features/block-fig/queries/create-fig';
+import { createPsdDocument } from '@app/features/block-psd/queries/create-psd';
 import { useSpreadsheetAccess } from '@app/features/block-spreadsheet/primitives/use-spreadsheet-access';
 import { createSpreadsheetDocument } from '@app/features/block-spreadsheet/queries/create-spreadsheet';
 import { isSpreadsheetEnabledForCurrentUser } from '@app/features/block-spreadsheet/queries/spreadsheet-access';
 import { EMAIL_COMPOSE_TO_INPUT_ID } from '@app/features/email-compose/core/constants';
 import { useQuickCallsFlag } from '@app/features/meetings/use-quick-calls-flag';
-import { openStandaloneReminderComposer } from '@app/features/reminders/reminder-composer';
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
-import { setAutomationComposerOpen } from '@block-automation/component';
 import {
   endTrackedDocumentSpan,
   registerDocumentSpan,
@@ -19,9 +20,15 @@ import { useSplitLayout } from '@components/app/split-layout/layout';
 import type { BlockAlias, BlockName } from '@core/block';
 import { CHAT_INPUT_TEXT_AREA_ID } from '@core/component/AI/component/input/ChatInput';
 import { getIconConfig } from '@core/component/EntityIcon';
+import { toast } from '@core/component/Toast/Toast';
 import {
+  enableAiEditor,
   enableChatV3Agents,
-  enableReminders,
+  enableDatabases,
+  enableFigViewer,
+  enableForms,
+  enableProjects,
+  enablePsdEditor,
   enableSnippets,
   isFeatureEnabled,
 } from '@core/constant/featureFlags';
@@ -50,6 +57,8 @@ import type { Span } from '@macro-inc/observability';
 import ChatIcon from '@phosphor/chat.svg';
 import MagnifyingGlassIcon from '@phosphor/magnifying-glass.svg';
 import PlusIcon from '@phosphor/plus.svg';
+import { createDatabase } from '@queries/storage/databases';
+import { createForm } from '@queries/storage/forms';
 import { createProject } from '@queries/storage/projects';
 import { makePersisted } from '@solid-primitives/storage';
 import { useNavigate } from '@solidjs/router';
@@ -306,6 +315,36 @@ export function runCreateAction(
         shouldInsert,
       });
       return;
+    case 'psd':
+      if (!isFeatureEnabled(enablePsdEditor)) return;
+      createBlock({
+        blockName: 'psd',
+        loading: true,
+        createFn: () =>
+          createPsdDocument({ projectId: options.projectId, source }),
+        shouldInsert,
+      });
+      return;
+    case 'fig':
+      if (!isFeatureEnabled(enableFigViewer)) return;
+      createBlock({
+        blockName: 'fig',
+        loading: true,
+        createFn: () =>
+          createFigDocument({ projectId: options.projectId, source }),
+        shouldInsert,
+      });
+      return;
+    case 'ai':
+      if (!isFeatureEnabled(enableAiEditor)) return;
+      createBlock({
+        blockName: 'ai',
+        loading: true,
+        createFn: () =>
+          createAiDocument({ projectId: options.projectId, source }),
+        shouldInsert,
+      });
+      return;
     case 'canvas':
       createBlock({
         blockName: 'canvas',
@@ -326,6 +365,13 @@ export function runCreateAction(
     case 'task':
       createComponent({
         componentId: 'task-compose',
+        asPopover: true,
+      });
+      return;
+    case 'initiative':
+      if (!isFeatureEnabled(enableProjects)) return;
+      createComponent({
+        componentId: 'project-compose',
         asPopover: true,
       });
       return;
@@ -361,6 +407,11 @@ export function runCreateAction(
       });
       return;
     case 'chat':
+      if (isFeatureEnabled(enableChatV3Agents)) {
+        setCreateMenuOpen(false, false);
+        openAgentComposer(useSplitLayout(), shouldInsert);
+        return;
+      }
       // On mobile the chat input doesn't autofocus on mount, so arm focus
       // within this gesture (iOS only raises the keyboard for a synchronous
       // focus). The chat mounts asynchronously, so this waits for the input.
@@ -395,6 +446,44 @@ export function runCreateAction(
         shouldInsert,
       });
       return;
+    case 'database':
+      if (!isFeatureEnabled(enableDatabases)) return;
+      createBlock({
+        blockName: 'database',
+        loading: true,
+        createFn: async () => {
+          const created = await createDatabase({
+            name: 'Untitled database',
+            source,
+          });
+          if (created.isErr()) {
+            toast.failure('Could not create the database');
+            return;
+          }
+          return created.value;
+        },
+        shouldInsert,
+      });
+      return;
+    case 'form':
+      if (!isFeatureEnabled(enableForms)) return;
+      createBlock({
+        blockName: 'form',
+        loading: true,
+        createFn: async () => {
+          const created = await createForm(
+            { name: 'Untitled form', source: { kind: 'new' } },
+            source
+          );
+          if (created.isErr()) {
+            toast.failure('Could not create the form');
+            return;
+          }
+          return created.value.form.id;
+        },
+        shouldInsert,
+      });
+      return;
     case 'code':
       createBlock({
         blockName: 'code',
@@ -413,22 +502,14 @@ export function runCreateAction(
         shouldInsert,
       });
       return;
-    case 'automation':
-      setCreateMenuOpen(false, false);
-      setAutomationComposerOpen(true, false);
+    case 'routine':
+      createComponent({ componentId: 'routine-compose', asPopover: true });
       return;
     case 'skill':
       createComponent({
         componentId: 'skill-compose',
         asPopover: true,
       });
-      return;
-    // A reminder has no block to open: the composer asks what and when, and the
-    // reminder lives in the Reminders lists from there.
-    case 'reminder':
-      if (!isFeatureEnabled(enableReminders)) return;
-      setCreateMenuOpen(false, false);
-      openStandaloneReminderComposer();
       return;
     case 'agent': {
       if (isFeatureEnabled(enableChatV3Agents)) {
@@ -507,16 +588,16 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: t('Automation'),
-    icon: getIconConfig('automation').icon,
-    description: t('Create automation'),
-    launcherHint: t('Scheduled agent runs'),
-    keywords: ['new', 'make', 'add', 'schedule', 'agent'],
-    blockName: 'automation',
-    hotkeyToken: TOKENS.create.automation,
+    label: 'Routine',
+    icon: getIconConfig('routine').icon,
+    description: 'Run a model or agent on a schedule or Macro activity',
+    launcherHint: 'Schedules and activity triggers',
+    keywords: ['new', 'make', 'add', 'schedule', 'agent', 'event', 'trigger'],
+    blockName: 'routine',
+    hotkeyToken: TOKENS.create.routine,
     hotkey: 'u',
     keyDownHandler: () => {
-      runCreateAction('automation');
+      runCreateAction('routine');
       return true;
     },
   },
@@ -534,6 +615,38 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     enabled: () => isFeatureEnabled(enableChatV3Agents),
     keyDownHandler: () => {
       runCreateAction('agent', { shouldInsert: pressedKeys().has('shift') });
+      return true;
+    },
+  },
+  {
+    label: 'Database',
+    icon: getIconConfig('database').icon,
+    description: 'Create database',
+    launcherHint: 'Tables and boards',
+    keywords: ['new', 'make', 'add', 'database', 'table', 'db'],
+    blockName: 'database',
+    enabled: () => isFeatureEnabled(enableDatabases),
+    hotkeyToken: TOKENS.create.database,
+    altHotkeyToken: TOKENS.create.databaseNewSplit,
+    hotkey: 'l',
+    keyDownHandler: () => {
+      runCreateAction('database', { shouldInsert: pressedKeys().has('shift') });
+      return true;
+    },
+  },
+  {
+    label: 'Form',
+    icon: getIconConfig('form').icon,
+    description: 'Create form',
+    launcherHint: 'Questions answered into a database',
+    keywords: ['new', 'make', 'add', 'form', 'survey', 'questionnaire', 'poll'],
+    blockName: 'form',
+    enabled: () => isFeatureEnabled(enableForms),
+    hotkeyToken: TOKENS.create.form,
+    altHotkeyToken: TOKENS.create.formNewSplit,
+    hotkey: 'q',
+    keyDownHandler: () => {
+      runCreateAction('form', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
@@ -580,19 +693,16 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: t('Reminder'),
-    icon: getIconConfig('reminder').icon,
-    description: t('Create reminder'),
-    launcherHint: t('Nudge yourself later'),
-    keywords: ['new', 'make', 'add', 'remind', 'later', 'todo'],
-    blockName: 'reminder',
-    hotkeyToken: TOKENS.create.reminder,
-    // No `altHotkeyToken`: a reminder opens no split, so there is no
-    // shift-variant to bind.
-    hotkey: 'r',
-    enabled: () => isFeatureEnabled(enableReminders),
+    label: 'Project',
+    icon: getIconConfig('initiative').icon,
+    description: 'Create project',
+    keywords: ['new', 'make', 'add', 'project'],
+    blockName: 'initiative',
+    enabled: () => isFeatureEnabled(enableProjects),
+    hotkeyToken: TOKENS.create.initiative,
+    hotkey: 'p',
     keyDownHandler: () => {
-      runCreateAction('reminder');
+      runCreateAction('initiative');
       return true;
     },
   },
@@ -654,6 +764,62 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
       runCreateAction('canvas', {
         shouldInsert: pressedKeys().has('shift'),
       });
+      return true;
+    },
+  },
+  {
+    label: 'Photoshop file',
+    enabled: () => isFeatureEnabled(enablePsdEditor),
+    icon: getIconConfig('psd').icon,
+    description: 'New Photoshop file',
+    launcherHint: 'Layered image editing, saved as .psd',
+    keywords: ['new', 'make', 'add', 'photoshop', 'psd', 'image', 'photo'],
+    blockName: 'psd',
+    hotkeyToken: TOKENS.create.photoshop,
+    altHotkeyToken: TOKENS.create.photoshopNewSplit,
+    hotkey: 'h',
+    keyDownHandler: () => {
+      runCreateAction('psd', { shouldInsert: pressedKeys().has('shift') });
+      return true;
+    },
+  },
+  {
+    label: 'Design',
+    enabled: () => isFeatureEnabled(enableFigViewer),
+    icon: getIconConfig('fig').icon,
+    description: 'Create design',
+    launcherHint: 'Figma-compatible canvas for UI and graphics',
+    keywords: ['new', 'make', 'add', 'design', 'figma', 'mockup', 'ui'],
+    blockName: 'fig',
+    hotkeyToken: TOKENS.create.design,
+    altHotkeyToken: TOKENS.create.designNewSplit,
+    hotkey: 'i',
+    keyDownHandler: () => {
+      runCreateAction('fig', { shouldInsert: pressedKeys().has('shift') });
+      return true;
+    },
+  },
+  {
+    label: 'Illustrator file',
+    enabled: () => isFeatureEnabled(enableAiEditor),
+    icon: getIconConfig('ai').icon,
+    description: 'Create Illustrator file',
+    launcherHint: 'Vector artwork on artboards, saved as .ai',
+    keywords: [
+      'new',
+      'make',
+      'add',
+      'illustrator',
+      'illustration',
+      'vector',
+      'artboard',
+    ],
+    blockName: 'ai',
+    hotkeyToken: TOKENS.create.illustration,
+    altHotkeyToken: TOKENS.create.illustrationNewSplit,
+    hotkey: 'v',
+    keyDownHandler: () => {
+      runCreateAction('ai', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
@@ -735,14 +901,24 @@ export function useCreateMenuBlocks(
   // Subscribed to rather than left to the block's own `enabled`, which reads
   // PostHog without tracking it: this memo has no other reason to re-run, so a
   // flag that resolves after mount would leave the menu as it was until reload.
-  const remindersFlag = useFeatureFlag(enableReminders);
   const agentsFlag = useFeatureFlag(enableChatV3Agents);
+  const projectsFlag = useFeatureFlag(enableProjects);
+  const databasesFlag = useFeatureFlag(enableDatabases);
+  const psdFlag = useFeatureFlag(enablePsdEditor);
+  const figFlag = useFeatureFlag(enableFigViewer);
+  const aiFlag = useFeatureFlag(enableAiEditor);
+  const formsFlag = useFeatureFlag(enableForms);
   return createMemo(() => {
-    remindersFlag();
     agentsFlag();
+    databasesFlag();
+    psdFlag();
+    figFlag();
+    aiFlag();
+    formsFlag();
     return (source() ?? commands).filter((block) => {
       if (block.blockName === 'spreadsheet') return spreadsheets();
       if (block.blockName === 'snippet') return snippetsFlag().enabled;
+      if (block.blockName === 'initiative') return projectsFlag().enabled;
       return block.enabled?.() ?? true;
     });
   });

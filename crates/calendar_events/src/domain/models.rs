@@ -647,6 +647,10 @@ pub struct CalendarEvent {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CalendarEventOverride {
+    /// Occurrence scheduling revision, independent of the master.
+    pub sequence: Option<u32>,
+    /// Provider last-modified time for this exception.
+    pub source_updated_at: Option<DateTime<Utc>>,
     /// Stable recurrence identifier from the source.
     pub recurrence_id: String,
     /// Original occurrence start.
@@ -1063,6 +1067,8 @@ pub struct CalendarAttendeeInput {
 /// User-supplied fields for a new provider event.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CalendarEventDraft {
+    /// Optional stable creation identity for callers with durable retry state.
+    pub idempotency_key: Option<Uuid>,
     /// Display title.
     pub title: String,
     /// Optional event body.
@@ -1651,4 +1657,10 @@ pub struct ProviderCalendar {
     pub is_selected: bool,
     /// Default reminders applied to events that keep `useDefault`.
     pub default_reminders: Vec<EventReminderOverride>,
+}
+
+/// Stable organizer-scoped identifier for a retryable event creation.
+/// Hex UUIDs satisfy the Google Calendar base32hex event-ID alphabet.
+pub fn creation_provider_id(key: Uuid, owner: &str) -> String {
+    Uuid::new_v5(&key, owner.as_bytes()).simple().to_string()
 }

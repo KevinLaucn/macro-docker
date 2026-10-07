@@ -1,12 +1,12 @@
 import { defineBlock, LoadErrors } from '@core/block';
 import { t } from '@macro/i18n';
 import { ok } from 'neverthrow';
-import EmailBlock from './component/Block';
+import { lazy } from 'solid-js';
 
 export const definition = defineBlock({
   name: 'email',
-  description: t('View and manage email threads', { context: 'email' }),
-  component: EmailBlock,
+  description: 'View and manage email threads',
+  component: lazy(() => import('./component/Block')),
   liveTrackingEnabled: true,
   syncServiceEnabled: false,
   defaultFilename: '[No subject]',

@@ -22,6 +22,7 @@ import CaretDownIcon from '@phosphor/caret-down.svg';
 import PlusIcon from '@phosphor/plus.svg';
 import CloseIcon from '@phosphor/x.svg';
 import { cn, Calendar as MiniCalendar, ToggleSwitch } from '@ui';
+import { tourTarget } from '@ui/components/Tour';
 import { format } from 'date-fns';
 import {
   createEffect,
@@ -34,10 +35,10 @@ import {
   Switch,
 } from 'solid-js';
 import { CalendarCallSidebar } from '../calendar-call-sidebar';
+import { CALENDAR_TOUR } from '../tour';
 import {
   CalendarCreateCallItem,
   CalendarCreateEventItem,
-  CalendarCreateReminderItem,
 } from './CalendarCreateItems';
 import { CalendarCreateMenu } from './CalendarCreateMenu';
 
@@ -92,7 +93,7 @@ function UpcomingEventsSection() {
 
   return (
     <CollapsibleSection.Root open={open()} onOpenChange={setOpen}>
-      <CollapsibleSection.Header>
+      <CollapsibleSection.Header ref={tourTarget(CALENDAR_TOUR.upcoming)}>
         <CollapsibleSection.Trigger class="min-w-0 flex-1">
           <span class="min-w-0 truncate">Upcoming events</span>
           <CollapsibleSection.Indicator />
@@ -310,7 +311,6 @@ export function CalendarSidebar() {
         >
           <CalendarCreateEventItem onSelect={closeOverlay} />
           <CalendarCreateCallItem onSelect={closeOverlay} />
-          <CalendarCreateReminderItem onSelect={closeOverlay} />
         </CalendarCreateMenu>
       </ViewSidebar.Primary>
       <ViewSidebar.Content class="pt-2">

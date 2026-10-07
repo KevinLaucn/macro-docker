@@ -5,7 +5,7 @@ import {
   runCreateAction,
   useCreatableEnabled,
 } from '@app/features/command/Launcher';
-import { openCreateCompanyModal } from '@app/features/companies/CreateCompanyModal';
+import { openCreateCompanyModal } from '@app/features/crm/crm-create';
 import { useHandleFileUpload } from '@app/util/handleFileUpload';
 import { openNewChannelModal } from '@channel/CreateChannelModal';
 import { CollapsibleHeaderItem } from '@components/app/split-layout/components/CollapsibleItem';
@@ -31,11 +31,10 @@ import { useMaybeSoupView } from './soup-view-context';
 const VIEW_CREATE_BLOCKNAMES: Partial<Record<ListView, CreatableName[]>> = {
   documents: ['md', 'snippet', 'spreadsheet', 'canvas', 'code', 'project'],
   tasks: ['task'],
-  agents: ['agent', 'chat', 'automation', 'skill'],
+  agents: ['agent', 'chat', 'routine', 'skill'],
   mail: ['email'],
   channels: ['channel'],
   folders: ['project'],
-  reminders: ['reminder'],
 };
 
 type CreateOption = {
@@ -70,36 +69,17 @@ const CREATE_COMPANY_OPTION: CreateOption = {
  * specific list views.
  */
 const VIEW_ONLY_BLOCK_LABELS: Partial<Record<CreatableName, string>> = {
-  get automation() {
-    return t('Automation');
-  },
+  routine: 'Routine',
 };
 
 const VIEW_CREATE_LABELS: Partial<Record<ListView, string>> = {
-  get agents() {
-    return t('Agent');
-  },
-  get channels() {
-    return t('Channel');
-  },
-  get companies() {
-    return t('Company');
-  },
-  get documents() {
-    return t('New');
-  },
-  get folders() {
-    return t('Folder');
-  },
-  get mail() {
-    return t('Email');
-  },
-  get reminders() {
-    return t('Reminder');
-  },
-  get tasks() {
-    return t('Task');
-  },
+  agents: 'Agent',
+  channels: 'Channel',
+  companies: 'Company',
+  documents: 'New',
+  folders: 'Folder',
+  mail: 'Email',
+  tasks: 'Task',
 };
 
 function getViewCreateOptions(
@@ -157,7 +137,7 @@ export const SoupViewCreateButton = () => {
   const panel = useSplitPanelOrThrow();
   const handleFileUpload = useHandleFileUpload();
   const isCreatableEnabled = useCreatableEnabled();
-  const soupView = useMaybeSoupView();
+  const _soupView = useMaybeSoupView();
 
   const currentView = createMemo(() => {
     const content = panel.handle.content();
@@ -170,9 +150,6 @@ export const SoupViewCreateButton = () => {
   // one thing you make from that list rather than triage into it.
   const createView = createMemo(() => {
     const view = currentView();
-    if (view === 'home' && soupView?.activeTab() === 'reminders') {
-      return 'reminders';
-    }
     return view;
   });
 
@@ -217,7 +194,7 @@ export const SoupViewCreateButton = () => {
     <Button
       variant="accent"
       class={cn(
-        'border-0 rounded-full px-3 py-2 pl-1 font-semibold',
+        'border-0 px-3 py-2 pl-1 font-semibold',
         props.hideLabel && 'pr-1'
       )}
       size="sm"
@@ -235,7 +212,7 @@ export const SoupViewCreateButton = () => {
       <Dropdown.Trigger
         variant="accent"
         class={cn(
-          'border-0 rounded-full px-3 py-2 pl-1 font-semibold',
+          'border-0 px-3 py-2 pl-1 font-semibold',
           props.hideLabel && 'pr-1'
         )}
       >

@@ -13,7 +13,6 @@ export type TabbedListView = Extract<
   | 'channels'
   | 'calls'
   | 'folders'
-  | 'reminders'
 >;
 
 /** Tab definitions for each list view. */
@@ -25,14 +24,13 @@ export const VIEW_TAB_LISTS: Record<TabbedListView, TabItem[]> = {
     // Hidden from every tab surface for unflagged users (see
     // `useVisibleViewTabs`); listed here so the tab/preset consistency tests
     // still cover it.
-    { value: 'reminders', label: t('Reminders') },
   ],
   agents: [
-    { value: 'owned', label: t('Owned') },
-    { value: 'running', label: t('Running') },
-    { value: 'shared', label: t('Shared') },
-    { value: 'automations', label: t('Automations') },
-    { value: 'skills', label: t('Skills') },
+    { value: 'owned', label: 'Owned' },
+    { value: 'running', label: 'Running' },
+    { value: 'shared', label: 'Shared' },
+    { value: 'routines', label: 'Routines' },
+    { value: 'skills', label: 'Skills' },
   ],
   mail: [
     { value: 'important', label: t('Signal') },
@@ -67,10 +65,5 @@ export const VIEW_TAB_LISTS: Record<TabbedListView, TabItem[]> = {
   folders: [
     { value: 'owned', label: t('Owned') },
     { value: 'all', label: t('All') },
-  ],
-  reminders: [
-    { value: 'active', label: t('Active') },
-    { value: 'scheduled', label: t('Scheduled') },
-    { value: 'done', label: t('Done') },
   ],
 };

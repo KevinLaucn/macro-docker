@@ -9,8 +9,8 @@ mod test;
 pub struct DiscussionContext {
     /// Parent display name.
     pub name: String,
-    /// Authenticated parent owner.
-    pub owner: String,
+    /// Authenticated parent owner; a CRM record may have none.
+    pub owner: Option<String>,
     /// Optional document extension.
     pub file_type: Option<String>,
     /// Whether the document is a task.
@@ -162,7 +162,7 @@ impl<
 > MessageEventPublisher for DiscussionDelivery<C, A, R, N, S>
 {
     async fn publish(&self, event: MessageEvent) -> Result<(), rootcause::Report> {
-        if !event.parent.is_discussion() {
+        if matches!(event.parent, MessageParent::Channel(_)) {
             return Err(rootcause::report!(
                 "discussion delivery requires an entity parent"
             ));
@@ -174,6 +174,10 @@ impl<
             self.realtime.send(&event, viewers).await
         }
         .await;
+        // Call chat is delivered in the live sidebar, without document comment notifications.
+        if matches!(event.parent, MessageParent::Call(_)) {
+            return realtime;
+        }
         let notification = match &event.change {
             MessageChange::Posted {
                 message,
@@ -208,7 +212,7 @@ impl<
                     .collect(),
                 participants: context.participants.clone(),
                 assignees: context.assignees.clone(),
-                owners: vec![context.owner.clone()],
+                owners: context.owner.iter().cloned().collect(),
                 ..Default::default()
             };
             // Only document link sharing confers explicit visibility on mention.

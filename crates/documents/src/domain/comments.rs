@@ -40,10 +40,21 @@ pub trait CommentMarks: Send + Sync + 'static {
 }
 
 /// Where a discussion sits in its document.
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(serde::Serialize, Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ai_tools", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum CommentAnchor {
+    /// A cell or rectangular range in a native spreadsheet.
+    #[serde(rename_all = "camelCase")]
+    Spreadsheet {
+        /// Stable sheet identity within the workbook.
+        sheet_id: String,
+        /// Sheet name when the discussion was created.
+        sheet_name: String,
+        /// A1 cell or range, such as B4 or B4:C9.
+        range: String,
+    },
+
     /// A Discussion comment on the document as a whole.
     Document,
     /// An inline comment on a passage of a markdown document.
@@ -78,6 +89,21 @@ pub enum CommentAnchor {
         /// The pin annotation.
         anchor_id: Uuid,
     },
+    /// A comment pinned to a point on a design (`.fig`). A pin marks a
+    /// place, not a span of text, so it has no marked text.
+    #[serde(rename_all = "camelCase")]
+    Fig {
+        /// The page (canvas) the pin is on.
+        page_id: String,
+        /// The layer the pin follows; absent for a pin on the bare canvas.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        node_id: Option<String>,
+        /// Horizontal offset from the layer's origin, or the page's when the
+        /// pin is on no layer, in design units.
+        x: f64,
+        /// Vertical offset, measured like `x`.
+        y: f64,
+    },
 }
 
 /// A single comment in a discussion.
@@ -107,14 +133,14 @@ pub struct DocumentComment {
 #[cfg_attr(feature = "ai_tools", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum CommentThreadKind {
-    /// An inline comment on a passage, PDF highlight or PDF pin.
+    /// An inline comment on a passage, PDF highlight, PDF pin or spreadsheet range.
     Inline,
     /// A comment in the document's Discussion panel.
     Discussion,
 }
 
 /// A comment thread on a document: its first comment followed by the replies.
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(serde::Serialize, Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ai_tools", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentDiscussion {
@@ -317,6 +343,15 @@ fn comment_anchor(
 ) -> CommentAnchor {
     match anchor {
         None => CommentAnchor::Document,
+        Some(ThreadAnchor::Spreadsheet {
+            sheet_id,
+            sheet_name,
+            range,
+        }) => CommentAnchor::Spreadsheet {
+            sheet_id,
+            sheet_name,
+            range,
+        },
         Some(ThreadAnchor::Markdown {
             mark_id,
             marked_text: snapshot,
@@ -348,6 +383,17 @@ fn comment_anchor(
             marked_text,
         },
         Some(ThreadAnchor::PdfPlaceable { anchor_id }) => CommentAnchor::PdfPin { anchor_id },
+        Some(ThreadAnchor::Fig {
+            page_id,
+            node_id,
+            x,
+            y,
+        }) => CommentAnchor::Fig {
+            page_id,
+            node_id,
+            x,
+            y,
+        },
     }
 }
 

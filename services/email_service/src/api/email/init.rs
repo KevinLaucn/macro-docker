@@ -1,7 +1,6 @@
 use crate::api::ApiContext;
-use crate::api::context::AuthorizationService;
-#[cfg(feature = "calendar")]
-use crate::api::context::CalendarGrantService;
+use crate::api::context::{AuthorizationService, CalendarGrantService};
+use crate::pubsub::publish_email_event;
 use crate::utils::extract_email_with_response;
 use anyhow::Context;
 use axum::{
@@ -15,10 +14,7 @@ use email::domain::events::{EmailMacroEvent, LinkConnectedMetadata};
 use email::domain::models::UserProvider;
 use email::domain::ports::EmailRepo;
 use email::outbound::EmailPgRepo;
-use email_api_client::domain::models::EmailApiError;
-#[cfg(feature = "calendar")]
-use email_api_client::domain::models::TokenFreshness;
-use email_service::pubsub::publish_email_event;
+use email_api_client::domain::models::{EmailApiError, TokenFreshness};
 use macro_authorization::{MacroAuthorizationExtractor, UserOrInternal};
 use macro_db_client::in_progress_user_link::InProgressUserLink;
 use macro_user_id::email::EmailStr;

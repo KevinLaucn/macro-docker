@@ -5,9 +5,9 @@ use std::sync::{Arc, Mutex};
 use crate::domain::content::DocumentContent;
 use crate::domain::events::InteractionReason;
 use crate::domain::models::{
-    CreateDocumentRepoArgs, CreateTaskRequest, DocumentError, DocumentTeamShareResponse,
-    EditDocumentServiceArgs, GithubPullRequestsResponse, ImportEmailAttachmentRepoArgs,
-    LocationQueryParams, TaskBranchName,
+    CreateTaskRequest, DocumentError, DocumentTeamShareResponse, EditDocumentServiceArgs,
+    GithubPullRequestsResponse, ImportEmailAttachmentRepoArgs, LocationQueryParams, NewDocument,
+    TaskBranchName,
 };
 use crate::domain::permission_token::decode_permission_token;
 use crate::domain::ports::editing::{
@@ -25,9 +25,81 @@ use macro_sync_service_jwt::DocumentPermissionToken;
 use macro_user_id::{lowercased::Lowercase, user_id::MacroUserId, user_id::MacroUserIdStr};
 use model::{document::DocumentBasic, sync_service::SyncServiceVersionID};
 use model_entity::Entity;
-use model_owner::Owner;
+use model_owner::{CreationPrincipal, Owner};
 use sync_service_client::SyncServiceClient;
 use uuid::Uuid;
+
+use ai_billing::domain::{
+    DenyReason,
+    admission::{AdmissionFuture, AiAdmissionError, AiAdmissionService},
+};
+
+struct Refuse(AiAdmissionError);
+impl AiAdmissionService for Refuse {
+    fn admit<'a>(
+        &'a self,
+        user: &'a MacroUserIdStr<'_>,
+        feature: ai_usage::AiFeature,
+    ) -> AdmissionFuture<'a> {
+        Box::pin(async move {
+            assert_eq!(user.as_ref(), TEST_USER_ID);
+            assert_eq!(feature, ai_usage::AiFeature::AiEditing);
+            Err(self.0)
+        })
+    }
+}
+
+#[tokio::test]
+async fn direct_edit_tool_surfaces_admission_failure_without_worker_calls() {
+    for error in [
+        AiAdmissionError::Denied(DenyReason::AllowanceExhausted),
+        AiAdmissionError::Unavailable,
+    ] {
+        let (result, worker) = call_edit_document_in("md", false, |context| {
+            context.with_admission(Arc::new(Refuse(error)))
+        })
+        .await;
+        assert_eq!(
+            result.unwrap_err().description,
+            format!("{}: {error}", error.code())
+        );
+        assert!(worker.edit_calls.lock().unwrap().is_empty());
+    }
+}
+
+#[tokio::test]
+async fn permission_errors_still_precede_quota_errors() {
+    let (result, worker) = call_edit_document_in("md", false, |mut context| {
+        context.entity_access_service = Arc::new(FakeEntityAccessService {
+            access_level: AccessLevel::View,
+        });
+        context.with_admission(Arc::new(Refuse(AiAdmissionError::Unavailable)))
+    })
+    .await;
+    assert_eq!(
+        result.unwrap_err().description,
+        "you do not have edit access to this document"
+    );
+    assert!(worker.edit_calls.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn cancelled_tool_does_not_start_worker() {
+    let worker = FakeEditingWorker::default();
+    let context = tool_context(FakeDocumentService::new("md"), worker.clone());
+    let request = request_context();
+    request.cancel.cancel();
+    let tool = EditDocument {
+        document_id: TEST_DOCUMENT_ID.into(),
+        instructions: "edit".into(),
+        fast: false,
+    };
+    assert_eq!(
+        tool.call(context, request).await.unwrap_err().description,
+        "cancelled"
+    );
+    assert!(worker.edit_calls.lock().unwrap().is_empty());
+}
 
 const TEST_USER_ID: &str = "macro|editor@example.com";
 const TEST_DOCUMENT_ID: &str = "019fd3b9-3c6c-7c05-89c2-a27f0121813b";
@@ -65,6 +137,13 @@ impl DocumentService for FakeDocumentService {
         _document_id: &str,
     ) -> Result<DocumentBasic, DocumentError> {
         Ok(document_with_file_type(self.file_type.as_deref()))
+    }
+
+    async fn internal_get_user_display_name(
+        &self,
+        _user_id: &str,
+    ) -> Result<Option<String>, DocumentError> {
+        Ok(None)
     }
 
     // The guard reads the file type, which the basic document already carries.
@@ -118,8 +197,8 @@ impl DocumentService for FakeDocumentService {
 
     async fn create_document(
         &self,
-        _user_id: MacroUserIdStr<'static>,
-        _args: CreateDocumentRepoArgs,
+        _principal: &CreationPrincipal,
+        _document: NewDocument,
         _job_id: Option<String>,
     ) -> Result<CreateDocumentResponseData, DocumentError> {
         panic!("unexpected create_document call")
@@ -127,7 +206,6 @@ impl DocumentService for FakeDocumentService {
 
     async fn import_email_attachment(
         &self,
-        _user_id: MacroUserIdStr<'static>,
         _args: ImportEmailAttachmentRepoArgs,
     ) -> Result<CreateDocumentResponseData, DocumentError> {
         panic!("unexpected import_email_attachment call")
@@ -177,7 +255,7 @@ impl DocumentService for FakeDocumentService {
         &self,
         _entity_access_receipt: EntityAccessReceipt<ViewAccessLevel>,
         _document_context: DocumentBasic,
-        _user_id: MacroUserIdStr<'static>,
+        _principal: &CreationPrincipal,
         _document_name: String,
         _query_version_id: Option<i64>,
         _sync_version_id: Option<SyncServiceVersionID>,
@@ -198,10 +276,9 @@ impl DocumentService for FakeDocumentService {
 
     async fn handle_task_properties(
         &self,
-        _user_id: MacroUserIdStr<'static>,
+        _principal: &CreationPrincipal,
         _document_id: &str,
         _request: &CreateTaskRequest,
-        _attribution: &activity::Attribution,
     ) -> Result<(), DocumentError> {
         panic!("unexpected handle_task_properties call")
     }
@@ -241,8 +318,8 @@ impl DocumentService for FakeDocumentService {
 impl DocumentCreationService for FakeDocumentService {
     async fn create_document(
         &self,
-        _user_id: MacroUserIdStr<'static>,
-        _args: CreateDocumentRepoArgs,
+        _principal: &CreationPrincipal,
+        _document: NewDocument,
         _job_id: Option<String>,
     ) -> Result<CreateDocumentResponseData, DocumentError> {
         panic!("unexpected create_document call")
@@ -250,10 +327,9 @@ impl DocumentCreationService for FakeDocumentService {
 
     async fn handle_task_properties(
         &self,
-        _user_id: MacroUserIdStr<'static>,
+        _principal: &CreationPrincipal,
         _document_id: &str,
         _request: &CreateTaskRequest,
-        _attribution: &activity::Attribution,
     ) -> Result<(), DocumentError> {
         panic!("unexpected handle_task_properties call")
     }
@@ -455,6 +531,15 @@ impl EditingWorkerService for FakeEditingWorker {
         _request: &crate::domain::spreadsheet::SpreadsheetRequest,
     ) -> anyhow::Result<crate::domain::spreadsheet::SpreadsheetResponse> {
         panic!("unexpected spreadsheet call")
+    }
+
+    async fn word_document(
+        &self,
+        _document_id: &str,
+        _document_token: &DocumentPermissionToken,
+        _request: &crate::domain::word_document::WordDocumentRequest,
+    ) -> anyhow::Result<crate::domain::word_document::WordDocumentResponse> {
+        panic!("unexpected word document call")
     }
 
     async fn add_comment_mark(
@@ -813,23 +898,22 @@ fn editor_name_is_trimmed_and_never_blank() {
 }
 
 #[test]
-fn tool_writes_are_delegated_from_the_context_actor_to_the_requesting_user() {
+fn tool_creations_are_made_by_the_context_actor_for_the_requesting_user() {
     let user = MacroUserIdStr::try_from(TEST_USER_ID.to_string()).expect("valid user");
     let default_context =
         tool_context(FakeDocumentService::new("md"), FakeEditingWorker::default());
     assert_eq!(default_context.actor, bot_id::MACRO_AI_BOT_ID);
 
-    let attribution = default_context
+    let principal = default_context
         .0
         .with_actor(BotId::TEST_A)
-        .attribution(user);
+        .creation_principal(user.clone());
     assert_eq!(
-        attribution.actor().as_ref(),
-        BotId::TEST_A.into_storage_id().as_ref()
-    );
-    assert_eq!(
-        attribution.on_behalf_of().as_ref().map(|id| id.as_ref()),
-        Some(TEST_USER_ID)
+        principal,
+        CreationPrincipal::BotForUser {
+            bot: BotId::TEST_A,
+            user,
+        }
     );
 }
 
@@ -848,4 +932,10 @@ fn only_markdown_is_editable() {
         ensure_markdown(&document_with_file_type(None)).is_err(),
         "a document with no file type must be rejected"
     );
+}
+
+#[test]
+fn word_documents_are_pointed_at_the_word_tools() {
+    let error = ensure_markdown(&document_with_file_type(Some("docx"))).unwrap_err();
+    assert!(error.description.contains("EditWordDocument"));
 }

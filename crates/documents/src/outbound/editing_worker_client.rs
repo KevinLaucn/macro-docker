@@ -3,9 +3,13 @@
 use crate::domain::ports::editing::{
     EditMode, EditResult, EditUsage, EditingWorkerService, EditorName,
 };
+use anyhow::Context;
 use macro_sync_service_jwt::DocumentPermissionToken;
 use reqwest::Client;
 use std::sync::Arc;
+
+#[cfg(test)]
+mod test;
 
 /// Reqwest-backed client for the AI editing worker.
 #[derive(Clone)]
@@ -93,6 +97,43 @@ impl EditingWorkerService for ReqwestEditingWorkerClient {
                 .unwrap_or_default();
             let message = body.get("error").and_then(serde_json::Value::as_str)
                 .unwrap_or("Spreadsheet operation failed. Read the workbook again before retrying an edit.");
+            anyhow::bail!("{message} (HTTP {status})");
+        }
+        Ok(response.json().await?)
+    }
+
+    #[cfg(feature = "ai_tools")]
+    #[tracing::instrument(skip_all, fields(document_id), err)]
+    async fn word_document(
+        &self,
+        document_id: &str,
+        document_token: &DocumentPermissionToken,
+        request: &crate::domain::word_document::WordDocumentRequest,
+    ) -> anyhow::Result<crate::domain::word_document::WordDocumentResponse> {
+        let mut headers = reqwest::header::HeaderMap::new();
+        macro_tower_layers::inject_trace_headers(&mut headers);
+        let response = self
+            .client
+            .post(format!("{}/docx", self.worker_url))
+            .headers(headers)
+            .timeout(std::time::Duration::from_secs(45))
+            .json(&serde_json::json!({
+                "documentId": document_id,
+                "documentToken": document_token.as_str(),
+                "request": request,
+            }))
+            .send()
+            .await?;
+        let status = response.status();
+        if !status.is_success() {
+            let body = response
+                .json::<serde_json::Value>()
+                .await
+                .unwrap_or_default();
+            let message = body
+                .get("error")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("Word document operation failed. Read the document again before retrying an edit.");
             anyhow::bail!("{message} (HTTP {status})");
         }
         Ok(response.json().await?)
@@ -230,7 +271,8 @@ impl EditingWorkerService for ReqwestEditingWorkerClient {
             .headers(headers)
             .json(&request_body)
             .send()
-            .await?;
+            .await
+            .context("editing worker request failed")?;
 
         let status = edit_resp.status();
         if !status.is_success() {

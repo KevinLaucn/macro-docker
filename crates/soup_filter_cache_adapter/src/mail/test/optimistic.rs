@@ -60,6 +60,7 @@ async fn replacement_removals<S: PredicateIndexStorage>(storage: S) {
             .begin_optimistic_write_with_projections(
                 None,
                 BeginOptimisticWrite {
+                    client_metadata: None,
                     uuid: "00000000-0000-0000-0000-000000003000",
                     query: QUERY,
                     operation_name: None,
@@ -68,6 +69,7 @@ async fn replacement_removals<S: PredicateIndexStorage>(storage: S) {
                     link_patches: &[],
                     revalidations: &[],
                     created_at_ms: 1,
+                    identity_bindings: &[],
                 },
                 optimistic_updates(updates),
             )
@@ -151,6 +153,7 @@ async fn optional_sorts<S: PredicateIndexStorage>(storage: S) {
         .begin_optimistic_write_with_projections(
             None,
             BeginOptimisticWrite {
+                client_metadata: None,
                 uuid: "00000000-0000-0000-0000-000000003001",
                 query: QUERY,
                 operation_name: None,
@@ -159,6 +162,7 @@ async fn optional_sorts<S: PredicateIndexStorage>(storage: S) {
                 link_patches: &[],
                 revalidations: &[],
                 created_at_ms: 1,
+                identity_bindings: &[],
             },
             optimistic_updates(updates),
         )

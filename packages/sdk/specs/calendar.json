@@ -768,6 +768,11 @@
             "format": "uuid",
             "description": "Connected inbox whose primary calendar receives the event; defaults\nto the requester's primary inbox."
           },
+          "idempotencyKey": {
+            "type": ["string", "null"],
+            "format": "uuid",
+            "description": "Stable retry identity, scoped to the authenticated organizer."
+          },
           "location": {
             "type": ["string", "null"],
             "description": "Optional location label."
@@ -1017,6 +1022,10 @@
           "recurrenceId": {
             "type": ["string", "null"],
             "description": "Original-start key of the occurrence the response targets."
+          },
+          "respondingEmail": {
+            "type": ["string", "null"],
+            "description": "The owned connected address whose attendance is changed. Validated by the domain."
           },
           "response": {
             "$ref": "#/components/schemas/AttendeeResponseStatus",

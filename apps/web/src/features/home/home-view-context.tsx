@@ -1,4 +1,5 @@
 import { channelsSearch } from '@app/features/channels-view/channels-route';
+import { useMobileSearchText } from '@app/features/command/mobile/use-mobile-search-text';
 import { driveSearch } from '@app/features/drive-view/primitives/drive-search';
 import type { FacetSelection } from '@app/features/soup/filters/facets/types';
 import { makePersistedState } from '@app/lib/persistence';
@@ -8,6 +9,12 @@ import {
   useNavigate,
   useParams,
 } from '@app/lib/split-router';
+import {
+  homeChannelRoute,
+  homeDocumentRoute,
+  homePreviewRoute,
+  homeSplitRoute,
+} from '@app/routes/routes';
 import { createPreviewSelectionGuard } from '@components/app/createPreviewSelectionGuard';
 import {
   type PreviewBlockTarget,
@@ -24,6 +31,7 @@ import {
   createEffect,
   createMemo,
   createSignal,
+  mergeProps,
   on,
 } from 'solid-js';
 import {
@@ -43,12 +51,6 @@ import { homeDetailParamsFromRoute, homePreviewTarget } from './home-route';
 import { isHomeDocumentType } from './home-route-schema';
 import { homeTabSearch, homeTabSearchCodec } from './home-tab-search';
 import { createHomeViewPersistence, normalizeHomeFacets } from './persistence';
-import {
-  homeChannelRoute,
-  homeDocumentRoute,
-  homePreviewRoute,
-  homeSplitRoute,
-} from './route';
 import type {
   HomeGroupBy,
   HomeTab,
@@ -77,8 +79,8 @@ export type HomeViewContext = {
   setFacets: (facets: FacetSelection) => void;
 };
 
-function defaultGroupBy(tab: HomeTab): HomeGroupBy {
-  return tab === 'reminders' ? 'none' : 'date';
+function defaultGroupBy(): HomeGroupBy {
+  return 'date';
 }
 
 export const [HomeViewProvider, useHomeView] = createAssertedContextProvider<
@@ -96,11 +98,11 @@ export const [HomeViewProvider, useHomeView] = createAssertedContextProvider<
   const selectPreview = createPreviewSelectionGuard();
   const initial = props.initialState ?? {};
   const initialTab = initial.tab ?? 'signal';
-  const [state, setState] = makePersistedState(
+  const [persistedState, setState] = makePersistedState(
     createStore<HomeViewState>({
       tab: initialTab,
       search: initial.search ?? '',
-      groupBy: initial.groupBy ?? defaultGroupBy(initialTab),
+      groupBy: initial.groupBy ?? defaultGroupBy(),
       facets: normalizeHomeFacets(initial.facets),
     }),
     createHomeViewPersistence({
@@ -111,6 +113,16 @@ export const [HomeViewProvider, useHomeView] = createAssertedContextProvider<
     })
   );
 
+  const searchText = useMobileSearchText(
+    () => persistedState.search,
+    panel.handle.isActive
+  );
+  const state = mergeProps(persistedState, {
+    get search() {
+      return searchText();
+    },
+  });
+
   createEffect(
     on(
       () => tabSearch.tab,
@@ -119,7 +131,7 @@ export const [HomeViewProvider, useHomeView] = createAssertedContextProvider<
         setState(
           produce((draft) => {
             draft.tab = tab;
-            draft.groupBy = defaultGroupBy(tab);
+            draft.groupBy = defaultGroupBy();
           })
         );
       }
@@ -170,10 +182,10 @@ export const [HomeViewProvider, useHomeView] = createAssertedContextProvider<
   const [previewNavigationRequest, setPreviewNavigationRequest] =
     createSignal(0);
   const openPreview = (entity: PreviewSelection) => {
-    if (entity.type === 'calendar_event') {
-      return openCalendarEvent(entity);
-    }
-    const target = previewBlockTarget(entity);
+    if (entity.type === 'calendar_event') return openCalendarEvent(entity);
+    return openPreviewTarget(previewBlockTarget(entity));
+  };
+  const openPreviewTarget = (target: PreviewBlockTarget) => {
     if (!selectPreview.canSelect(target)) return false;
     const current = previewTarget();
     if (
@@ -207,7 +219,7 @@ export const [HomeViewProvider, useHomeView] = createAssertedContextProvider<
     setState(
       produce((draft) => {
         draft.tab = tab;
-        draft.groupBy = defaultGroupBy(tab);
+        draft.groupBy = defaultGroupBy();
       })
     );
     closePreview();

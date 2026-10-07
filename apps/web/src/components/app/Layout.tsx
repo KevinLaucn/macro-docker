@@ -1,3 +1,5 @@
+// PRIVATE-HOOK: self_host_health:prompt_import
+import { SelfHostHealthPrompt } from '@macro/self-host-health';
 import { DEFAULT_ROUTE } from '@app/constants/defaultRoute';
 import { ROUTER_BASE_CONCAT } from '@app/constants/routerBase';
 import Banner from '@app/features/auth/banner/Banner';
@@ -12,8 +14,10 @@ import {
   setCreateMenuOpen,
 } from '@app/features/command/Launcher';
 import { SearchState } from '@app/features/command/mobile/mobileSearchState';
-import { CreateCompanyModal } from '@app/features/companies/CreateCompanyModal';
-import { CreateContactModal } from '@app/features/companies/CreateContactModal';
+import {
+  CreateCompanyModal,
+  CreateContactModal,
+} from '@app/features/crm/crm-create';
 import { DevStatusBar } from '@app/features/devtools/DevStatusBar';
 import { GlobalBulkEditEntityModal } from '@app/features/entity/bulk-edit/BulkEditEntityModal';
 import {
@@ -22,65 +26,55 @@ import {
 } from '@app/features/inbox/AddInboxDialog';
 import { MacroMcpSetupModal } from '@app/features/integrations/mcp-setup/MacroMcpSetupModal';
 import { AiUsageLimitDialog } from '@app/features/paywall/AiUsageLimitDialog';
-import { Paywall } from '@app/features/paywall/Paywall';
-import { PropertyEditorModal } from '@app/features/property/editor/PropertyEditorModal';
-import { ReminderComposerModal } from '@app/features/reminders/ReminderComposerModal';
+import { observeAiUsageLimitMutations } from '@app/features/paywall/ai-usage-limit-handling';
 import { MobileSettingsProvider } from '@app/features/settings/context/mobile-settings';
-import { MobileSettings } from '@app/features/settings/MobileSettings';
-import { useOnboardingV4Flag } from '@app/features/setup/flow/useOnboardingV4Flag';
-import { IosShareSheet } from '@app/features/sharing/ios-share-sheet/IosShareSheet';
+import { NativeShareSheet } from '@app/features/sharing/native-share-sheet/NativeShareSheet';
 import { ShowFeatureFlag } from '@app/lib/analytics/posthog';
 import { mountGlobalFocusListener } from '@app/signal/focus';
-import { AutomationComposer } from '@block-automation/component';
 import { CreateChannelModal } from '@channel/CreateChannelModal';
-import {
-  AppSidebar,
-  GoToHotkeys,
-  type SidebarState,
-} from '@components/app/app-sidebar/sidebar';
+import { GoToHotkeys } from '@components/app/app-sidebar/sidebar';
 import { registerMailtoComposerHandler } from '@components/app/mailtoComposerHandler';
 import { SidebarRail } from '@components/app/sidebar-next/sidebar-rail';
-import { useSidebarNextFlag } from '@components/app/sidebar-next/use-sidebar-next-flag';
 import {
   isSidebarVisible,
-  SidebarCollapseContext,
   SidebarVisibilityContext,
 } from '@components/app/sidebarVisibility';
 import { useIsAuthenticated } from '@core/auth';
 import { UserCardDrawer } from '@core/component/UserCardDrawer';
 import { useAiUsageLimitState } from '@core/constant/AiUsageLimitState';
-import { DEV_MODE_ENV, enableReminders } from '@core/constant/featureFlags';
+import { enableDatabases } from '@core/constant/featureFlags';
 import { usePaywallState } from '@core/constant/PaywallState';
-import { isSoloSettings } from '@core/constant/SettingsState';
 import { attachGlobalDOMScope } from '@core/hotkey/hotkeys';
 import { isMobile } from '@core/mobile/isMobile';
 import { isNativeMobilePlatform } from '@core/mobile/isNativeMobilePlatform';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { virtualKeyboardVisible } from '@core/mobile/virtualKeyboard';
 import { updateCookie } from '@core/util/cookies';
-// PRIVATE-HOOK: self_host_health:prompt_import
-import { SelfHostHealthPrompt } from '@macro/self-host-health';
+import { lazyNamed } from '@core/util/lazyNamed';
+import { isPlatform } from '@core/util/platform';
 import { useUserInfoQuery } from '@queries/auth/user-info';
-import { makePersisted } from '@solid-primitives/storage';
+import { queryClient } from '@queries/client';
 import {
   type RouteSectionProps,
   useLocation,
   useNavigate,
 } from '@solidjs/router';
+import { type as osType } from '@tauri-apps/plugin-os';
 import { cn, ImperativeDialogHost } from '@ui';
-import { ScreencastHotkeys } from '@ui/components/ScreencastHotkeys';
 import {
   createEffect,
   createMemo,
   createSignal,
-  ErrorBoundary,
+  lazy,
   onCleanup,
   onMount,
   Show,
   Suspense,
 } from 'solid-js';
+import { ViewNavigationSlotContext } from '../view-shell/navigation-slot';
 import { BundleUpdateProgressBar } from './BundleUpdateProgressBar';
 import { ContentLoading } from './ContentLoading';
+import { DesktopTitleBar } from './DesktopTitleBar';
 import GlobalShortcuts from './GlobalHotkeys';
 import { ItemDndProvider } from './ItemDragAndDrop';
 import { FloatRegion } from './mobile/float-regions/FloatRegion';
@@ -90,6 +84,28 @@ import { MobileDockRow } from './mobile/MobileDockRow';
 import { MobileViewsRow } from './mobile/MobileViewsRow';
 import { SwipeDownDismissKeyboard } from './mobile/SwipeDownDismissKeyboard';
 import { useAppSquishHandlers } from './useAppSquishHandlers';
+
+const StarterDatabase = lazy(async () => {
+  const module = await import(
+    '@app/features/block-database/views/starter-database'
+  );
+  return { default: module.StarterDatabase };
+});
+
+// Modals and mobile-only surfaces stay out of the entry chunk; each one
+// renders inside a Suspense boundary and loads when it first mounts.
+const Paywall = lazyNamed(
+  () => import('@app/features/paywall/Paywall'),
+  'Paywall'
+);
+const PropertyEditorModal = lazyNamed(
+  () => import('@app/features/property/editor/PropertyEditorModal'),
+  'PropertyEditorModal'
+);
+const MobileSettings = lazyNamed(
+  () => import('@app/features/settings/MobileSettings'),
+  'MobileSettings'
+);
 
 const AUTH_URLS = [
   `${ROUTER_BASE_CONCAT}login`,
@@ -106,13 +122,6 @@ const AUTH_URLS = [
   `${ROUTER_BASE_CONCAT}internal/invite-links`,
 ];
 
-const [sidebarState, setSidebarState] = makePersisted(
-  createSignal<SidebarState>(!isTouchDevice() ? 'expanded' : 'hidden'),
-  {
-    name: 'sidebar-state',
-  }
-);
-
 export function Layout(props: RouteSectionProps) {
   const isAuthenticated = useIsAuthenticated();
   const location = useLocation();
@@ -120,23 +129,21 @@ export function Layout(props: RouteSectionProps) {
     () =>
       !isTouchDevice() &&
       isAuthenticated() === true &&
-      !AUTH_URLS.includes(location.pathname) &&
-      // Settings-as-the-sole-split has its own tab nav — hide app chrome.
-      !isSoloSettings()
+      !AUTH_URLS.includes(location.pathname)
   );
 
   return (
     <SidebarVisibilityContext.Provider value={sidebarVisible}>
-      <SidebarCollapseContext.Provider
-        value={{
-          isCollapsed: () => sidebarVisible() && sidebarState() === 'slim',
-          expand: () => setSidebarState('expanded'),
-        }}
-      >
-        <MobileSettingsProvider>
-          <LayoutInner {...props} />
-        </MobileSettingsProvider>
-      </SidebarCollapseContext.Provider>
+      <MobileSettingsProvider>
+        <Show when={isAuthenticated() === true}>
+          <ShowFeatureFlag flag={enableDatabases}>
+            <Suspense>
+              <StarterDatabase />
+            </Suspense>
+          </ShowFeatureFlag>
+        </Show>
+        <LayoutInner {...props} />
+      </MobileSettingsProvider>
     </SidebarVisibilityContext.Provider>
   );
 }
@@ -150,25 +157,20 @@ function NewOnboardingRedirect() {
   const userInfoQuery = useUserInfoQuery();
   const navigate = useNavigate();
   const location = useLocation();
-  const onboardingV4 = useOnboardingV4Flag();
-
   createEffect(() => {
-    if (!onboardingV4().enabled || isMobile() || isNativeMobilePlatform()) {
-      return;
-    }
+    if (isMobile() || isNativeMobilePlatform()) return;
     const data = userInfoQuery.data;
     if (data?.authenticated !== true || data.tutorialComplete !== false) {
       return;
     }
     if (AUTH_URLS.includes(location.pathname)) return;
     // Preserve the deep link the user arrived on (a shared doc, an invite):
-    // /setup carries it as ?next and its finish() returns there instead of
+    // onboarding carries it as ?next and its finish() returns there instead of
     // the post-setup landing. Base-relative so navigate() can resolve it
     // against the router.
     const target =
       location.pathname.slice(ROUTER_BASE_CONCAT.length - 1) + location.search;
-    const isGenericEntry =
-      !target || target === '/' || target?.startsWith(DEFAULT_ROUTE);
+    const isGenericEntry = target === '/' || target.startsWith(DEFAULT_ROUTE);
     navigate(
       isGenericEntry
         ? '/onboarding'
@@ -181,57 +183,14 @@ function NewOnboardingRedirect() {
 }
 
 function LayoutInner(props: RouteSectionProps) {
+  const hasOverlayTitleBar = isPlatform('desktop') && osType() === 'macos';
+  const [navigationSlot, setNavigationSlot] = createSignal<HTMLElement>();
   const isAuthenticated = useIsAuthenticated();
   const { paywallOpen, showPaywall } = usePaywallState();
   const { usageLimitOpen } = useAiUsageLimitState();
   const location = useLocation();
-  const [sidebarOverlayOpen, setSidebarOverlayOpen] = createSignal(false);
-  const [sidebarOverlayTriggerHovered, setSidebarOverlayTriggerHovered] =
-    createSignal(false);
-  const sidebarNextEnabled = useSidebarNextFlag();
-  // The new sidebar is a fixed rail in the three-column layout. Keep the
-  // persisted legacy sidebar state from hiding or collapsing that rail.
-  createEffect(() => {
-    if (sidebarNextEnabled() && sidebarState() !== 'expanded') {
-      setSidebarState('expanded');
-    }
-  });
-  // SidebarRail is already narrow and has no slim mode, so nothing should arm
-  // the hover-peek overlay strip.
-  const sidebarCollapsed = createMemo(
-    () =>
-      !sidebarNextEnabled() && isSidebarVisible() && sidebarState() === 'slim'
-  );
-  let sidebarOverlayCloseTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const clearSidebarOverlayCloseTimer = () => {
-    if (sidebarOverlayCloseTimer === undefined) return;
-    clearTimeout(sidebarOverlayCloseTimer);
-    sidebarOverlayCloseTimer = undefined;
-  };
-
-  const setSidebarOverlayOpenGuarded = (open: boolean) => {
-    clearSidebarOverlayCloseTimer();
-    if (open) {
-      setSidebarOverlayOpen(true);
-      return;
-    }
-
-    sidebarOverlayCloseTimer = setTimeout(() => {
-      sidebarOverlayCloseTimer = undefined;
-      if (!sidebarOverlayTriggerHovered()) setSidebarOverlayOpen(false);
-    }, 120);
-  };
-
-  createEffect(() => {
-    if (!sidebarCollapsed()) {
-      clearSidebarOverlayCloseTimer();
-      setSidebarOverlayTriggerHovered(false);
-      setSidebarOverlayOpen(false);
-    }
-  });
-
-  onCleanup(clearSidebarOverlayCloseTimer);
+  onCleanup(observeAiUsageLimitMutations(queryClient));
 
   useAppSquishHandlers();
 
@@ -267,171 +226,121 @@ function LayoutInner(props: RouteSectionProps) {
   attachGlobalDOMScope(document.body);
 
   return (
-    <div
-      class={cn(
-        'relative flex flex-col justify-between not-touch:bg-panel w-dvw h-[calc(var(--dvh,1dvh)*100)] pl-(--safe-left) pr-(--safe-right)'
-      )}
-    >
-      <ImperativeDialogHost />
-      <BundleUpdateProgressBar />
-      <Suspense>
-        <Show when={isAuthenticated()}>
-          <NewOnboardingRedirect />
-          <Show when={!AUTH_URLS.includes(location.pathname)}>
-            <GithubReauthenticationPrompt />
-            <GmailReauthenticationPrompt />
-            {/* PRIVATE-HOOK: self_host_health:prompt */}
-            <SelfHostHealthPrompt />
-            <CalendarPermissionPrompt />
-          </Show>
-          <GlobalShortcuts />
-          <Show when={!isTouchDevice()}>
-            <GoToHotkeys />
+    <ViewNavigationSlotContext.Provider value={navigationSlot}>
+      <div
+        class={cn(
+          'relative flex flex-col justify-between not-touch:bg-panel w-dvw h-[calc(var(--dvh,1dvh)*100)] pl-(--safe-left) pr-(--safe-right)',
+          hasOverlayTitleBar && 'pt-[40px]'
+        )}
+      >
+        <Show when={hasOverlayTitleBar}>
+          <DesktopTitleBar navigationRef={setNavigationSlot} />
+        </Show>
+        <ImperativeDialogHost />
+        <BundleUpdateProgressBar />
+        <Suspense>
+          <Show when={isAuthenticated()}>
+            <NewOnboardingRedirect />
+            <Show when={!AUTH_URLS.includes(location.pathname)}>
+              <GithubReauthenticationPrompt />
+              <GmailReauthenticationPrompt />
+              {/* PRIVATE-HOOK: self_host_health:prompt */}
+              <SelfHostHealthPrompt />
+              <CalendarPermissionPrompt />
+            </Show>
+            <GlobalShortcuts />
+            <Show when={!isTouchDevice()}>
+              <GoToHotkeys />
+              <Suspense>
+                <FavoritesCommands />
+                <CommandMenu />
+              </Suspense>
+            </Show>
             <Suspense>
-              <FavoritesCommands />
-              <CommandMenu />
+              <PropertyEditorModal />
             </Suspense>
+            <GlobalBulkEditEntityModal />
+            <NativeShareSheet />
+            <MacroMcpSetupModal />
+            <CreateChannelModal />
+            <CreateCompanyModal />
+            <CreateContactModal />
+            <Show when={isAddInboxDialogOpen()}>
+              <AddInboxDialog />
+            </Show>
           </Show>
-          <Suspense>
-            <PropertyEditorModal />
-          </Suspense>
-          <GlobalBulkEditEntityModal />
-          <IosShareSheet />
-          <MacroMcpSetupModal />
-          <CreateChannelModal />
-          <CreateCompanyModal />
-          <CreateContactModal />
-          {/* Reactive, unlike the imperative isFeatureEnabled(enableReminders) gate on the
-              action: this decides whether the composer is mounted at all, so it
-              has to pick up a late PostHog answer. */}
-          <ShowFeatureFlag flag={enableReminders}>
-            <ReminderComposerModal />
-          </ShowFeatureFlag>
-          <Show when={isAddInboxDialogOpen()}>
-            <AddInboxDialog />
+          <Show
+            when={
+              isAuthenticated() === false &&
+              !AUTH_URLS.includes(location.pathname)
+            }
+          >
+            <Banner />
           </Show>
-        </Show>
-        <Show
-          when={
-            isAuthenticated() === false &&
-            !AUTH_URLS.includes(location.pathname)
-          }
-        >
-          <Banner />
-        </Show>
-      </Suspense>
-      {/* <Show when={isAuthenticated() && isTutorialCompleted() === false}>
+        </Suspense>
+        {/* <Show when={isAuthenticated() && isTutorialCompleted() === false}>
         <Onboarding />
       </Show> */}
 
-      <Show when={paywallOpen()}>
-        <Suspense>
-          <Paywall />
-        </Suspense>
-      </Show>
-      <Show when={DEV_MODE_ENV && usageLimitOpen()}>
-        <AiUsageLimitDialog />
-      </Show>
-      <div class="max-h-full grow flex">
-        {/* The provider spans the sidebar too so its favorites can register
-            sortables with the same drag-drop context as the entity drags. */}
-        <ItemDndProvider>
-          <Show when={isSidebarVisible()}>
-            <Show
-              when={sidebarNextEnabled()}
-              fallback={
-                <AppSidebar
-                  sidebarState={sidebarState()}
-                  overlayOpen={sidebarOverlayOpen()}
-                  onOverlayOpenChange={setSidebarOverlayOpenGuarded}
-                  onOpenChange={(open) => {
-                    if (!open) {
-                      setSidebarState(isTouchDevice() ? 'hidden' : 'slim');
-                      return;
-                    }
-
-                    setSidebarState('expanded');
-                  }}
-                />
-              }
-            >
+        <Show when={paywallOpen()}>
+          <Suspense>
+            <Paywall />
+          </Suspense>
+        </Show>
+        <Show when={usageLimitOpen()}>
+          <AiUsageLimitDialog />
+        </Show>
+        <div class="min-h-0 flex-1 flex">
+          <ItemDndProvider>
+            <Show when={isSidebarVisible()}>
               <SidebarRail />
             </Show>
+
+            <div class="flex-1 w-full min-h-0 font-sans text-ink caret-current">
+              {/* Route loading must not detach the shell or mobile navigation. */}
+              <Suspense fallback={<ContentLoading />}>
+                {props.children}
+              </Suspense>
+            </div>
+          </ItemDndProvider>
+        </div>
+        <Show
+          when={
+            isTouchDevice() &&
+            isAuthenticated() &&
+            !AUTH_URLS.includes(location.pathname)
+          }
+        >
+          <FloatRegionHost />
+          <Suspense>
+            <UserCardDrawer />
+          </Suspense>
+          <Show when={isMobile()}>
+            <Suspense>
+              <MobileSettings />
+            </Suspense>
           </Show>
-          <Show when={sidebarCollapsed()}>
-            <div
-              class="fixed left-0 inset-y-0 z-modal-content w-[8px]"
-              onPointerEnter={() => {
-                setSidebarOverlayTriggerHovered(true);
-                setSidebarOverlayOpenGuarded(true);
-              }}
-              onPointerLeave={() => {
-                setSidebarOverlayTriggerHovered(false);
-                setSidebarOverlayOpenGuarded(false);
-              }}
+          <MobileViewsRow />
+          <FloatRegion
+            region="dock"
+            active={() => !virtualKeyboardVisible() || SearchState.isOpen()}
+          >
+            <MobileDockRow />
+          </FloatRegion>
+        </Show>
+        <SwipeDownDismissKeyboard />
+        <Suspense>
+          <Show
+            when={isAuthenticated() && !AUTH_URLS.includes(location.pathname)}
+          >
+            <Launcher
+              open={createMenuOpen()}
+              onOpenChange={setCreateMenuOpen}
             />
           </Show>
-
-          <div class="flex-1 w-full min-h-0 font-sans text-ink caret-current">
-            <ErrorBoundary
-              fallback={(error, reset) => (
-                <div class="flex flex-col items-center justify-center size-full gap-3 text-ink-muted p-6 text-center select-none">
-                  <p class="text-sm font-medium">页面内容加载异常</p>
-                  <p class="text-xs text-ink-faint max-w-md">
-                    {error?.message ?? String(error)}
-                  </p>
-                  <button
-                    type="button"
-                    class="mt-1 px-3 py-1.5 text-xs font-medium rounded-md border border-edge hover:bg-surface-raised transition-colors"
-                    onClick={() => {
-                      reset();
-                      window.location.href = '/app';
-                    }}
-                  >
-                    重置并重新加载
-                  </button>
-                </div>
-              )}
-            >
-              {/* Route loading must not detach the shell or mobile navigation. */}
-              <Suspense fallback={<ContentLoading />}>{props.children}</Suspense>
-            </ErrorBoundary>
-          </div>
-        </ItemDndProvider>
-      </div>
-      <Show
-        when={
-          isTouchDevice() &&
-          isAuthenticated() &&
-          !AUTH_URLS.includes(location.pathname)
-        }
-      >
-        <FloatRegionHost />
-        <Suspense>
-          <UserCardDrawer />
         </Suspense>
-        <Show when={isMobile()}>
-          <MobileSettings />
-        </Show>
-        <MobileViewsRow />
-        <FloatRegion
-          region="dock"
-          active={() => !virtualKeyboardVisible() || SearchState.isOpen()}
-        >
-          <MobileDockRow />
-        </FloatRegion>
-      </Show>
-      <SwipeDownDismissKeyboard />
-      <Suspense>
-        <Show
-          when={isAuthenticated() && !AUTH_URLS.includes(location.pathname)}
-        >
-          <Launcher open={createMenuOpen()} onOpenChange={setCreateMenuOpen} />
-          <AutomationComposer />
-        </Show>
-      </Suspense>
-      <DevStatusBar />
-      <ScreencastHotkeys />
-    </div>
+        <DevStatusBar />
+      </div>
+    </ViewNavigationSlotContext.Provider>
   );
 }

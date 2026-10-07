@@ -135,7 +135,7 @@ function AddServerForm(props: {
 
           <div class="flex justify-end gap-2 pt-1">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               depth={3}
               onClick={() => {
@@ -146,7 +146,7 @@ function AddServerForm(props: {
               Cancel
             </Button>
             <Button
-              variant="accent"
+              variant="strong"
               size="sm"
               depth={3}
               disabled={
@@ -312,7 +312,7 @@ function ServerRow(props: { server: ServerResponse }) {
         fallback={
           <div class="flex items-center gap-1">
             <Button
-              variant="danger"
+              variant="strong"
               size="sm"
               depth={3}
               disabled={deleteMutation.isPending}
@@ -321,7 +321,7 @@ function ServerRow(props: { server: ServerResponse }) {
               {deleteMutation.isPending ? 'Removing...' : 'Confirm'}
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               depth={3}
               onClick={() => setConfirmDelete(false)}

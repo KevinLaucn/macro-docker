@@ -23,6 +23,7 @@ use std::sync::LazyLock;
 
 use chrono::{DateTime, Utc};
 use macro_user_id::user_id::MacroUserIdStr;
+use model_owner::CreationPrincipal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
@@ -83,6 +84,18 @@ impl Attribution {
         match self {
             Self::Direct { .. } => None,
             Self::Delegated { subject, .. } => Some(subject.clone()),
+        }
+    }
+}
+
+impl From<&CreationPrincipal> for Attribution {
+    fn from(principal: &CreationPrincipal) -> Self {
+        match principal {
+            CreationPrincipal::User(user) => Self::direct(Actor::new_from_user(user.clone())),
+            CreationPrincipal::BotForUser { bot, user } => {
+                Self::delegated(Actor::new_from_bot(*bot), user.clone())
+            }
+            CreationPrincipal::TeamBot { bot, .. } => Self::direct(Actor::new_from_bot(bot.get())),
         }
     }
 }
@@ -181,6 +194,8 @@ pub enum Action {
     Messaged,
     /// An email message was sent on the thread.
     Sent,
+    /// Someone submitted a response to the entity (form).
+    Responded,
     /// A property value changed on the entity (see
     /// [`CommonAction::PropertyChanged`]).
     PropertyChanged(PropertyChange),
@@ -240,7 +255,8 @@ impl Action {
             | Action::Opened
             | Action::Deleted
             | Action::Messaged
-            | Action::Sent => None,
+            | Action::Sent
+            | Action::Responded => None,
             Action::PropertyChanged(change) => payload(change),
             Action::ParticipantAdded(change) | Action::ParticipantRemoved(change) => {
                 payload(change)
@@ -280,6 +296,7 @@ impl Action {
             ActionTag::Deleted => Ok(Action::Deleted),
             ActionTag::Messaged => Ok(Action::Messaged),
             ActionTag::Sent => Ok(Action::Sent),
+            ActionTag::Responded => Ok(Action::Responded),
             ActionTag::PropertyChanged => Ok(Action::PropertyChanged(parsed(payload)?)),
             ActionTag::ParticipantAdded => Ok(Action::ParticipantAdded(parsed(payload)?)),
             ActionTag::ParticipantRemoved => Ok(Action::ParticipantRemoved(parsed(payload)?)),

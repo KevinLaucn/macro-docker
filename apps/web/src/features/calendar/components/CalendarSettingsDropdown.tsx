@@ -111,7 +111,16 @@ function createCalendarSettingsControls(isNarrow: () => boolean) {
     calendarView.closeEventDetails();
     match(account.action)
       .with('enable', () => {
-        startAddInbox({ scopes: 'calendar' });
+        void startAddInbox({
+          scopes: account.consentScopes,
+          emailAddress: account.emailAddress,
+        });
+      })
+      .with('reconnect', () => {
+        void startAddInbox({
+          scopes: account.consentScopes,
+          emailAddress: account.emailAddress,
+        });
       })
       .with('turnOff', () => {
         setTurnOffTarget({
@@ -166,8 +175,8 @@ function DesktopCalendarSettings(props: {
         size={props.sidebar ? 'md' : 'icon-md'}
         class={
           props.sidebar
-            ? 'w-full rounded-full border-transparent bg-transparent'
-            : 'shrink-0 rounded-full border-transparent bg-transparent'
+            ? 'w-full border-transparent bg-transparent'
+            : 'shrink-0 border-transparent bg-transparent'
         }
         aria-label="Calendar settings"
       >
@@ -294,11 +303,15 @@ function DesktopCalendarSettings(props: {
                   <span
                     class="shrink-0 text-xs font-medium"
                     classList={{
-                      'text-accent': account.action === 'enable',
+                      'text-accent': account.action !== 'turnOff',
                       'text-failure': account.action === 'turnOff',
                     }}
                   >
-                    {account.action === 'enable' ? 'Enable' : 'Turn off'}
+                    {match(account.action)
+                      .with('enable', () => 'Enable')
+                      .with('reconnect', () => 'Reconnect')
+                      .with('turnOff', () => 'Turn off')
+                      .exhaustive()}
                   </span>
                 </Dropdown.Item>
               )}
@@ -488,11 +501,15 @@ function MobileCalendarSettings(props: {
                     <span
                       class="shrink-0 text-xs font-medium"
                       classList={{
-                        'text-accent': account.action === 'enable',
+                        'text-accent': account.action !== 'turnOff',
                         'text-failure': account.action === 'turnOff',
                       }}
                     >
-                      {account.action === 'enable' ? 'Enable' : 'Turn off'}
+                      {match(account.action)
+                        .with('enable', () => 'Enable')
+                        .with('reconnect', () => 'Reconnect')
+                        .with('turnOff', () => 'Turn off')
+                        .exhaustive()}
                     </span>
                   </MobileDrawer.Item>
                 )}

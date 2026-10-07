@@ -31,32 +31,25 @@ import type {
 const VALID_MARK_DONE_LIST_VIEWS: `${ListView}-${string}`[] = [
   'home-signal',
   'home-noise',
-  // Marking a pending reminder done cancels it before it fires — same as the
-  // standalone Reminders view's Scheduled tab below.
-  'home-reminders',
   'mail-important',
   'mail-all',
+  // These are original email rows; Done remains email archive, not reminder completion.
+  'mail-reminders',
   'mail-noise',
   'mail-favorites',
   // Calendar lists invite threads from the "all" email view, so done rows
   // stay in place and flip to the done state exactly like mail "All".
   'mail-calendar',
   'mail-shared',
-  // Completing a reminder is the whole point of the Reminders view: without
-  // it the only way to clear one is to delete it. Done is listed too so a
-  // reminder marked by mistake can be reopened from where it landed.
-  'reminders-active',
-  'reminders-scheduled',
-  'reminders-done',
+  'mail-archived',
 ];
 
 export const canExecuteMarkDoneOnView = (view: ListView, tabId: string) => {
   return VALID_MARK_DONE_LIST_VIEWS.includes(`${view}-${tabId}`);
 };
 
-/** Already-done emails are skipped by mark-done (they appear alongside
- *  not-done rows in views that show done content, e.g. mail "All"). done
- *  state is email-specific; other entity types are never filtered. */
+/** Already-done emails coexist with actionable rows in unified
+ * collections, so mark-done skips them rather than acknowledging twice. */
 const isMarkDoneTarget = (e: EntityData) =>
   !(e.type === 'email' && e.done === true);
 
@@ -73,11 +66,11 @@ type MarkDoneVariables = {
   emailIds: string[];
   /** Locally known IDs used only for the immediate optimistic cache patch. */
   optimisticNotificationIds: string[];
+  scopeChannelThreads: boolean;
   /** Exact IDs used by undo/redo; entity mutation results are appended here. */
   exactNotificationIds: { current: string[] };
   /** Entity-wide targets used only by the initial committed mark-done. */
   notificationEntities: NotificationEntityRef[];
-  reminderIds: string[];
   restoreFocus?: () => void;
   /** Suppress the "Marked as done" toast, e.g. for send-triggered mark done
    *  where it would replace the "Email sent" toast. */
@@ -128,14 +121,13 @@ export const makeMarkDoneAction = (options: MakeMarkDoneOptions) => {
         entityIds: variables.entities.map((entity) => entity.id),
         emailIds: variables.emailIds,
         notificationIds: variables.optimisticNotificationIds,
-        reminderIds: variables.reminderIds,
+        scopeChannelThreads: variables.scopeChannelThreads,
       }),
     mutationFn: async (variables) => {
       const authoritativeNotificationIds = await executeMarkEntitiesDone({
         emailIds: variables.emailIds,
         notificationIds: variables.exactNotificationIds.current,
         notificationEntities: variables.notificationEntities,
-        reminderIds: variables.reminderIds,
       });
       variables.exactNotificationIds.current = [
         ...new Set([
@@ -143,6 +135,9 @@ export const makeMarkDoneAction = (options: MakeMarkDoneOptions) => {
           ...authoritativeNotificationIds,
         ]),
       ];
+    },
+    onSuccess: (_data, variables, context) => {
+      context?.settle(variables.exactNotificationIds.current);
     },
     onError: (_err, _variables, context) => {
       context?.rollback();
@@ -154,10 +149,11 @@ export const makeMarkDoneAction = (options: MakeMarkDoneOptions) => {
         await executeMarkEntitiesUndone({
           emailIds: variables.emailIds,
           notificationIds: variables.exactNotificationIds.current,
-          reminderIds: variables.reminderIds,
         });
+        context?.settle(variables.exactNotificationIds.current);
       } catch (err) {
         context?.reapply();
+        context?.releaseGraphql();
         throw err;
       }
     },
@@ -167,10 +163,11 @@ export const makeMarkDoneAction = (options: MakeMarkDoneOptions) => {
         await executeMarkEntitiesDone({
           emailIds: variables.emailIds,
           notificationIds: variables.exactNotificationIds.current,
-          reminderIds: variables.reminderIds,
         });
+        context?.settle(variables.exactNotificationIds.current);
       } catch (err) {
         context?.applyUndone();
+        context?.releaseGraphql();
         throw err;
       }
     },
@@ -235,9 +232,6 @@ export const makeMarkDoneAction = (options: MakeMarkDoneOptions) => {
       entity.type === 'document' ||
       entity.type === 'project' ||
       entity.type === 'foreign' ||
-      // Marked done by hand like everything else — opening a reminder does not
-      // dismiss it. Signal gates on the not-done notification either way.
-      entity.type === 'reminder' ||
       // A calendar event row exists in Signal only through its not-done
       // reminder notification, so done resolves to those notification ids.
       entity.type === 'calendar_event'
@@ -252,7 +246,7 @@ export const makeMarkDoneAction = (options: MakeMarkDoneOptions) => {
     entities: EntityData[],
     restoreFocus?: () => void,
     opts?: MarkDoneExecuteOpts
-  ) => {
+  ): Promise<void> => {
     // Skip already-done emails so a mixed selection (e.g. done + not-done rows
     // in mail "All") doesn't re-archive the done ones or overcount the toast.
     const targets = entities.filter(isMarkDoneTarget);
@@ -302,9 +296,9 @@ export const makeMarkDoneAction = (options: MakeMarkDoneOptions) => {
       entities: targets,
       emailIds: resolved.emailIds,
       optimisticNotificationIds: resolved.notificationIds,
+      scopeChannelThreads: scopeChannelNotifications,
       exactNotificationIds: { current: exactNotificationIds },
       notificationEntities,
-      reminderIds: resolved.reminderIds,
       restoreFocus,
       silent: opts?.silent,
       onUndoHandle: opts?.onUndoHandle,

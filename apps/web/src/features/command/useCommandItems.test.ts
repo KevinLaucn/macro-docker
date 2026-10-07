@@ -1,6 +1,8 @@
 import type {
+  Bucket,
   QuickAccessItem,
   QuickAccessList,
+  QuickAccessListOptions,
 } from '@core/context/quickAccess/types';
 import type { CommandWithInfo } from '@core/hotkey/getCommands';
 import { createRoot, createSignal } from 'solid-js';
@@ -10,8 +12,22 @@ import { useCommandItems } from './useCommandItems';
 
 const mocks = vi.hoisted(() => ({
   list: undefined as QuickAccessList | undefined,
+  requestedBuckets: [] as Bucket[],
   entityMode: (): boolean => false,
   scope: (): CommandWithInfo[] => [],
+}));
+// These tests exercise entity loading independently of Projects and its providers.
+vi.mock('@app/lib/analytics/posthog', () => ({
+  useFeatureFlag: () => () => ({ enabled: false, loading: false }),
+}));
+vi.mock('@core/context/user', () => ({
+  useUserId: () => () => 'owner',
+}));
+vi.mock('../projects/project-search', () => ({
+  useProjectSearchQuery: () => ({
+    rows: () => undefined,
+    error: () => undefined,
+  }),
 }));
 vi.mock('@app/constants/hotkeys', () => ({
   GO_TO_COMMAND_SCOPE: 'go-to',
@@ -20,7 +36,8 @@ vi.mock('@app/constants/hotkeys', () => ({
 vi.mock('@core/context/quickAccess', () => ({
   exclude: () => ['note', 'channel'],
   useQuickAccess: () => ({
-    useList: () => {
+    useList: (options: QuickAccessListOptions) => {
+      mocks.requestedBuckets = [...options.buckets];
       if (!mocks.list) throw new Error('Missing test list');
       return mocks.list;
     },
@@ -150,5 +167,34 @@ describe('command menu entity loading', () => {
       },
     ]);
     expect(result.isLoadingEntities()).toBe(false);
+  });
+});
+
+describe('command menu database categories', () => {
+  it('keeps databases discoverable in All and Documents without view history', () => {
+    const { result, setItems, setLoading, setCategory } = setup();
+    const database: QuickAccessItem = {
+      id: 'book-organizer',
+      kind: 'entity',
+      bucket: 'database',
+      searchText: 'Book Organizer',
+      sortTimestamp: 1,
+      timestamps: { createdAt: '2026-09-01T00:00:00Z' },
+      data: {
+        type: 'database',
+        id: 'book-organizer',
+        name: 'Book Organizer',
+        ownerId: 'owner',
+        grant: 'owner',
+        createdAt: '2026-09-01T00:00:00Z',
+      },
+    };
+    setItems([database]);
+    setLoading(false);
+    for (const category of ['all', 'documents'] as const) {
+      setCategory(category);
+      expect(result.items()).toContain(database);
+      expect(mocks.requestedBuckets).toContain('database');
+    }
   });
 });

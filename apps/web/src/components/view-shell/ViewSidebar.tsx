@@ -1,9 +1,10 @@
+import { SplitHeaderContextMenu } from '@components/app/split-layout/components/SplitHeaderContextMenu';
 import CaretDownIcon from '@phosphor/caret-down.svg';
 import { Button, type ButtonProps, cn } from '@ui';
+import { CollapseTransition } from '@ui/components/CollapseTransition';
 import type { JSX } from 'solid-js';
 import { Show, splitProps } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
-import { CollapseTransition } from './CollapseTransition';
 import { ViewSidebarCloseButton, ViewSidebarToggle } from './ViewShell';
 
 function Root(props: JSX.HTMLAttributes<HTMLElement>) {
@@ -25,17 +26,19 @@ function Root(props: JSX.HTMLAttributes<HTMLElement>) {
 function Header(props: JSX.HTMLAttributes<HTMLDivElement>) {
   const [local, rest] = splitProps(props, ['children', 'class']);
   return (
-    <div
-      {...rest}
-      class={cn(
-        'flex h-12 min-w-0 shrink-0 items-center justify-between gap-3 py-3 pl-(--sidebar-content-inset) pr-(--sidebar-header-action-inset) [&_[data-split-panel-close]]:ml-(--sidebar-control-overhang)',
-        local.class
-      )}
-      data-view-sidebar-header=""
-    >
-      {local.children}
-      <ViewSidebarToggle action="collapse" />
-    </div>
+    <SplitHeaderContextMenu>
+      <div
+        {...rest}
+        class={cn(
+          'flex h-12 min-w-0 shrink-0 items-center justify-between gap-3 py-3 pl-(--sidebar-content-inset) pr-(--sidebar-header-action-inset) [&_[data-split-panel-close]]:ml-(--sidebar-control-overhang)',
+          local.class
+        )}
+        data-view-sidebar-header=""
+      >
+        {local.children}
+        <ViewSidebarToggle action="collapse" />
+      </div>
+    </SplitHeaderContextMenu>
   );
 }
 
@@ -93,10 +96,7 @@ function Control(props: ButtonProps) {
       variant="ghost"
       size="icon-sm"
       {...rest}
-      class={cn(
-        'size-(--sidebar-control-size) shrink-0 rounded-lg',
-        local.class
-      )}
+      class={cn('size-(--sidebar-control-size) shrink-0', local.class)}
       data-view-sidebar-control=""
     />
   );
@@ -226,6 +226,7 @@ function TreeItem(props: {
       <Show when={props.expanded !== undefined}>
         <span class="absolute right-(--sidebar-action-inset) top-1/2 flex -translate-y-1/2">
           <Control
+            class="rounded-md"
             label={`${props.expanded ? 'Collapse' : 'Expand'} ${props.label}`}
             aria-expanded={props.expanded}
             onClick={props.onToggle}

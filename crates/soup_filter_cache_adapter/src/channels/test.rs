@@ -306,6 +306,7 @@ async fn lifecycle<S: PredicateIndexStorage>(storage: S) {
         .begin_optimistic_write_with_projections(
             None,
             BeginOptimisticWrite {
+                client_metadata: None,
                 uuid: "00000000-0000-0000-0000-000000002000",
                 query: PATCH,
                 operation_name: None,
@@ -314,6 +315,7 @@ async fn lifecycle<S: PredicateIndexStorage>(storage: S) {
                 link_patches: &[],
                 revalidations: &[],
                 created_at_ms: 1,
+                identity_bindings: &[],
             },
             optimistic_projection_mutations(&patch, 1),
         )

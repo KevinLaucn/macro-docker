@@ -36,6 +36,7 @@ async fn large_set_lifecycle<S: PredicateIndexStorage>(storage: S) {
         .begin_optimistic_write_with_projections(
             None,
             BeginOptimisticWrite {
+                client_metadata: None,
                 uuid: "00000000-0000-0000-0000-000000000101",
                 query: UPDATE,
                 operation_name: None,
@@ -44,6 +45,7 @@ async fn large_set_lifecycle<S: PredicateIndexStorage>(storage: S) {
                 link_patches: &[],
                 revalidations: &[],
                 created_at_ms: 1,
+                identity_bindings: &[],
             },
             optimistic_notification_updates(edits).unwrap(),
         )

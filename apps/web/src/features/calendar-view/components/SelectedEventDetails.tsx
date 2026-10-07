@@ -12,6 +12,7 @@ import {
   eventEmailRecipients,
   guestEmails,
 } from '@app/features/calendar/utils/guest-emails';
+import { handleOpenEventOutsidePress } from '@app/features/calendar/utils/open-event-outside-press';
 import { EventRsvpSection } from '@app/features/calendar-view/components/EventRsvpSection';
 import { useOpenEventComposer } from '@app/features/calendar-view/components/use-open-event-composer';
 import { useOpenEventEmail } from '@app/features/calendar-view/components/use-open-event-email';
@@ -43,6 +44,7 @@ import {
 import { type Accessor, createMemo, createSignal, For, Show } from 'solid-js';
 
 interface SelectedEventDetailsProps {
+  boundary: HTMLElement;
   anchor: Accessor<HTMLElement | undefined>;
   event: Accessor<CalendarEvent | undefined>;
   timeFormat: Accessor<CalendarTimeFormat>;
@@ -61,9 +63,11 @@ interface SelectedEventDetailsProps {
 export function SelectedEventDetails(props: SelectedEventDetailsProps) {
   const calendarsQuery = useVisibleCalendarsQuery();
   const defaultReminders = (event: CalendarEvent) =>
-    calendarsQuery.data?.find(
-      (calendar) => calendar.id === reminderCalendarIdOf(event)
-    )?.defaultReminders;
+    calendarsQuery.isSuccess
+      ? calendarsQuery.data?.find(
+          (calendar) => calendar.id === reminderCalendarIdOf(event)
+        )?.defaultReminders
+      : undefined;
   const popoverSelection = createMemo(
     () => {
       const event = props.event();
@@ -91,6 +95,7 @@ export function SelectedEventDetails(props: SelectedEventDetailsProps) {
             <Show when={props.event()}>
               {(currentEvent) => (
                 <EventDetailsPopover
+                  boundary={props.boundary}
                   anchor={selected.anchor}
                   event={currentEvent()}
                   timeFormat={props.timeFormat()}
@@ -151,20 +156,10 @@ function EveryoneElseDeclinedNotice(props: {
           </div>
           <Show when={props.canModify}>
             <div class="flex justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                class="rounded-lg"
-                onClick={props.onDelete}
-              >
+              <Button variant="ghost" size="sm" onClick={props.onDelete}>
                 Delete
               </Button>
-              <Button
-                variant="cta"
-                size="sm"
-                class="rounded-lg"
-                onClick={props.onReschedule}
-              >
+              <Button variant="cta" size="sm" onClick={props.onReschedule}>
                 Reschedule
               </Button>
             </div>
@@ -194,7 +189,7 @@ function EventGuestActions(props: {
         variant="ghost"
         size="icon-sm"
         depth={3}
-        class="rounded-md text-ink-muted [&_svg]:size-4"
+        class="text-ink-muted [&_svg]:size-4"
         onClick={() => copyGuestEmails(guestEmails(props.event.attendees))}
       >
         <CopyIcon />
@@ -205,7 +200,7 @@ function EventGuestActions(props: {
           variant="ghost"
           size="icon-sm"
           depth={3}
-          class="rounded-md text-ink-muted [&_svg]:size-4"
+          class="text-ink-muted [&_svg]:size-4"
           onClick={() => {
             const event = props.event;
             props.closeDetails();
@@ -266,7 +261,7 @@ function EventDetailsDrawer(props: EventDetailsOverlayProps) {
                 variant="ghost"
                 size="icon-md"
                 depth={3}
-                class="size-11 rounded-full bg-ink/6 text-ink-muted [&_svg]:size-5"
+                class="size-11 bg-ink/6 text-ink-muted [&_svg]:size-5"
                 onClick={() => copyCalendarEventMention(props.event)}
               >
                 <LinkIcon />
@@ -277,7 +272,7 @@ function EventDetailsDrawer(props: EventDetailsOverlayProps) {
                   variant="ghost"
                   size="icon-md"
                   depth={3}
-                  class="size-11 rounded-full bg-ink/6 text-ink-muted [&_svg]:size-5"
+                  class="size-11 bg-ink/6 text-ink-muted [&_svg]:size-5"
                   onClick={openEditor}
                 >
                   <PencilSimpleIcon />
@@ -287,7 +282,7 @@ function EventDetailsDrawer(props: EventDetailsOverlayProps) {
                   variant="ghost"
                   size="icon-md"
                   depth={3}
-                  class="size-11 rounded-full bg-ink/6 text-ink-muted [&_svg]:size-5"
+                  class="size-11 bg-ink/6 text-ink-muted [&_svg]:size-5"
                   onClick={deleteDialog.open}
                 >
                   <TrashIcon />
@@ -328,6 +323,7 @@ function EventDetailsDrawer(props: EventDetailsOverlayProps) {
 
 interface EventDetailsPopoverProps extends EventDetailsOverlayProps {
   anchor: HTMLElement;
+  boundary: HTMLElement;
 }
 
 function useDeleteEventDialog(props: {
@@ -432,8 +428,9 @@ function DeleteEventDialog(
 
 /**
  * Anchors event details and actions to a rendered calendar event.
- * The card stops at 32rem, or sooner when the space beside the event is
- * shorter. Details scroll inside that cap; the RSVP row stays pinned.
+ * The calendar viewport contains both the portal and its collision boundary.
+ * Wide events can overlap the card so it stays inside that viewport. Details
+ * scroll within 32rem or the available height; the RSVP row stays pinned.
  */
 function EventDetailsPopover(props: EventDetailsPopoverProps) {
   const openEventComposer = useOpenEventComposer();
@@ -450,6 +447,7 @@ function EventDetailsPopover(props: EventDetailsPopoverProps) {
   return (
     <Popover
       anchorRef={() => props.anchor}
+      boundary={() => props.boundary}
       open
       onOpenChange={(open) => {
         // Keep the popover mounted while its delete dialog is open.
@@ -460,26 +458,14 @@ function EventDetailsPopover(props: EventDetailsPopoverProps) {
       gutter={8}
       flip
       slide
+      overlap
       fitViewport
     >
-      <Popover.Portal>
+      <Popover.Portal mount={props.boundary}>
         <Layer depth={3}>
           <Popover.Content
-            class="portal-scope z-modal max-w-[calc(100vw-2rem)] outline-none"
-            onInteractOutside={(event) => {
-              // FullCalendar and external calendar target controls select on
-              // click (pointer release), so dismissing on pointer down would
-              // briefly close the popover before navigation finishes.
-              const target = event.detail.originalEvent.target;
-              if (
-                target instanceof Element &&
-                (target.closest('.fc-event') !== null ||
-                  target.closest('[data-calendar-event-target-navigation]') !==
-                    null)
-              ) {
-                event.preventDefault();
-              }
-            }}
+            class="portal-scope z-modal max-w-[var(--kb-popper-content-available-width)] outline-none"
+            onInteractOutside={handleOpenEventOutsidePress}
             onOpenAutoFocus={(event) => {
               // Aims can arrive while the keyboard is elsewhere — arrow-key
               // scanning in the inbox previews a calendar notification here,
@@ -505,7 +491,7 @@ function EventDetailsPopover(props: EventDetailsPopoverProps) {
             }}
           >
             <Popover.Arrow class="fill-surface" />
-            <div class="flex max-h-[min(32rem,var(--kb-popper-content-available-height,32rem))] w-fit min-w-[min(20rem,calc(100vw-2rem))] max-w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl glass bg-menu-glass text-ink">
+            <div class="flex max-h-[min(32rem,var(--kb-popper-content-available-height,32rem))] w-fit min-w-[min(20rem,var(--kb-popper-content-available-width,20rem))] max-w-[min(24rem,var(--kb-popper-content-available-width,24rem))] flex-col overflow-hidden rounded-xl glass bg-menu-glass text-ink">
               <Popover.Title class="sr-only">{props.event.title}</Popover.Title>
               <div class="flex shrink-0 items-center justify-end gap-1 px-2 pt-2">
                 <Button
@@ -513,7 +499,7 @@ function EventDetailsPopover(props: EventDetailsPopoverProps) {
                   variant="ghost"
                   size="icon-sm"
                   depth={3}
-                  class="rounded-md text-ink-muted [&_svg]:size-4"
+                  class="text-ink-muted [&_svg]:size-4"
                   onClick={() => copyCalendarEventMention(props.event)}
                 >
                   <LinkIcon />
@@ -524,7 +510,7 @@ function EventDetailsPopover(props: EventDetailsPopoverProps) {
                     variant="ghost"
                     size="icon-sm"
                     depth={3}
-                    class="rounded-md text-ink-muted [&_svg]:size-4"
+                    class="text-ink-muted [&_svg]:size-4"
                     onClick={openEditor}
                   >
                     <PencilSimpleIcon />
@@ -534,7 +520,7 @@ function EventDetailsPopover(props: EventDetailsPopoverProps) {
                     variant="ghost"
                     size="icon-sm"
                     depth={3}
-                    class="rounded-md text-ink-muted [&_svg]:size-4"
+                    class="text-ink-muted [&_svg]:size-4"
                     onClick={deleteDialog.open}
                   >
                     <TrashIcon />

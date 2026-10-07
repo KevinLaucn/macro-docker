@@ -249,6 +249,7 @@ async fn lifecycle<S: PredicateIndexStorage>(storage: S) {
             .begin_optimistic_write_with_projections(
                 None,
                 BeginOptimisticWrite {
+                    client_metadata: None,
                     uuid: "00000000-0000-0000-0000-000000000100",
                     query: RENAME,
                     operation_name: Some("Rename"),
@@ -257,6 +258,7 @@ async fn lifecycle<S: PredicateIndexStorage>(storage: S) {
                     link_patches: &[],
                     revalidations: &[],
                     created_at_ms: 1,
+                    identity_bindings: &[],
                 },
                 projections,
             )
@@ -406,7 +408,7 @@ fn malformed_file_type_data_is_still_rejected_but_unknown_filter_inputs_are_not_
     );
     assert!(
         compile_current_filter_request(
-            filters(json!({"literal":{"fileType":"doc"}})),
+            filters(json!({"literal":{"fileType":"docm"}})),
             "UPDATED_AT",
             "DESC",
             20

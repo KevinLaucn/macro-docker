@@ -287,6 +287,7 @@ fn merges_optimistic_updates_with_cold_linked_bases() {
             .begin_optimistic_write(
                 None,
                 BeginOptimisticWrite {
+                    client_metadata: None,
                     uuid: "00000000-0000-4000-8000-000000000003",
                     query: mutation,
                     operation_name: Some("SetProperty"),
@@ -300,6 +301,7 @@ fn merges_optimistic_updates_with_cold_linked_bases() {
                     link_patches: &[],
                     revalidations: &[],
                     created_at_ms: 1,
+                    identity_bindings: &[],
                 },
             )
             .await
@@ -347,6 +349,7 @@ fn includes_optimistic_only_records() {
             .begin_optimistic_write(
                 None,
                 BeginOptimisticWrite {
+                    client_metadata: None,
                     uuid: "00000000-0000-4000-8000-000000000004",
                     query: mutation,
                     operation_name: Some("SetProperty"),
@@ -360,6 +363,7 @@ fn includes_optimistic_only_records() {
                     link_patches: &[],
                     revalidations: &[],
                     created_at_ms: 1,
+                    identity_bindings: &[],
                 },
             )
             .await

@@ -1,17 +1,13 @@
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
 import { createSizeBreakpoints } from '@app/util/create-size-breakpoints';
 import { CommentMargin } from '@block-md/comments/CommentMargin';
-import {
-  editorFocusSignal,
-  getSaveState,
-} from '@core/component/LexicalMarkdown/utils';
+import { useMacroMentionLinkResolver } from '@components/app/split-layout/split-router/mention-links';
+import { editorFocusSignal } from '@core/component/LexicalMarkdown/utils';
 import { ParamsProvider } from '@core/component/ParamsProvider';
 import {
   DEV_MODE_ENV,
   ENABLE_MARKDOWN_COMMENTS,
-  enableHistoryComponent,
   enableInlineAiEditing,
-  isFeatureEnabled,
   LOCAL_ONLY,
 } from '@core/constant/featureFlags';
 import { useIsMacroTeam } from '@core/context/team';
@@ -38,8 +34,6 @@ import {
   untrack,
 } from 'solid-js';
 import { useMarkdownDocument } from '../context/markdown-document-context';
-import { useHistory } from '../history/HistoryContext';
-import { HistoryOverlay } from '../history/HistoryOverlay';
 import { DocumentAiEditBar } from './DocumentAiEditBar';
 import { DocumentDiscussion } from './DocumentDiscussion';
 import { InlineTaskGithubPullRequests } from './InlineTaskGithubPullRequests';
@@ -113,8 +107,8 @@ export function Notebook(props: {
   const { md, setMd } = state.editor;
   const { displayName: documentName } = useMarkdownName();
   const scopeId = () => props.hotkeyScope;
-  const history = useHistory();
   const inlineAiEditing = useFeatureFlag(enableInlineAiEditing);
+  const resolveAppLink = useMacroMentionLinkResolver();
 
   let notebookRef!: HTMLDivElement;
   let commentMarginRef: HTMLDivElement | undefined;
@@ -130,8 +124,7 @@ export function Notebook(props: {
   const canUseLexicalStateDebugger = useCanUseLexicalStateDebugger();
   const outline = useMarkdownOutline({
     editor: () => md.editor,
-    enabled: () =>
-      (width() ?? 0) >= OutlineMinWidth && !history.isOpen() && !isMobile(),
+    enabled: () => (width() ?? 0) >= OutlineMinWidth && !isMobile(),
   });
 
   const hasComment = createMemo(() => {
@@ -141,7 +134,7 @@ export function Notebook(props: {
   // On phones the margin is hidden entirely (no minimized rail); the touch
   // comment drawer is the only comment surface. CommentMargin stays mounted
   // inside the hidden wrapper — it hosts the drawer.
-  const showComments = () => hasComment() && !history.isOpen() && !isMobile();
+  const showComments = () => hasComment() && !isMobile();
   const layoutMode = createMemo((): CommentLayoutMode => {
     if (!showComments() || width() === undefined) {
       return CommentLayoutMode.none;
@@ -184,11 +177,6 @@ export function Notebook(props: {
       { defer: true }
     )
   );
-
-  const currentEditorState = () => {
-    const editor = md.editor;
-    return editor ? getSaveState(editor.getEditorState()) : undefined;
-  };
 
   // Set the refs on the block store.
   onMount(() => {
@@ -373,36 +361,22 @@ export function Notebook(props: {
           <TaskDuplicateMatchPill />
         </div>
         <ParamsProvider state={params}>
-          {/* Relative wrapper so the history overlay covers only the body region,
-              leaving the title + properties above it untouched and aligned. */}
-          <div class="relative">
-            <MarkdownEditor
-              loroManager={props.loroManager}
-              showLexicalStateDebugger={
-                canUseLexicalStateDebugger() && showLexicalStateDebugger()
-              }
-              onLexicalStateDebuggerClose={() =>
-                setShowLexicalStateDebugger(false)
-              }
-            />
-            <Show when={isFeatureEnabled(enableHistoryComponent)}>
-              <HistoryOverlay
-                currentState={currentEditorState}
-                selectedAt={history.selectedAt()}
-                isLive={history.isLive()}
-                visible={history.isOpen()}
-                onExit={history.exit}
-              />
-            </Show>
-          </div>
-          <Show when={!history.isOpen()}>
-            <Show when={inlineAiEditing().enabled && canEdit() && !isMobile()}>
-              <div class="mb-2">
-                <DocumentAiEditBar documentId={props.documentId} />
-              </div>
-            </Show>
-            <DocumentDiscussion editorHasFocus={editorHasFocus()} />
+          <MarkdownEditor
+            resolveAppLink={resolveAppLink}
+            loroManager={props.loroManager}
+            showLexicalStateDebugger={
+              canUseLexicalStateDebugger() && showLexicalStateDebugger()
+            }
+            onLexicalStateDebuggerClose={() =>
+              setShowLexicalStateDebugger(false)
+            }
+          />
+          <Show when={inlineAiEditing().enabled && canEdit() && !isMobile()}>
+            <div class="mb-2">
+              <DocumentAiEditBar documentId={props.documentId} />
+            </div>
           </Show>
+          <DocumentDiscussion editorHasFocus={editorHasFocus()} />
         </ParamsProvider>
       </div>
       <div
@@ -436,6 +410,7 @@ export function InstructionsNotebook(props: {
   const setMd = state.editor.setMd;
   const scopeId = () => props.hotkeyScope;
   const canUseLexicalStateDebugger = useCanUseLexicalStateDebugger();
+  const resolveAppLink = useMacroMentionLinkResolver();
 
   let notebookRef!: HTMLDivElement;
   let contentRef!: HTMLDivElement;
@@ -479,6 +454,7 @@ export function InstructionsNotebook(props: {
     >
       <div class="grow max-w-3xl pt-12 min-w-0 mx-auto" ref={contentRef}>
         <InstructionsEditor
+          resolveAppLink={resolveAppLink}
           loroManager={props.loroManager}
           showLexicalStateDebugger={
             canUseLexicalStateDebugger() && showLexicalStateDebugger()

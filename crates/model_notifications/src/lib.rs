@@ -13,15 +13,17 @@ pub use metadata::{
     AgentSessionMentionedMetadata, AgentSessionNotificationRef, AgentSessionOriginParent,
     AgentSessionSettledMetadata, AgentSessionWaitingForInputMetadata, AiResponseMetadata,
     CalendarEventReminderMetadata, CallStartedMetadata, ChannelInviteMetadata,
-    ChannelMentionMetadata, ChannelMessageSendMetadata, ChannelReplyMetadata, ChannelType,
-    CommentedOnDocumentMetadata, CommonChannelMetadata, DocumentMentionMetadata, GithubPrCheckRun,
-    GithubPrCheckRunState, GithubPrComment, GithubPrCommentKind, GithubPrEventAction,
-    GithubPrEventStatus, GithubPrMention, GithubPrMentionLocation, GithubPrNotificationCommon,
-    GithubPrReview, GithubPrReviewState, GithubPrStatusChanged, GithubReviewRequested,
-    InboxReauthRequiredMetadata, InitiativeDiscussionMetadata, InitiativeDiscussionReason,
-    InviteToTeamMetadata, ItemSharedMetadata, MentionedInDocumentCommentMetadata, NewEmailMetadata,
-    NotificationDocumentSubType, NotificationTitle, ReminderMetadata,
-    RepliedToDocumentCommentThreadMetadata, TaskAssignedMetadata,
+    ChannelMentionMetadata, ChannelMessageReactionMetadata, ChannelMessageSendMetadata,
+    ChannelReplyMetadata, ChannelType, ColleagueJoinedMacro, CommentedOnDocumentMetadata,
+    CommonChannelMetadata, CrmDiscussionMetadata, CrmDiscussionReason, DocumentMentionMetadata,
+    GithubPrCheckRun, GithubPrCheckRunState, GithubPrComment, GithubPrCommentKind,
+    GithubPrEventAction, GithubPrEventStatus, GithubPrMention, GithubPrMentionLocation,
+    GithubPrNotificationCommon, GithubPrReview, GithubPrReviewState, GithubPrStatusChanged,
+    GithubReviewRequested, InboxReauthRequiredMetadata, InitiativeDiscussionMetadata,
+    InitiativeDiscussionReason, InviteToTeamMetadata, ItemSharedMetadata,
+    MentionedInDocumentCommentMetadata, NewEmailMetadata, NotificationDocumentSubType,
+    NotificationTitle, ReminderMetadata, RepliedToDocumentCommentThreadMetadata,
+    TaskAssignedMetadata,
 };
 pub use unsubscribe::UserUnsubscribe;
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -190,6 +192,9 @@ define_notif_event!(
         /// Someone commented, replied, or mentioned the recipient on a project.
         InitiativeDiscussion(InitiativeDiscussionMetadata),
 
+        /// Someone commented, replied, or mentioned the recipient on a CRM company or contact.
+        CrmDiscussion(CrmDiscussionMetadata),
+
         /// The user was invited to a channel.
         ChannelInvite(ChannelInviteMetadata),
 
@@ -257,6 +262,9 @@ define_notif_event!(
 
         /// The user was named in a prompt to an agent session.
         AgentSessionMentioned(AgentSessionMentionedMetadata),
+
+        /// Someone reacted to one of the user's channel messages.
+        ChannelMessageReaction(ChannelMessageReactionMetadata),
     }
 );
 
@@ -278,10 +286,12 @@ impl NotificationTitle for NotifEvent {
             NotifEvent::RepliedToDocumentCommentThread(m) => m.format_title(sender_id),
             NotifEvent::CommentedOnDocument(m) => m.format_title(sender_id),
             NotifEvent::InitiativeDiscussion(m) => m.format_title(sender_id),
+            NotifEvent::CrmDiscussion(m) => m.format_title(sender_id),
             NotifEvent::ChannelInvite(m) => m.format_title(sender_id),
             NotifEvent::ChannelMessageSend(channel_message_send_metadata) => {
                 channel_message_send_metadata.format_title(sender_id)
             }
+            NotifEvent::ChannelMessageReaction(m) => m.format_title(sender_id),
             NotifEvent::ChannelMessageReply(channel_reply_metadata) => {
                 channel_reply_metadata.format_title(sender_id)
             }
@@ -342,10 +352,12 @@ impl NotificationTitle for NotifEvent {
             NotifEvent::RepliedToDocumentCommentThread(m) => m.format_body(sender_id),
             NotifEvent::CommentedOnDocument(m) => m.format_body(sender_id),
             NotifEvent::InitiativeDiscussion(m) => m.format_body(sender_id),
+            NotifEvent::CrmDiscussion(m) => m.format_body(sender_id),
             NotifEvent::ChannelInvite(m) => m.format_body(sender_id),
             NotifEvent::ChannelMessageSend(channel_message_send_metadata) => {
                 channel_message_send_metadata.format_body(sender_id)
             }
+            NotifEvent::ChannelMessageReaction(m) => m.format_body(sender_id),
             NotifEvent::ChannelMessageReply(channel_reply_metadata) => {
                 channel_reply_metadata.format_body(sender_id)
             }

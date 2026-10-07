@@ -11,6 +11,8 @@ import tsconfigpaths from 'vite-tsconfig-paths';
 import { i18nAstPlugin } from '../../packages/fork/i18n/vite-plugin';
 // @ts-ignore
 import { version } from './package.json';
+import { devHttps } from './scripts/dev-https';
+import { hostedDevProxy } from './scripts/hosted-dev-proxy';
 import { keepImportMetaDev } from './scripts/keep-import-meta-dev';
 import { localDevServer } from './scripts/local-dev-server';
 
@@ -24,6 +26,8 @@ function readShortSha(): string {
 
 const shortSha = readShortSha();
 const appVersion = `${version}+${shortSha}`;
+/** Orders builds: a newer build takes the local cache over from older tabs. */
+const appBuildTime = Date.now();
 
 function readGitBranch(): string {
   try {
@@ -91,6 +95,64 @@ function devRootRedirectPlugin(): Plugin {
   };
 }
 
+/**
+ * Orval's generated schemas are top-level `zod.object(...)` chains. Rollup
+ * cannot prove those calls are side-effect free, so every schema (≈700 for the
+ * storage service alone) stayed in the entry chunk and was constructed at
+ * startup, used or not. Annotating each one pure lets Rollup drop the unused
+ * ones; the annotation is applied at build time so regenerated files keep it.
+ */
+function pureGeneratedZodSchemas(): Plugin {
+  return {
+    name: 'pure-generated-zod-schemas',
+    enforce: 'pre',
+    transform(code, id) {
+      if (!/[\\/]generated[\\/]zod\.ts$/.test(id)) return;
+      return {
+        code: code.replace(
+          /^(export const [\w$]+ = )(zod\b)/gm,
+          '$1/* @__PURE__ */ $2'
+        ),
+        map: null,
+      };
+    },
+  };
+}
+
+/**
+ * CloudFront compresses responses of at most 10,000,000 bytes and serves
+ * anything larger raw. The entry chunk once crossed that limit and every
+ * visitor downloaded 11.9 MB uncompressed instead of ~3 MB, so fail the build
+ * rather than ship that again. (Cache WASM is precompressed at deploy.)
+ */
+function cloudFrontCompressionLimit(): Plugin {
+  const limitBytes = 10_000_000;
+  return {
+    name: 'cloudfront-compression-limit',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      const oversized = Object.values(bundle)
+        .filter((file) => /\.(js|css|html|json|svg)$/.test(file.fileName))
+        .map((file) => ({
+          name: file.fileName,
+          bytes:
+            file.type === 'chunk'
+              ? Buffer.byteLength(file.code)
+              : typeof file.source === 'string'
+                ? Buffer.byteLength(file.source)
+                : file.source.byteLength,
+        }))
+        .filter((file) => file.bytes > limitBytes);
+      if (oversized.length === 0) return;
+      this.error(
+        `These files exceed CloudFront's ${limitBytes}-byte compression limit and would be served uncompressed: ${oversized
+          .map((file) => `${file.name} (${file.bytes} bytes)`)
+          .join(', ')}. Split them behind lazy() boundaries.`
+      );
+    },
+  };
+}
+
 export const createAppViteConfig = (): UserConfigFn => {
   return ({ command, mode }) => {
     const ENV_MODE = process.env.MODE ?? mode;
@@ -107,12 +169,15 @@ export const createAppViteConfig = (): UserConfigFn => {
         },
       },
       plugins: [
+        devHttps(),
+        hostedDevProxy(),
         // solidDevtools({ autoname: true }),
         // i18nAstPlugin transforms legacy JSX into __t(). Newly refactored or二开 modules
         // are explicitly excluded from AST transformation to ensure zero build interference.
         i18nAstPlugin({
           excludePatterns: [],
         }),
+        pureGeneratedZodSchemas(),
         solid(),
         wasm(),
         tailwind(),
@@ -129,6 +194,7 @@ export const createAppViteConfig = (): UserConfigFn => {
         }),
         gitBranchHmrPlugin(),
         devRootRedirectPlugin(),
+        cloudFrontCompressionLimit(),
       ],
       define: defineEnv(ENV_MODE, command),
       clearScreen: false,
@@ -164,6 +230,9 @@ export const createAppViteConfig = (): UserConfigFn => {
         outDir: 'dist',
         emptyOutDir: true,
         minify: !NO_MINIFY,
+        // The gzip-size console report re-compresses every chunk, adding ~20 s
+        // to each build; nothing reads it.
+        reportCompressedSize: false,
         rollupOptions: {
           input: {
             app: resolve(__dirname, 'index.html'),
@@ -291,7 +360,14 @@ function defineEnv(mode: string, command: string) {
   });
   return {
     'import.meta.env.__APP_VERSION__': JSON.stringify(appVersion),
+    'import.meta.env.__APP_BUILD_TIME__': JSON.stringify(appBuildTime),
     'import.meta.env.ASSETS_PATH': JSON.stringify(getAssetsPath(mode, command)),
+    // index.html preconnects to the API gateway; keep in sync with servers.ts.
+    'import.meta.env.GATEWAY_ORIGIN': JSON.stringify(
+      mode === 'development'
+        ? 'https://dev-gateway.macro.com'
+        : 'https://gateway.macro.com'
+    ),
     'import.meta.env.__LOCAL_DOCKER__': process.env.LOCAL_DOCKER === 'true',
     'import.meta.env.__LOCAL_JWT__': JSON.stringify(process.env.LOCAL_JWT),
     'import.meta.env.__GIT_BRANCH__': JSON.stringify(

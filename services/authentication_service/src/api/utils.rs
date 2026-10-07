@@ -10,6 +10,7 @@ use url::Url;
 maybe_env_vars! {
     struct FrontendPort;
     struct AppBaseUrl;
+    struct FrontendOrigin;
 }
 
 /// Generates a random 25 character session code
@@ -61,6 +62,11 @@ pub fn default_redirect_url() -> Url {
     }
     match Environment::new_or_prod() {
         Environment::Local => {
+            if let Some(origin) = FrontendOrigin::new() {
+                return origin.parse().unwrap_or_else(|_| {
+                    panic!("FRONTEND_ORIGIN must be a URL, got {}", origin.as_ref())
+                });
+            }
             let port = FrontendPort::new()
                 .map(|port| port.to_string())
                 .unwrap_or_else(|| "3000".to_string());

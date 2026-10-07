@@ -1,14 +1,14 @@
 //! The per-session command queue: admission, the worker that drains it one
 //! command at a time, and routing to the replica that holds the session.
 
-use agent_fold::domain::model::{StopReason, TurnSignal};
+use agent_fold::domain::model::{StopReason, TurnId, TurnSignal};
 use agent_session::domain::error::AgentSessionError;
 use agent_session::domain::events::{
     AgentSessionLifecycleEvent, InputReceivedMetadata, SessionDeletedMetadata,
     SessionSettledMetadata, SessionStoppedMetadata, TurnEndedMetadata, TurnStartedMetadata,
     WaitingForInputMetadata,
 };
-use agent_session::domain::model::StoredQueuedAction;
+use agent_session::domain::model::{StoredQueuedAction, TurnPrompter};
 
 use super::*;
 
@@ -298,7 +298,7 @@ where
         match &command {
             HarnessCommand::Open(open)
                 if AgentKind::of(open.bot_id) == AgentKind::SandboxedCoder
-                    && !is_macro_staff(&open.origin.sender) =>
+                    && !is_macro_staff(open.origin.actor()) =>
             {
                 return Err(AgentSessionError::Forbidden.into());
             }
@@ -317,8 +317,12 @@ where
             }
             HarnessCommand::Deliver(DeliverAction { actor, .. })
             | HarnessCommand::EditQueued { actor, .. }
-            | HarnessCommand::RemoveQueued { actor, .. } => {
+            | HarnessCommand::RemoveQueued { actor, .. }
+            | HarnessCommand::SteerQueued { actor, .. } => {
                 let session = self.sessions.get_session(session_id).await?;
+                if session.is_archived {
+                    return Err(AgentSessionError::Archived(session_id).into());
+                }
                 if AgentKind::for_session(session.bot_id, &session.harness)
                     == AgentKind::ClaudeCloud
                     && !actor
@@ -335,9 +339,14 @@ where
             }
             HarnessCommand::Open(_)
             | HarnessCommand::Turn(_)
+            | HarnessCommand::ToolApproval(_)
             | HarnessCommand::SessionStopped { .. }
-            | HarnessCommand::SetSandboxSize(_)
             | HarnessCommand::Delete => {}
+            HarnessCommand::SetSandboxSize(_) => {
+                if self.sessions.get_session(session_id).await?.is_archived {
+                    return Err(AgentSessionError::Archived(session_id).into());
+                }
+            }
         }
 
         match command {
@@ -375,6 +384,9 @@ where
                 self.persist_or_rollback(session_id).await?;
                 self.publish_queue(session_id).await;
                 Ok(CommandOutcome::Completed)
+            }
+            HarnessCommand::SteerQueued { action_id, actor } => {
+                self.steer_queued(session_id, action_id, actor).await
             }
             HarnessCommand::Turn(TurnSignal::TurnEnded {
                 stop,
@@ -520,6 +532,10 @@ where
                 .await;
                 Ok(CommandOutcome::Completed)
             }
+            HarnessCommand::ToolApproval(change) => {
+                self.tool_approval_changed(session_id, change).await;
+                Ok(CommandOutcome::Completed)
+            }
             HarnessCommand::SetSandboxSize(size) => {
                 self.apply_sandbox_size(session_id, size).await?;
                 Ok(CommandOutcome::Completed)
@@ -580,6 +596,7 @@ where
         session_id: AgentSessionId,
         command: DeliverAction,
     ) -> Result<CommandOutcome> {
+        self.authorize_action(&command).await?;
         let action_id = command.id;
         if self.queues.contains(session_id, action_id) {
             return Ok(CommandOutcome::Queued);
@@ -590,6 +607,23 @@ where
             .is_some_and(|turn| turn.action_id == action_id)
         {
             return Ok(CommandOutcome::Completed);
+        }
+        let session = self.sessions.get_session(session_id).await?;
+        if let Err(error) = self.admit_session(&session).await {
+            // Forwarding acknowledges bus acceptance before this worker runs.
+            // Publish even an ingress refusal so the submitting replica hears it.
+            if let HarnessError::Admission(failure) = &error {
+                self.publish_command_rejected(
+                    session_id,
+                    command.id,
+                    command.actor.clone(),
+                    None,
+                    *failure,
+                )
+                .await;
+            }
+            self.reject_waiting_on_denial(session_id, &error).await?;
+            return Err(error);
         }
         let prompt = match &command.action {
             AgentAction::Prompt(prompt) => Some(prompt.prompt.clone()),
@@ -633,6 +667,27 @@ where
         }
 
         let dispatched = if self.busy.is_pending(session_id) {
+            // Said out loud, with the turn it waits behind and that turn's
+            // age: a queue that never drains is otherwise silent on this
+            // replica, and the question "what is it waiting for, and since
+            // when" is the one that has to be answerable from the logs.
+            match self.busy.turn(session_id) {
+                Some(turn) => tracing::info!(
+                    %session_id,
+                    %action_id,
+                    in_flight_turn = turn.turn.0,
+                    in_flight_action_id = %turn.action_id,
+                    in_flight_age_secs = turn.age().num_seconds(),
+                    queued = self.queues.list(session_id).len(),
+                    "action queued behind the turn in flight"
+                ),
+                None => tracing::info!(
+                    %session_id,
+                    %action_id,
+                    queued = self.queues.list(session_id).len(),
+                    "action queued behind a command admitted but not yet dispatched"
+                ),
+            }
             Ok(())
         } else {
             // Marked before dispatching, not only once `dispatch_next`'s own
@@ -661,6 +716,75 @@ where
         })
     }
 
+    /// Move a queued action to the front and cancel the running turn so it
+    /// flushes next. The same idea as a channel follow-up's steer, for an
+    /// entry that is already waiting: the session page queues without
+    /// interrupting, and this is the explicit interrupt.
+    ///
+    /// A failed cancel is best-effort. The entry is already at the front, so
+    /// it still drains when the current turn ends on its own.
+    /// Keep the running turn's reply honest about tool calls held for the
+    /// owner: it names the oldest one waiting, and goes back to pending once
+    /// none are. Only the managing replica knows the turn, so a change for a
+    /// session with nothing in flight here has no reply to touch.
+    async fn tool_approval_changed(&self, session_id: AgentSessionId, change: ToolApprovalChange) {
+        let mut waiting_before = None;
+        let Some(turn) = self.busy.update_turn(session_id, |turn| {
+            waiting_before = turn.held_tool_calls.first().cloned();
+            match &change {
+                ToolApprovalChange::Held(call) => turn.held_tool_calls.push(call.clone()),
+                ToolApprovalChange::Settled { approval_id } => turn
+                    .held_tool_calls
+                    .retain(|held| held.approval_id != *approval_id),
+            }
+        }) else {
+            tracing::info!(%session_id, "held tool call changed with no in-flight record");
+            return;
+        };
+        let waiting = turn.held_tool_calls.first().cloned();
+        if waiting == waiting_before {
+            return;
+        }
+        let outcome = match waiting {
+            Some(call) => ReplyOutcome::AwaitingApproval(call),
+            None => ReplyOutcome::Resumed,
+        };
+        self.resolve_reply(session_id, Some(&turn), outcome).await;
+    }
+
+    async fn steer_queued(
+        &self,
+        session_id: AgentSessionId,
+        action_id: AgentActionId,
+        actor: Option<MacroUserIdStr<'static>>,
+    ) -> Result<CommandOutcome> {
+        self.revalidate_queue(session_id).await?;
+        queue_result(self.queues.move_to_front(session_id, action_id), session_id)?;
+        self.persist_or_rollback(session_id).await?;
+        if self.busy.turn(session_id).is_some()
+            && let Err(error) = self
+                .deliver(
+                    session_id,
+                    DeliverAction {
+                        id: AgentActionId::mint(),
+                        action: AgentAction::Stop,
+                        actor,
+                        announce: None,
+                    },
+                )
+                .await
+        {
+            tracing::warn!(
+                error = ?error,
+                %session_id,
+                %action_id,
+                "failed to stop the running turn for a steered queue entry"
+            );
+        }
+        self.publish_queue(session_id).await;
+        Ok(CommandOutcome::Completed)
+    }
+
     /// Cancel a running turn and post the chip on the channel follow-up that
     /// interrupted it. The follow-up is already at the front of the queue,
     /// so it flushes as the next prompt once the cancelled turn ends.
@@ -678,6 +802,7 @@ where
         actor: Option<&MacroUserIdStr<'static>>,
         announce: Option<AnnounceOrigin>,
     ) -> Result<()> {
+        self.revalidate_queue(session_id).await?;
         if let Err(error) = self
             .deliver(
                 session_id,
@@ -697,6 +822,9 @@ where
             );
         }
 
+        // Stop may have waited for a runtime reconnect; check again before
+        // posting a pending reply for the waiting follow-up.
+        self.revalidate_queue(session_id).await?;
         // Front of the queue, so the next prompt turn is this one's.
         let prompted_message_id = self.sessions.next_prompt_message_id(session_id).await?;
         let announcement = self
@@ -731,7 +859,7 @@ where
 
     /// Persist after a working-copy mutation. A failed write reloads the last
     /// good row so this process does not keep a queue the store never saw.
-    async fn persist_or_rollback(&self, session_id: AgentSessionId) -> Result<()> {
+    pub(super) async fn persist_or_rollback(&self, session_id: AgentSessionId) -> Result<()> {
         if let Err(error) = self.write_queue(session_id).await {
             if let Err(reload) = self.reload_queue(session_id).await {
                 tracing::error!(
@@ -747,15 +875,15 @@ where
 
     /// Put a claimed entry back and persist. A persist failure here loses the
     /// in-flight item on the next restart — the same as losing the turn mark.
-    async fn requeue_claimed(&self, session_id: AgentSessionId, entry: QueuedEntry) {
+    async fn requeue_claimed(&self, session_id: AgentSessionId, entry: QueuedEntry) -> Result<()> {
         self.queues.requeue_front(session_id, entry);
-        if let Err(error) = self.write_queue(session_id).await {
+        self.write_queue(session_id).await.inspect_err(|error| {
             tracing::error!(
                 error = ?error,
                 %session_id,
                 "failed to persist a requeued agent session action"
             );
-        }
+        })
     }
 
     /// Replace the working copy from the session store.
@@ -829,6 +957,16 @@ where
     /// own action triggered this dispatch hears about it.
     #[tracing::instrument(err, skip(self), fields(%session_id))]
     pub(super) async fn dispatch_next(&self, session_id: AgentSessionId) -> Result<Dispatch> {
+        if self.sessions.get_session(session_id).await?.is_archived {
+            self.queues.drop_session(session_id);
+            self.write_queue(session_id).await?;
+            self.publish_queue(session_id).await;
+            return Ok(Dispatch::QueueEmpty);
+        }
+        if self.queues.list(session_id).is_empty() {
+            return Ok(Dispatch::QueueEmpty);
+        }
+        self.revalidate_queue(session_id).await?;
         let Some(mut entry) = self.queues.claim_next(session_id) else {
             return Ok(Dispatch::QueueEmpty);
         };
@@ -840,29 +978,40 @@ where
             return Err(error);
         }
 
-        // Compose a copy: the queued entry stays raw so a retry still edits
-        // and re-composes the user's text, and the chip (below) still shows
-        // what they typed rather than the composed payload.
-        let mut composed = entry.action.clone();
-        if let Err(error) = self
-            .compose_action(&mut composed, entry.actor.as_ref(), entry.announce.as_ref())
-            .await
-        {
-            self.requeue_claimed(session_id, entry).await;
-            return Err(error);
-        }
-
         // The turn this action opens, read before delivery appends the
         // prompt to the log. Unchanged across a failed attempt, so a retry
         // reports the same turn.
         let prompted_message_id = match self.sessions.next_prompt_message_id(session_id).await {
             Ok(message_id) => message_id,
             Err(error) => {
-                self.requeue_claimed(session_id, entry).await;
+                self.requeue_claimed(session_id, entry).await?;
                 return Err(error.into());
             }
         };
 
+        // Compose a copy: the queued entry stays raw so a retry still edits
+        // and re-composes the user's text, and the chip (below) still shows
+        // what they typed rather than the composed payload.
+        let mut composed = entry.action.clone();
+        if let Err(error) = self
+            .compose_action(
+                session_id,
+                &mut composed,
+                entry.actor.as_ref(),
+                entry.announce.as_ref(),
+                prompted_message_id.turn == TurnId(0),
+            )
+            .await
+        {
+            self.requeue_claimed(session_id, entry).await?;
+            return Err(error);
+        }
+
+        if let Err(error) = self.admit_session_id(session_id).await {
+            self.requeue_claimed(session_id, entry).await?;
+            self.reject_waiting_on_denial(session_id, &error).await?;
+            return Err(error);
+        }
         if entry.announced.is_none() {
             let announcement = match self
                 .announcement(
@@ -876,7 +1025,7 @@ where
             {
                 Ok(announcement) => announcement,
                 Err(error) => {
-                    self.requeue_claimed(session_id, entry).await;
+                    self.requeue_claimed(session_id, entry).await?;
                     return Err(error);
                 }
             };
@@ -884,11 +1033,30 @@ where
                 match self.announcer.announce(announcement).await {
                     Ok(announced) => entry.announced = Some(announced.message_id),
                     Err(error) => {
-                        self.requeue_claimed(session_id, entry).await;
+                        self.requeue_claimed(session_id, entry).await?;
                         return Err(error);
                     }
                 }
             }
+        }
+
+        // Recorded before delivery, since the runtime may call a tool the
+        // moment the prompt lands: the egress proxy judges every call by who
+        // prompted the turn it belongs to, and it may be serving the call on
+        // another replica.
+        if let Err(error) = self
+            .sessions
+            .set_turn_prompter(
+                session_id,
+                &TurnPrompter {
+                    action_id: entry.action_id,
+                    user: entry.actor.clone(),
+                },
+            )
+            .await
+        {
+            self.requeue_claimed(session_id, entry).await?;
+            return Err(error.into());
         }
 
         let command = DeliverAction {
@@ -905,6 +1073,8 @@ where
                     actor: entry.actor,
                     announce: entry.announce,
                     announcement_message_id: entry.announced,
+                    dispatched_at: chrono::Utc::now(),
+                    held_tool_calls: Vec::new(),
                 };
                 self.busy.mark_turn(session_id, turn.clone());
                 self.publish_lifecycle(session_id, |identity| {
@@ -920,7 +1090,8 @@ where
                 Ok(Dispatch::Dispatched)
             }
             Err(error) => {
-                self.requeue_claimed(session_id, entry).await;
+                self.requeue_claimed(session_id, entry).await?;
+                self.reject_waiting_on_denial(session_id, &error).await?;
                 Err(error)
             }
         }

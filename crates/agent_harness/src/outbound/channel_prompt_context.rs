@@ -55,6 +55,9 @@ impl<Access: EntityAccessService> ContextAuthorizer for Access {
                 MessageParent::Channel(_) => EntityType::Channel,
                 MessageParent::Document(_) => EntityType::Document,
                 MessageParent::Initiative(_) => EntityType::Initiative,
+                MessageParent::CrmCompany(_) => EntityType::CrmCompany,
+                MessageParent::CrmContact(_) => EntityType::CrmContact,
+                MessageParent::Call(_) => EntityType::Call,
             },
         )
         .await
@@ -258,6 +261,17 @@ async fn anchor(
     anchor: Option<ThreadAnchor>,
 ) -> Option<CommentAnchor> {
     let (mark_id, marked_text) = match anchor? {
+        ThreadAnchor::Spreadsheet {
+            sheet_id,
+            sheet_name,
+            range,
+        } => {
+            return Some(CommentAnchor::Spreadsheet {
+                sheet_id,
+                sheet_name,
+                range,
+            });
+        }
         ThreadAnchor::PdfHighlight {
             anchor_id,
             marked_text,
@@ -272,6 +286,9 @@ async fn anchor(
                 anchor_id: anchor_id.to_string(),
             });
         }
+        // The lexical prompt composer has no design anchor kind yet, so a
+        // design pin reaches the agent as an unanchored thread on the design.
+        ThreadAnchor::Fig { .. } => return None,
         ThreadAnchor::Markdown {
             mark_id,
             marked_text,

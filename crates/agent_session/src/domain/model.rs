@@ -18,6 +18,10 @@ pub use agent_fold::domain::model::{
     Author, AuthorKind, FoldEvent, MessageId, OwnedFoldEvent, TurnId,
 };
 
+/// The `_meta` key on `session/new`, `session/load` and `session/resume`
+/// whose string value is the [`AgentSessionId`] the ACP session serves.
+pub const MACRO_AGENT_SESSION_META_KEY: &str = "macro.com/agentSessionId";
+
 /// Identity of one harness participant, minted fresh at construction.
 ///
 /// A restarted process is a new replica: whatever the old identity claimed is
@@ -183,6 +187,8 @@ pub use bots::domain::models::{AgentMcpServer, AgentMcpServers};
 /// Caller-provided values required to create an agent session.
 #[derive(Debug, Clone)]
 pub struct CreateAgentSessionParams {
+    /// An unclaimed warm session, hidden from lists and history.
+    pub warm: bool,
     /// Caller-minted session id, available before persistence.
     pub id: AgentSessionId,
     /// Who created and owns the session.
@@ -231,6 +237,8 @@ pub struct AgentSession {
     pub id: AgentSessionId,
     /// User-facing session name.
     pub name: String,
+    /// Whether the session is archived and therefore read-only.
+    pub is_archived: bool,
     /// Who created and owns the session. Immutable for its life.
     pub owner_id: Owner,
     /// The root message where the bot was originally invoked, if any.
@@ -277,18 +285,24 @@ pub struct AgentSession {
 }
 
 impl AgentSession {
-    /// The user this session runs as.
-    ///
-    /// For every path that acts as the owner - spends their credentials,
-    /// bills them, grants them access - rather than merely names them. The
-    /// owner is a user for every session today, but the type no longer says
-    /// so; asking here fails typed for any other kind instead of treating a
-    /// bot or team as a person.
+    /// The user this session runs as; see [`session_owner_user`].
     pub fn owner_user(&self) -> Result<&MacroUserIdStr<'static>, AgentSessionError> {
         self.owner_id
             .as_user()
             .ok_or_else(|| AgentSessionError::OwnerNotUser(self.owner_id.owner_type()))
     }
+}
+
+/// The user a session runs as.
+///
+/// A session spends its owner's credentials and bills them, so only a user
+/// can own one until the runtime has a bot execution context.
+// TODO(ownership-v2): T5.4 admits bot owners once the runtime has a bot execution context.
+pub fn session_owner_user(owner: &Owner) -> Result<MacroUserIdStr<'static>, AgentSessionError> {
+    owner
+        .as_user()
+        .cloned()
+        .ok_or_else(|| AgentSessionError::OwnerNotUser(owner.owner_type()))
 }
 
 /// A persisted agent-session name changed and should be shown to live viewers.
@@ -354,6 +368,19 @@ pub struct SessionBot {
     /// Avatar, when it has one.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub avatar_url: Option<String>,
+}
+
+/// Who prompted the turn a session is running, or last ran.
+///
+/// Written at dispatch, before the runtime can act on the prompt, so the
+/// egress proxy - which may be on any replica - can tell a turn the owner
+/// prompted from one somebody else did.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TurnPrompter {
+    /// The action that opened the turn.
+    pub action_id: agent_runtime_protocol::domain::action::AgentActionId,
+    /// The user who prompted it, absent when a bot acted on nobody's behalf.
+    pub user: Option<MacroUserIdStr<'static>>,
 }
 
 /// One waiting action as the session store records it.

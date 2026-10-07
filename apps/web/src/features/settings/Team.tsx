@@ -1,3 +1,6 @@
+import { PLANS } from '@app/features/paywall/plans';
+import { SlackImport } from '@app/features/slack-import/slack-import';
+import { useFeatureFlag } from '@app/lib/analytics/posthog';
 import { toast } from '@core/component/Toast/Toast';
 import {
   getLinkShareScope,
@@ -6,6 +9,8 @@ import {
   NO_LINK_SHARE,
 } from '@core/component/TopBar/linkShare';
 import { UserIcon } from '@core/component/UserIcon';
+import { enableAiUsageBilling } from '@core/constant/featureFlags';
+import { useSettingsState } from '@core/constant/SettingsState';
 import { SERVER_HOSTS } from '@core/constant/servers';
 import { useUserId } from '@core/context/user';
 import { getDisplayName, macroIdToEmail, tryMacroId } from '@core/user';
@@ -82,6 +87,7 @@ import {
   Switch,
 } from 'solid-js';
 import { z } from 'zod';
+import { ConnectAction } from './integration-ui';
 import {
   IntegrationRow,
   SettingsCard,
@@ -163,14 +169,24 @@ function RoleSelect(props: {
 
 type PlanOption = { value: PaidPlan; label: string; description: string };
 
-const planOptions: PlanOption[] = [
-  { value: 'premium', label: 'Premium', description: '$40 · $40 of AI' },
-  { value: 'max', label: 'Max', description: '$200 · $200 of AI' },
-];
+/** Every paid plan a seat can be moved to, cheapest first. */
+function planOptionsFor(aiUsageBilling: boolean): PlanOption[] {
+  return PLANS.flatMap((plan) =>
+    plan.tier === 'free'
+      ? []
+      : [
+          {
+            value: plan.tier,
+            label: plan.name,
+            description: `$${plan.price}${aiUsageBilling && plan.tier === 'max' ? ' · 10× usage' : ''}`,
+          },
+        ]
+  );
+}
 
 /**
  * The plan a member's seat is billed at. Until the generated `TeamMember`
- * schema carries `plan`, read it defensively; every seat starts on Premium.
+ * schema carries `plan`, read it defensively; every seat starts on Pro.
  */
 function memberPlan(member: TeamMember): PaidPlan {
   const plan = (member as TeamMember & { plan?: PaidPlan }).plan;
@@ -182,12 +198,14 @@ function PlanSelect(props: {
   onChange: (plan: PaidPlan) => void;
   disabled?: boolean;
 }) {
+  const aiUsageBilling = useFeatureFlag(enableAiUsageBilling);
+  const options = () => planOptionsFor(aiUsageBilling().enabled);
   const selectedOption = () =>
-    planOptions.find((o) => o.value === props.value) ?? planOptions[0];
+    options().find((option) => option.value === props.value) ?? options()[0];
 
   return (
     <Select<PlanOption>
-      options={planOptions}
+      options={options()}
       value={selectedOption()}
       onChange={(opt) => opt && props.onChange(opt.value)}
       optionValue="value"
@@ -263,7 +281,7 @@ function InviteEntryRow(props: {
             <Button
               variant="outline"
               size="icon-sm"
-              class="rounded-xs shrink-0 focus:border-accent"
+              class="shrink-0 focus:border-accent"
               tabIndex={0}
               onClick={props.onRemove}
             >
@@ -380,7 +398,7 @@ function InviteEmailsInput(props: {
       </Show>
       <Button
         variant="outline"
-        class="rounded-xs w-full justify-center focus:border-accent"
+        class="w-full justify-center focus:border-accent"
         tabIndex={0}
         disabled={!canAddRow()}
         onClick={addRow}
@@ -418,7 +436,7 @@ function MemberRow(props: {
   };
 
   return (
-    <div class="flex items-center justify-between gap-2 px-6 py-3 bg-surface">
+    <div class="flex items-center justify-between gap-2 px-4 py-4">
       <div class="flex items-center gap-3 min-w-0 flex-1">
         <div class="shrink-0">
           <UserIcon id={props.member.user_id} isDeleted={false} size="lg" />
@@ -477,7 +495,7 @@ function MemberRow(props: {
                   variant="ghost"
                   size="sm"
                   disabled
-                  class="rounded-xs opacity-50 cursor-not-allowed"
+                  class="opacity-50 cursor-not-allowed"
                 >
                   <TrashIcon class="size-4" />
                 </Button>
@@ -524,7 +542,7 @@ function InviteRow(props: {
   };
 
   return (
-    <div class="flex items-center justify-between gap-2 px-6 py-3 bg-surface">
+    <div class="flex items-center justify-between gap-2 px-4 py-4">
       <div class="flex items-center gap-3 min-w-0 flex-1">
         <div class="size-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
           <EnvelopeIcon class="size-4 text-accent" />
@@ -580,7 +598,7 @@ function UserInviteRow(props: {
   isDeclining: boolean;
 }) {
   return (
-    <div class="flex items-center justify-between gap-3 px-6 py-3 bg-surface">
+    <div class="flex items-center justify-between gap-3 px-4 py-4">
       <div class="flex items-center gap-3 min-w-0 flex-1">
         <div class="size-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
           <EnvelopeIcon class="size-4 text-accent" />
@@ -596,7 +614,7 @@ function UserInviteRow(props: {
       <div class="flex items-center gap-2 shrink-0">
         <Button
           variant="outline"
-          class="px-2 py-1 rounded-xs"
+          class="px-2 py-1"
           disabled={props.isAccepting || props.isDeclining}
           onClick={props.onDecline}
         >
@@ -606,7 +624,7 @@ function UserInviteRow(props: {
         </Button>
         <Button
           variant="accent"
-          class="px-2 py-1 rounded-xs"
+          class="px-2 py-1"
           disabled={props.isAccepting || props.isDeclining}
           onClick={props.onAccept}
         >
@@ -793,15 +811,13 @@ function CreateTeamDialog(props: { open: boolean; onClose: () => void }) {
           <div class="flex justify-end gap-1 pt-2">
             <Button
               variant="ghost"
-              class="rounded-xs"
               disabled={createTeamMutation.isPending}
               onClick={props.onClose}
             >
               Cancel
             </Button>
             <Button
-              variant="accent"
-              class="rounded-xs"
+              variant="strong"
               disabled={
                 createTeamMutation.isPending ||
                 !!teamNameError() ||
@@ -836,11 +852,7 @@ function EmptyTeamState() {
               Create a team to collaborate with others and manage access
               together.
             </p>
-            <Button
-              variant="accent"
-              class="rounded-xs"
-              onClick={() => setShowCreateModal(true)}
-            >
+            <Button variant="accent" onClick={() => setShowCreateModal(true)}>
               <PlusIcon class="size-4" />
               Create Team
             </Button>
@@ -892,7 +904,6 @@ function SaveCancelButtons(props: {
         <Button
           variant="accent"
           size="icon-sm"
-          class="rounded-xs"
           disabled={props.saveDisabled}
           onClick={props.onSave}
         >
@@ -905,7 +916,6 @@ function SaveCancelButtons(props: {
         <Button
           variant="ghost"
           size="icon-sm"
-          class="rounded-xs"
           disabled={props.pending}
           onClick={props.onCancel}
         >
@@ -927,6 +937,7 @@ function TeamManagement(props: {
   const teamQuery = useTeamQuery(() => props.teamId);
   const invitesQuery = useTeamInvitesQuery(() => props.teamId);
   const githubLink = useGithubLinkStatusQuery();
+  const { openSettings } = useSettingsState();
 
   const deleteInviteMutation = useDeleteTeamInviteMutation();
   const removeUserMutation = useRemoveUserFromTeamMutation();
@@ -1283,7 +1294,6 @@ function TeamManagement(props: {
             <Button
               variant="danger"
               size="sm"
-              class="rounded-xs"
               onClick={() => setShowDeleteTeamModal(true)}
             >
               <TrashIcon class="size-4" />
@@ -1411,7 +1421,6 @@ function TeamManagement(props: {
               <Button
                 variant="outline"
                 size="sm"
-                class="rounded-xs"
                 onClick={handleCopyGithubAutolinkUrl}
               >
                 <CopyIcon class="size-4" />
@@ -1474,6 +1483,7 @@ function TeamManagement(props: {
 
         <SettingsSection title="Connections">
           <SettingsCard>
+            <SlackImport teamId={props.teamId} isAdmin={isAdminOrOwner()} />
             <IntegrationRow
               icon={<GithubIcon />}
               title="GitHub App"
@@ -1481,15 +1491,21 @@ function TeamManagement(props: {
             >
               {/* The install callback rejects users without a linked GitHub
                   account, so don't offer the flow until they've connected one
-                  in their personal settings. */}
+                  on the Integrations page. */}
               <Show
                 when={githubLink.data?.status === 'linked'}
                 fallback={
-                  <span class="text-xs text-ink-muted">
-                    {githubLink.isLoading
-                      ? 'Loading…'
-                      : 'Connect your GitHub account first'}
-                  </span>
+                  <Show
+                    when={!githubLink.isLoading}
+                    fallback={
+                      <span class="text-xs text-ink-muted">Loading…</span>
+                    }
+                  >
+                    <ConnectAction
+                      label="Connect your GitHub account first"
+                      onClick={() => openSettings('Connected')}
+                    />
+                  </Show>
                 }
               >
                 <a
@@ -1515,7 +1531,6 @@ function TeamManagement(props: {
               <Button
                 variant="outline"
                 size="sm"
-                class="rounded-xs"
                 onClick={() => setShowInviteModal(true)}
               >
                 <PlusIcon class="size-4" />
@@ -1671,15 +1686,13 @@ function TeamManagement(props: {
             <div class="flex justify-end gap-1 pt-2">
               <Button
                 variant="ghost"
-                class="rounded-xs"
                 disabled={deleteTeamMutation.isPending}
                 onClick={() => handleDeleteTeamModalClose(false)}
               >
                 Cancel
               </Button>
               <Button
-                variant="danger"
-                class="rounded-xs"
+                variant="strong"
                 disabled={!canDeleteTeam() || deleteTeamMutation.isPending}
                 onClick={handleDeleteTeam}
               >
@@ -1751,15 +1764,13 @@ function TeamManagement(props: {
             <div class="flex justify-end gap-1 pt-2">
               <Button
                 variant="ghost"
-                class="rounded-xs"
                 disabled={inviteToTeamMutation.isPending}
                 onClick={() => handleInviteModalClose(false)}
               >
                 Cancel
               </Button>
               <Button
-                variant={hasValidInvites() ? 'accent' : 'ghost'}
-                class="rounded-xs"
+                variant="strong"
                 disabled={!hasValidInvites() || inviteToTeamMutation.isPending}
                 onClick={handleInvite}
               >

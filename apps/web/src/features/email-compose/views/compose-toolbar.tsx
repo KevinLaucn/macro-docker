@@ -11,26 +11,31 @@ import {
   type NodeTransformType,
 } from '@core/component/LexicalMarkdown/plugins/node-transform/nodeTransformPlugin';
 import { fileSelector } from '@core/directive/fileSelector';
+import { getUploadFileSize } from '@core/mobile/nativeStagedUpload';
 import { plural } from '@core/util/string';
 import PaperclipIcon from '@phosphor/paperclip.svg?component-solid';
 import TextAa from '@phosphor/text-aa.svg';
 import Trash from '@phosphor/trash.svg';
 import { Button, SendButton } from '@ui';
 import { FORMAT_TEXT_COMMAND, type LexicalEditor } from 'lexical';
-import { createSignal, Show } from 'solid-js';
+import { createSignal, type JSX, Show } from 'solid-js';
 import { EmailDateSelector } from '../components/email-date-selector';
 import { EmailScheduleSummary } from '../components/email-schedule-summary';
 import { useCompose } from '../context/compose-context';
 
 export function EmailComposeToolbar(props: {
   editor?: () => LexicalEditor | undefined;
+  status?: JSX.Element;
 }) {
   const ctx = useCompose();
   const [showFormatRibbon, setShowFormatRibbon] = createSignal(false);
   const handleAddAttachments = (files: File[]) => {
     const currentAttachments = ctx.attachments();
 
-    const attachmentsToAddByteSize = files.reduce((sum, f) => sum + f.size, 0);
+    const attachmentsToAddByteSize = files.reduce(
+      (sum, f) => sum + getUploadFileSize(f),
+      0
+    );
 
     if (attachmentsToAddByteSize >= MAX_ATTACHMENTS_BYTES_SIZE) {
       ctx.attachmentFailure(
@@ -40,7 +45,8 @@ export function EmailComposeToolbar(props: {
     }
 
     const currentAttachmentsByteSize = currentAttachments.reduce(
-      (sum, a) => sum + (a.type === 'local' ? a.file.size : a.fileSize),
+      (sum, a) =>
+        sum + (a.type === 'local' ? getUploadFileSize(a.file) : a.fileSize),
       0
     );
 
@@ -65,7 +71,12 @@ export function EmailComposeToolbar(props: {
   return (
     <Show
       when={!ctx.isMobile()}
-      fallback={<MobileToolbar handleAddAttachments={handleAddAttachments} />}
+      fallback={
+        <MobileToolbar
+          handleAddAttachments={handleAddAttachments}
+          status={props.status}
+        />
+      }
     >
       <Show when={showFormatRibbon()}>
         <div class="flex flex-row w-full gap-2 items-center p-2 -ml-3">
@@ -82,6 +93,7 @@ export function EmailComposeToolbar(props: {
       </Show>
       <div class="mt-2 flex min-w-0 justify-end">
         <div class="flex shrink-0 items-center gap-1">
+          {props.status}
           <Show when={ctx.hasDraft()}>
             <Button
               onClick={ctx.onDelete}
@@ -148,6 +160,7 @@ export function EmailComposeToolbar(props: {
 
 function MobileToolbar(props: {
   handleAddAttachments: (files: File[]) => void;
+  status?: JSX.Element;
 }) {
   const ctx = useCompose();
   const hasScheduleSummary = () => {
@@ -171,6 +184,7 @@ function MobileToolbar(props: {
       </SplitHeaderLeft>
       <SplitHeaderRight>
         <HeaderIsland class="h-(--mobile-chrome-button-size) p-[5px]">
+          {props.status}
           <Show when={!ctx.hideAttachments}>
             <div class="relative">
               <Button

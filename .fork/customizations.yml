@@ -93,11 +93,12 @@ customizations:
       - services/email_service/src/api/email/messages.rs
       - services/email_service/src/api/email/settings.rs
       - services/email_service/src/features/mod.rs
-      - services/email_service/src/main.rs
-      - services/email_service/src/openapi.rs
+      - services/email_service/src/lib.rs
       - crates/email_db_client/src/lib.rs
       - crates/email_db_client/src/settings.rs
       - crates/email_utils/src/lib.rs
+      - apps/web/src/lib/queries/email/thread.ts
+      - services/email_service/src/server.rs
       - apps/web/src/features/email-message/**
       - apps/web/src/features/email-compose/**
       - packages/email-renderer/**
@@ -133,11 +134,12 @@ customizations:
       - crates/email_db_client/src/lib.rs
       - crates/email_db_client/src/settings.rs
       - crates/email_utils/src/lib.rs
+      - apps/web/src/lib/queries/email/thread.ts
+      - services/email_service/src/server.rs
       - services/email_service/src/api.rs
       - services/email_service/src/api/email/messages.rs
       - services/email_service/src/api/email/settings.rs
-      - services/email_service/src/main.rs
-      - services/email_service/src/openapi.rs
+      - services/email_service/src/lib.rs
       - services/email_service/src/outbound/scheduled_delivery.rs
       - services/email_service/src/util/gmail/send.rs
     tests:
@@ -200,8 +202,8 @@ customizations:
     paths:
       - packages/fork/self-host-health/**
       - services/authentication_service/src/api.rs
-      - services/authentication_service/src/main.rs
-      - services/authentication_service/src/openapi.rs
+      - services/authentication_service/src/lib.rs
+      - services/authentication_service/src/server.rs
       - services/document_storage_service/src/api/internal.rs
       - services/document_storage_service/src/service/s3.rs
       - apps/web/src/components/app/Layout.tsx
@@ -225,8 +227,8 @@ customizations:
       - apps/web/src/lib/core/constant/settingsTabsConfig.tsx
       - apps/web/src/lib/service-clients/service-auth/client.ts
       - services/authentication_service/src/api.rs
-      - services/authentication_service/src/main.rs
-      - services/authentication_service/src/openapi.rs
+      - services/authentication_service/src/lib.rs
+      - services/authentication_service/src/server.rs
       - services/document_storage_service/src/api/internal.rs
       - services/document_storage_service/src/service/s3.rs
       - services/email_service/src/api/email/links/health_check.rs

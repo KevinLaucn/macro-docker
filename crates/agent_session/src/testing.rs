@@ -11,7 +11,7 @@ use crate::domain::model::{
     ClaimOutcome, CreateAgentSessionParams, DEFAULT_AGENT_SESSION_NAME, LeaseView, LogAppended,
     ManagerFence, ReplicaAddress, ReplicaId, SandboxSize, SessionBot, SessionClaim, SessionManager,
     SessionPreviewCandidate, SessionStatus, StoredAgentSessionLog, StoredQueuedAction,
-    ThreadSession,
+    ThreadSession, TurnPrompter,
 };
 use crate::domain::ports::{
     AgentSessionLifecyclePublisher, AgentSessionLogRepo, AgentSessionRealtime, AgentSessionRepo,
@@ -83,6 +83,8 @@ pub struct InMemoryAgentSessionRepo {
     leases: Arc<Mutex<HashMap<AgentSessionId, Lease>>>,
     /// Session -> waiting actions, mirroring `agent_session_queue`.
     queues: Arc<Mutex<HashMap<AgentSessionId, Vec<StoredQueuedAction>>>>,
+    /// Session -> who prompted its turn, mirroring the `turn_*` columns.
+    turn_prompters: Arc<Mutex<HashMap<AgentSessionId, TurnPrompter>>>,
 }
 
 impl InMemoryAgentSessionRepo {
@@ -176,6 +178,7 @@ impl AgentSessionRepo for InMemoryAgentSessionRepo {
             pull_request_url: None,
             id: params.id,
             name: DEFAULT_AGENT_SESSION_NAME.to_owned(),
+            is_archived: false,
             owner_id: params.owner_id,
             thread_id: params.thread_id,
             // The in-memory repo has no comms rows to derive a channel from.
@@ -360,6 +363,24 @@ impl AgentSessionRepo for InMemoryAgentSessionRepo {
         Ok(())
     }
 
+    async fn set_turn_prompter(&self, id: AgentSessionId, prompter: &TurnPrompter) -> Result<()> {
+        self.get(id).await?;
+        self.turn_prompters
+            .lock()
+            .expect("turn prompters poisoned")
+            .insert(id, prompter.clone());
+        Ok(())
+    }
+
+    async fn turn_prompter(&self, id: AgentSessionId) -> Result<Option<TurnPrompter>> {
+        Ok(self
+            .turn_prompters
+            .lock()
+            .expect("turn prompters poisoned")
+            .get(&id)
+            .cloned())
+    }
+
     async fn set_repo_url(&self, id: AgentSessionId, repo_url: Option<String>) -> Result<()> {
         let mut sessions = self
             .sessions
@@ -405,6 +426,21 @@ impl AgentSessionRepo for InMemoryAgentSessionRepo {
         Ok(())
     }
 
+    async fn set_archived(&self, id: AgentSessionId, is_archived: bool) -> Result<()> {
+        let mut sessions = self
+            .sessions
+            .lock()
+            .expect("in-memory session store is not poisoned");
+        let session = sessions.get_mut(&id).ok_or_else(|| {
+            AgentSessionError::Unknown(anyhow::anyhow!("no agent session {}", id.as_uuid()))
+        })?;
+        if session.is_archived != is_archived {
+            session.is_archived = is_archived;
+            session.modified_at = chrono::Utc::now();
+        }
+        Ok(())
+    }
+
     async fn set_name_if_default(&self, id: AgentSessionId, name: &str) -> Result<bool> {
         let mut sessions = self
             .sessions
@@ -413,7 +449,7 @@ impl AgentSessionRepo for InMemoryAgentSessionRepo {
         let session = sessions.get_mut(&id).ok_or_else(|| {
             AgentSessionError::Unknown(anyhow::anyhow!("no agent session {}", id.as_uuid()))
         })?;
-        if session.name != DEFAULT_AGENT_SESSION_NAME {
+        if session.name != DEFAULT_AGENT_SESSION_NAME || session.is_archived {
             return Ok(false);
         }
         session.name = name.to_owned();
@@ -892,6 +928,7 @@ pub fn test_agent_session(id: AgentSessionId) -> AgentSession {
         pull_request_url: None,
         id,
         name: DEFAULT_AGENT_SESSION_NAME.to_owned(),
+        is_archived: false,
         owner_id: model_owner::Owner::User(
             macro_user_id::user_id::MacroUserIdStr::try_from_email("owner@example.com")
                 .expect("valid macro user id"),

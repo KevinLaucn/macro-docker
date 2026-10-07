@@ -52,7 +52,7 @@ hooks:
       - "for link in links {"
   - id: email_read_receipts_features
     customization: READ-RECEIPTS-001
-    file: services/email_service/src/main.rs
+    file: services/email_service/src/lib.rs
     marker: "// PRIVATE-HOOK: read_receipts:features"
     expected: "mod features;"
     context:
@@ -80,13 +80,6 @@ hooks:
     expected: "#[path = \"../../../../packages/fork/read-receipts/backend/service/mod.rs\"]"
     context:
       - "pub mod read_receipts;"
-  - id: email_read_receipts_features_openapi
-    customization: READ-RECEIPTS-001
-    file: services/email_service/src/openapi.rs
-    marker: "// PRIVATE-HOOK: read_receipts:features"
-    expected: "mod features;"
-    context:
-      - "mod api;"
   - id: email_read_receipts_send
     customization: READ-RECEIPTS-001
     file: services/email_service/src/util/gmail/send.rs
@@ -206,13 +199,6 @@ hooks:
     expected: "<EmailTranslationSection />"
     context:
       - "<PixelBlockingSection />"
-  - id: email_translation_list_toolbar
-    customization: EMAIL-TRANSLATION-001
-    file: apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
-    marker: "{/* PRIVATE-HOOK: email_translation:list-toolbar */}"
-    expected: "<SoupListTranslateButton"
-    context:
-      - "id=\"soup-toolbar-translate\""
   - id: email_translation_email_list_toolbar
     customization: EMAIL-TRANSLATION-001
     file: apps/web/src/features/email-view/components/EmailControls.tsx
@@ -227,13 +213,6 @@ hooks:
     expected: "createEmailListTranslationHotkey"
     context:
       - "hotkey: 'q'"
-  - id: email_translation_thread
-    customization: EMAIL-TRANSLATION-001
-    file: apps/web/src/features/email-thread/views/message-list.tsx
-    marker: "{/* PRIVATE-HOOK: email_translation:thread */}"
-    expected: "<EmailThreadTranslateButton"
-    context:
-      - "<EmailParticipants />"
   - id: email_translation_message
     customization: EMAIL-TRANSLATION-001
     file: apps/web/src/features/email-message/components/email-message-top-bar.tsx
@@ -318,17 +297,8 @@ hooks:
       - ".nest(\n            \"/admin\","
   - id: self_host_health_features
     customization: SELFHOST-HEALTH-001
-    file: services/authentication_service/src/main.rs
+    file: services/authentication_service/src/lib.rs
     marker: "// PRIVATE-HOOK: self_host_health:features"
-    expected: |-
-      #[path = "../../../packages/fork/self-host-health/backend/mod.rs"]
-      mod features;
-    context:
-      - "mod config;"
-  - id: self_host_health_openapi_features
-    customization: SELFHOST-HEALTH-001
-    file: services/authentication_service/src/openapi.rs
-    marker: "// PRIVATE-HOOK: self_host_health:openapi_features"
     expected: |-
       #[path = "../../../packages/fork/self-host-health/backend/mod.rs"]
       mod features;
@@ -336,7 +306,7 @@ hooks:
       - "mod config;"
   - id: self_host_health_gmail_queue_probe_wiring
     customization: SELFHOST-HEALTH-001
-    file: services/authentication_service/src/main.rs
+    file: services/authentication_service/src/server.rs
     marker: "// PRIVATE-HOOK: self_host_health:gmail_queue_probe_wiring"
     expected: ") = crate::features::self_host_health::gmail_probe_queues();"
     context:
@@ -373,7 +343,7 @@ hooks:
     marker: "// PRIVATE-HOOK: self_host_health:prompt_import"
     expected: "import { SelfHostHealthPrompt } from '@macro/self-host-health';"
     context:
-      - "import { useOnboardingV4Flag } from '@app/features/setup/flow/useOnboardingV4Flag';"
+      - "<SelfHostHealthPrompt />"
   - id: self_host_health_client_type_import
     customization: SELFHOST-HEALTH-001
     file: apps/web/src/lib/service-clients/service-auth/client.ts
@@ -399,9 +369,9 @@ hooks:
     customization: SELFHOST-HEALTH-001
     file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx
     marker: "// PRIVATE-HOOK: self_host_health:settings_item"
-    expected: "{ tab: 'SelfHostHealth', label: t('Health Check'), icon: HeartbeatIcon },"
+    expected: "{ tab: 'SelfHostHealth', label: t('Health Check'), icon: HeartbeatIcon, keywords: ['health', 'self-host'] },"
     context:
-      - "{ tab: 'Admin', label: t('Debug'), icon: BugIcon },"
+      - "{ tab: 'Admin', label: t('Debug'), icon: BugIcon, keywords: [] },"
   - id: self_host_health_settings_slug
     customization: SELFHOST-HEALTH-001
     file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx

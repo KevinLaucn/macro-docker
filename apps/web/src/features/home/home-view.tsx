@@ -1,7 +1,8 @@
 import { useViewShell, ViewShell } from '@app/components/view-shell';
 import { calendarSearch } from '@app/features/calendar-view/calendar-url';
-import { CalendarView } from '@app/features/calendar-view/calendar-view';
+import { ViewTour } from '@app/features/tours/ViewTour';
 import { createSearchParams, SplitRouter } from '@app/lib/split-router';
+import { homeCalendarRoute } from '@app/routes/routes';
 import { DebugSuspense } from '@channel/DebugSuspense';
 import { useGlobalBlockOrchestrator } from '@components/app/GlobalAppState';
 import { PreviewFrame, PreviewPanel } from '@components/app/PreviewPanel';
@@ -10,17 +11,24 @@ import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { SplitPanel } from '@components/app/split-panel';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
+import { lazyNamed } from '@core/util/lazyNamed';
 import { ListEntityMetadataQueryProvider } from '@entity';
-import SpinnerIcon from '@phosphor/spinner.svg';
-import { createEffect, onMount, Show } from 'solid-js';
+import { onMount, Show } from 'solid-js';
 import { HomeChatStart } from './components/HomeChatStart';
 import { HomeList } from './components/HomeList';
 import { HomeListLayout } from './components/HomeListLayout';
+import { HomeListSkeleton } from './components/HomeListSkeleton';
 import { HomeReturnBreadcrumb } from './components/HomeReturnBreadcrumb';
 import { HomeTabs } from './components/HomeTabs';
 import { HomeViewProvider, useHomeView } from './home-view-context';
-import { homeCalendarRoute } from './route';
+import { homeTour } from './tour';
 import type { HomeViewStateOptions } from './types';
+
+// The calendar grid (FullCalendar) only loads once Home's calendar route opens.
+const CalendarView = lazyNamed(
+  () => import('@app/features/calendar-view/calendar-view'),
+  'CalendarView'
+);
 
 export type HomeViewProps = {
   /** Explicit navigation state. When present, it wins over entry restoration. */
@@ -28,9 +36,12 @@ export type HomeViewProps = {
 };
 
 function HomeFallback() {
+  const { state } = useHomeView();
   return (
-    <div class="grid min-h-0 min-w-0 flex-1 place-items-center text-ink-muted">
-      <SpinnerIcon aria-label="Loading Home" class="size-5 animate-spin" />
+    <div class="mt-3 min-h-0 min-w-0 flex-1 overflow-hidden touch:mt-0 touch:pt-(--mobile-content-inset-top)">
+      <HomeListSkeleton
+        grouped={state.groupBy === 'date' && !state.search.trim()}
+      />
     </div>
   );
 }
@@ -57,6 +68,7 @@ function HomeListPane(props: {
         showContent();
       }}
     >
+      <ViewTour tour={homeTour} />
       <DebugSuspense name="HomeView.list" fallback={<HomeFallback />}>
         <HomeList
           hasPreview={props.hasPreview}
@@ -70,26 +82,16 @@ function HomeListPane(props: {
 
 function HomeViewRoot() {
   const panel = useSplitPanelOrThrow();
-  const {
-    state,
-    setTab,
-    previewTarget,
-    calendarOpen,
-    openPreview,
-    closePreview,
-  } = useHomeView();
+  const { previewTarget, calendarOpen, openPreview, closePreview } =
+    useHomeView();
 
-  createEffect(() => {
-    if (state.tab !== 'reminders') return;
-    setTab('signal');
-  });
   const newChat = closePreview;
   const onPreviewEntityChange = (entity: PreviewSelection | undefined) => {
     if (entity) openPreview(entity);
     else closePreview();
   };
 
-  // The touch nav item and legacy touch view both call this "Notifications".
+  // The touch nav item calls this "Notifications".
   onMount(() =>
     panel.handle.setDisplayName(isTouchDevice() ? 'Notifications' : 'Home')
   );

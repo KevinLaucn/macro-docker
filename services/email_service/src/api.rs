@@ -1,3 +1,4 @@
+mod calendar_invitations;
 use anyhow::Context;
 use axum::Router;
 use context::ApiContext;
@@ -67,6 +68,10 @@ fn swagger_ui() -> Router {
 
 fn api_router(state: ApiContext) -> Router<ApiContext> {
     Router::new()
+        .route(
+            "/email/threads/{thread_id}/calendar-invitations",
+            axum::routing::get(calendar_invitations::handler),
+        )
         .nest("/email", email::router(state))
         .nest("/gmail", gmail::router())
         // PRIVATE-HOOK: read_receipts:public_router

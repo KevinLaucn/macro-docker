@@ -58,10 +58,7 @@ const getEntityUrl = (entity: EntityData): string => {
 };
 
 export const makeCopyLinkAction = () => {
-  // A reminder has no block of its own, so `/app/reminder/{id}` resolves to
-  // nothing the orchestrator can open — there is no link to copy.
-  const canExecute = (entity: EntityData): boolean =>
-    entity.type !== 'reminder';
+  const canExecute = (_entity: EntityData): boolean => true;
 
   const execute = async (entities: EntityData[]) => {
     // Only copy link for the first entity (doesn't make sense for bulk)

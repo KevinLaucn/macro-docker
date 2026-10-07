@@ -158,6 +158,7 @@ impl AgentSessionRepo for FixedBotSessions {
             repo_url: None,
             workspace: "/workspace".to_owned(),
             name: DEFAULT_AGENT_SESSION_NAME.to_owned(),
+            is_archived: false,
             sandbox_size: SandboxSize::Default,
             instructions: None,
             mcp_servers: Default::default(),
@@ -212,6 +213,21 @@ impl AgentSessionRepo for FixedBotSessions {
         unimplemented!("this adapter does not rotate credentials")
     }
 
+    async fn set_turn_prompter(
+        &self,
+        _id: AgentSessionId,
+        _prompter: &agent_session::domain::model::TurnPrompter,
+    ) -> SessionResult<()> {
+        unimplemented!("this adapter does not dispatch turns")
+    }
+
+    async fn turn_prompter(
+        &self,
+        _id: AgentSessionId,
+    ) -> SessionResult<Option<agent_session::domain::model::TurnPrompter>> {
+        unimplemented!("this adapter does not dispatch turns")
+    }
+
     async fn set_repo_url(
         &self,
         _id: AgentSessionId,
@@ -226,6 +242,10 @@ impl AgentSessionRepo for FixedBotSessions {
 
     async fn set_name(&self, _id: AgentSessionId, _name: &str) -> SessionResult<()> {
         unimplemented!("naming sessions is the session actor's job")
+    }
+
+    async fn set_archived(&self, _id: AgentSessionId, _is_archived: bool) -> SessionResult<()> {
+        unimplemented!("archiving sessions is the harness service's job")
     }
 
     async fn set_name_if_default(&self, _id: AgentSessionId, _name: &str) -> SessionResult<bool> {

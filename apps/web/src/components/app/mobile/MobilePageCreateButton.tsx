@@ -1,14 +1,13 @@
+import { t } from '@macro/i18n';
 import { useCalendarUiFlag } from '@app/features/calendar/hooks/use-calendar-ui-flag';
 import { useOpenEventComposer } from '@app/features/calendar-view/components/use-open-event-composer';
 import {
   setCreateMenuOpen,
   useCreateMenuBlocks,
 } from '@app/features/command/Launcher';
-import { openCreateCompanyModal } from '@app/features/companies/CreateCompanyModal';
+import { openCreateCompanyModal } from '@app/features/crm/crm-create';
 import { hapticImpact } from '@core/mobile/haptics';
 import { virtualKeyboardVisible } from '@core/mobile/virtualKeyboard';
-import { t } from '@macro/i18n';
-import BellIcon from '@phosphor/bell.svg';
 import CalendarIcon from '@phosphor/calendar-blank.svg';
 import MessageIcon from '@phosphor/chat-circle.svg';
 import MoreIcon from '@phosphor/dots-three.svg';
@@ -68,7 +67,6 @@ export function MobilePageCreateButton() {
   const calendarActions = (): MobileCreateMenuItem[] => {
     const blocks = createBlocks();
     const call = blocks.find((block) => block.blockName === 'call');
-    const reminder = blocks.find((block) => block.blockName === 'reminder');
     return [
       {
         get label() {
@@ -85,17 +83,6 @@ export function MobilePageCreateButton() {
               },
               icon: PhoneIcon,
               onSelect: () => void call.keyDownHandler(),
-            },
-          ]
-        : []),
-      ...(reminder
-        ? [
-            {
-              get label() {
-                return t('Reminder');
-              },
-              icon: BellIcon,
-              onSelect: () => void reminder.keyDownHandler(),
             },
           ]
         : []),
