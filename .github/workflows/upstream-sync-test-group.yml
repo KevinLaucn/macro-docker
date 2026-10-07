@@ -98,7 +98,8 @@ jobs:
 
       - name: Test affected web feature
         if: inputs.group == 'web'
-        run: bun test apps/web/src/components/app/split-layout/tests
+        run: bunx vitest run --config vitest.config.ts --project app src/components/app/split-layout/tests
+        working-directory: apps/web
 
       - name: Test fork read receipts
         if: inputs.group == 'web'
