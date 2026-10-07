@@ -1007,7 +1007,7 @@
           authenticationSrc = selfHostEmailPrunedDeploySrc "source-check-authentication" "authentication_service";
           documentStorageSrc = selfHostEmailPrunedDeploySrc "source-check-document-storage" "document_storage_service";
           syncServiceSrc = crateDirSrc "services/sync-service";
-          agentFoldSrc = crateDirSrc "crates/agent_fold";
+          agentFoldSrc = crateDirSrc "crates/folds/agent_fold";
           codingAgentWorkerSrc = crateDirSrc "crates/coding_agent_worker";
         in
         pkgs.runCommand "self-host-email-source-check" { } ''
