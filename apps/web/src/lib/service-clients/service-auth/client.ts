@@ -586,13 +586,13 @@ export const authServiceClient = {
             name: payload.name || payload.email?.split('@')[0] || 'User',
             licenseStatus: 'active',
             tutorialComplete: true,
-            group: 'admin',
+            group: undefined,
             hasChromeExt: false,
             authenticated: true,
             userId: userId,
             hasTrialed: true,
             aiDataConsent: true,
-            referralCode: null,
+            referralCode: '',
             createdAt: new Date().toISOString(),
           });
         }

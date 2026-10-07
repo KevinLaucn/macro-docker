@@ -544,7 +544,30 @@ export const emailClient = {
           headers: emailLinkHeaders(linkId),
         }
       )
-    ).map((result) => result);
+    ).map((result) => {
+      // Self-heal: in self-host topology, email_service may return an internal
+      // docker endpoint (http://localstack:4566 or localhost:4566). Transform it
+      // to the public S3 host or current window origin so browser uploads succeed.
+      if (
+        result.upload_url &&
+        (result.upload_url.includes('localstack:4566') ||
+          result.upload_url.includes('localhost:4566') ||
+          result.upload_url.includes('127.0.0.1:4566'))
+      ) {
+        if (typeof window !== 'undefined' && window.location) {
+          const s3Domain =
+            window.location.hostname === 'chat.chnprints.com'
+              ? 'https://s3-chat.chnprints.com'
+              : `${window.location.protocol}//s3.${window.location.host}`;
+          const normalized = result.upload_url.replace(
+            /^https?:\/\/[^/]+(:4566)?/,
+            s3Domain
+          );
+          return { ...result, upload_url: normalized };
+        }
+      }
+      return result;
+    });
   },
   async removeDraftAttachment(
     args: { draftID: string; attachmentID: string },
