@@ -3,8 +3,8 @@ import { t } from '@macro/i18n';
 export const CRM_VIEWS = [
   {
     id: 'people',
-    label: 'People',
-    description: 'Contacts across your teams, combined by email',
+    label: t('People', 'crm'),
+    description: t('Contacts across your teams, combined by email', 'crm'),
   },
   {
     id: 'active',

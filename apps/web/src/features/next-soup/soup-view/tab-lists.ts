@@ -26,11 +26,11 @@ export const VIEW_TAB_LISTS: Record<TabbedListView, TabItem[]> = {
     // still cover it.
   ],
   agents: [
-    { value: 'owned', label: 'Owned' },
-    { value: 'running', label: 'Running' },
-    { value: 'shared', label: 'Shared' },
-    { value: 'routines', label: 'Routines' },
-    { value: 'skills', label: 'Skills' },
+    { value: 'owned', label: t('Owned') },
+    { value: 'running', label: t('Running') },
+    { value: 'shared', label: t('Shared') },
+    { value: 'routines', label: t('Routines') },
+    { value: 'skills', label: t('Skills') },
   ],
   mail: [
     { value: 'important', label: t('Signal') },

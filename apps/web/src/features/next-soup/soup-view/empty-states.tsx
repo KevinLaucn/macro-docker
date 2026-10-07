@@ -227,10 +227,12 @@ export function EmptyState(props: {
       >
         <EmptyStatePanel
           graphic={EmptyStateRoutinesGraphic}
-          title="No routines to show"
-          description="Routines run in the background to handle repetitive work for you — like triaging messages, updating tasks, or sending follow-ups."
+          title={t('No routines to show')}
+          description={t(
+            'Routines run in the background to handle repetitive work for you — like triaging messages, updating tasks, or sending follow-ups.'
+          )}
           primaryAction={{
-            label: 'New routine',
+            label: t('New routine'),
             icon: PlusIcon,
             onClick: () => runCreateAction('routine'),
           }}

@@ -690,10 +690,14 @@ async function run() {
   }
 
   // Obsolete translations: keys in zh-CN that are neither in explicitCalls nor in any currentCalls
+  const inUseBaseKeys = new Set<string>();
+  for (const k of currentCalls.keys()) {
+    inUseBaseKeys.add(k.includes('@@') ? k.split('@@')[0] : k);
+  }
   for (const key of Object.keys(existingZh)) {
     if (!currentCalls.has(key)) {
       const baseKey = key.includes('@@') ? key.split('@@')[0] : key;
-      if (!currentCalls.has(baseKey)) {
+      if (!inUseBaseKeys.has(baseKey)) {
         obsolete[key] = existingZh[key];
       }
     }

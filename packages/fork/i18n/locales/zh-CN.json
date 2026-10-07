@@ -4852,5 +4852,15 @@
   "Active for@@chat": "有效期：",
   "Open {title}@@call": "打开 {title}",
   "Live@@call": "直播中",
-  "Sender marked as {label}@@email": "发件人已标记为 {label}"
+  "Sender marked as {label}@@email": "发件人已标记为 {label}",
+  "Blocks": "内容块",
+  "Booking links": "预约链接",
+  "Usage": "使用量",
+  "Desktop App": "桌面应用",
+  "Developer": "开发者",
+  "Agent connections": "智能体连接",
+  "No routines to show": "暂无例行任务",
+  "Routines run in the background to handle repetitive work for you — like triaging messages, updating tasks, or sending follow-ups.": "例行任务在后台运行，替您处理分流消息、更新任务或发送跟进等重复性工作。",
+  "New routine": "新建例行任务",
+  "Contacts across your teams, combined by email@@crm": "团队的所有联系人，按邮箱汇总"
 }

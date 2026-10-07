@@ -1,63 +1,27 @@
 {
-  "Company": [
-    "features/next-soup/soup-view/soup-view-create-button.tsx",
-    "features/contacts/Contact/ContactMetadataSection.tsx",
-    "components/app/mobile/MobilePageCreateButton.tsx"
-  ],
-  "New": [
-    "features/next-soup/soup-view/soup-view-create-button.tsx",
-    "features/email-view/components/EmailHeader.tsx",
-    "components/app/mobile/MobilePageCreateButton.tsx"
-  ],
-  "Folder": [
-    "features/next-soup/soup-view/soup-view-create-button.tsx",
-    "features/command/Launcher.tsx",
-    "features/block-project/component/ProjectCreateMenu.tsx"
-  ],
-  "Email": [
-    "features/next-soup/soup-view/soup-view-create-button.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/contacts/Contact/ContactMetadataSection.tsx",
-    "features/command/Launcher.tsx",
-    "features/notifications/notification-event-catalog.ts",
-    "features/email-view/components/EmailSidebar.tsx",
-    "features/email-view/components/EmailHeader.tsx",
-    "components/app/app-sidebar/sidebar.tsx"
-  ],
-  "Task": [
-    "features/next-soup/soup-view/soup-view-create-button.tsx",
-    "features/command/Launcher.tsx",
-    "features/block-project/component/ProjectCreateMenu.tsx"
-  ],
   "Signal": [
     "features/next-soup/soup-view/tab-lists.ts",
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/contacts/Contact/ContactEmailsSection.tsx",
-    "features/inbox-view/components/InboxTabs.tsx",
-    "features/email-view/constants.ts"
+    "features/home/components/HomeTabs.tsx"
   ],
   "Noise": [
     "features/next-soup/soup-view/tab-lists.ts",
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/inbox-view/components/InboxTabs.tsx",
-    "features/email-view/constants.ts"
+    "features/home/components/HomeTabs.tsx"
   ],
   "All": [
     "features/next-soup/soup-view/tab-lists.ts",
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/contacts/Contact/ContactEmailsSection.tsx",
-    "features/channels-view/components/rail/ExpandedChannelsRail.tsx",
-    "features/command/CommandMenu.tsx",
-    "features/email-view/constants.ts"
+    "features/channels-view/components/rail/ExpandedChannelsRail.tsx"
   ],
   "Calendar": [
     "features/next-soup/soup-view/tab-lists.ts",
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
     "features/notifications/notification-event-catalog.ts",
-    "features/email-view/constants.ts",
-    "components/app/app-sidebar/sidebar.tsx"
+    "components/app/app-sidebar/sidebar.tsx",
+    "lib/core/constant/settingsTabsConfig.tsx"
   ],
   "Attachments": [
     "features/next-soup/soup-view/tab-lists.ts",
@@ -71,11 +35,6 @@
     "features/channels-view/components/ChannelsMobileView.tsx",
     "components/app/app-sidebar/sidebar.tsx"
   ],
-  "People": [
-    "features/next-soup/soup-view/tab-lists.ts",
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/command/CommandMenu.tsx"
-  ],
   "Type": [
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
@@ -84,20 +43,13 @@
   "Agents": [
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/command/CommandMenu.tsx",
     "components/app/app-sidebar/sidebar.tsx",
     "lib/core/constant/settingsTabsConfig.tsx"
   ],
   "Tasks": [
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/command/CommandMenu.tsx",
     "features/notifications/notification-event-catalog.ts",
-    "components/app/app-sidebar/sidebar.tsx"
-  ],
-  "Files": [
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/command/CommandMenu.tsx",
     "components/app/app-sidebar/sidebar.tsx"
   ],
   "Status": [
@@ -133,11 +85,6 @@
     "features/command/Launcher.tsx",
     "features/block-project/component/ProjectCreateMenu.tsx"
   ],
-  "Me": [
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/contacts/Contact/ContactEmailsSection.tsx"
-  ],
   "Tags": [
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
@@ -152,8 +99,21 @@
   "Channels": [
     "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
     "features/channels-view/components/ChannelsMobileView.tsx",
-    "features/command/CommandMenu.tsx",
     "features/notifications/notification-event-catalog.ts",
+    "components/app/app-sidebar/sidebar.tsx"
+  ],
+  "Email": [
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/command/Launcher.tsx",
+    "features/notifications/notification-event-catalog.ts",
+    "features/email-view/components/EmailSidebar.tsx",
+    "features/email-view/components/EmailHeader.tsx",
+    "components/app/app-sidebar/sidebar.tsx",
+    "lib/core/constant/settingsTabsConfig.tsx"
+  ],
+  "Calls": [
+    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
+    "features/channel/Channel/channel-tabs.ts",
     "components/app/app-sidebar/sidebar.tsx"
   ],
   "None": [
@@ -165,32 +125,5 @@
     "features/next-soup/soup-view/group-options.ts",
     "features/block-spreadsheet/core/toolbar-types.ts",
     "features/tasks-view/constants.ts"
-  ],
-  "Mark done": [
-    "features/settings/Shortcuts.tsx",
-    "features/block-email/util/emailHotkeys.ts",
-    "features/block-email/component/TopBar.tsx"
-  ],
-  "Mark unread": [
-    "features/settings/Shortcuts.tsx",
-    "features/block-email/util/emailHotkeys.ts",
-    "features/block-email/component/TopBar.tsx"
-  ],
-  "Mark read": [
-    "features/settings/Shortcuts.tsx",
-    "features/block-email/util/emailHotkeys.ts",
-    "features/block-email/component/TopBar.tsx"
-  ],
-  "Loading…": [
-    "features/contacts/Contact/ContactSharingSection.tsx",
-    "features/contacts/Contact/ContactEmailsSection.tsx",
-    "features/contacts/Contact/ContactMetadataSection.tsx",
-    "features/companies/Company/CompanyContactsSection.tsx"
-  ],
-  "Team": [
-    "features/contacts/Contact/ContactEmailsSection.tsx",
-    "features/channel/CreateChannelModal.tsx",
-    "lib/core/component/TopBar/linkShare.ts",
-    "lib/core/constant/settingsTabsConfig.tsx"
   ]
 }
