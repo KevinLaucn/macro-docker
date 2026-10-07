@@ -2,5 +2,5 @@
 version: 1
 repository: macro-inc/macro
 branch: main
-last_merged_upstream_sha: f2055ba64ea0032120d9ab7d8bfdf10e918756d3
-merge_commit_sha: 704a49cd7bb95c2729878425dbdf372da4867852
+last_merged_upstream_sha: c33b3e143d3981bdb0cf78b7a7a33d4f2ae4f081
+merge_commit_sha: 4b290c2092e7a9745f5a037b510435e430a03547
