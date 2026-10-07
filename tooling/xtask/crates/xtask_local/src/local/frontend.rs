@@ -129,7 +129,6 @@ fn dev_env(
     instance: &Instance,
     mode: Mode,
     traces_enabled: bool,
-    enable_onboarding: bool,
     admin_email: Option<&str>,
 ) -> Result<Vec<(String, String)>> {
     let mut env = vec![
@@ -178,12 +177,6 @@ fn dev_env(
     env.push((
         "VITE_ENABLE_BROWSER_OTEL".to_string(),
         traces_enabled.to_string(),
-    ));
-    // Existing override: always set so the app's DEV_MODE default (on) does
-    // not win. `just run_local --enable-onboarding` is the opt-in.
-    env.push((
-        "VITE_ENABLE_ONBOARDING_V4".to_string(),
-        enable_onboarding.to_string(),
     ));
     if let Some(admin_email) = admin_email.filter(|email| !email.trim().is_empty()) {
         env.push(("VITE_ADMIN_EMAIL".to_string(), admin_email.to_string()));
@@ -328,7 +321,6 @@ pub fn start(
     instance: &Instance,
     mode: Mode,
     traces_enabled: bool,
-    enable_onboarding: bool,
     admin_email: Option<&str>,
 ) -> Result<Option<Frontend>> {
     if mode.spec().wait_backend_before_frontend {
@@ -392,7 +384,6 @@ pub fn start(
         instance,
         mode,
         traces_enabled,
-        enable_onboarding,
         admin_email,
     )? {
         cmd.env(k, v);
@@ -479,7 +470,6 @@ pub fn exec(
     instance: &Instance,
     mode: Mode,
     traces_enabled: bool,
-    enable_onboarding: bool,
     admin_email: Option<&str>,
 ) -> Result<()> {
     let port = instance.port(Port::Frontend);
@@ -516,9 +506,8 @@ pub fn exec(
         instance,
         mode,
         traces_enabled,
-        enable_onboarding,
         admin_email,
-    ) {
+    )? {
         cmd.env(k, v);
     }
 

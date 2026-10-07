@@ -423,7 +423,6 @@ pub fn run_stack(mode: Mode, args: &cli::RunArgs) -> Result<()> {
             &instance,
             mode,
             args.traces.enabled() && summary::port_open(4318),
-            args.enable_onboarding,
             env.merged
                 .get("ADMIN_EMAIL")
                 .or_else(|| env.merged.get("MACRO_ADMIN_EMAIL"))
@@ -503,7 +502,6 @@ pub fn frontend_exec(instance: &Instance, mode: Mode, args: &cli::FrontendArgs) 
         instance,
         mode,
         traces_enabled,
-        args.enable_onboarding,
         admin_email.as_deref(),
     )
 }

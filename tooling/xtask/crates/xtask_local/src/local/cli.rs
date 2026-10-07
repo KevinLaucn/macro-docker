@@ -148,9 +148,6 @@ pub struct RunArgs {
 pub struct FrontendArgs {
     #[command(flatten)]
     pub instance: InstanceArgs,
-    /// Turn on onboarding v4 for the attached vite server
-    #[arg(long)]
-    pub enable_onboarding: bool,
     /// Run against shared dev resources instead of local infra proxy.
     #[arg(long)]
     pub dev: bool,
