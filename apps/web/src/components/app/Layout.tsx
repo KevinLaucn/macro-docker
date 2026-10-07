@@ -1,5 +1,5 @@
 // PRIVATE-HOOK: self_host_health:prompt_import
-import { SelfHostHealthPrompt } from '@macro/self-host-health';
+
 import { DEFAULT_ROUTE } from '@app/constants/defaultRoute';
 import { ROUTER_BASE_CONCAT } from '@app/constants/routerBase';
 import Banner from '@app/features/auth/banner/Banner';
@@ -52,6 +52,7 @@ import { virtualKeyboardVisible } from '@core/mobile/virtualKeyboard';
 import { updateCookie } from '@core/util/cookies';
 import { lazyNamed } from '@core/util/lazyNamed';
 import { isPlatform } from '@core/util/platform';
+import { SelfHostHealthPrompt } from '@macro/self-host-health';
 import { useUserInfoQuery } from '@queries/auth/user-info';
 import { queryClient } from '@queries/client';
 import {

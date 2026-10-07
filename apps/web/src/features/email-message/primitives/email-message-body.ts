@@ -1,8 +1,8 @@
 import { deepEqual } from '@core/util/compareUtils';
-import { prepareEmailBody } from '@macro-inc/email-renderer';
-import { mountEmailBody } from '@macro-inc/email-renderer/browser';
 // PRIVATE-HOOK: read_receipts:strip-sent-import
 import { stripOwnTrackingPixelsFromHtml } from '@macro/fork-read-receipts';
+import { prepareEmailBody } from '@macro-inc/email-renderer';
+import { mountEmailBody } from '@macro-inc/email-renderer/browser';
 import {
   type Accessor,
   createEffect,

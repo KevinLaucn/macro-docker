@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import { GO_TO_COMMAND_SCOPE, GO_TO_LEADER_KEY } from '@app/constants/hotkeys';
 import { LIST_VIEW_PATHS, type ListView } from '@app/constants/list-views';
 import { useActivityFeedFlag } from '@app/features/activity/use-activity-feed-flag';
@@ -37,6 +36,7 @@ import type { ValidHotkey } from '@core/hotkey/types';
 import { activateClosestDOMScope } from '@core/hotkey/utils';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { ContextMenu } from '@kobalte/core/context-menu';
+import { t } from '@macro/i18n';
 import BellIcon from '@phosphor/bell.svg';
 import HomeIcon from '@phosphor/house.svg';
 import SearchIcon from '@phosphor/magnifying-glass.svg';

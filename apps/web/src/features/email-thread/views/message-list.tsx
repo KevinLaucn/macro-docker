@@ -1,5 +1,4 @@
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
-import { EmailThreadTranslateButton } from '@macro/email-translation';
 import { Key } from '@solid-primitives/keyed';
 import { cn, Layer } from '@ui';
 import {

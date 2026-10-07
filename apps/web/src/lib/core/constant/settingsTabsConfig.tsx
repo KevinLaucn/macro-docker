@@ -8,11 +8,11 @@ import CpuIcon from '@phosphor/cpu.svg';
 import CreditCardIcon from '@phosphor/credit-card.svg';
 import DesktopIcon from '@phosphor/desktop.svg';
 import DeviceMobileIcon from '@phosphor/device-mobile-speaker.svg';
-// PRIVATE-HOOK: self_host_health:settings_icon
-import HeartbeatIcon from '@phosphor/heartbeat.svg';
 import EmailIcon from '@phosphor/envelope-simple.svg';
 import GaugeIcon from '@phosphor/gauge.svg';
 import HardDrivesIcon from '@phosphor/hard-drives.svg';
+// PRIVATE-HOOK: self_host_health:settings_icon
+import HeartbeatIcon from '@phosphor/heartbeat.svg';
 import KeyIcon from '@phosphor/key.svg';
 import KeyboardIcon from '@phosphor/keyboard.svg';
 import LinkIcon from '@phosphor/link.svg';
@@ -224,7 +224,12 @@ export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
     items: [
       { tab: 'Admin', label: t('Debug'), icon: BugIcon, keywords: [] },
       // PRIVATE-HOOK: self_host_health:settings_item
-      { tab: 'SelfHostHealth', label: t('Health Check'), icon: HeartbeatIcon, keywords: ['health', 'self-host'] },
+      {
+        tab: 'SelfHostHealth',
+        label: t('Health Check'),
+        icon: HeartbeatIcon,
+        keywords: ['health', 'self-host'],
+      },
     ],
   },
 ];

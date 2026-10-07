@@ -1,6 +1,6 @@
-import { t } from '@macro/i18n';
 import { toast } from '@core/component/Toast/Toast';
-import { cn, InlineCheckbox } from '@ui';
+import { t } from '@macro/i18n';
+import { InlineCheckbox } from '@ui';
 import { Show } from 'solid-js';
 import type { CrmContact as CrmContactResponse } from '../core/contact';
 import { useSetContactHiddenMutation } from './use-crm';

@@ -1,5 +1,5 @@
-import { t } from '@macro/i18n';
 import { IS_MAC } from '@core/constant/isMac';
+import { t } from '@macro/i18n';
 import { cn, Hotkey } from '@ui';
 import { createMemo, createSignal, For, Index, type JSX, Show } from 'solid-js';
 import { SettingsPage, SettingsSection, SettingsSurface } from './primitives';

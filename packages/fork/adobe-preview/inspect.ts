@@ -30,7 +30,8 @@ async function getBlobArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
   if (typeof (blob as any).arrayBuffer === 'function') {
     return await blob.arrayBuffer();
   }
-  const internalBuf = (blob as any)[Symbol.for('buffer')] || (blob as any)._buffer;
+  const internalBuf =
+    (blob as any)[Symbol.for('buffer')] || (blob as any)._buffer;
   if (internalBuf && internalBuf.buffer instanceof ArrayBuffer) {
     return internalBuf.buffer.slice(
       internalBuf.byteOffset,
@@ -217,7 +218,9 @@ export async function inspectEps(blob: Blob): Promise<AdobePreviewResult> {
 /**
  * Helper to identify Adobe format from filename.
  */
-export function getAdobeFormatFromFileName(fileName?: string | null): AdobeFormat | null {
+export function getAdobeFormatFromFileName(
+  fileName?: string | null
+): AdobeFormat | null {
   if (!fileName) return null;
   const ext = fileName.split('.').pop()?.toLowerCase();
   if (ext === 'ai') return 'ai';

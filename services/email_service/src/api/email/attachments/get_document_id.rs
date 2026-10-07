@@ -269,8 +269,8 @@ async fn verify_and_get_cached_document_id(
         return Ok(Some(document_id));
     };
 
-    let bucket = std::env::var("DOCUMENT_STORAGE_BUCKET")
-        .unwrap_or_else(|_| "doc-storage".to_string());
+    let bucket =
+        std::env::var("DOCUMENT_STORAGE_BUCKET").unwrap_or_else(|_| "doc-storage".to_string());
     let s3_key = format!("{}/{}/{}", record.owner, document_id, version_id);
 
     match ctx.s3_client.exists(&bucket, &s3_key).await {
@@ -282,19 +282,15 @@ async fn verify_and_get_cached_document_id(
                 s3_key = %s3_key,
                 "Attachment document S3 object missing, purging stale mapping to trigger re-upload"
             );
-            let _ = sqlx::query(
-                r#"DELETE FROM document_email WHERE email_attachment_id = $1"#
-            )
-            .bind(attachment_id)
-            .execute(&ctx.db)
-            .await;
+            let _ = sqlx::query(r#"DELETE FROM document_email WHERE email_attachment_id = $1"#)
+                .bind(attachment_id)
+                .execute(&ctx.db)
+                .await;
 
-            let _ = sqlx::query(
-                r#"UPDATE "Document" SET "deletedAt" = NOW() WHERE id = $1"#
-            )
-            .bind(&document_id)
-            .execute(&ctx.db)
-            .await;
+            let _ = sqlx::query(r#"UPDATE "Document" SET "deletedAt" = NOW() WHERE id = $1"#)
+                .bind(&document_id)
+                .execute(&ctx.db)
+                .await;
 
             Ok(None)
         }
@@ -309,4 +305,3 @@ async fn verify_and_get_cached_document_id(
         }
     }
 }
-

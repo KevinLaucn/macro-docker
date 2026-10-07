@@ -1,5 +1,5 @@
-import { createEffect, createSignal, onCleanup, Show } from 'solid-js';
 import { LoadingSpinner } from '@core/component/LoadingSpinner';
+import { createEffect, createSignal, onCleanup, Show } from 'solid-js';
 
 export type EpsCanvasPreviewProps = {
   tiffBlob: Blob;

@@ -31,10 +31,7 @@ export function SoupListTranslateButton(props: {
 
   return (
     <Show when={props.forceVisible || isEmailListView()}>
-      <Tooltip
-        shortcut={undefined}
-        label={label()}
-      >
+      <Tooltip shortcut={undefined} label={label()}>
         <Button
           variant="outline"
           size={buttonSize()}
@@ -49,10 +46,7 @@ export function SoupListTranslateButton(props: {
           aria-label={label()}
         >
           <TranslateIcon
-            class={cn(
-              isSquare() ? 'size-4' : 'size-3.5',
-              'text-ink-muted'
-            )}
+            class={cn(isSquare() ? 'size-4' : 'size-3.5', 'text-ink-muted')}
           />
           <Show when={!props.hideLabel}>
             <span>{t('Translate')}</span>

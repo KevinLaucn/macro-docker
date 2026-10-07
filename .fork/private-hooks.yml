@@ -7,7 +7,7 @@ hooks:
   - id: email_read_receipts_send_completion_import
     customization: READ-RECEIPTS-001
     file: apps/web/src/lib/queries/email/thread.ts
-    marker: "// PRIVATE-HOOK: read_receipts:send-completion-import"
+    marker: "// PRIVATE-HOOK: read_receipts:sent-import"
     expected: "import { handleReadReceiptSentMessage } from '@macro/fork-read-receipts/queries';"
     context:
       - "export function useSendMessageMutation("

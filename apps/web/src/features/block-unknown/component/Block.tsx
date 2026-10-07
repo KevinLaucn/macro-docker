@@ -13,7 +13,10 @@ import {
 } from '@core/util/currentBlockDocumentName';
 import { downloadFile } from '@filesystem/download';
 // PRIVATE-HOOK: adobe_preview:fallback_preview
-import { AdobePreviewContainer, getAdobeFormatFromFileName } from '@macro/adobe-preview';
+import {
+  AdobePreviewContainer,
+  getAdobeFormatFromFileName,
+} from '@macro/adobe-preview';
 import { waitForDocumentContentReady } from '@queries/storage/document-location';
 import { fetchDocumentMetadata } from '@queries/storage/document-metadata';
 import { createCallback } from '@solid-primitives/rootless';

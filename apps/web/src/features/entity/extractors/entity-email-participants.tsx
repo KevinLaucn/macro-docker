@@ -255,8 +255,8 @@ export function EntityEmailParticipants(props: { entity: EmailEntity }) {
         identity.photoUrl ??
         (normalizeEmail(identity.email) ===
         normalizeEmail(props.entity.senderEmail ?? '')
-          ? (props.entity as { senderPhotoUrl?: string }).senderPhotoUrl ??
-            undefined
+          ? ((props.entity as { senderPhotoUrl?: string }).senderPhotoUrl ??
+            undefined)
           : undefined);
       return {
         participant: {

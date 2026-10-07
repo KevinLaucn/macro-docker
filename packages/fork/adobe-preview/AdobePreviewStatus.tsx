@@ -2,7 +2,10 @@ import { Show } from 'solid-js';
 import type { AdobePreviewResult } from './inspect';
 
 export type AdobePreviewStatusProps = {
-  result: Exclude<AdobePreviewResult, { kind: 'ai-pdf' } | { kind: 'eps-tiff' }>;
+  result: Exclude<
+    AdobePreviewResult,
+    { kind: 'ai-pdf' } | { kind: 'eps-tiff' }
+  >;
   fileName?: string;
 };
 
@@ -13,7 +16,8 @@ export function AdobePreviewStatus(props: AdobePreviewStatusProps) {
         if (props.result.format === 'ai') {
           return {
             title: '无法预览此 AI 文件',
-            description: '文件本身未包含 PDF 兼容预览。请在 Illustrator 保存时启用 “Create PDF Compatible File”。',
+            description:
+              '文件本身未包含 PDF 兼容预览。请在 Illustrator 保存时启用 “Create PDF Compatible File”。',
             status: '文件本身缺少预览数据',
             badgeClass: 'bg-warning/15 text-warning',
           };
@@ -36,7 +40,8 @@ export function AdobePreviewStatus(props: AdobePreviewStatusProps) {
       case 'load-error':
         return {
           title: '预览文件加载失败',
-          description: props.result.error || '无法读取文件二进制流或文件头部校验损坏。',
+          description:
+            props.result.error || '无法读取文件二进制流或文件头部校验损坏。',
           status: '加载失败',
           badgeClass: 'bg-failure/15 text-failure',
         };
@@ -47,12 +52,12 @@ export function AdobePreviewStatus(props: AdobePreviewStatusProps) {
 
   return (
     <div class="flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto">
-      <div class={`mb-3 px-2.5 py-1 rounded-full text-xs font-medium tracking-wide ${details().badgeClass}`}>
+      <div
+        class={`mb-3 px-2.5 py-1 rounded-full text-xs font-medium tracking-wide ${details().badgeClass}`}
+      >
         {details().status}
       </div>
-      <h3 class="text-base font-semibold text-ink mb-2">
-        {details().title}
-      </h3>
+      <h3 class="text-base font-semibold text-ink mb-2">{details().title}</h3>
       <p class="text-xs text-ink-muted leading-relaxed mb-4">
         {details().description}
       </p>

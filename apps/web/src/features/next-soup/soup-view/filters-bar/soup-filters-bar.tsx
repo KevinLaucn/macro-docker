@@ -8,7 +8,6 @@ import { CollapsibleToolbarItem } from '@components/app/split-layout/components/
 import { SplitToolbarLeft } from '@components/app/split-layout/components/SplitToolbar';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
-import { SoupListTranslateButton } from '@macro/email-translation';
 import { createMemo, createSignal, Show } from 'solid-js';
 
 export function SoupFiltersBar(props: { variant?: 'default' | 'tag' }) {
@@ -24,11 +23,6 @@ export function SoupFiltersBar(props: { variant?: 'default' | 'tag' }) {
     return content.type === 'component' && content.id === 'search';
   });
   const isTagView = createMemo(() => props.variant === 'tag');
-  const isEmailView = createMemo(() => {
-    const content = panel.handle.content();
-    return content.type === 'component' &&
-      (content.id === 'inbox' || content.id === 'mail');
-  });
 
   // The inbox hides sort (it's fixed to updated_at for this view).
   const isHomeView = createMemo(() => {

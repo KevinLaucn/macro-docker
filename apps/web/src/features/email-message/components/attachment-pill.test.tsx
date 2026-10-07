@@ -42,7 +42,9 @@ it('opens attachments with Enter and Space, while removal stays a separate keybo
 });
 
 it('routes attachments correctly: PDF to pdf, AI(%PDF-) to pdf, AI(PS) to unknown, EPS to unknown', async () => {
-  const { resolveAdobeAttachmentBlockName } = await import('@macro/adobe-preview');
+  const { resolveAdobeAttachmentBlockName } = await import(
+    '@macro/adobe-preview'
+  );
 
   // 1. Regular PDF file routes to default 'pdf'
   const pdfBlock = await resolveAdobeAttachmentBlockName('document.pdf', 'pdf');
@@ -59,7 +61,9 @@ it('routes attachments correctly: PDF to pdf, AI(%PDF-) to pdf, AI(PS) to unknow
 
   // 3. AI file without %PDF- (pure PostScript) routes to 'unknown'
   const psAiBlob = new Blob([
-    new TextEncoder().encode('%!PS-Adobe-3.1 EPSF-3.0 %%Creator: Adobe Illustrator'),
+    new TextEncoder().encode(
+      '%!PS-Adobe-3.1 EPSF-3.0 %%Creator: Adobe Illustrator'
+    ),
   ]);
   const aiPsBlock = await resolveAdobeAttachmentBlockName(
     'legacy.ai',
@@ -69,7 +73,9 @@ it('routes attachments correctly: PDF to pdf, AI(%PDF-) to pdf, AI(PS) to unknow
   expect(aiPsBlock).toBe('unknown');
 
   // 4. EPS file unconditionally routes to 'unknown' (never 'pdf')
-  const epsBlock = await resolveAdobeAttachmentBlockName('graphic.eps', 'unknown');
+  const epsBlock = await resolveAdobeAttachmentBlockName(
+    'graphic.eps',
+    'unknown'
+  );
   expect(epsBlock).toBe('unknown');
 });
-

@@ -140,6 +140,11 @@
 		reverse_proxy static-file-service:8080
 	}
 
+	# Match upstream's same-origin object-storage endpoint.
+	handle_path /local-storage/* {
+		reverse_proxy localstack:4566
+	}
+
 	handle_path /static-file/* {
 		rewrite * /static-file-storage{path}
 		reverse_proxy localstack:4566

@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import type { ListView } from '@app/constants/list-views';
 import { isListViewID, TAGGABLE_LIST_VIEWS } from '@app/constants/list-views';
 import {
@@ -27,6 +26,7 @@ import { UserIcon } from '@core/component/UserIcon';
 import { useUserId } from '@core/context/user';
 import { registerHotkey } from '@core/hotkey/hotkeys';
 import { TOKENS } from '@core/hotkey/tokens';
+import { t } from '@macro/i18n';
 import CircleDashedIcon from '@phosphor/circle-dashed.svg';
 import FilterIcon from '@phosphor/funnel-simple.svg';
 import { PropertyValueIcon } from '@property/component/propertyValue/PropertyValueIcon';

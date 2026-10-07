@@ -1,16 +1,16 @@
 import { useSplitLayout } from '@components/app/split-layout/layout';
 import { toast } from '@core/component/Toast/Toast';
 import { fileTypeToBlockName } from '@core/constant/allBlocks';
+import { platformFetch } from '@core/util/platformFetch';
+import { resolveAdobeAttachmentBlockName } from '@macro/adobe-preview';
 import { Telemetry } from '@macro-inc/observability';
 import {
   getEmailAttachmentDocument,
   getEmailAttachmentMetadata,
 } from '@queries/email/integration';
 import { refetchSoupEntity } from '@queries/soup/cache';
-import { FileTypeMap } from '@service-storage/fileTypeMap';
-import { resolveAdobeAttachmentBlockName } from '@macro/adobe-preview';
-import { platformFetch } from '@core/util/platformFetch';
 import { fetchBinaryDocumentData } from '@queries/storage/binary-document';
+import { FileTypeMap } from '@service-storage/fileTypeMap';
 import type { EmailAttachment } from './core/email-message';
 export function createEmailAttachmentOpener() {
   const { openWithSplit } = useSplitLayout();

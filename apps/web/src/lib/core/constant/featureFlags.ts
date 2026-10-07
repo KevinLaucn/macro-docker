@@ -823,7 +823,7 @@ function getRuntimeFeatures(): Partial<AppCapabilities> | undefined {
 function resolveCapability(
   env: string,
   runtimeValue: boolean | undefined,
-  selfHost: boolean
+  _selfHost: boolean
 ): boolean {
   return getFeatureFlagOverride(env) ?? runtimeValue ?? true;
 }

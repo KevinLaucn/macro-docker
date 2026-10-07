@@ -392,8 +392,8 @@ function normalizeEmailImages(container: Element) {
     typeof window !== 'undefined' && window.location?.origin
       ? window.location.origin
       : typeof globalThis !== 'undefined' && globalThis.location?.origin
-      ? globalThis.location.origin
-      : '';
+        ? globalThis.location.origin
+        : '';
 
   images.forEach((img) => {
     let src = img.getAttribute('src') || '';

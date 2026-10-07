@@ -1,10 +1,10 @@
-import { resolveContactAvatar } from "./avatar-policy";
-import type { ContactAvatar } from "../types";
+import type { ContactAvatar } from '../types';
+import { resolveContactAvatar } from './avatar-policy';
 
 export function resolveAvatarUrl(
-	email: string,
-	contacts: readonly ContactAvatar[],
-	fallback?: string,
+  email: string,
+  contacts: readonly ContactAvatar[],
+  fallback?: string
 ): string | undefined {
-	return resolveContactAvatar(email, contacts) ?? fallback;
+  return resolveContactAvatar(email, contacts) ?? fallback;
 }

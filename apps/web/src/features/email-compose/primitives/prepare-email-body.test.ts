@@ -109,18 +109,13 @@ describe('prepareEmailBodyFromHtml', () => {
   });
 
   it('normalizes relative static-file image src to absolute url with window origin', () => {
-    const originalOrigin = window.location.origin;
-    try {
-      const prepared = prepareEmailBodyFromHtml(
-        '<p>Look at this:</p><img src="/static-file/file/test-uuid-123" width="500" height="200" alt="img">'
-      );
-      const decoded = decodeBase64Utf8(prepared.bodyHtml);
-      expect(decoded).toContain(
-        `src="${window.location.origin}/static-file/file/test-uuid-123"`
-      );
-    } finally {
-      // restore
-    }
+    const prepared = prepareEmailBodyFromHtml(
+      '<p>Look at this:</p><img src="/static-file/file/test-uuid-123" width="500" height="200" alt="img">'
+    );
+    const decoded = decodeBase64Utf8(prepared.bodyHtml);
+    expect(decoded).toContain(
+      `src="${window.location.origin}/static-file/file/test-uuid-123"`
+    );
   });
 
   it('restores image src from data-image-id if src is empty or blob', () => {

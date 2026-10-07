@@ -1,5 +1,7 @@
 use crate::api::ApiContext;
-use crate::api::context::{AuthorizationService, CalendarGrantService};
+use crate::api::context::AuthorizationService;
+#[cfg(feature = "calendar")]
+use crate::api::context::CalendarGrantService;
 use crate::pubsub::publish_email_event;
 use crate::utils::extract_email_with_response;
 use anyhow::Context;

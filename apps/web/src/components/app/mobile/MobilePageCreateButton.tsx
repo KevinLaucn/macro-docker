@@ -1,4 +1,3 @@
-import { t } from '@macro/i18n';
 import { useCalendarUiFlag } from '@app/features/calendar/hooks/use-calendar-ui-flag';
 import { useOpenEventComposer } from '@app/features/calendar-view/components/use-open-event-composer';
 import {
@@ -8,6 +7,7 @@ import {
 import { openCreateCompanyModal } from '@app/features/crm/crm-create';
 import { hapticImpact } from '@core/mobile/haptics';
 import { virtualKeyboardVisible } from '@core/mobile/virtualKeyboard';
+import { t } from '@macro/i18n';
 import CalendarIcon from '@phosphor/calendar-blank.svg';
 import MessageIcon from '@phosphor/chat-circle.svg';
 import MoreIcon from '@phosphor/dots-three.svg';

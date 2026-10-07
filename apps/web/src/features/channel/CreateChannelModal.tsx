@@ -6,7 +6,6 @@ import { useCombinedRecipients } from '@core/signal/useCombinedRecipient';
 import { recipientEntityMapper, type WithCustomUserInput } from '@core/user';
 import { useFocusLock } from '@core/util/createControlledOpenSignal';
 import { getDestinationFromOptions } from '@core/util/destination';
-import { t } from '@macro/i18n';
 import HashIcon from '@phosphor/hash.svg';
 import InfoIcon from '@phosphor/info.svg';
 import LockIcon from '@phosphor/lock.svg';

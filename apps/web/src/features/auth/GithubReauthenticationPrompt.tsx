@@ -1,8 +1,8 @@
 import { authorizeGithub } from '@core/auth/authorize-github';
 import { toast } from '@core/component/Toast/Toast';
 import { useKeyedPersistentToasts } from '@core/component/Toast/useKeyedPersistentToasts';
-import { t } from '@macro/i18n';
 import { isNativeMobilePlatform } from '@core/mobile/isNativeMobilePlatform';
+import { t } from '@macro/i18n';
 import { useReauthenticateGithubMutation } from '@queries/auth';
 import { authServiceClient } from '@service-auth/client';
 import { createSignal, onCleanup, onMount } from 'solid-js';

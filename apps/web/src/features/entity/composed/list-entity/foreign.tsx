@@ -1,5 +1,5 @@
-import { t } from '@macro/i18n';
 import { Popover } from '@kobalte/core/popover';
+import { t } from '@macro/i18n';
 import ArrowSquareOut from '@phosphor/arrow-square-out.svg';
 import ChatCircle from '@phosphor/chat-circle.svg';
 import Check from '@phosphor/check.svg';

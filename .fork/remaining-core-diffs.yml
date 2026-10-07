@@ -1,6 +1,6 @@
 ---
 version: 2
-upstream_sha: b82642c4422e67067f5fa93b833cb9adee613de8
+upstream_sha: f2055ba64ea0032120d9ab7d8bfdf10e918756d3
 diffs:
 - file: ".github/actions/setup-nix/action.yml"
   owners:
@@ -134,42 +134,17 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
-- file: apps/web/src/features/companies/Company/Company.tsx
+- file: apps/web/src/features/crm/core/navigation.ts
   owners:
   - I18N-ZH-CN-001
   hooks: []
   override: false
-- file: apps/web/src/features/companies/Company/CompanyContactsSection.tsx
+- file: apps/web/src/features/crm/views/company-contacts-section.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
   override: false
-- file: apps/web/src/features/companies/core/crm-navigation.ts
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/contacts/Contact/Contact.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/contacts/Contact/ContactEmailsSection.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/contacts/Contact/ContactHeader.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/contacts/Contact/ContactMetadataSection.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/contacts/Contact/ContactSharingSection.tsx
+- file: apps/web/src/features/crm/views/contact-sharing-section.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -177,6 +152,11 @@ diffs:
 - file: apps/web/src/features/drive-view/core/types.ts
   owners:
   - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/email-compose/primitives/prepare-email-body.test.ts
+  owners:
+  - READ-RECEIPTS-001
   hooks: []
   override: false
 - file: apps/web/src/features/email-compose/primitives/prepare-email-body.ts
@@ -279,8 +259,7 @@ diffs:
 - file: apps/web/src/features/email-thread/views/message-list.tsx
   owners:
   - EMAIL-TRANSLATION-001
-  hooks:
-  - email_translation_thread
+  hooks: []
   override: false
 - file: apps/web/src/features/email-view/components/EmailControls.tsx
   owners:
@@ -303,11 +282,6 @@ diffs:
 - file: apps/web/src/features/email-view/components/EmailSidebar.tsx
   owners:
   - EMAIL-TRANSLATION-001
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/email-view/constants.ts
-  owners:
   - I18N-ZH-CN-001
   hooks: []
   override: false
@@ -375,8 +349,7 @@ diffs:
 - file: apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
   owners:
   - EMAIL-TRANSLATION-001
-  hooks:
-  - email_translation_list_toolbar
+  hooks: []
   override: false
 - file: apps/web/src/features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx
   owners:
@@ -526,6 +499,13 @@ diffs:
   - SELFHOST-RUNTIME-001
   hooks: []
   override: false
+- file: apps/web/src/lib/queries/email/thread.ts
+  owners:
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_send_completion
+  - email_read_receipts_send_completion_import
+  override: false
 - file: apps/web/src/lib/queries/sync/SyncProvider.tsx
   owners:
   - READ-RECEIPTS-001
@@ -673,6 +653,11 @@ diffs:
   - SELFHOST-RUNTIME-001
   hooks: []
   override: false
+- file: docs/AGENT_GUIDE/surfaces.md
+  owners:
+  - READ-RECEIPTS-001
+  hooks: []
+  override: false
 - file: nix/cloud-storage.nix
   owners:
   - SELFHOST-RUNTIME-001
@@ -744,19 +729,17 @@ diffs:
   - AUTH-SELFHOST-001
   hooks: []
   override: false
-- file: services/authentication_service/src/main.rs
+- file: services/authentication_service/src/lib.rs
   owners:
-  - AUTH-SELFHOST-001
   - SELFHOST-HEALTH-001
   hooks:
   - self_host_health_features
-  - self_host_health_gmail_queue_probe_wiring
   override: false
-- file: services/authentication_service/src/openapi.rs
+- file: services/authentication_service/src/server.rs
   owners:
   - SELFHOST-HEALTH-001
   hooks:
-  - self_host_health_openapi_features
+  - self_host_health_gmail_queue_probe_wiring
   override: false
 - file: services/document_cognition_service/src/service/chat_renamer.rs
   owners:
@@ -861,19 +844,11 @@ diffs:
   - EMAIL-SELFHOST-001
   hooks: []
   override: false
-- file: services/email_service/src/main.rs
+- file: services/email_service/src/lib.rs
   owners:
-  - EMAIL-SELFHOST-001
   - READ-RECEIPTS-001
   hooks:
   - email_read_receipts_features
-  override: false
-- file: services/email_service/src/openapi.rs
-  owners:
-  - EMAIL-SELFHOST-001
-  - READ-RECEIPTS-001
-  hooks:
-  - email_read_receipts_features_openapi
   override: false
 - file: services/email_service/src/outbound/scheduled_delivery.rs
   owners:
@@ -928,6 +903,11 @@ diffs:
 - file: services/email_service/src/pubsub/util.rs
   owners:
   - EMAIL-SELFHOST-001
+  hooks: []
+  override: false
+- file: services/email_service/src/server.rs
+  owners:
+  - READ-RECEIPTS-001
   hooks: []
   override: false
 - file: services/email_service/src/util/gmail/send.rs

@@ -1,7 +1,7 @@
 import { useKeyedPersistentToasts } from '@core/component/Toast/useKeyedPersistentToasts';
 import { useAddInboxFlow } from '@core/email-link';
-import { t } from '@macro/i18n';
 import { reconnectScopes } from '@core/email-link/consent';
+import { t } from '@macro/i18n';
 import {
   useEmailLinksQuery,
   useInboxHealthProbeQuery,

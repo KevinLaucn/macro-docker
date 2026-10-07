@@ -26,7 +26,6 @@ import { openExternalUrl } from '@core/util/url';
 import { type EntityData, isGithubPrEntity } from '@entity';
 import { EntitySelectionBadge } from '@entity/components/EntitySelectionBadge';
 import Macro from '@icon/macro-logo.svg';
-import { t } from '@macro/i18n';
 import ArrowLeft from '@phosphor/arrow-left.svg';
 import { useDatabaseDiscoverySync } from '@queries/storage/databases';
 import {

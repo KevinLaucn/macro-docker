@@ -1,5 +1,5 @@
-import { t } from '@macro/i18n';
 import type { CrmCompanyEntity } from '@entity';
+import { t } from '@macro/i18n';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 import { useCrmContext } from '../context/crm-context';
 import type { CrmContact as CompanyContact } from '../core/contact';

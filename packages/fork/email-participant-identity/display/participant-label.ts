@@ -1,9 +1,9 @@
-import type { EmailParticipant, ParticipantDisplay } from "../types";
-import { participantLabel } from "../identity/participant-identity";
+import { participantLabel } from '../identity/participant-identity';
+import type { EmailParticipant, ParticipantDisplay } from '../types';
 
 export function getParticipantLabel(
-	participant: EmailParticipant,
-	selfEmailSet: ReadonlySet<string>,
+  participant: EmailParticipant,
+  selfEmailSet: ReadonlySet<string>
 ): ParticipantDisplay {
-	return participantLabel(participant, selfEmailSet);
+  return participantLabel(participant, selfEmailSet);
 }

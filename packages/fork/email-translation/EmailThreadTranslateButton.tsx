@@ -2,8 +2,8 @@ import { t } from '@macro/i18n';
 import TranslateIcon from '@phosphor/translate.svg';
 import { Button, cn, Tooltip } from '@ui';
 import { Show } from 'solid-js';
-import type { TranslatableMessage } from './translateMessage';
 import { requestBrowserTranslation } from './browserTranslation';
+import type { TranslatableMessage } from './translateMessage';
 
 export interface EmailThreadTranslateButtonProps {
   threadId?: string;

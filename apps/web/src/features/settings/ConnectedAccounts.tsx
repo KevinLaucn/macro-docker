@@ -1,7 +1,7 @@
 import { ENABLE_EMAIL } from '@core/constant/featureFlags';
-import { t } from '@macro/i18n';
 import { useSettingsState } from '@core/constant/SettingsState';
 import { useSettingsTabAvailable } from '@core/constant/settingsTabsConfig';
+import { t } from '@macro/i18n';
 import { Button } from '@ui';
 import { Show, Suspense } from 'solid-js';
 import { EmailCard } from './Email';

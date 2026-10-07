@@ -1,6 +1,9 @@
 use crate::calendar_refresh::ConnectionGatewayCalendarRefresh;
 use crate::calendar_request_gate::RedisCalendarRequestGate;
 use crate::calendar_tokens::CalendarTokenProviderAdapter;
+use crate::config::Config;
+use crate::outbound::email_api::GmailApi;
+use crate::util::redis::RedisClient;
 use axum::extract::FromRef;
 #[cfg(feature = "calendar")]
 use calendar_events::{
@@ -16,14 +19,6 @@ use email::{
     },
     outbound::{EmailPgRepo, GmailTokenProviderImpl},
 };
-#[cfg(feature = "calendar")]
-use crate::calendar_refresh::ConnectionGatewayCalendarRefresh;
-use crate::calendar_request_gate::RedisCalendarRequestGate;
-use crate::calendar_tokens::CalendarTokenProviderAdapter;
-
-use crate::config::Config;
-use crate::outbound::email_api::GmailApi;
-use crate::util::redis::RedisClient;
 use entity_access::{domain::service::EntityAccessServiceImpl, outbound::PgAccessRepository};
 use entity_access_management::domain::service::EntityAccessManagementServiceImpl;
 use frecency::{domain::services::FrecencyQueryServiceImpl, outbound::postgres::FrecencyPgStorage};

@@ -34,8 +34,7 @@ export function imageUrl(
   if (!/^https?:\/\//i.test(url)) return;
   if (!policy.proxyUrl)
     return url.replace(/^https?:/i, (scheme) => scheme.toLowerCase());
-  if (typeof policy.proxyUrl === 'function')
-    return policy.proxyUrl(url) ?? url;
+  if (typeof policy.proxyUrl === 'function') return policy.proxyUrl(url) ?? url;
   if (!/^https?:\/\//i.test(policy.proxyUrl)) return;
   return `${policy.proxyUrl}${policy.proxyUrl.includes('?') ? '&' : '?'}url=${encodeURIComponent(url)}`;
 }

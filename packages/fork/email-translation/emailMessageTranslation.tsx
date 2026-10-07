@@ -1,7 +1,7 @@
 import type { EmailMessage } from '@app/features/email-message/core/email-message';
 import { Show } from 'solid-js';
-import { EmailTranslateButton } from './EmailTranslateButton';
 import { requestBrowserTranslation } from './browserTranslation';
+import { EmailTranslateButton } from './EmailTranslateButton';
 
 export function EmailMessageTranslateButton(props: { message: EmailMessage }) {
   return (

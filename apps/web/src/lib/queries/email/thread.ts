@@ -7,9 +7,9 @@ import {
 } from '@core/constant/featureFlags';
 import { DEFAULT_THREAD_MESSAGES_LIMIT } from '@core/constant/pagination';
 import { catchToResult, throwOnErr } from '@core/util/result';
-import { Telemetry } from '@macro-inc/observability';
-// PRIVATE-HOOK: read_receipts:send-completion-import
+// PRIVATE-HOOK: read_receipts:sent-import
 import { handleReadReceiptSentMessage } from '@macro/fork-read-receipts/queries';
+import { Telemetry } from '@macro-inc/observability';
 import ArrowCounterClockwise from '@phosphor-icons/core/regular/arrow-counter-clockwise.svg?component-solid';
 import { emailClient } from '@service-email/client';
 import type {

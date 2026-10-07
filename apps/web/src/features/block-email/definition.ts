@@ -1,5 +1,4 @@
 import { defineBlock, LoadErrors } from '@core/block';
-import { t } from '@macro/i18n';
 import { ok } from 'neverthrow';
 import { lazy } from 'solid-js';
 
