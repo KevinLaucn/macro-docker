@@ -67,11 +67,6 @@ diffs:
   - READ-RECEIPTS-001
   hooks: []
   override: false
-- file: apps/web/src/features/block-email/definition.ts
-  owners:
-  - EMAIL-SELFHOST-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/block-email/util/emailHotkeys.ts
   owners:
   - EMAIL-SELFHOST-001
@@ -109,22 +104,12 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
-- file: apps/web/src/features/channel/CreateChannelModal.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/channels-view/components/ChannelsMobileView.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
   override: false
 - file: apps/web/src/features/channels-view/components/rail/ExpandedChannelsRail.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/command/CommandMenu.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -256,11 +241,6 @@ diffs:
   hooks:
   - email_translation_thread_keyboard
   override: false
-- file: apps/web/src/features/email-thread/views/message-list.tsx
-  owners:
-  - EMAIL-TRANSLATION-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/email-view/components/EmailControls.tsx
   owners:
   - EMAIL-TRANSLATION-001
@@ -344,11 +324,6 @@ diffs:
 - file: apps/web/src/features/next-soup/soup-view/filters-bar/search/search-facets.tsx
   owners:
   - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
-  owners:
-  - EMAIL-TRANSLATION-001
   hooks: []
   override: false
 - file: apps/web/src/features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx

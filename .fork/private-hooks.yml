@@ -383,7 +383,13 @@ hooks:
     customization: SELFHOST-HEALTH-001
     file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx
     marker: "// PRIVATE-HOOK: self_host_health:settings_item"
-    expected: "{ tab: 'SelfHostHealth', label: t('Health Check'), icon: HeartbeatIcon, keywords: ['health', 'self-host'] },"
+    expected: |-
+      {
+              tab: 'SelfHostHealth',
+              label: t('Health Check'),
+              icon: HeartbeatIcon,
+              keywords: ['health', 'self-host'],
+            },
     context:
       - "{ tab: 'Admin', label: t('Debug'), icon: BugIcon, keywords: [] },"
   - id: self_host_health_settings_slug
@@ -446,7 +452,11 @@ hooks:
     customization: ADOBE-ATTACHMENT-PREVIEW-001
     file: apps/web/src/features/block-unknown/component/Block.tsx
     marker: "// PRIVATE-HOOK: adobe_preview:fallback_preview"
-    expected: "import { AdobePreviewContainer, getAdobeFormatFromFileName } from '@macro/adobe-preview';"
+    expected: |-
+      import {
+        AdobePreviewContainer,
+        getAdobeFormatFromFileName,
+      } from '@macro/adobe-preview';
     context:
       - "export default function BlockUnknown() {"
   - id: email_read_receipts_list_envelope

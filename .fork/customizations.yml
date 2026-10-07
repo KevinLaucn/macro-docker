@@ -413,7 +413,6 @@ customizations:
       - apps/web/src/routes/Root.tsx
     owned_paths:
       - apps/web/src/features/block-email/component/TopBar.tsx
-      - apps/web/src/features/block-email/definition.ts
       - apps/web/src/features/block-email/util/emailHotkeys.ts
       - apps/web/src/features/email-message/attachment-action-adapter.ts
       - apps/web/src/features/email-message/components/attachment-pill.tsx
@@ -570,10 +569,8 @@ customizations:
       - apps/web/src/features/block-spreadsheet/core/toolbar-types.ts
       - apps/web/src/features/calendar/utils/calendar-label.ts
       - apps/web/src/features/channel/Channel/channel-tabs.ts
-      - apps/web/src/features/channel/CreateChannelModal.tsx
       - apps/web/src/features/channels-view/components/ChannelsMobileView.tsx
       - apps/web/src/features/channels-view/components/rail/ExpandedChannelsRail.tsx
-      - apps/web/src/features/command/CommandMenu.tsx
       - apps/web/src/features/command/Launcher.tsx
       - apps/web/src/features/drive-view/core/types.ts
       - apps/web/src/features/email-view/components/EmailHeader.tsx
@@ -631,14 +628,12 @@ customizations:
       - apps/web/src/features/email-message/primitives/email-message-body.ts
       - apps/web/src/features/email-message/views/email-message-body.tsx
       - apps/web/src/features/email-thread/primitives/thread-navigation.ts
-      - apps/web/src/features/email-thread/views/message-list.tsx
       - apps/web/src/features/email-view/components/EmailControls.tsx
       - apps/web/src/features/email-view/components/EmailHeader.tsx
       - apps/web/src/features/email-view/components/EmailList.tsx
       - apps/web/src/features/email-view/components/EmailSidebar.tsx
       - apps/web/src/features/email-view/email-view.tsx
       - apps/web/src/features/entity/composed/list-entity/email.tsx
-      - apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
       - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
       - apps/web/src/features/email-message/components/collapsed-message.tsx
     tests:
