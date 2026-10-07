@@ -370,6 +370,26 @@ customizations:
       - conventions
       - web
 
+  - id: EMAIL-ATTACHMENT-RECOVERY-001
+    title: Preserve attachment cache and provider recovery
+    rationale: Protect existing cache-first provider fallback and private document object checks without introducing a new recovery pipeline.
+    risk: high
+    paths:
+      - .github/scripts/check-email-attachment-contract.rb
+      - services/email_service/src/api/email/attachments.rs
+      - services/email_service/src/api/email/attachments/**
+      - services/email_service/src/util/upload_attachment.rs
+      - crates/email_db_client/src/attachments/**
+      - apps/web/src/features/email-compose/**
+      - apps/web/src/features/email-message/**
+      - apps/web/src/lib/queries/email/integration.ts
+      - apps/web/src/lib/service-clients/service-email/**
+      - packages/email-renderer/**
+      - self-host/**
+    tests:
+      - attachment-recovery-contract
+      - selfhost-config
+
   - id: EMAIL-SELFHOST-001
     title: Self-hosted Gmail and email service behavior
     rationale: Preserve Gmail synchronization, sending, tracking, and local worker behavior without Macro cloud services.
