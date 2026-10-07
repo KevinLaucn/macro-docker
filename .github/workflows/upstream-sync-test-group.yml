@@ -105,6 +105,10 @@ jobs:
         run: bunx vitest run --config vitest.config.ts --project app src/components/app/split-layout/tests
         working-directory: apps/web
 
+      - name: Typecheck web integrations
+        if: inputs.group == 'web'
+        run: bun run --cwd apps/web type-check
+
       - name: Test fork read receipts
         if: inputs.group == 'web'
         run: bunx vitest run --config vitest.config.ts --project fork-read-receipts

@@ -1,6 +1,6 @@
 ---
 version: 2
-upstream_sha: 7f7bda5b612b1bc77a82a7757e4167578dc75443
+upstream_sha: eb091eb92b4b2902e4495f2fd2ede775852fe6d5
 diffs:
 - file: ".github/actions/setup-nix/action.yml"
   owners:
