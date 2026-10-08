@@ -119,16 +119,8 @@ code, out = run_cmd("docker exec macro-selfhost-caddy-1 sh -c 'grep -s etsy@chnp
 if code == 0 and "etsy@chnprints.com" in out:
     print("  ✅ Frontend Default Sender: etsy@chnprints.com prioritized for new compose")
 else:
-    if os.path.exists("./patch_frontend.py"):
-        p_code, p_out = run_cmd("sudo python3 ./patch_frontend.py")
-        if p_code == 0 and "Verification OK" in p_out:
-            print("  ✅ Frontend Default Sender: auto-patched and verified (etsy@chnprints.com)")
-        else:
-            msg = "  ❌ Frontend Default Sender: patch missing and auto-patch failed"
-            print(msg); failures.append(msg)
-    else:
-        msg = "  ❌ Frontend Default Sender: etsy@chnprints.com not found in web bundle"
-        print(msg); failures.append(msg)
+    msg = "  ❌ Frontend Default Sender: etsy@chnprints.com not found in web bundle"
+    print(msg); failures.append(msg)
 
 # 7. Object Storage & SFS Presigned URL Smoke Check
 print("\n[7/9] Checking Object Storage Presigned URL & SFS External Endpoint...")

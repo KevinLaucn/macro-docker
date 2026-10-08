@@ -12,6 +12,7 @@ Run: python3 self-host/scripts/verify-release.py [--bundle-dir <path>]
 """
 from __future__ import annotations
 import argparse, json, re, sys, pathlib
+from web_assets import verify_web_assets
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SELF_HOST = ROOT / "self-host"
@@ -32,6 +33,7 @@ REQUIRED_BUNDLE_PATHS = [
     "macroctl",
     "scripts/check-drift.py",
     "scripts/verify-release.py",
+    "scripts/web_assets.py",
     "scripts/doctor.py",
     "init/provision.sh",
     "init/reconcile-localstack.sh",
@@ -292,6 +294,7 @@ def verify_image_revision_and_digest(image_ref: str, expected_sha: str, expected
 def main():
     parser = argparse.ArgumentParser(description="Verify release contract and deployment artifacts")
     parser.add_argument("--bundle-dir", type=pathlib.Path, default=None, help="Path to release bundle directory containing release.json")
+    parser.add_argument("--web-assets-dir", type=pathlib.Path, help="Validate the extracted frontend module graph")
     args = parser.parse_args()
 
     script_parent = pathlib.Path(__file__).resolve().parent
@@ -305,6 +308,8 @@ def main():
     errors = []
     errors.extend(verify_caddyfile(caddy_text))
     errors.extend(verify_compose(compose_text, caddy_text))
+    if args.web_assets_dir:
+        errors.extend(verify_web_assets(args.web_assets_dir))
 
     if args.bundle_dir:
         errors.extend(verify_bundle_layout(args.bundle_dir))

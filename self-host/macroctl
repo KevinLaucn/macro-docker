@@ -49,7 +49,7 @@ need_env() {
 resolve_profiles() {
   local env_profiles=""
   if [ -f "$ENV_FILE" ]; then
-    env_profiles=$(grep -E '^[[:space:]]*COMPOSE_PROFILES=' "$ENV_FILE" | cut -d= -f2- | tr -d '"'"'"' || true)
+    env_profiles=$(grep -E '^[[:space:]]*COMPOSE_PROFILES=' "$ENV_FILE" | cut -d= -f2- | tr -d "\"'" || true)
   fi
   env_profiles="${COMPOSE_PROFILES:-$env_profiles}"
   if [ -n "$env_profiles" ]; then
@@ -280,6 +280,17 @@ cmd_init() {
     --entrypoint /app/render-kickstart.sh init
 }
 
+verify_frontend() {
+  local assets
+  assets=$(mktemp -d)
+  if ! "${COMPOSE[@]}" cp caddy:/srv/frontend/. "$assets/" ||
+     ! python3 ./scripts/web_assets.py "$assets"; then
+    rm -rf "$assets"
+    die "Frontend module graph failed verification."
+  fi
+  rm -rf "$assets"
+}
+
 cmd_up() {
   need_env
   local profiles=()
@@ -307,10 +318,7 @@ cmd_up() {
 
   bold "Starting services"
   "${COMPOSE[@]}" "${profiles[@]}" up -d
-
-  if [ -f "./patch_frontend.py" ]; then
-    sudo python3 ./patch_frontend.py > /dev/null 2>&1 || true
-  fi
+  verify_frontend
 
   # Non-blocking automatic idempotent self-healing in background:
   # Waits for FusionAuth/LocalStack readiness, aligns OAuth/Gmail/GitHub IdPs,
@@ -334,9 +342,7 @@ cmd_restart() {
   need_env
   bold "Restarting services"
   "${COMPOSE[@]}" restart "$@"
-  if [ -f "./patch_frontend.py" ]; then
-    sudo python3 ./patch_frontend.py > /dev/null 2>&1 || true
-  fi
+  verify_frontend
   if [ -f "./scripts/reconcile_fusionauth_idp.py" ]; then
     nohup python3 ./scripts/reconcile_fusionauth_idp.py > /tmp/macro_reconcile.log 2>&1 &
   fi
@@ -409,6 +415,7 @@ cmd_activate() {
     [ -n "$flag" ] && [ -n "$val" ] && profiles+=("$flag" "$val")
   done < <(resolve_profiles)
   "${COMPOSE[@]}" "${profiles[@]}" up -d --remove-orphans
+  verify_frontend
   if [ -f "./scripts/reconcile_fusionauth_idp.py" ]; then
     nohup python3 ./scripts/reconcile_fusionauth_idp.py > /tmp/macro_reconcile.log 2>&1 &
   fi

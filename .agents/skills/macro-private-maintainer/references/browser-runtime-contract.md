@@ -36,4 +36,11 @@ reported as proof that AI conversation works. A missing optional provider must
 not prevent configured providers from initializing.
 
 Static production hotpatches must be backed up and mirrored in repository code.
+Keep the built entry module URL unchanged: lazy chunks import it for Solid and
+QueryClient contexts. Renaming only the HTML entry creates a second application
+instance and causes `No QueryClient set`. `doctor.py` must only diagnose; never
+invoke legacy `patch_frontend.py`. Verify extracted assets with
+`python3 self-host/scripts/verify-release.py --web-assets-dir <asset-directory>`;
+the checker follows reachable imports and rejects mixed entry modules, while
+allowing retained assets from older releases.
 They do not replace a reproducible release; verify again after image updates.
