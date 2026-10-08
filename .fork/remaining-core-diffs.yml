@@ -50,6 +50,12 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
+- file: apps/web/src/components/app/split-layout/components/SplitPanel.tsx
+  owners:
+  - BROWSER-RUNTIME-COMPAT-001
+  hooks:
+  - browser_runtime_split_keyless_event
+  override: false
 - file: apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
   owners:
   - I18N-ZH-CN-001
@@ -316,6 +322,12 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
+- file: apps/web/src/features/home/home-chat-input.tsx
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks:
+  - selfhost_runtime_home_composer_gate
+  override: false
 - file: apps/web/src/features/next-soup/soup-view/empty-states.tsx
   owners:
   - I18N-ZH-CN-001
@@ -458,21 +470,72 @@ diffs:
   - self_host_health_settings_item
   - self_host_health_settings_slug
   override: false
+- file: apps/web/src/lib/core/hotkey/utils.test.ts
+  owners:
+  - BROWSER-RUNTIME-COMPAT-001
+  hooks: []
+  override: false
+- file: apps/web/src/lib/core/hotkey/utils.ts
+  owners:
+  - BROWSER-RUNTIME-COMPAT-001
+  hooks:
+  - browser_runtime_keyless_event
+  override: false
+- file: apps/web/src/lib/queries/agent-session/warm.ts
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks:
+  - selfhost_runtime_agent_warm_gate
+  override: false
+- file: apps/web/src/lib/queries/agents/capabilities.test.tsx
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
+- file: apps/web/src/lib/queries/agents/capabilities.ts
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks:
+  - selfhost_runtime_agent_capabilities_gate
+  override: false
+- file: apps/web/src/lib/queries/agents/models.test.tsx
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
 - file: apps/web/src/lib/queries/agents/models.ts
   owners:
   - SELFHOST-RUNTIME-001
   hooks:
   - selfhost_runtime_agent_models_capability_gate
+  - selfhost_runtime_single_agent_models_gate
   override: false
 - file: apps/web/src/lib/queries/ai/createHomeRecommendations.ts
   owners:
   - AI-MODEL-POLICY-001
   hooks: []
   override: true
+- file: apps/web/src/lib/queries/ai/homeRecommendations.ts
+  owners:
+  - BROWSER-RUNTIME-COMPAT-001
+  hooks:
+  - browser_runtime_recommendation_title
+  override: false
+- file: apps/web/src/lib/queries/ai/tests/homeRecommendations.test.ts
+  owners:
+  - BROWSER-RUNTIME-COMPAT-001
+  hooks: []
+  override: false
 - file: apps/web/src/lib/queries/auth/codex.ts
   owners:
   - SELFHOST-RUNTIME-001
   hooks: []
+  override: false
+- file: apps/web/src/lib/queries/claude-auth/connection.ts
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks:
+  - selfhost_runtime_claude_auth_gate
   override: false
 - file: apps/web/src/lib/queries/email/thread.ts
   owners:
