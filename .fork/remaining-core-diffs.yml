@@ -599,6 +599,17 @@ diffs:
   - FORK-PACKAGES-001
   hooks: []
   override: false
+- file: crates/agent/src/model/router.rs
+  owners:
+  - BROWSER-RUNTIME-COMPAT-001
+  hooks:
+  - browser_runtime_optional_model_providers
+  override: false
+- file: crates/agent/src/test/test_router.rs
+  owners:
+  - BROWSER-RUNTIME-COMPAT-001
+  hooks: []
+  override: false
 - file: crates/ai_projections/src/domain/ai_projection_service.rs
   owners:
   - AI-MODEL-POLICY-001
