@@ -13,6 +13,7 @@ import { useUserId } from '@core/context/user';
 import { idToDisplayName } from '@core/user/util';
 import { messageSendMotion } from '@core/util/message-send-motion';
 import { openExternalUrl } from '@core/util/url';
+import { t } from '@macro/i18n';
 import type {
   FoldedMessage,
   MessagePart,
@@ -217,11 +218,11 @@ function showsWorkingLine(message: FoldedMessage): boolean {
  */
 function workingLabel(message: FoldedMessage): string {
   const last = message.parts.at(-1);
-  if (last === undefined) return 'Working';
+  if (last === undefined) return t('Working');
   return match(last)
-    .with({ kind: 'tool_use' }, () => 'Running tools')
-    .with({ kind: 'plan' }, () => 'Planning')
-    .otherwise(() => 'Working');
+    .with({ kind: 'tool_use' }, () => t('Running tools'))
+    .with({ kind: 'plan' }, () => t('Planning'))
+    .otherwise(() => t('Working'));
 }
 
 /**
@@ -362,7 +363,7 @@ export function Message(props: {
                 when={failed().notice}
                 fallback={
                   <ActionLine
-                    label={TURN_FAILED_LABEL}
+                    label={t(TURN_FAILED_LABEL)}
                     detail={failed().message}
                     failed
                   />

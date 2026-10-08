@@ -117,6 +117,7 @@ async function audit() {
               line: p.node.loc?.start?.line ?? 0,
               type: 'JSXText',
               snippet: raw.trim().slice(0, 60),
+              raw: raw.trim(),
             });
           }
         },
@@ -136,6 +137,7 @@ async function audit() {
                 line: node.loc?.start?.line ?? line,
                 type: `JSXAttribute(${attr})`,
                 snippet: node.value.slice(0, 60),
+                raw: node.value,
               });
             } else if (node.type === 'TemplateLiteral') {
               const unit = parseSimpleTemplateLiteral(node);
@@ -145,6 +147,7 @@ async function audit() {
                   line: node.loc?.start?.line ?? line,
                   type: `JSXAttribute(${attr})`,
                   snippet: unit.template.slice(0, 60),
+                  raw: unit.template,
                 });
               }
             } else if (node.type === 'ConditionalExpression') {
@@ -209,6 +212,7 @@ async function audit() {
                 line: valNode.loc?.start?.line ?? line,
                 type: `ObjectProperty(${propName})`,
                 snippet: valNode.value.slice(0, 60),
+                raw: valNode.value,
               });
             } else if (valNode.type === 'TemplateLiteral') {
               const unit = parseSimpleTemplateLiteral(valNode);
@@ -218,6 +222,7 @@ async function audit() {
                   line: valNode.loc?.start?.line ?? line,
                   type: `ObjectProperty(${propName})`,
                   snippet: unit.template.slice(0, 60),
+                  raw: unit.template,
                 });
               }
             } else if (valNode.type === 'ConditionalExpression') {
@@ -252,6 +257,7 @@ async function audit() {
                     line: valNode.loc?.start?.line ?? line,
                     type: `ObjectMethod(${propName})`,
                     snippet: valNode.value.slice(0, 60),
+                    raw: valNode.value,
                   });
                 } else if (valNode.type === 'TemplateLiteral') {
                   const unit = parseSimpleTemplateLiteral(valNode);
@@ -261,6 +267,7 @@ async function audit() {
                       line: valNode.loc?.start?.line ?? line,
                       type: `ObjectMethod(${propName})`,
                       snippet: unit.template.slice(0, 60),
+                      raw: unit.template,
                     });
                   }
                 } else if (valNode.type === 'ConditionalExpression') {
@@ -308,6 +315,7 @@ async function audit() {
               line,
               type: 'Toast',
               snippet: firstArg.value.slice(0, 60),
+              raw: firstArg.value,
             });
           } else if (firstArg.type === 'TemplateLiteral') {
             const unit = parseSimpleTemplateLiteral(firstArg);
@@ -317,6 +325,7 @@ async function audit() {
                 line,
                 type: 'Toast',
                 snippet: unit.template.slice(0, 60),
+                raw: unit.template,
               });
             }
           }
@@ -330,6 +339,7 @@ async function audit() {
               line: p.node.loc?.start?.line ?? 0,
               type: 'JSXFallback',
               snippet: value.slice(0, 60),
+              raw: value,
             });
           }
         },

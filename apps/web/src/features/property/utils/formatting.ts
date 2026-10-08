@@ -1,4 +1,5 @@
 import { getPropertyOptionLabel } from '@entity/utils/task-properties';
+import { t } from '@macro/i18n';
 import { NUMBER_DECIMAL_PLACES } from '../constants';
 import type { Property, PropertyOptionValue } from '../types';
 
@@ -116,8 +117,12 @@ const formatOptionValueById = (
   options: Array<{ id: string; value: PropertyOptionValue }> | undefined
 ): string => {
   const option = options?.find((opt) => opt.id === optionId);
-  if (option) return formatOptionValue(option);
-  return getPropertyOptionLabel(optionId) ?? optionId;
+  const systemLabel = getPropertyOptionLabel(optionId);
+  if (option) {
+    const label = formatOptionValue(option);
+    return systemLabel ? t(label) : label;
+  }
+  return systemLabel ? t(systemLabel) : optionId;
 };
 
 /**

@@ -7,6 +7,7 @@ import {
   getContextKey,
   IGNORED_TAGS,
   isIgnoredPath,
+  isUiFallbackExpression,
   isUiFallbackStringLiteral,
   normalizeText,
   parseMixedChildren,
@@ -82,8 +83,16 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
         (key) => code.includes(`${key}:`) || code.includes(`get ${key}(`)
       );
 
-      // Quick early exit for plain .ts files that don't have toasts or translatable keys or action descriptions
-      if (!isTsx && !isActivityDesc && !hasToast && !hasObjectKeys) {
+      const isTipsModule = id.includes('chat-composer-tip');
+
+      // Quick early exit for plain .ts files that don't have toasts or translatable keys or action descriptions or tips
+      if (
+        !isTsx &&
+        !isActivityDesc &&
+        !hasToast &&
+        !hasObjectKeys &&
+        !isTipsModule
+      ) {
         return null;
       }
 
@@ -142,6 +151,60 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
             const attrName = path.parent.name?.name;
             if (!TRANSLATABLE_ATTRIBUTES.has(attrName)) {
               return;
+            }
+          } else {
+            const exp = path.node.expression;
+            if (exp) {
+              const expCode = code.slice(exp.start, exp.end).trim();
+              if (
+                expCode === 'props.group.label' ||
+                expCode === 'props.row.label' ||
+                expCode === 'group.label' ||
+                (id.includes('TaskGroupHeader') && expCode === 'label()') ||
+                (id.includes('settings-view') &&
+                  (expCode === 'label()' ||
+                    expCode === 'owner.error() || owner.source.error()')) ||
+                (id.includes('features/settings/primitives') &&
+                  (expCode === 'props.label' ||
+                    expCode === 'props.description' ||
+                    expCode === 'props.title')) ||
+                ((id.includes('Billing') || id.includes('PaywallComponent')) &&
+                  expCode === 'label') ||
+                expCode.startsWith('describeSeatPlans(') ||
+                expCode.startsWith('plural(') ||
+                (id.includes('InviteOfferPanel') &&
+                  (expCode === 'feature().label' ||
+                    expCode === 'feature().values.premium')) ||
+                (id.includes('plan-comparison') &&
+                  (expCode === 'row.feature' ||
+                    expCode === 'row.values[plan.tier]')) ||
+                (id.includes('Team') &&
+                  (expCode === 'itemProps.item.rawValue.description' ||
+                    expCode === 'itemProps.item.rawValue.label' ||
+                    expCode === 'state.selectedOption().label' ||
+                    expCode === 'props.member.role' ||
+                    expCode === 'props.invite.team_role' ||
+                    expCode === 'memberPlan(props.member)'))
+              ) {
+                s.overwrite(exp.start, exp.end, `__t(${expCode}${ctxArg})`);
+                transformed = true;
+                path.skip();
+                return;
+              }
+              if (
+                exp.type === 'ArrowFunctionExpression' &&
+                code.slice(exp.body.start, exp.body.end).trim() ===
+                  'state.selectedOption().label'
+              ) {
+                s.overwrite(
+                  exp.body.start,
+                  exp.body.end,
+                  `__t(state.selectedOption().label${ctxArg})`
+                );
+                transformed = true;
+                path.skip();
+                return;
+              }
             }
           }
           if (path.node.expression?.type === 'TemplateLiteral') {
@@ -217,6 +280,9 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
               } else if (node.type === 'ConditionalExpression') {
                 checkExp(node.consequent);
                 checkExp(node.alternate);
+              } else if (node.type === 'LogicalExpression') {
+                checkExp(node.left);
+                checkExp(node.right);
               }
             };
             checkExp(exp);
@@ -324,6 +390,9 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
             } else if (valueNode.type === 'ConditionalExpression') {
               checkObjectValue(valueNode.consequent);
               checkObjectValue(valueNode.alternate);
+            } else if (valueNode.type === 'LogicalExpression') {
+              checkObjectValue(valueNode.left);
+              checkObjectValue(valueNode.right);
             }
           };
           checkObjectValue(path.node.value);
@@ -368,7 +437,41 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
             transformed = true;
           }
         },
+        TemplateLiteral(path: any) {
+          if (!isUiFallbackExpression(path)) return;
+          const unit = parseSimpleTemplateLiteral(path.node);
+          if (unit) {
+            const names = new Set<string>();
+            const hasDuplicates = unit.variables.some((v) => {
+              if (names.has(v.name)) return true;
+              names.add(v.name);
+              return false;
+            });
+            if (hasDuplicates) return;
+            const varObj = `{ ${unit.variables
+              .map((v) => `${v.name}: ${code.slice(v.start, v.end)}`)
+              .join(', ')} }`;
+            s.overwrite(
+              path.node.start,
+              path.node.end,
+              `__t(${JSON.stringify(unit.template)}, ${varObj}${ctxArg})`
+            );
+            transformed = true;
+          }
+        },
         ReturnStatement(path: any) {
+          if (isTipsModule) {
+            const arg = path.node.argument;
+            if (
+              arg?.type === 'ArrowFunctionExpression' &&
+              arg.body?.type === 'MemberExpression'
+            ) {
+              const bodyCode = code.slice(arg.body.start, arg.body.end);
+              s.overwrite(arg.body.start, arg.body.end, `__t(${bodyCode})`);
+              transformed = true;
+              return;
+            }
+          }
           if (isActivityDesc && path.node.argument?.type === 'StringLiteral') {
             const text = normalizeText(path.node.argument.value);
             if (shouldTranslateText(text)) {
@@ -399,7 +502,20 @@ export function i18nAstPlugin(options: I18nAstPluginOptions = {}): Plugin {
       });
 
       if (transformed) {
-        if (!code.includes('@macro/i18n')) {
+        const hasLegacyBinding = ast.program.body.some(
+          (node: any) =>
+            node.type === 'ImportDeclaration' &&
+            node.source.value === '@macro/i18n' &&
+            node.specifiers.some(
+              (specifier: any) =>
+                specifier.type === 'ImportSpecifier' &&
+                specifier.importKind !== 'type' &&
+                node.importKind !== 'type' &&
+                specifier.imported.name === '__t' &&
+                specifier.local.name === '__t'
+            )
+        );
+        if (!hasLegacyBinding) {
           s.prepend(`import { __t } from "@macro/i18n";\n`);
         }
         const map = s.generateMap({ hires: true });

@@ -37,6 +37,62 @@ export function setLocale(newLocale: SupportedLocale) {
   }
 }
 
+const GLOBAL_I18N_CSS = `
+html[lang^="zh"] .signature-editor .ql-picker.ql-font .ql-picker-label:not([data-value])::before,
+html[lang^="zh"] .signature-editor .ql-picker.ql-font .ql-picker-label[data-value=""]::before,
+html[lang^="zh"] .signature-editor .ql-picker.ql-font .ql-picker-item:not([data-value])::before,
+html[lang^="zh"] .signature-editor .ql-picker.ql-font .ql-picker-item[data-value=""]::before {
+  content: "无衬线体" !important;
+}
+
+html[lang^="zh"] .signature-editor .ql-picker.ql-size .ql-picker-label:not([data-value])::before,
+html[lang^="zh"] .signature-editor .ql-picker.ql-size .ql-picker-label[data-value=""]::before,
+html[lang^="zh"] .signature-editor .ql-picker.ql-size .ql-picker-item:not([data-value])::before,
+html[lang^="zh"] .signature-editor .ql-picker.ql-size .ql-picker-item[data-value=""]::before {
+  content: "标准" !important;
+}
+
+html[lang^="zh"] .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="sans-serif"]::before,
+html[lang^="zh"] .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="sans-serif"]::before {
+  content: "无衬线体" !important;
+}
+html[lang^="zh"] .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="serif"]::before,
+html[lang^="zh"] .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="serif"]::before {
+  content: "衬线体" !important;
+}
+html[lang^="zh"] .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="monospace"]::before,
+html[lang^="zh"] .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="monospace"]::before {
+  content: "等宽体" !important;
+}
+html[lang^="zh"] .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="small"]::before,
+html[lang^="zh"] .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="small"]::before {
+  content: "小" !important;
+}
+html[lang^="zh"] .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="large"]::before,
+html[lang^="zh"] .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="large"]::before {
+  content: "大" !important;
+}
+html[lang^="zh"] .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="huge"]::before,
+html[lang^="zh"] .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="huge"]::before {
+  content: "超大" !important;
+}
+`;
+
+function injectGlobalI18nStyles() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('macro-i18n-overrides')) return;
+  const style = document.createElement('style');
+  style.id = 'macro-i18n-overrides';
+  style.textContent = GLOBAL_I18N_CSS;
+  document.head?.appendChild(style);
+}
+
+if (typeof document !== 'undefined') {
+  injectGlobalI18nStyles();
+  const def = getDefaultLocale();
+  document.documentElement.lang = def;
+}
+
 const dictionaries: Record<SupportedLocale, Record<string, string>> = {
   'zh-CN': zhCN as Record<string, string>,
   'en-US': {},
@@ -68,6 +124,19 @@ function interpolate(template: string, params: InterpolationParams): string {
 
 function normalizeKey(str: string): string {
   return str.trim().replace(/\s+/g, ' ');
+}
+
+function translateSeatDescription(text: string): string {
+  return text
+    .split(', ')
+    .map((part) => {
+      const match = part.trim().match(/^(\d+)\s+(Pro|Max)\s+seats?$/i);
+      if (match) {
+        return `${match[1]} 个 ${match[2]} 席位`;
+      }
+      return part;
+    })
+    .join('、');
 }
 
 /**
@@ -144,6 +213,24 @@ export function t(
       return params
         ? interpolate(translatedTemplate, params)
         : translatedTemplate;
+    }
+
+    if (/\b(?:Pro|Max)\s+seats?\b/i.test(normalized)) {
+      return translateSeatDescription(normalized);
+    }
+
+    const autoJoinMatch = normalized.match(
+      /^New sign-ups with an @([a-zA-Z0-9.-]+) email automatically join this team\.?$/i
+    );
+    if (autoJoinMatch) {
+      return `使用 @${autoJoinMatch[1]} 邮箱注册的新用户将自动加入此团队。`;
+    }
+
+    const autoJoinToastMatch = normalized.match(
+      /^Auto-join enabled for @([a-zA-Z0-9.-]+)$/i
+    );
+    if (autoJoinToastMatch) {
+      return `已为 @${autoJoinToastMatch[1]} 启用自动加入`;
     }
   }
 

@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import DownloadIcon from '@phosphor-icons/core/regular/download-simple.svg?component-solid';
 import SignatureIcon from '@phosphor-icons/core/regular/signature.svg?component-solid';
 import { ToggleSwitch } from '@ui';
@@ -31,7 +32,7 @@ export function SignatureForm(props: {
         <div class="min-w-0">
           <h3 class="text-base font-medium break-all">{props.email}</h3>
           <p class="mt-1 text-sm text-ink-muted">
-            Automatically added to new emails from this account.
+            {t('Automatically added to new emails from this account.')}
           </p>
         </div>
         <Show when={!props.mobile && props.onImport}>
@@ -45,7 +46,7 @@ export function SignatureForm(props: {
               onClick={() => onImport()()}
             >
               <DownloadIcon class="size-4" />
-              {props.importing ? 'Importing…' : 'Import from Gmail'}
+              {props.importing ? t('Importing…') : t('Import from Gmail')}
             </Button>
           )}
         </Show>
@@ -58,7 +59,7 @@ export function SignatureForm(props: {
           <div class="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-edge-muted px-3 py-6 text-center">
             <SignatureIcon class="size-5 text-ink-muted" />
             <p class="text-sm text-ink-muted">
-              Update your signature on desktop.
+              {t('Update your signature on desktop.')}
             </p>
           </div>
         }
@@ -69,7 +70,7 @@ export function SignatureForm(props: {
           }
         >
           <SignatureEditor
-            label={`Signature for ${props.email}`}
+            label={t('Signature for {email}', { email: props.email })}
             value={props.value}
             disabled={props.pending || props.importing}
             onInput={props.onInput}
@@ -86,7 +87,7 @@ export function SignatureForm(props: {
           disabled={props.pending}
           label={
             <span class="text-sm text-ink-muted">
-              Add to replies & forwards
+              {t('Add to replies & forwards')}
             </span>
           }
         />
@@ -98,7 +99,7 @@ export function SignatureForm(props: {
             disabled={!props.hasContent || props.pending || props.importing}
             onClick={props.onClear}
           >
-            Clear signature
+            {t('Clear signature')}
           </Button>
           <Show when={!props.mobile}>
             <Button
@@ -108,7 +109,7 @@ export function SignatureForm(props: {
               disabled={!props.dirty || props.pending || props.importing}
               onClick={props.onSave}
             >
-              {props.pending ? 'Saving…' : 'Save signature'}
+              {props.pending ? t('Saving…') : t('Save signature')}
             </Button>
           </Show>
         </div>

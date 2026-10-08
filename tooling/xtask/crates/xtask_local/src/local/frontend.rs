@@ -380,12 +380,7 @@ pub fn start(
     if let Some(path) = rustup_preferred_path() {
         cmd.env("PATH", path);
     }
-    for (k, v) in dev_env(
-        instance,
-        mode,
-        traces_enabled,
-        admin_email,
-    )? {
+    for (k, v) in dev_env(instance, mode, traces_enabled, admin_email)? {
         cmd.env(k, v);
     }
     let process = spawn(stage, &mut cmd, port)?;
@@ -502,12 +497,7 @@ pub fn exec(
     if let Some(path) = rustup_preferred_path() {
         cmd.env("PATH", path);
     }
-    for (k, v) in dev_env(
-        instance,
-        mode,
-        traces_enabled,
-        admin_email,
-    )? {
+    for (k, v) in dev_env(instance, mode, traces_enabled, admin_email)? {
         cmd.env(k, v);
     }
 

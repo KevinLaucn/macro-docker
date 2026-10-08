@@ -1,4 +1,6 @@
+import { t } from '@macro/i18n';
 import { type ComponentProps, type JSX, Match, Show, Switch } from 'solid-js';
+import { SYSTEM_PROPERTY_IDS } from '../identifiers';
 import { Property } from '../property';
 import { getEntityValues, hasValue } from '../utils';
 
@@ -17,6 +19,12 @@ type PropertyValuePillProps = Pick<
 
 /** Controlled property pill shared by task and project composers. */
 export function PropertyValuePill(props: PropertyValuePillProps) {
+  const displayName = () =>
+    Object.values(SYSTEM_PROPERTY_IDS).some(
+      (id) => id === props.property.propertyDefinitionId
+    )
+      ? t(props.property.displayName)
+      : props.property.displayName;
   const isUserEntity = () =>
     props.property.valueType === 'ENTITY' &&
     props.property.specificEntityType === 'USER';
@@ -34,9 +42,7 @@ export function PropertyValuePill(props: PropertyValuePillProps) {
       <Property.Tooltip property={props.property} actions={props.hoverActions}>
         <Property.Pill class={props.class} variant="outline">
           <Show when={props.showLabel && hasValue(props.property)}>
-            <span class="shrink-0 text-ink-muted">
-              {props.property.displayName}:
-            </span>
+            <span class="shrink-0 text-ink-muted">{displayName()}:</span>
           </Show>
           <Switch
             fallback={
@@ -61,9 +67,7 @@ export function PropertyValuePill(props: PropertyValuePillProps) {
             }
             class="min-w-0 max-w-60"
             fallback={
-              <Property.Empty
-                label={props.emptyLabel ?? props.property.displayName}
-              />
+              <Property.Empty label={props.emptyLabel ?? displayName()} />
             }
           />
           <Property.Caret />

@@ -4,6 +4,7 @@ import {
   clearPendingConnectApp,
   pendingConnectApp,
 } from '@core/pipedream/pendingConnect';
+import { t } from '@macro/i18n';
 import { connectPipedreamApp } from '@queries/pipedream-connectors';
 import { Button } from '@ui';
 import { createEffect, on, Show } from 'solid-js';
@@ -17,7 +18,7 @@ import { ConnectionsViewProvider, useConnectionsView } from './view-state';
 function MacroMcpSignpost(props: { onOpen: () => void }) {
   return (
     <p class="text-xs text-ink-muted text-balance">
-      Looking to use Macro in another app?{' '}
+      {t('Looking to use Macro in another app?')}{' '}
       <button
         type="button"
         class="text-link outline-none hover:text-link-hover hover:underline focus-visible:underline"
@@ -48,28 +49,32 @@ function ConnectionsContent(props: { onOpenMacroMcp: () => void }) {
       void connectPipedreamApp({ appSlug: requested })
         .then((outcome) => {
           if (outcome === 'unsupported')
-            toast.failure('Connectors are not available on this deployment');
+            toast.failure(t('Connectors are not available on this deployment'));
         })
-        .catch(() => toast.failure(`Failed to connect ${requested}`));
+        .catch(() =>
+          toast.failure(t('Failed to connect {requested}', { requested }))
+        );
     })
   );
-  const description =
-    "Connect the tools your team already uses so Macro's agent can work in them.";
+  const description = () =>
+    t(
+      "Connect the tools your team already uses so Macro's agent can work in them."
+    );
 
   return (
     <Show
       when={!error()}
       fallback={
         <SettingsPage
-          title="Agent connections"
-          description={description}
+          title={t('Agent connections')}
+          description={description()}
           onBack={view.provider() ? view.closeProvider : undefined}
-          backLabel="Connections"
+          backLabel={t('Connections')}
         >
           <div class="flex items-center gap-3 text-sm text-ink-muted">
-            Couldn't load Connections.
+            {t("Couldn't load Connections.")}
             <Button variant="outline" size="sm" depth={3} onClick={retry}>
-              Retry
+              {t('Retry')}
             </Button>
           </div>
         </SettingsPage>
@@ -80,15 +85,15 @@ function ConnectionsContent(props: { onOpenMacroMcp: () => void }) {
         keyed
         fallback={
           <SettingsPage
-            title="Agent connections"
-            description={description}
+            title={t('Agent connections')}
+            description={description()}
             signpost={<MacroMcpSignpost onOpen={props.onOpenMacroMcp} />}
           >
             <TabsInset
               fullWidth
               list={[
-                { value: 'connected', label: 'Connected' },
-                { value: 'discover', label: 'Discover' },
+                { value: 'connected', label: t('Connected') },
+                { value: 'discover', label: t('Discover') },
               ]}
               value={view.mode()}
               onChange={(value) =>
@@ -100,16 +105,18 @@ function ConnectionsContent(props: { onOpenMacroMcp: () => void }) {
                 role="status"
                 class="flex items-center gap-3 text-sm text-ink-muted"
               >
-                Some connections couldn't be loaded.
+                {t("Some connections couldn't be loaded.")}
                 <Button variant="outline" size="sm" depth={3} onClick={retry}>
-                  Retry
+                  {t('Retry')}
                 </Button>
               </div>
             </Show>
             <Show
               when={ready()}
               fallback={
-                <p class="text-sm text-ink-muted">Loading Connections…</p>
+                <p class="text-sm text-ink-muted">
+                  {t('Loading Connections…')}
+                </p>
               }
             >
               <Show

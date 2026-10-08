@@ -56,12 +56,22 @@ diffs:
   hooks:
   - browser_runtime_split_keyless_event
   override: false
+- file: apps/web/src/features/auth/CalendarPermissionPrompt.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
 - file: apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
   override: false
 - file: apps/web/src/features/auth/GmailReauthenticationPrompt.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/block-agent/component/AgentMessage.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -76,6 +86,11 @@ diffs:
 - file: apps/web/src/features/block-email/util/emailHotkeys.ts
   owners:
   - EMAIL-SELFHOST-001
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/block-md/component/ComposeTask.tsx
+  owners:
   - I18N-ZH-CN-001
   hooks: []
   override: false
@@ -99,6 +114,16 @@ diffs:
   - ADOBE-ATTACHMENT-PREVIEW-001
   hooks:
   - adobe_preview_fallback_preview
+  override: false
+- file: apps/web/src/features/calendar/calendar-settings.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/calendar/components/connected-calendars.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
   override: false
 - file: apps/web/src/features/calendar/utils/calendar-label.ts
   owners:
@@ -145,6 +170,11 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
+- file: apps/web/src/features/email-compose/primitives/email-send-schedule.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
 - file: apps/web/src/features/email-compose/primitives/prepare-email-body.test.ts
   owners:
   - READ-RECEIPTS-001
@@ -155,6 +185,11 @@ diffs:
   - READ-RECEIPTS-001
   hooks:
   - email_read_receipts_strip_own_pixels
+  override: false
+- file: apps/web/src/features/email-compose/views/reply-envelope.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
   override: false
 - file: apps/web/src/features/email-message/attachment-action-adapter.ts
   owners:
@@ -385,12 +420,42 @@ diffs:
   - EMAIL-REALTIME-001
   hooks: []
   override: false
+- file: apps/web/src/features/property/component/PropertyValuePill.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
 - file: apps/web/src/features/property/utils/errorHandling.ts
   owners:
   - I18N-ZH-CN-001
   hooks: []
   override: false
+- file: apps/web/src/features/property/utils/formatting.test.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/property/utils/formatting.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/scheduling/components/owner-badge.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/scheduling/views/settings-view.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
 - file: apps/web/src/features/settings/ConnectedAccounts.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/settings/Email.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -408,6 +473,41 @@ diffs:
   - self_host_health_settings_tab
   override: false
 - file: apps/web/src/features/settings/Shortcuts.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/settings/SignatureEditor.css
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/settings/SignatureEditor.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/settings/components/signature-form.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/settings/connections/ConnectionsPage.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/settings/connections/capability-row.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/settings/email-settings.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -430,6 +530,16 @@ diffs:
 - file: apps/web/src/lib/analytics/posthog.tsx
   owners:
   - TELEMETRY-PRIVACY-001
+  hooks: []
+  override: false
+- file: apps/web/src/lib/core/component/AI/component/tool/email/DraftComposer.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/lib/core/component/TopBar/ShareButton.tsx
+  owners:
+  - I18N-ZH-CN-001
   hooks: []
   override: false
 - file: apps/web/src/lib/core/component/TopBar/linkShare.ts

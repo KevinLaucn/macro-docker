@@ -3,6 +3,7 @@ import { toast } from '@core/component/Toast/Toast';
 import { enableMultiInbox } from '@core/constant/featureFlags';
 import { useUserId } from '@core/context/user';
 import { useAddInboxFlow } from '@core/email-link';
+import { t } from '@macro/i18n';
 import { useEmailLinksQuery } from '@queries/email/link';
 import { createSignal, Suspense } from 'solid-js';
 import { SettingsPage } from '../settings/primitives';
@@ -65,7 +66,7 @@ function CalendarSettingsContent() {
     try {
       await startAddInbox({ scopes });
     } catch {
-      toast.failure('Could not connect your calendar. Please try again.');
+      toast.failure(t('Could not connect your calendar. Please try again.'));
     } finally {
       setConnecting(false);
     }
@@ -118,7 +119,9 @@ export function CalendarConnectionSettings() {
   return (
     <Suspense
       fallback={
-        <p class="px-6 text-sm text-ink-muted">Loading calendar connections…</p>
+        <p class="px-6 text-sm text-ink-muted">
+          {t('Loading calendar connections…')}
+        </p>
       }
     >
       <CalendarSettingsContent />
@@ -129,8 +132,10 @@ export function CalendarConnectionSettings() {
 export function CalendarSettings() {
   return (
     <SettingsPage
-      title="Calendar"
-      description="Manage your connected accounts, calendar visibility, and colors."
+      title={t('Calendar')}
+      description={t(
+        'Manage your connected accounts, calendar visibility, and colors.'
+      )}
     >
       <CalendarConnectionSettings />
     </SettingsPage>

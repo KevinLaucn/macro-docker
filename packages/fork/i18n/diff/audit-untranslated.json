@@ -1,1 +1,506 @@
-[]
+[
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 71,
+    "type": "JSXText",
+    "snippet": "Open channel",
+    "raw": "Open channel"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 84,
+    "type": "JSXText",
+    "snippet": "parts\n        verified ·",
+    "raw": "parts\n        verified ·"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 85,
+    "type": "JSXText",
+    "snippet": "processed ·",
+    "raw": "processed ·"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 85,
+    "type": "JSXText",
+    "snippet": "imported ·",
+    "raw": "imported ·"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 86,
+    "type": "JSXText",
+    "snippet": "duplicates ·",
+    "raw": "duplicates ·"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 86,
+    "type": "JSXText",
+    "snippet": "skipped ·",
+    "raw": "skipped ·"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 87,
+    "type": "JSXText",
+    "snippet": "reactions",
+    "raw": "reactions"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 90,
+    "type": "JSXText",
+    "snippet": "Search indexing:",
+    "raw": "Search indexing:"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 107,
+    "type": "JSXText",
+    "snippet": "Skipped by the server without a reason.",
+    "raw": "Skipped by the server without a reason."
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 126,
+    "type": "JSXText",
+    "snippet": "Upload:",
+    "raw": "Upload:"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 128,
+    "type": "JSXText",
+    "snippet": "prepared",
+    "raw": "prepared"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 140,
+    "type": "JSXText",
+    "snippet": "The total grows as history is read. Files and attachments ar",
+    "raw": "The total grows as history is read. Files and attachments are never\n        uploaded."
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 153,
+    "type": "ObjectProperty(label)",
+    "snippet": "Idle",
+    "raw": "Idle"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 165,
+    "type": "JSXAttribute(aria-label)",
+    "snippet": "Import progress",
+    "raw": "Import progress"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 177,
+    "type": "JSXText",
+    "snippet": "selected ·",
+    "raw": "selected ·"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 179,
+    "type": "JSXFallback",
+    "snippet": "With message history",
+    "raw": "With message history"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 180,
+    "type": "JSXFallback",
+    "snippet": "Without message history",
+    "raw": "Without message history"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 185,
+    "type": "JSXText",
+    "snippet": "· Started",
+    "raw": "· Started"
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 195,
+    "type": "JSXText",
+    "snippet": "Cancellation is not rollback. Committed messages and channel",
+    "raw": "Cancellation is not rollback. Committed messages and channels\n                remain; running conversations may finish before cancellation\n                settles."
+  },
+  {
+    "file": "features/slack-import/components/import-progress.tsx",
+    "line": 212,
+    "type": "JSXText",
+    "snippet": "Cancelling stops future work only. Running conversations may",
+    "raw": "Cancelling stops future work only. Running conversations may\n                finish, and imported channels and messages are kept."
+  },
+  {
+    "file": "features/slack-import/components/slack-import-card.tsx",
+    "line": 14,
+    "type": "JSXAttribute(description)",
+    "snippet": "Import channels and message history from a Slack export.",
+    "raw": "Import channels and message history from a Slack export."
+  },
+  {
+    "file": "features/slack-import/components/slack-import-card.tsx",
+    "line": 21,
+    "type": "JSXText",
+    "snippet": "Import from Slack",
+    "raw": "Import from Slack"
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 28,
+    "type": "ObjectProperty(label)",
+    "snippet": "Public channels",
+    "raw": "Public channels"
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 31,
+    "type": "ObjectProperty(label)",
+    "snippet": "Private channels",
+    "raw": "Private channels"
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 36,
+    "type": "ObjectProperty(label)",
+    "snippet": "Direct messages",
+    "raw": "Direct messages"
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 41,
+    "type": "ObjectProperty(label)",
+    "snippet": "Group DMs",
+    "raw": "Group DMs"
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 112,
+    "type": "JSXText",
+    "snippet": "Show archived conversations",
+    "raw": "Show archived conversations"
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 124,
+    "type": "JSXAttribute(aria-label)",
+    "snippet": "Filter conversations",
+    "raw": "Filter conversations"
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 125,
+    "type": "JSXAttribute(placeholder)",
+    "snippet": "Filter conversations",
+    "raw": "Filter conversations"
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 144,
+    "type": "JSXText",
+    "snippet": "Select all visible conversations",
+    "raw": "Select all visible conversations"
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 154,
+    "type": "JSXText",
+    "snippet": "Clear visible selection",
+    "raw": "Clear visible selection"
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 163,
+    "type": "JSXText",
+    "snippet": "No matching conversations.",
+    "raw": "No matching conversations."
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 184,
+    "type": "JSXText",
+    "snippet": "Filtering never clears your selection. Message counts are av",
+    "raw": "Filtering never clears your selection. Message counts are available\n        after import."
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 236,
+    "type": "JSXText",
+    "snippet": "source members",
+    "raw": "source members"
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 237,
+    "type": "JSXFallback",
+    "snippet": " · Archived",
+    "raw": " · Archived"
+  },
+  {
+    "file": "features/slack-import/components/conversation-picker.tsx",
+    "line": 240,
+    "type": "JSXText",
+    "snippet": "Unavailable: a DM needs exactly two distinct members with\n  ",
+    "raw": "Unavailable: a DM needs exactly two distinct members with\n                      email addresses."
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 339,
+    "type": "JSXText",
+    "snippet": "Import selected channels (",
+    "raw": "Import selected channels ("
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 354,
+    "type": "JSXText",
+    "snippet": "Recover job receipt",
+    "raw": "Recover job receipt"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 366,
+    "type": "JSXText",
+    "snippet": "Finalize with skips",
+    "raw": "Finalize with skips"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 379,
+    "type": "JSXText",
+    "snippet": "Finalize with skips",
+    "raw": "Finalize with skips"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 410,
+    "type": "JSXText",
+    "snippet": "Import from Slack",
+    "raw": "Import from Slack"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 413,
+    "type": "JSXText",
+    "snippet": "Bring conversations from a Slack export into this team. The\n",
+    "raw": "Bring conversations from a Slack export into this team. The\n                archive is read in your browser and only the conversations you\n                select are uploaded. Keep this page open until uploads finish."
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 428,
+    "type": "JSXText",
+    "snippet": "Loading import settings…",
+    "raw": "Loading import settings…"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 431,
+    "type": "JSXText",
+    "snippet": "Progress could not be refreshed. Imports already running on ",
+    "raw": "Progress could not be refreshed. Imports already running on the\n                server continue."
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 463,
+    "type": "JSXAttribute(aria-label)",
+    "snippet": "Include message history",
+    "raw": "Include message history"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 470,
+    "type": "JSXText",
+    "snippet": "Include message history",
+    "raw": "Include message history"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 476,
+    "type": "JSXText",
+    "snippet": "Messages, threads and reactions are imported with\n          ",
+    "raw": "Messages, threads and reactions are imported with\n                            each conversation. Files, attachments and\n                            attachment-only messages are skipped."
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 484,
+    "type": "JSXText",
+    "snippet": "Team source",
+    "raw": "Team source"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 488,
+    "type": "JSXText",
+    "snippet": "Archive source",
+    "raw": "Archive source"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 494,
+    "type": "JSXText",
+    "snippet": "matched by\n                          email ·",
+    "raw": "matched by\n                          email ·"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 495,
+    "type": "JSXText",
+    "snippet": "attributed by Slack name",
+    "raw": "attributed by Slack name"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 515,
+    "type": "JSXText",
+    "snippet": "The source binding is permanent: this team cannot\n          ",
+    "raw": "The source binding is permanent: this team cannot\n                            import another Slack workspace later."
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 522,
+    "type": "JSXText",
+    "snippet": "Public Slack channels become Team channels with explicit\n   ",
+    "raw": "Public Slack channels become Team channels with explicit\n                      members, never globally public. Existing channel names,\n                      roles and membership history are preserved. External email\n                      addresses can become channel members; a DM needs two\n                      distinct email-bearing members and never adds you as a\n                      third."
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 544,
+    "type": "JSXText",
+    "snippet": "Progress was recovered without the archive, and uploads do n",
+    "raw": "Progress was recovered without the archive, and uploads do not\n                resume after a reload. Finalize with skips to process the\n                verified conversations, or cancel and start a new import."
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 567,
+    "type": "JSXAttribute(label)",
+    "snippet": "Refresh progress",
+    "raw": "Refresh progress"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 579,
+    "type": "JSXText",
+    "snippet": "Cancel import",
+    "raw": "Cancel import"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 591,
+    "type": "JSXText",
+    "snippet": "Choose another archive",
+    "raw": "Choose another archive"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 677,
+    "type": "JSXText",
+    "snippet": "Slack export ZIP",
+    "raw": "Slack export ZIP"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 686,
+    "type": "JSXAttribute(fallback)",
+    "snippet": "Drop the .zip exported from Slack here, or browse for it.",
+    "raw": "Drop the .zip exported from Slack here, or browse for it."
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 691,
+    "type": "JSXFallback",
+    "snippet": " · Reading archive…",
+    "raw": " · Reading archive…"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 703,
+    "type": "JSXText",
+    "snippet": "Encrypted, multi-volume and ZIP64 archives are not supported",
+    "raw": "Encrypted, multi-volume and ZIP64 archives are not supported. This is a\n        one-time import, not a live Slack connection."
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 729,
+    "type": "JSXAttribute(aria-label)",
+    "snippet": "Job history",
+    "raw": "Job history"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 730,
+    "type": "JSXText",
+    "snippet": "Previous imports",
+    "raw": "Previous imports"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 736,
+    "type": "JSXFallback",
+    "snippet": "No older imports.",
+    "raw": "No older imports."
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 737,
+    "type": "JSXFallback",
+    "snippet": "No imports yet for this team.",
+    "raw": "No imports yet for this team."
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 764,
+    "type": "JSXFallback",
+    "snippet": "conversation",
+    "raw": "conversation"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 765,
+    "type": "JSXFallback",
+    "snippet": "conversations",
+    "raw": "conversations"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 768,
+    "type": "JSXFallback",
+    "snippet": "With history",
+    "raw": "With history"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 769,
+    "type": "JSXFallback",
+    "snippet": "Without history",
+    "raw": "Without history"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 789,
+    "type": "JSXText",
+    "snippet": "Newest imports",
+    "raw": "Newest imports"
+  },
+  {
+    "file": "features/slack-import/views/import-dialog.tsx",
+    "line": 799,
+    "type": "JSXText",
+    "snippet": "Older imports",
+    "raw": "Older imports"
+  },
+  {
+    "file": "features/slack-import/slack-import.tsx",
+    "line": 40,
+    "type": "JSXAttribute(description)",
+    "snippet": "Loading Slack import…",
+    "raw": "Loading Slack import…"
+  }
+]

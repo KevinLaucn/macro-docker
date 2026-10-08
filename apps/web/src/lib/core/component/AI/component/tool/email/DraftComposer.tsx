@@ -28,6 +28,7 @@ import { enableEmailSignatures } from '@core/constant/featureFlags';
 import { isMobile } from '@core/mobile/isMobile';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { interceptMailtoLinks } from '@core/util/interceptMailtoLinks';
+import { t } from '@macro/i18n';
 import { useEmailLinksQuery, useEmailSignature } from '@queries/email/link';
 import type { SendEmail } from '@service-cognition/generated/tools/types';
 import { debounce } from '@solid-primitives/scheduled';
@@ -221,7 +222,7 @@ export function EmailDraftComposer(props: EmailDraftComposerProps) {
       state: () => ({ type: 'editing', intent: { type: 'immediate' } }),
       selectedTime: () => undefined,
       confirmedTime: () => undefined,
-      actionLabel: () => 'Send email',
+      actionLabel: () => t('Send email'),
       operation: () => 'idle',
       onSelect: () => false,
       onCancel: async () => false,

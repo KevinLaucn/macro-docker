@@ -498,12 +498,7 @@ pub fn frontend_exec(instance: &Instance, mode: Mode, args: &cli::FrontendArgs) 
     });
 
     let traces_enabled = summary::port_open(4318);
-    frontend::exec(
-        instance,
-        mode,
-        traces_enabled,
-        admin_email.as_deref(),
-    )
+    frontend::exec(instance, mode, traces_enabled, admin_email.as_deref())
 }
 
 /// Print the hotkey legend shown while attached to a running stack.

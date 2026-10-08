@@ -4,6 +4,7 @@ import {
   SettingsRow,
   SettingsSection,
 } from '@app/features/settings/primitives';
+import { t } from '@macro/i18n';
 import PlusIcon from '@phosphor/plus.svg';
 import { Checkbox } from '@ui';
 import { Index, Show } from 'solid-js';
@@ -38,13 +39,15 @@ export function ConnectedCalendars(props: {
 }) {
   return (
     <SettingsSection
-      title="Connected calendars"
-      description="Connect your accounts and choose which calendars appear in Macro."
+      title={t('Connected calendars')}
+      description={t(
+        'Connect your accounts and choose which calendars appear in Macro.'
+      )}
     >
       <SettingsCard>
         <SettingsRow
-          label="Google Calendar"
-          description="Keep work and personal calendars together."
+          label={t('Google Calendar')}
+          description={t('Keep work and personal calendars together.')}
         >
           <Show when={props.canConnect}>
             <Button
@@ -54,13 +57,13 @@ export function ConnectedCalendars(props: {
               onClick={props.onConnect}
             >
               <PlusIcon class="size-4" />
-              {props.connecting ? 'Connecting…' : 'Connect account'}
+              {props.connecting ? t('Connecting…') : t('Connect account')}
             </Button>
           </Show>
         </SettingsRow>
         <Show when={props.loading}>
           <p role="status" class="px-6 py-4 text-sm text-ink-muted">
-            Loading calendars…
+            {t('Loading calendars…')}
           </p>
         </Show>
         <Show when={props.error}>
@@ -68,9 +71,9 @@ export function ConnectedCalendars(props: {
             role="alert"
             class="flex items-center justify-between gap-3 px-6 py-4 text-sm text-ink-muted"
           >
-            Could not load calendars.
+            {t('Could not load calendars.')}
             <Button size="sm" variant="outline" onClick={props.onRetry}>
-              Retry
+              {t('Retry')}
             </Button>
           </div>
         </Show>
@@ -109,7 +112,9 @@ export function ConnectedCalendars(props: {
                   </Checkbox>
                   <Show when={account().calendars.length}>
                     <CalendarColorPicker
-                      label={`Default color for ${account().email}`}
+                      label={t('Default color for {email}', {
+                        email: account().email,
+                      })}
                       color={
                         props.accountColor(account().id) ??
                         account().defaultColor ??
@@ -134,16 +139,16 @@ export function ConnectedCalendars(props: {
                       }
                     >
                       {account().needsPermission
-                        ? 'Connect calendar'
-                        : 'Disconnect'}
+                        ? t('Connect calendar')
+                        : t('Disconnect')}
                     </Button>
                   </Show>
                 </div>
                 <Show when={!account().calendars.length}>
                   <p class="mt-2 pl-7 text-xs text-ink-muted">
                     {account().needsPermission
-                      ? 'Connect to give Macro access to this calendar.'
-                      : 'Your calendars will appear here after syncing.'}
+                      ? t('Connect to give Macro access to this calendar.')
+                      : t('Your calendars will appear here after syncing.')}
                   </p>
                 </Show>
                 <div class="mt-2 flex flex-col gap-1 pl-7">
@@ -162,18 +167,23 @@ export function ConnectedCalendars(props: {
                             <span class="break-words">{calendar().name}</span>
                             <Show when={calendar().isPrimary}>
                               <span class="ml-2 text-xs text-ink-extra-muted">
-                                Primary
+                                {t('Primary')}
                               </span>
                             </Show>
                             <Show when={calendar().syncError}>
                               <span class="block text-xs text-failure">
-                                Sync failed: {calendar().syncError}
+                                {t('Sync failed: {syncError}', {
+                                  syncError: calendar().syncError,
+                                })}
                               </span>
                             </Show>
                           </Checkbox.Label>
                         </Checkbox>
                         <CalendarColorPicker
-                          label={`Color for ${calendar().name} (${account().email})`}
+                          label={t('Color for {name} ({email})', {
+                            name: calendar().name,
+                            email: account().email,
+                          })}
                           color={calendar().color}
                           overridden={!!props.sourceColor(calendar().id)}
                           onChange={(color) =>
@@ -190,8 +200,9 @@ export function ConnectedCalendars(props: {
         </Index>
       </SettingsCard>
       <p class="px-6 text-xs text-ink-extra-muted">
-        Visibility and colors are saved in this browser. Hiding a calendar does
-        not disconnect it or change your booking availability.
+        {t(
+          'Visibility and colors are saved in this browser. Hiding a calendar does not disconnect it or change your booking availability.'
+        )}
       </p>
     </SettingsSection>
   );

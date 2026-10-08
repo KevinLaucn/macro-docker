@@ -29,6 +29,7 @@ import { useUserId } from '@core/context/user';
 import { registerHotkey, useHotkeyDOMScope } from '@core/hotkey/hotkeys';
 import { buildSimpleEntityUrl } from '@core/util/url';
 import { mergeRegister } from '@lexical/utils';
+import { t } from '@macro/i18n';
 import ArrowSquareOutIcon from '@phosphor/arrow-square-out.svg';
 import ArrowsOutIcon from '@phosphor/arrows-out.svg';
 import PaperclipIcon from '@phosphor/paperclip.svg';
@@ -454,8 +455,8 @@ export function ComposeTask(props: ComposeTaskProps) {
   const [errorMessage, setErrorMessage] = createSignal<string>('');
   const sharingHint = () =>
     shareWithTeam()
-      ? 'Visible to your whole team'
-      : 'Only you and people you share with';
+      ? t('Visible to your whole team')
+      : t('Only you and people you share with');
   const [isCreating, setIsCreating] = createSignal(false);
   const [tagLayoutMode, setTagLayoutMode] =
     createSignal<ComposerTagLayoutMode>('bottom');
@@ -1004,7 +1005,13 @@ export function ComposeTask(props: ComposeTaskProps) {
                 {(property) => (
                   <InlinePropertyValue
                     property={property}
-                    emptyLabel={property.displayName}
+                    emptyLabel={
+                      Object.values(SYSTEM_PROPERTY_IDS).some(
+                        (id) => id === property.propertyDefinitionId
+                      )
+                        ? t(property.displayName)
+                        : property.displayName
+                    }
                   />
                 )}
               </For>
@@ -1069,7 +1076,7 @@ export function ComposeTask(props: ComposeTaskProps) {
           checked={shareWithTeam()}
           onChange={setShareWithTeam}
           disabled={isCreating()}
-          label="Shared with Team"
+          label={t('Shared with Team')}
           labelClass="text-xs text-ink-muted font-normal whitespace-nowrap"
         />
         <Tooltip label={sharingHint()} class="min-w-0" tabIndex={0}>

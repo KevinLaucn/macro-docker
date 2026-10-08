@@ -4,6 +4,7 @@ import { useSettingsState } from '@core/constant/SettingsState';
 import { useSettingsTabAvailable } from '@core/constant/settingsTabsConfig';
 import { useUserId } from '@core/context/user';
 import { useEmailLinks } from '@core/email-link';
+import { t } from '@macro/i18n';
 import { Button } from '@ui';
 import { For, Show, Suspense } from 'solid-js';
 import { EmailCard } from './Email';
@@ -21,17 +22,23 @@ export function EmailSettings() {
   const isAvailable = useSettingsTabAvailable();
   return (
     <SettingsPage
-      title="Email"
-      description="Manage your inboxes and the signature you send with each account."
+      title={t('Email', 'email')}
+      description={t(
+        'Manage your inboxes and the signature you send with each account.',
+        'email'
+      )}
     >
       <SettingsSection
-        title="Accounts"
-        description="Connect Gmail accounts and manage their sync with Macro."
+        title={t('Accounts', 'email')}
+        description={t(
+          'Connect Gmail accounts and manage their sync with Macro.',
+          'email'
+        )}
       >
         <Suspense
           fallback={
             <p role="status" class="text-sm text-ink-muted">
-              Loading accounts…
+              {t('Loading accounts…', 'email')}
             </p>
           }
         >
@@ -40,13 +47,16 @@ export function EmailSettings() {
       </SettingsSection>
       <Show when={signatures().enabled}>
         <SettingsSection
-          title="Signatures"
-          description="Create a signature for each of your email accounts. Format text, add links, or insert an image below."
+          title={t('Signatures', 'email')}
+          description={t(
+            'Create a signature for each of your email accounts. Format text, add links, or insert an image below.',
+            'email'
+          )}
         >
           <Suspense
             fallback={
               <p role="status" class="text-sm text-ink-muted">
-                Loading signatures…
+                {t('Loading signatures…', 'email')}
               </p>
             }
           >
@@ -55,35 +65,41 @@ export function EmailSettings() {
         </SettingsSection>
       </Show>
       <Show when={isAvailable('Notifications') || isAvailable('Calendar')}>
-        <SettingsSection title="Related settings">
+        <SettingsSection title={t('Related settings', 'email')}>
           <SettingsCard>
             <Show when={isAvailable('Notifications')}>
               <SettingsRow
                 stackOnNarrow
-                label="Email notifications"
-                description="Choose your email alerts and digest delivery."
+                label={t('Email notifications', 'email')}
+                description={t(
+                  'Choose your email alerts and digest delivery.',
+                  'email'
+                )}
               >
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => openSettings('Notifications')}
                 >
-                  Manage notifications
+                  {t('Manage notifications', 'email')}
                 </Button>
               </SettingsRow>
             </Show>
             <Show when={isAvailable('Calendar')}>
               <SettingsRow
                 stackOnNarrow
-                label="Calendars"
-                description="Manage the calendars connected to your Google accounts."
+                label={t('Calendars', 'email')}
+                description={t(
+                  'Manage the calendars connected to your Google accounts.',
+                  'email'
+                )}
               >
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => openSettings('Calendar')}
                 >
-                  Manage calendars
+                  {t('Manage calendars', 'email')}
                 </Button>
               </SettingsRow>
             </Show>
@@ -106,9 +122,9 @@ function EmailSignatures() {
       when={!query.isError}
       fallback={
         <SettingsCard>
-          <SettingsRow label="Couldn't load signatures">
+          <SettingsRow label={t("Couldn't load signatures", 'email')}>
             <Button variant="outline" onClick={() => void query.refetch()}>
-              Try again
+              {t('Try again', 'email')}
             </Button>
           </SettingsRow>
         </SettingsCard>
@@ -118,7 +134,7 @@ function EmailSignatures() {
         when={!query.isPending}
         fallback={
           <p role="status" class="text-sm text-ink-muted">
-            Loading signatures…
+            {t('Loading signatures…', 'email')}
           </p>
         }
       >
@@ -126,7 +142,12 @@ function EmailSignatures() {
           each={links()}
           fallback={
             <SettingsCard>
-              <SettingsRow label="Connect an email account above to add a signature." />
+              <SettingsRow
+                label={t(
+                  'Connect an email account above to add a signature.',
+                  'email'
+                )}
+              />
             </SettingsCard>
           }
         >
@@ -134,7 +155,7 @@ function EmailSignatures() {
             <Suspense
               fallback={
                 <p role="status" class="text-sm text-ink-muted">
-                  Loading signature…
+                  {t('Loading signature…', 'email')}
                 </p>
               }
             >

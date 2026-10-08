@@ -1,4 +1,5 @@
 import { RecipientSelector } from '@core/component/RecipientSelector';
+import { t } from '@macro/i18n';
 import ChevronDown from '@phosphor/caret-down.svg';
 import CaretRight from '@phosphor/caret-right.svg';
 import { Button, cn } from '@ui';
@@ -56,7 +57,7 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
     const recipients = [...values.to, ...values.cc, ...values.bcc];
     const first = recipients[0];
     const action =
-      props.replyType() === 'forward' ? 'Forwarding' : 'Replying to';
+      props.replyType() === 'forward' ? t('Forwarding') : t('Replying to');
     if (!first) return action;
     const suffix = recipients.length > 1 ? ` + ${recipients.length - 1}` : '';
     return `${action} ${getRecipientDisplayName(first)}${suffix}`;

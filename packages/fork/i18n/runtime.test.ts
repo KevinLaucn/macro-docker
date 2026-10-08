@@ -77,4 +77,40 @@ describe('i18n runtime test suite', () => {
     expect(formatBoolean(true)).toBe('True');
     expect(formatBoolean(false)).toBe('False');
   });
+
+  test('dynamic seat plan translation', () => {
+    setLocale('zh-CN');
+    expect(t('1 Pro seat')).toBe('1 个 Pro 席位');
+    expect(t('2 Pro seats')).toBe('2 个 Pro 席位');
+    expect(t('1 Max seat')).toBe('1 个 Max 席位');
+    expect(t('2 Pro seats, 1 Max seat')).toBe('2 个 Pro 席位、1 个 Max 席位');
+
+    setLocale('en-US');
+    expect(t('1 Pro seat')).toBe('1 Pro seat');
+    expect(t('2 Pro seats, 1 Max seat')).toBe('2 Pro seats, 1 Max seat');
+  });
+
+  test('dynamic auto-join domain description translation', () => {
+    setLocale('zh-CN');
+    expect(
+      t(
+        'New sign-ups with an @chnprints.com email automatically join this team.'
+      )
+    ).toBe('使用 @chnprints.com 邮箱注册的新用户将自动加入此团队。');
+    expect(t('Auto-join enabled for @chnprints.com')).toBe(
+      '已为 @chnprints.com 启用自动加入'
+    );
+    expect(t('owner', 'team')).toBe('所有者');
+    expect(t('admin', 'team')).toBe('管理员');
+    expect(t('member', 'team')).toBe('成员');
+
+    setLocale('en-US');
+    expect(
+      t(
+        'New sign-ups with an @chnprints.com email automatically join this team.'
+      )
+    ).toBe(
+      'New sign-ups with an @chnprints.com email automatically join this team.'
+    );
+  });
 });

@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import 'quill/dist/quill.snow.css';
 import './SignatureEditor.css';
 import { toast } from '@core/component/Toast/Toast';
@@ -159,7 +160,7 @@ export default function SignatureEditor(props: {
         quill.insertEmbed(at, 'image', staticFileIdEndpoint(id), 'user');
         at += 1;
       } catch {
-        toast.failure('Failed to upload image');
+        toast.failure(t('Failed to upload image'));
       }
     }
     quill.setSelection(at, 0, 'silent');
@@ -186,7 +187,7 @@ export default function SignatureEditor(props: {
     // Quill still builds the icons/pickers into it and wires the default handlers.
     quill = new Quill(editorEl, {
       theme: 'snow',
-      placeholder: props.placeholder ?? 'Add a signature…',
+      placeholder: props.placeholder ?? t('Add a signature…'),
       modules: {
         toolbar: {
           container: toolbarEl,
@@ -204,7 +205,7 @@ export default function SignatureEditor(props: {
     quill.enable(!props.disabled);
     quill.root.setAttribute('role', 'textbox');
     quill.root.setAttribute('aria-multiline', 'true');
-    quill.root.setAttribute('aria-label', props.label ?? 'Email signature');
+    quill.root.setAttribute('aria-label', props.label ?? t('Email signature'));
     setHtml(props.value);
     quill.on('text-change', () => props.onInput(currentHtml()));
     teardownResizer = setupImageResizer(quill);
@@ -236,6 +237,13 @@ export default function SignatureEditor(props: {
     quill?.enable(!props.disabled);
   });
 
+  createEffect(() => {
+    const label = props.label ?? t('Email signature');
+    const placeholder = props.placeholder ?? t('Add a signature…');
+    quill?.root.setAttribute('aria-label', label);
+    quill?.root.setAttribute('data-placeholder', placeholder);
+  });
+
   // Reseed the editor when `props.value` changes. The draft store keeps
   // `props.value` equal to the editor's own content while typing, so this is a
   // no-op then and never clobbers an in-progress edit; it only diverges after
@@ -254,11 +262,17 @@ export default function SignatureEditor(props: {
   });
 
   return (
-    <div class="signature-editor">
+    <div
+      class="signature-editor"
+      style={{
+        '--signature-default-font-label': JSON.stringify(t('Sans Serif')),
+        '--signature-default-size-label': JSON.stringify(t('Normal')),
+      }}
+    >
       <div ref={toolbarEl}>
         <span class="ql-formats">
-          <Tooltip label="Font" as="span">
-            <select class="ql-font" aria-label="Font">
+          <Tooltip label={t('Font')} as="span">
+            <select class="ql-font" aria-label={t('Font')}>
               <For each={FONT_OPTIONS}>
                 {(font) =>
                   font === false ? <option /> : <option value={font} />
@@ -266,8 +280,8 @@ export default function SignatureEditor(props: {
               </For>
             </select>
           </Tooltip>
-          <Tooltip label="Size" as="span">
-            <select class="ql-size" aria-label="Font size">
+          <Tooltip label={t('Size')} as="span">
+            <select class="ql-size" aria-label={t('Font size')}>
               <For each={SIZE_OPTIONS}>
                 {(size) =>
                   size === false ? <option /> : <option value={size} />
@@ -277,32 +291,40 @@ export default function SignatureEditor(props: {
           </Tooltip>
         </span>
         <span class="ql-formats">
-          <ToolbarButton format="bold" label="Bold" shortcut="cmd+b" />
-          <ToolbarButton format="italic" label="Italic" shortcut="cmd+i" />
+          <ToolbarButton format="bold" label={t('Bold')} shortcut="cmd+b" />
+          <ToolbarButton format="italic" label={t('Italic')} shortcut="cmd+i" />
           <ToolbarButton
             format="underline"
-            label="Underline"
+            label={t('Underline')}
             shortcut="cmd+u"
           />
         </span>
         <span class="ql-formats">
-          <Tooltip label="Text color" as="span">
-            <select class="ql-color" aria-label="Text color" />
+          <Tooltip label={t('Text color')} as="span">
+            <select class="ql-color" aria-label={t('Text color')} />
           </Tooltip>
-          <Tooltip label="Highlight color" as="span">
-            <select class="ql-background" aria-label="Highlight color" />
+          <Tooltip label={t('Highlight color')} as="span">
+            <select class="ql-background" aria-label={t('Highlight color')} />
           </Tooltip>
         </span>
         <span class="ql-formats">
-          <ToolbarButton format="list" value="ordered" label="Numbered list" />
-          <ToolbarButton format="list" value="bullet" label="Bulleted list" />
+          <ToolbarButton
+            format="list"
+            value="ordered"
+            label={t('Numbered list')}
+          />
+          <ToolbarButton
+            format="list"
+            value="bullet"
+            label={t('Bulleted list')}
+          />
         </span>
         <span class="ql-formats">
-          <ToolbarButton format="link" label="Link" />
-          <ToolbarButton format="image" label="Image" />
+          <ToolbarButton format="link" label={t('Link')} />
+          <ToolbarButton format="image" label={t('Image')} />
         </span>
         <span class="ql-formats">
-          <ToolbarButton format="clean" label="Clear formatting" />
+          <ToolbarButton format="clean" label={t('Clear formatting')} />
         </span>
       </div>
       <div ref={editorEl} />

@@ -12,6 +12,7 @@
   "scripts": {
     "extract": "bun extract.ts",
     "audit": "bun audit.ts",
+    "audit:fields": "bun audit-fields.ts",
     "merge": "bun merge.ts",
     "test": "bun test"
   },

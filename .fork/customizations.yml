@@ -550,8 +550,31 @@ customizations:
     rationale: Preserve the fork's explicit i18n runtime, extraction rules, and zh-CN coverage.
     risk: medium
     paths:
+      - apps/web/src/features/email-compose/views/reply-envelope.tsx
+      - apps/web/src/features/email-compose/primitives/email-send-schedule-i18n.test.ts
+      - apps/web/src/features/property/utils/formatting.test.ts
+      - apps/web/src/features/email-compose/primitives/email-send-schedule.ts
+      - apps/web/src/lib/core/component/AI/component/tool/email/DraftComposer.tsx
+      - apps/web/src/lib/core/component/TopBar/ShareButton.tsx
+      - apps/web/src/features/block-md/component/ComposeTask.tsx
+      - apps/web/src/features/property/component/PropertyValuePill.tsx
+      - apps/web/src/features/property/utils/formatting.ts
       - apps/web/src/features/crm/**
       - packages/fork/i18n/**
+      - apps/web/src/features/calendar/calendar-settings.tsx
+      - apps/web/src/features/calendar/components/connected-calendars.tsx
+      - apps/web/src/features/scheduling/views/settings-view.tsx
+      - apps/web/src/features/scheduling/components/owner-badge.tsx
+      - apps/web/src/features/settings/email-settings.tsx
+      - apps/web/src/features/settings/components/signature-form.tsx
+      - apps/web/src/features/settings/Email.tsx
+      - apps/web/src/features/settings/SignatureEditor.tsx
+      - apps/web/src/features/settings/SignatureEditor.css
+      - apps/web/src/features/auth/CalendarPermissionPrompt.tsx
+      - apps/web/src/features/settings/connections/ConnectionsPage.tsx
+      - apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
+      - apps/web/src/features/settings/connections/capability-row.ts
+      - apps/web/src/features/block-agent/component/AgentMessage.tsx
       - rules/ast-grep/**
       - sgconfig.yml
       - apps/web/src/components/app/app-sidebar/sidebar.tsx
@@ -596,7 +619,29 @@ customizations:
       - apps/web/src/lib/core/constant/PaywallState.tsx
       - apps/web/vite.base.ts
     owned_paths:
+      - apps/web/src/features/email-compose/views/reply-envelope.tsx
+      - apps/web/src/features/property/utils/formatting.test.ts
+      - apps/web/src/features/email-compose/primitives/email-send-schedule.ts
+      - apps/web/src/lib/core/component/AI/component/tool/email/DraftComposer.tsx
+      - apps/web/src/lib/core/component/TopBar/ShareButton.tsx
+      - apps/web/src/features/block-md/component/ComposeTask.tsx
+      - apps/web/src/features/property/component/PropertyValuePill.tsx
+      - apps/web/src/features/property/utils/formatting.ts
       - apps/web/src/components/app/app-sidebar/sidebar.tsx
+      - apps/web/src/features/calendar/calendar-settings.tsx
+      - apps/web/src/features/calendar/components/connected-calendars.tsx
+      - apps/web/src/features/scheduling/views/settings-view.tsx
+      - apps/web/src/features/scheduling/components/owner-badge.tsx
+      - apps/web/src/features/settings/email-settings.tsx
+      - apps/web/src/features/settings/components/signature-form.tsx
+      - apps/web/src/features/settings/Email.tsx
+      - apps/web/src/features/settings/SignatureEditor.tsx
+      - apps/web/src/features/settings/SignatureEditor.css
+      - apps/web/src/features/auth/CalendarPermissionPrompt.tsx
+      - apps/web/src/features/settings/connections/ConnectionsPage.tsx
+      - apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
+      - apps/web/src/features/settings/connections/capability-row.ts
+      - apps/web/src/features/block-agent/component/AgentMessage.tsx
       - apps/web/src/components/app/mobile/MobilePageCreateButton.tsx
       - apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
       - apps/web/src/features/auth/GmailReauthenticationPrompt.tsx

@@ -87,6 +87,10 @@ export const TRANSLATABLE_ATTRIBUTES = new Set([
   'duration',
   'leader',
   'sub',
+  'entryLabel',
+  'blockedReason',
+  'unavailableReason',
+  'connectLabel',
 ]);
 
 export const TRANSLATABLE_OBJECT_KEYS = new Set([
@@ -159,6 +163,10 @@ export const TRANSLATABLE_OBJECT_KEYS = new Set([
   'warnMessage',
   'infoMessage',
   'channelSummary',
+  'entryLabel',
+  'blockedReason',
+  'unavailableReason',
+  'connectLabel',
 ]);
 
 export const IGNORED_TAGS = new Set([
@@ -283,6 +291,14 @@ export function getExpressionName(node: any): string | undefined {
   ) {
     return node.property.name;
   }
+  if (node.type === 'CallExpression') {
+    if (node.callee?.type === 'Identifier') {
+      return node.callee.name;
+    }
+    if (node.callee?.type === 'MemberExpression') {
+      return getExpressionName(node.callee.object);
+    }
+  }
   return undefined;
 }
 
@@ -294,14 +310,20 @@ export function getObjectPropertyName(node: any): string | undefined {
 }
 
 /**
- * Detect string literals used as inline UI fallbacks, such as:
+ * Detect string literals or template literals used as inline UI fallbacks, such as:
  *   <EmptyState documentationLabel={label ?? 'Documentation'} />
+ *   <p>{isSystem ? 'Auto' : `Always ${mode}`}</p>
  *
- * These literals are not JSXText or a literal JSX attribute value, so they
+ * These expressions are not JSXText or a literal JSX attribute value, so they
  * need an explicit AST path in the i18n audit/extractor.
  */
-export function isUiFallbackStringLiteral(path: any): boolean {
-  if (!path?.node || path.node.type !== 'StringLiteral') return false;
+export function isUiFallbackExpression(path: any): boolean {
+  if (!path?.node) return false;
+  if (
+    path.node.type !== 'StringLiteral' &&
+    path.node.type !== 'TemplateLiteral'
+  )
+    return false;
 
   const parent = path.parentPath?.node;
   const isFallbackBranch =
@@ -333,6 +355,10 @@ export function isUiFallbackStringLiteral(path: any): boolean {
   }
 
   return false;
+}
+
+export function isUiFallbackStringLiteral(path: any): boolean {
+  return path?.node?.type === 'StringLiteral' && isUiFallbackExpression(path);
 }
 
 export function parseMixedChildren(
@@ -494,7 +520,9 @@ const fileExportsCache = new Map<string, Map<string, SymbolExportInfo>>();
 /**
  * Parses a module file and extracts top-level exported constants that resolve to string literals.
  */
-export function getExportedConstants(filePath: string): Map<string, SymbolExportInfo> {
+export function getExportedConstants(
+  filePath: string
+): Map<string, SymbolExportInfo> {
   if (fileExportsCache.has(filePath)) {
     return fileExportsCache.get(filePath)!;
   }
@@ -540,7 +568,11 @@ export function getExportedConstants(filePath: string): Map<string, SymbolExport
       ExportNamedDeclaration(p: any) {
         if (p.node.specifiers) {
           for (const spec of p.node.specifiers) {
-            if (spec.type === 'ExportSpecifier' && spec.local && spec.exported) {
+            if (
+              spec.type === 'ExportSpecifier' &&
+              spec.local &&
+              spec.exported
+            ) {
               const localName = spec.local.name;
               const exportedName =
                 spec.exported.type === 'Identifier'
@@ -562,5 +594,3 @@ export function getExportedConstants(filePath: string): Map<string, SymbolExport
 
   return exportsMap;
 }
-
-

@@ -6,6 +6,7 @@ import {
   SettingsSection,
 } from '@app/features/settings/primitives';
 import { DropdownMenu } from '@kobalte/core/dropdown-menu';
+import { t } from '@macro/i18n';
 import Plus from '@phosphor/plus.svg';
 import { createMemo, createSignal, For, mapArray, Show } from 'solid-js';
 import { Field, TextInput } from '../components/fields';
@@ -49,7 +50,7 @@ function CreateAction(props: {
             onClick={() => create(editable()[0])}
           >
             <Plus class="size-4" />
-            {label()}
+            {t(label())}
           </Button>
         }
       >
@@ -61,11 +62,13 @@ function CreateAction(props: {
             size="sm"
           >
             <Plus class="size-4" />
-            {label()}
+            {t(label())}
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Content class="z-action-menu min-w-48 rounded-xl border border-edge-muted bg-menu p-1 text-sm shadow-lg">
-              <div class="px-3 py-2 text-xs text-ink-muted">Create for</div>
+              <div class="px-3 py-2 text-xs text-ink-muted">
+                {t('Create for')}
+              </div>
               <For each={editable()}>
                 {(owner) => (
                   <DropdownMenu.Item
@@ -127,15 +130,17 @@ export function SchedulingSettingsView() {
   );
   return (
     <SettingsPage
-      title="Booking links"
-      description="Manage your booking links, availability, and scheduled meetings."
+      title={t('Booking links')}
+      description={t(
+        'Manage your booking links, availability, and scheduled meetings.'
+      )}
     >
       <For each={owners()}>
         {(owner) => (
           <>
             <Show when={owner.source.loading()}>
               <p role="status" class="text-sm text-ink-muted">
-                Loading {owner.scope().name} scheduling…
+                {t('Loading {name} scheduling…', { name: owner.scope().name })}
               </p>
             </Show>
             <Show when={owner.source.error() || owner.error()}>
@@ -145,7 +150,7 @@ export function SchedulingSettingsView() {
               >
                 <OwnerBadge scope={owner.scope()} />
                 <p class="flex-1 text-sm text-failure">
-                  {owner.error() || owner.source.error()}
+                  {t((owner.error() || owner.source.error()) ?? '')}
                 </p>
                 <Show when={owner.source.error()}>
                   <Button
@@ -153,7 +158,7 @@ export function SchedulingSettingsView() {
                     size="sm"
                     onClick={owner.source.reload}
                   >
-                    Try again
+                    {t('Try again')}
                   </Button>
                 </Show>
               </div>
@@ -161,22 +166,22 @@ export function SchedulingSettingsView() {
             <Show when={!owner.scope().canEdit}>
               <p class="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
                 <OwnerBadge scope={owner.scope()} />
-                Only team owners and admins can edit these settings.
+                {t('Only team owners and admins can edit these settings.')}
               </p>
             </Show>
           </>
         )}
       </For>
       <SettingsSection
-        title="Booking links"
-        description="Personal and team links, together in one place."
+        title={t('Booking links')}
+        description={t('Personal and team links, together in one place.')}
         actions={<CreateAction owners={owners()} kind="event" />}
       >
         <div class="max-w-sm">
           <TextInput
             type="search"
-            aria-label="Search booking links"
-            placeholder="Search booking links…"
+            aria-label={t('Search booking links')}
+            placeholder={t('Search booking links…')}
             value={search()}
             onInput={(event) => setSearch(event.currentTarget.value)}
           />
@@ -200,34 +205,40 @@ export function SchedulingSettingsView() {
         >
           <p class="py-6 text-center text-sm text-ink-muted">
             {search()
-              ? 'No matching booking links.'
-              : 'Create your first booking link to let people book time with you.'}
+              ? t('No matching booking links.')
+              : t(
+                  'Create your first booking link to let people book time with you.'
+                )}
           </p>
         </Show>
       </SettingsSection>
       <SettingsSection
-        title="Availability"
-        description="Working hours and date overrides for your personal and team calendars."
+        title={t('Availability')}
+        description={t(
+          'Working hours and date overrides for your personal and team calendars.'
+        )}
         actions={<CreateAction owners={owners()} kind="schedule" />}
       >
         {section('availability')}
       </SettingsSection>
       <SettingsSection
-        title="Booking pages"
-        description="Customize and share your personal and team booking pages."
+        title={t('Booking pages')}
+        description={t(
+          'Customize and share your personal and team booking pages.'
+        )}
       >
         {section('page')}
       </SettingsSection>
       <SettingsSection
-        title="Teams"
-        description="Schedule together with your Macro team."
+        title={t('Teams')}
+        description={t('Schedule together with your Macro team.')}
         actions={
           <Button
             variant="outline"
             size="sm"
             onClick={capabilities.openTeamSettings}
           >
-            Manage teams
+            {t('Manage teams')}
           </Button>
         }
       >
@@ -236,8 +247,10 @@ export function SchedulingSettingsView() {
             each={owners().filter((owner) => owner.scope().teamId)}
             fallback={
               <SettingsRow
-                label="No team connected"
-                description="Create or join a team to offer collective and round-robin meetings."
+                label={t('No team connected')}
+                description={t(
+                  'Create or join a team to offer collective and round-robin meetings.'
+                )}
               />
             }
           >
@@ -246,8 +259,10 @@ export function SchedulingSettingsView() {
                 label={owner.scope().name}
                 description={
                   owner.scope().canEdit
-                    ? 'Owner or admin · Collective and round-robin scheduling'
-                    : 'Team member'
+                    ? t(
+                        'Owner or admin · Collective and round-robin scheduling'
+                      )
+                    : t('Team member')
                 }
               />
             )}
@@ -255,13 +270,15 @@ export function SchedulingSettingsView() {
         </SettingsCard>
       </SettingsSection>
       <SettingsSection
-        title="Bookings"
-        description="Review and manage meetings booked through your links."
+        title={t('Bookings')}
+        description={t('Review and manage meetings booked through your links.')}
       >
         <div class="flex flex-wrap items-end gap-4">
           <Field
-            label="From"
-            hint={`Dates in ${browserZone.replaceAll('_', ' ')}`}
+            label={t('From')}
+            hint={t('Dates in {browserZone}', {
+              browserZone: browserZone.replaceAll('_', ' '),
+            })}
           >
             <TextInput
               type="date"
@@ -276,7 +293,7 @@ export function SchedulingSettingsView() {
               }}
             />
           </Field>
-          <Field label="Through">
+          <Field label={t('Through')}>
             <TextInput
               type="date"
               value={bookingTo()}
@@ -294,8 +311,10 @@ export function SchedulingSettingsView() {
         {section('bookings')}
       </SettingsSection>
       <SettingsSection
-        title="Insights"
-        description="See how your personal and team booking links are being used."
+        title={t('Insights')}
+        description={t(
+          'See how your personal and team booking links are being used.'
+        )}
       >
         {section('insights')}
       </SettingsSection>

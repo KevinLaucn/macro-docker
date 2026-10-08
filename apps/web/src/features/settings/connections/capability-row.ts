@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import type { Capability, CapabilityScope } from './model';
 
 const SCOPE_LABEL: Record<CapabilityScope, string> = {
@@ -8,6 +9,6 @@ const SCOPE_LABEL: Record<CapabilityScope, string> = {
 export function capabilityFacts(
   row: Pick<Capability, 'account' | 'scope' | 'mechanism'>
 ): string {
-  if (row.mechanism === 'pipedream') return 'Powered by Pipedream';
-  return [row.account, SCOPE_LABEL[row.scope]].filter(Boolean).join(' · ');
+  if (row.mechanism === 'pipedream') return t('Powered by Pipedream');
+  return [row.account, t(SCOPE_LABEL[row.scope])].filter(Boolean).join(' · ');
 }

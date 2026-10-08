@@ -4,6 +4,7 @@ import {
 } from '@app/features/calendar/hooks/use-calendar-ui-flag';
 import { useKeyedPersistentToasts } from '@core/component/Toast/useKeyedPersistentToasts';
 import { useAddInboxFlow } from '@core/email-link';
+import { t } from '@macro/i18n';
 import { useEmailLinksQuery } from '@queries/email/link';
 
 /**
@@ -47,13 +48,16 @@ export function CalendarPermissionPrompt() {
     // survive that window.
     itemsLoaded: () => calendarUiEnabled() && linksQuery.isSuccess,
     toast: (link, dismiss) => ({
-      title: 'Enable calendar',
+      title: t('Enable calendar'),
       content(): string {
-        return `Macro can now sync your Google Calendar. Grant calendar access for ${link.email_address} to turn it on.`;
+        return t(
+          'Macro can now sync your Google Calendar. Grant calendar access for {email} to turn it on.',
+          { email: link.email_address }
+        );
       },
       actions: [
         {
-          label: 'Grant access',
+          label: t('Grant access'),
           onClick: () => {
             // Suppress re-prompting until the grant upgrades; on native the
             // page stays mounted while the OAuth flow runs.

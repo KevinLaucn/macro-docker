@@ -175,7 +175,21 @@ export const createAppViteConfig = (): UserConfigFn => {
         // i18nAstPlugin transforms legacy JSX into __t(). Newly refactored or二开 modules
         // are explicitly excluded from AST transformation to ensure zero build interference.
         i18nAstPlugin({
-          excludePatterns: [],
+          excludePatterns: [
+            '/features/calendar/calendar-settings.tsx',
+            '/features/calendar/components/connected-calendars.tsx',
+            '/features/scheduling/views/settings-view.tsx',
+            '/features/scheduling/components/owner-badge.tsx',
+            '/features/settings/email-settings.tsx',
+            '/features/settings/components/signature-form.tsx',
+            '/features/settings/Email.tsx',
+            '/features/settings/SignatureEditor.tsx',
+            '/features/auth/CalendarPermissionPrompt.tsx',
+            '/features/settings/connections/ConnectionsPage.tsx',
+            '/features/settings/connections/PipedreamAiProvider.tsx',
+            '/features/settings/connections/capability-row.ts',
+            '/features/block-agent/component/AgentMessage.tsx',
+          ],
         }),
         pureGeneratedZodSchemas(),
         solid(),

@@ -1,6 +1,7 @@
 import { toast } from '@core/component/Toast/Toast';
 import { createPipedreamCatalogConnect } from '@core/pipedream/catalog';
 import { connectSlugForPipedreamApp } from '@core/pipedream/slugs';
+import { t } from '@macro/i18n';
 import {
   useDeletePipedreamConnectionMutation,
   useUpdatePipedreamConnectionMutation,
@@ -65,16 +66,19 @@ function statusIndicator(status: CapabilityStatus): {
   return match(status)
     .with('connected', () => ({
       state: 'connected' as const,
-      label: 'Connected',
+      label: t('Connected'),
     }))
-    .with('off', () => ({ state: 'disconnected' as const, label: 'Disabled' }))
+    .with('off', () => ({
+      state: 'disconnected' as const,
+      label: t('Disabled'),
+    }))
     .with('action-required', () => ({
       state: 'attention' as const,
-      label: 'Needs reconnecting',
+      label: t('Needs reconnecting'),
     }))
     .with('not-connected', () => ({
       state: 'disconnected' as const,
-      label: 'Not connected',
+      label: t('Not connected'),
     }))
     .exhaustive();
 }
@@ -93,7 +97,7 @@ export function PipedreamAiProvider(props: {
   const indicator = () => statusIndicator(status());
   const aiFacts = () => {
     const cap = row();
-    return cap ? capabilityFacts(cap) : 'Powered by Pipedream';
+    return cap ? capabilityFacts(cap) : t('Powered by Pipedream');
   };
   const update = useUpdatePipedreamConnectionMutation();
   const remove = useDeletePipedreamConnectionMutation();
@@ -103,7 +107,8 @@ export function PipedreamAiProvider(props: {
       app_slug: connectSlugForPipedreamApp(props.provider),
       display_name: copy.name,
     }),
-    onConnected: () => toast.success(`${copy.name} connected`),
+    onConnected: () =>
+      toast.success(t('{name} connected', { name: copy.name })),
   });
 
   const [disconnect, setDisconnect] = createSignal<DisconnectConfirm | null>(
@@ -118,13 +123,13 @@ export function PipedreamAiProvider(props: {
       if (!url) return;
       native.update.mutate(
         { url, enabled },
-        { onError: () => toast.failure('Failed to update connector') }
+        { onError: () => toast.failure(t('Failed to update connector')) }
       );
       return;
     }
     update.mutate(
       { app_slug: row()?.appSlug ?? props.provider, enabled },
-      { onError: () => toast.failure('Failed to update connector') }
+      { onError: () => toast.failure(t('Failed to update connector')) }
     );
   };
 
@@ -135,30 +140,34 @@ export function PipedreamAiProvider(props: {
       const url = cap.sourceUrl;
       if (!url) return;
       setDisconnect({
-        title: 'Disconnect from Macro',
-        body: `Disconnect ${copy.name}?`,
+        title: t('Disconnect from Macro'),
+        body: t('Disconnect {name}?', { name: copy.name }),
         onConfirm: () =>
           native.remove.mutate(
             { url },
             {
               onSuccess: () =>
-                toast.success(`Disconnected ${copy.name} from Macro`),
-              onError: () => toast.failure('Failed to disconnect'),
+                toast.success(
+                  t('Disconnected {name} from Macro', { name: copy.name })
+                ),
+              onError: () => toast.failure(t('Failed to disconnect')),
             }
           ),
       });
       return;
     }
     setDisconnect({
-      title: 'Disconnect from Macro',
-      body: `Disconnect ${copy.name}?`,
+      title: t('Disconnect from Macro'),
+      body: t('Disconnect {name}?', { name: copy.name }),
       onConfirm: () =>
         remove.mutate(
           { app_slug: row()?.appSlug ?? props.provider },
           {
             onSuccess: () =>
-              toast.success(`Disconnected ${copy.name} from Macro`),
-            onError: () => toast.failure('Failed to disconnect'),
+              toast.success(
+                t('Disconnected {name} from Macro', { name: copy.name })
+              ),
+            onError: () => toast.failure(t('Failed to disconnect')),
           }
         ),
     });
@@ -195,9 +204,9 @@ export function PipedreamAiProvider(props: {
     <SettingsPage
       title={copy.title}
       icon={providerIcon(props.provider)}
-      description={copy.outcome}
+      description={t(copy.outcome)}
       onBack={view.closeProvider}
-      backLabel="Connections"
+      backLabel={t('Connections')}
     >
       <SettingsSection title="Macro AI">
         <SettingsCard>

@@ -34,6 +34,7 @@ import { useCopyLink } from '@core/util/useCopyLink';
 import { OwnerLabel } from '@entity/owner/owner-display';
 import IconShared from '@icon/share.svg';
 import { Dialog } from '@kobalte/core/dialog';
+import { t } from '@macro/i18n';
 import ChevronDownIcon from '@phosphor/caret-down.svg';
 import IconComment from '@phosphor/chat-teardrop.svg';
 import CheckIcon from '@phosphor/check.svg';
@@ -246,17 +247,17 @@ const accessLevelText = (accessLevel?: AccessLevel | null) => {
   switch (accessLevel) {
     case 'comment':
       if (blockName === 'md' && !ENABLE_MARKDOWN_COMMENTS) {
-        return 'View';
+        return t('View');
       }
-      return 'Comment';
+      return t('Comment');
     case 'view':
-      return 'View';
+      return t('View');
     case 'edit':
-      return 'Edit';
+      return t('Edit');
     case 'owner':
-      return 'Owner';
+      return t('Owner');
     default:
-      return 'Remove Access';
+      return t('Remove Access');
   }
 };
 
@@ -620,7 +621,7 @@ function MobileShareDrawer(props: MobileShareDrawerProps) {
           >
             <Show when={!props.canForward}>
               <p class="px-4 py-3 text-sm text-ink-muted">
-                {OWNER_ONLY_SHARE_DESCRIPTIONS[props.itemType]}
+                {t(OWNER_ONLY_SHARE_DESCRIPTIONS[props.itemType] ?? '')}
               </p>
             </Show>
             <Show when={props.canForward}>
@@ -836,7 +837,7 @@ export function ShareModal(props: ShareModalProps) {
     copyEntityLink(shareUrl(props.blockAlias, props.id), {
       subtext: OWNER_ONLY_SHARE_DESCRIPTIONS[props.itemType]
         ? undefined
-        : SHARE_LINK_SUBTEXT,
+        : t(SHARE_LINK_SUBTEXT),
     });
   });
 
@@ -1411,7 +1412,7 @@ export function ShareModal(props: ShareModalProps) {
                 <Panel.Body>
                   <Show when={!canForward()}>
                     <p class="px-4 py-3 text-sm text-ink-muted">
-                      {OWNER_ONLY_SHARE_DESCRIPTIONS[props.itemType]}
+                      {t(OWNER_ONLY_SHARE_DESCRIPTIONS[props.itemType] ?? '')}
                     </p>
                   </Show>
                   <Show when={canForward()}>
@@ -1708,7 +1709,7 @@ export function ShareTrigger(props: {
       subtext:
         blockType() === 'agent' || blockType() === 'initiative'
           ? undefined
-          : SHARE_LINK_SUBTEXT,
+          : t(SHARE_LINK_SUBTEXT),
     });
     analytics.track('copy_share_link', { blockType: blockType() });
     return result;

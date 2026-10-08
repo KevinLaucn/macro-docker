@@ -1,3 +1,4 @@
+import { t } from '@macro/i18n';
 import { format } from 'date-fns/format';
 import { isThisYear } from 'date-fns/isThisYear';
 import { type Accessor, createSignal } from 'solid-js';
@@ -40,11 +41,11 @@ export function getScheduleAction(
 export function getScheduleActionLabel(state: EmailScheduleState) {
   switch (getScheduleAction(state)) {
     case 'schedule':
-      return 'Schedule send';
+      return t('Schedule send');
     case 'update':
-      return 'Update schedule';
+      return t('Update schedule');
     default:
-      return 'Send email';
+      return t('Send email');
   }
 }
 

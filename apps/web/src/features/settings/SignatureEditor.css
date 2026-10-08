@@ -131,7 +131,17 @@
 /* Font + size picker labels. The snow theme only labels its own presets, so
    every custom option (see FONT_OPTIONS / SIZE_OPTIONS in SignatureEditor.tsx)
    needs a label rule; the item rules also preview the font/size. `false`
-   (default) is already labelled "Sans Serif" / "Normal" by the base theme. */
+   (default) uses locale-aware labels supplied by SignatureEditor. */
+
+.signature-editor .ql-picker.ql-font .ql-picker-label:not([data-value])::before,
+.signature-editor .ql-picker.ql-font .ql-picker-item:not([data-value])::before {
+  content: var(--signature-default-font-label);
+}
+
+.signature-editor .ql-picker.ql-size .ql-picker-label:not([data-value])::before,
+.signature-editor .ql-picker.ql-size .ql-picker-item:not([data-value])::before {
+  content: var(--signature-default-size-label);
+}
 
 /* Compact, single-line picker labels so long names (e.g. "Times New Roman")
    don't wrap out of the toolbar. */
