@@ -30,6 +30,11 @@ fork-gate:
     ruby .github/scripts/check-core-drift.rb --upstream "$base"
     python3 self-host/scripts/check-drift.py
     python3 self-host/scripts/verify-release.py
+    just test-browser-runtime
+
+test-browser-runtime:
+    \cd apps/web && bunx vitest run --config src/lib/queries/vitest.config.ts src/lib/queries/ai/tests/homeRecommendations.test.ts src/lib/queries/agents/models.test.tsx src/lib/queries/agents/capabilities.test.tsx src/lib/queries/agent-session/warm.test.tsx
+    \cd apps/web && bunx vitest run --config src/lib/core/vitest.config.ts src/lib/core/hotkey/utils.test.ts
 
 test-email-attachment-recovery:
     ruby .github/scripts/check-email-attachment-contract.rb

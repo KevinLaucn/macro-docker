@@ -4,11 +4,16 @@ version: 1
 # Keep hooks small: marker + the expected one-line import/call/router/component
 # entry that connects upstream code to private feature modules.
 hooks:
+  - id: browser_runtime_optional_model_providers
+    customization: BROWSER-RUNTIME-COMPAT-001
+    file: crates/agent/src/model/router.rs
+    marker: "// PRIVATE-HOOK: browser_runtime:optional-model-providers"
+    expected: "let mut router = ModelRouter::new(anthropic, openai);"
   - id: browser_runtime_recommendation_title
     customization: BROWSER-RUNTIME-COMPAT-001
     file: apps/web/src/lib/queries/ai/homeRecommendations.ts
     marker: "// PRIVATE-HOOK: browser_runtime:recommendation-title"
-    expected: ".max(4096)"
+    expected: ".max(180)"
   - id: browser_runtime_keyless_event
     customization: BROWSER-RUNTIME-COMPAT-001
     file: apps/web/src/lib/core/hotkey/utils.ts

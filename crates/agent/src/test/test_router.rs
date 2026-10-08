@@ -34,6 +34,18 @@ fn openai_provider_routes_to_responses() {
 }
 
 #[test]
+fn unavailable_optional_providers_do_not_block_openai() {
+    let router = test_router();
+    for model in ["fireworks/kimi-k3", "cerebras/llama", "google/gemini"] {
+        assert!(router.route(model).is_err());
+    }
+    assert!(matches!(
+        router.route("openai/gpt-5.5").unwrap(),
+        RoutedModel::OpenAiResponses(_)
+    ));
+}
+
+#[test]
 fn unroutable_ids_fall_back_to_the_smart_model() {
     let router = test_router();
 

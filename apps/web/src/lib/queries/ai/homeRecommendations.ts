@@ -51,9 +51,9 @@ export const recommendationSchema = z
             .trim()
             .min(1)
             // PRIVATE-HOOK: browser_runtime:recommendation-title
-            .max(4096)
+            .max(180)
             .describe(
-              'What this is, e.g. the email subject, thread topic, or document name'
+              'What this is, e.g. the email subject, thread topic, or document name. Use plain text, no mention markup, at most 160 characters.'
             ),
           source: z
             .string()

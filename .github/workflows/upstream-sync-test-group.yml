@@ -109,6 +109,10 @@ jobs:
         if: inputs.group == 'web'
         run: bun run --cwd apps/web type-check
 
+      - name: Test browser runtime regressions
+        if: inputs.group == 'web'
+        run: just test-browser-runtime
+
       - name: Test fork read receipts
         if: inputs.group == 'web'
         run: bunx vitest run --config vitest.config.ts --project fork-read-receipts

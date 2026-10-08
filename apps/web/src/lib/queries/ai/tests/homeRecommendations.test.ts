@@ -32,12 +32,15 @@ function recommendations(...titles: string[]): HomeRecommendations {
   return { items: titles.map((title) => item(title)) };
 }
 
-it('accepts full email subjects longer than 160 characters', () => {
-  const result = recommendations('邮件主题'.repeat(80));
+it('allows 180 title characters while asking AI for at most 160', () => {
+  const result = recommendations('邮'.repeat(180));
   expect(recommendationSchema.parse(result)).toEqual(result);
   expect(
-    recommendationSchema.safeParse(recommendations('x'.repeat(4097))).success
+    recommendationSchema.safeParse(recommendations('x'.repeat(181))).success
   ).toBe(false);
+  expect(
+    recommendationSchema.shape.items.element.shape.title.description
+  ).toContain('at most 160 characters');
 });
 
 describe('buildRecommendationPrompt', () => {

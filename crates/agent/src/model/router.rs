@@ -23,7 +23,7 @@ use std::time::{Duration, Instant};
 use ai_toolset::RequestContext;
 use ai_usage::{UsageContext, UsageRecorder};
 use futures::StreamExt;
-use macro_env_var::env_var;
+use macro_env_var::{env_var, maybe_env_vars};
 use rig_agent::agent::{Agent, AgentBuilder, MultiTurnStreamItem};
 use rig_agent::streaming::StreamingPrompt;
 use rig_agent::tool::server::ToolServerHandle;
@@ -53,11 +53,14 @@ env_var! {
     struct ApiKeys {
         AnthropicApiKey,
         OpenaiApiKey,
-        CerebrasApiKey,
-        /// Doppler name is `FIREWORK_API_KEY` (singular), from `shared_ai`.
-        FireworkApiKey,
-        GoogleGenerativeAiApiKey
     }
+}
+
+maybe_env_vars! {
+    struct CerebrasApiKey;
+    /// Doppler name is `FIREWORK_API_KEY` (singular), from `shared_ai`.
+    struct FireworkApiKey;
+    struct GoogleGenerativeAiApiKey;
 }
 
 /// Provider segment for native Anthropic.
@@ -382,8 +385,8 @@ impl<H: HttpClientExt + Clone + 'static> ModelRouter<H> {
 impl ModelRouter {
     /// Build a router with the built-in providers from the environment.
     ///
-    /// Requires `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `CEREBRAS_API_KEY`,
-    /// `FIREWORK_API_KEY`, and `GOOGLE_GENERATIVE_AI_API_KEY`. Chain
+    /// Requires `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`. Other provider keys
+    /// are optional; only configured providers are registered. Chain
     /// `with_openai_provider` on the returned router to add more.
     pub fn try_from_env() -> Result<ModelRouter<MeteredHttpClient>, AgentError> {
         let env = ApiKeys::new()?;
@@ -415,22 +418,34 @@ impl ModelRouter {
         // ride the compatible-provider registry: a `<provider>/` segment routes
         // to the client registered under that name. Gemini uses GenerateContent
         // so tool-call thought signatures survive the multi-step tool loop.
-        let gemini = gemini::Client::builder()
-            .api_key(env.google_generative_ai_api_key.to_string())
-            .http_client(MeteredHttpClient::new(
-                http.clone(),
-                GOOGLE_PROVIDER,
-                WireProtocol::Gemini,
-            ))
-            .build()?;
-        ModelRouter::new(anthropic, openai)
-            .with_gemini_client(gemini)
-            .with_openai_provider(CEREBRAS_PROVIDER, CEREBRAS_BASE_URL, &env.cerebras_api_key)?
-            .with_openai_provider(
+        // PRIVATE-HOOK: browser_runtime:optional-model-providers
+        let mut router = ModelRouter::new(anthropic, openai);
+        if let Some(key) = GoogleGenerativeAiApiKey::new() {
+            let gemini = gemini::Client::builder()
+                .api_key(key.to_string())
+                .http_client(MeteredHttpClient::new(
+                    http.clone(),
+                    GOOGLE_PROVIDER,
+                    WireProtocol::Gemini,
+                ))
+                .build()?;
+            router = router.with_gemini_client(gemini);
+        }
+        if let Some(key) = CerebrasApiKey::new() {
+            router = router.with_openai_provider(
+                CEREBRAS_PROVIDER,
+                CEREBRAS_BASE_URL,
+                &key.to_string(),
+            )?;
+        }
+        if let Some(key) = FireworkApiKey::new() {
+            router = router.with_openai_provider(
                 FIREWORKS_PROVIDER,
                 FIREWORKS_BASE_URL,
-                &env.firework_api_key,
-            )
+                &key.to_string(),
+            )?;
+        }
+        Ok(router)
     }
 
     /// The process-wide full router, built from the environment on first use.
