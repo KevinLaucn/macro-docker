@@ -104,6 +104,8 @@ def verify_compose(compose_text: str, caddy_text: str) -> list[str]:
 
 def verify_env_config_template(compose_text: str) -> list[str]:
     errors = []
+    if 'grep -q \'<script src="/app/env-config.js"></script>\' /out/index.html ||' not in compose_text:
+        errors.append("web_assets must fail when the runtime config bootstrap is missing")
     # Extract heredoc between cat <<EOF > /out/env-config.js and EOF
     match = re.search(r'cat\s+<<\s*[\'"]?EOF[\'"]?\s*>\s*/out/env-config\.js\n(.*?)\n\s*EOF', compose_text, re.S)
     if not match:

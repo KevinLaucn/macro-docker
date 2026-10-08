@@ -256,6 +256,8 @@ export function SplitPanel(props: SplitPanelProps) {
             on:keydown={{
               capture: true,
               handleEvent: (e) => {
+                // PRIVATE-HOOK: browser_runtime:split-keyless-event
+                if (typeof e.key !== 'string') return;
                 if (!EVENT_MODIFIER_KEYS.has(e.key.toLowerCase())) {
                   pointerTarget = undefined;
                 }

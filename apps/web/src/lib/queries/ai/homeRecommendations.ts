@@ -50,7 +50,8 @@ export const recommendationSchema = z
             .string()
             .trim()
             .min(1)
-            .max(160)
+            // PRIVATE-HOOK: browser_runtime:recommendation-title
+            .max(4096)
             .describe(
               'What this is, e.g. the email subject, thread topic, or document name'
             ),

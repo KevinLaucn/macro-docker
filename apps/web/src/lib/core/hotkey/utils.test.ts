@@ -14,6 +14,12 @@ const makeCommand = (token: HotkeyToken | undefined): HotkeyCommand =>
     scopeId: 'test-scope',
   }) as HotkeyCommand;
 
+test('ignores events without a keyboard key', () => {
+  expect(normalizeEventKeyPress(new Event('keydown') as KeyboardEvent)).toBe(
+    ''
+  );
+});
+
 describe('removeCommandsFromTokenMap', () => {
   test('removes command from token map', () => {
     const cmd1 = makeCommand('hotkey:test' as HotkeyToken);

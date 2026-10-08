@@ -86,6 +86,7 @@ export function useAgentModelsQuery(
 ) {
   return useQuery(() => ({
     ...agentModelsQueryOptions(target()),
-    enabled: enabled(),
+    // PRIVATE-HOOK: selfhost_runtime:single-agent-models-gate
+    enabled: getAppCapabilities().agents && enabled(),
   }));
 }

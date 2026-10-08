@@ -10,7 +10,10 @@ import { useGetChatAttachmentInfo } from '@core/component/AI/signal/attachment';
 import { createMentionAttachmentCallbacks } from '@core/component/AI/signal/mention-attachment-callbacks';
 import { setPendingSendData } from '@core/component/AI/signal/pendingSend';
 import { deriveChatName } from '@core/component/AI/util/deriveName';
-import { enableChatV3Agents } from '@core/constant/featureFlags';
+import {
+  enableChatV3Agents,
+  getAppCapabilities,
+} from '@core/constant/featureFlags';
 import { PaywallKey, usePaywallState } from '@core/constant/PaywallState';
 import { registerHotkey } from '@core/hotkey/hotkeys';
 import { TOKENS } from '@core/hotkey/tokens';
@@ -40,7 +43,8 @@ export const HomeChatInput = (props: HomeChatInputProps) => {
   const flag = useFeatureFlag(enableChatV3Agents);
   return (
     <Show
-      when={flag().enabled}
+      // PRIVATE-HOOK: selfhost_runtime:home-composer-gate
+      when={getAppCapabilities().agents && flag().enabled}
       fallback={
         <DebugSuspense name="Home.legacy-composer">
           <LegacyHomeChatInput {...props} />

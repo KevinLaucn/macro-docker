@@ -2,12 +2,17 @@
  * @vitest-environment jsdom
  */
 
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { agentHarnessServiceClient } from '@service-agent-harness/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { createSignal, type JSX } from 'solid-js';
 import { render } from 'solid-js/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAgentCapabilitiesQuery } from './capabilities';
+
+vi.mock('@core/constant/featureFlags', () => ({
+  getAppCapabilities: vi.fn(() => ({ agents: true })),
+}));
 
 vi.mock('@service-agent-harness/client', () => ({
   agentHarnessServiceClient: {
@@ -34,6 +39,10 @@ function renderHook(factory: () => unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(getAppCapabilities).mockReturnValue({
+    ...getAppCapabilities(),
+    agents: true,
+  });
   queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -46,6 +55,19 @@ afterEach(() => {
 });
 
 describe('agent capability discovery', () => {
+  it('does not discover capabilities when Agents is unavailable', async () => {
+    vi.mocked(getAppCapabilities).mockReturnValue({
+      ...getAppCapabilities(),
+      agents: false,
+    });
+    renderHook(() =>
+      useAgentCapabilitiesQuery(() => ({ harness: 'in-memory', model: 'test' }))
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(
+      agentHarnessServiceClient.discoverAgentCapabilities
+    ).not.toHaveBeenCalled();
+  });
   it('keys fresh discovery by the selected model and disables unsupported targets', async () => {
     vi.mocked(
       agentHarnessServiceClient.discoverAgentCapabilities

@@ -551,6 +551,8 @@ export function runCommand(
 
 export function normalizeEventKeyPress(e: KeyboardEvent): string {
   const key = e.key;
+  // PRIVATE-HOOK: browser_runtime:keyless-event
+  if (typeof key !== 'string') return '';
   if (key === ' ') return 'space';
   // Handle "dead" keys resulting from alt key press waiting for further input, e.g. opt+n
   // This is a hack, and will NOT work for non-US keyboards.

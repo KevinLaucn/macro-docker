@@ -1,3 +1,4 @@
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { throwOnErr } from '@core/util/result';
 import { agentHarnessServiceClient } from '@service-agent-harness/client';
 import type { DiscoverAgentCapabilitiesRequest } from '@service-agent-harness/generated/schemas';
@@ -42,7 +43,8 @@ export function useAgentCapabilitiesQuery(
         }),
       };
     },
-    enabled: target() !== undefined,
+    // PRIVATE-HOOK: selfhost_runtime:agent-capabilities-gate
+    enabled: getAppCapabilities().agents && target() !== undefined,
     staleTime: 0,
     gcTime: 0,
     retry: false,

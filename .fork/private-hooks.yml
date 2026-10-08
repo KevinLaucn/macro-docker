@@ -4,6 +4,46 @@ version: 1
 # Keep hooks small: marker + the expected one-line import/call/router/component
 # entry that connects upstream code to private feature modules.
 hooks:
+  - id: browser_runtime_recommendation_title
+    customization: BROWSER-RUNTIME-COMPAT-001
+    file: apps/web/src/lib/queries/ai/homeRecommendations.ts
+    marker: "// PRIVATE-HOOK: browser_runtime:recommendation-title"
+    expected: ".max(4096)"
+  - id: browser_runtime_keyless_event
+    customization: BROWSER-RUNTIME-COMPAT-001
+    file: apps/web/src/lib/core/hotkey/utils.ts
+    marker: "// PRIVATE-HOOK: browser_runtime:keyless-event"
+    expected: "if (typeof key !== 'string') return '';"
+  - id: browser_runtime_split_keyless_event
+    customization: BROWSER-RUNTIME-COMPAT-001
+    file: apps/web/src/components/app/split-layout/components/SplitPanel.tsx
+    marker: "// PRIVATE-HOOK: browser_runtime:split-keyless-event"
+    expected: "if (typeof e.key !== 'string') return;"
+  - id: selfhost_runtime_single_agent_models_gate
+    customization: SELFHOST-RUNTIME-001
+    file: apps/web/src/lib/queries/agents/models.ts
+    marker: "// PRIVATE-HOOK: selfhost_runtime:single-agent-models-gate"
+    expected: "enabled: getAppCapabilities().agents && enabled(),"
+  - id: selfhost_runtime_agent_capabilities_gate
+    customization: SELFHOST-RUNTIME-001
+    file: apps/web/src/lib/queries/agents/capabilities.ts
+    marker: "// PRIVATE-HOOK: selfhost_runtime:agent-capabilities-gate"
+    expected: "enabled: getAppCapabilities().agents && target() !== undefined,"
+  - id: selfhost_runtime_agent_warm_gate
+    customization: SELFHOST-RUNTIME-001
+    file: apps/web/src/lib/queries/agent-session/warm.ts
+    marker: "// PRIVATE-HOOK: selfhost_runtime:agent-warm-gate"
+    expected: "enabled: getAppCapabilities().agents && !!owner,"
+  - id: selfhost_runtime_claude_auth_gate
+    customization: SELFHOST-RUNTIME-001
+    file: apps/web/src/lib/queries/claude-auth/connection.ts
+    marker: "// PRIVATE-HOOK: selfhost_runtime:claude-auth-gate"
+    expected: "enabled: getAppCapabilities().agents && !!owner() && enabled(),"
+  - id: selfhost_runtime_home_composer_gate
+    customization: SELFHOST-RUNTIME-001
+    file: apps/web/src/features/home/home-chat-input.tsx
+    marker: "// PRIVATE-HOOK: selfhost_runtime:home-composer-gate"
+    expected: "when={getAppCapabilities().agents && flag().enabled}"
   - id: email_read_receipts_send_completion_import
     customization: READ-RECEIPTS-001
     file: apps/web/src/lib/queries/email/thread.ts

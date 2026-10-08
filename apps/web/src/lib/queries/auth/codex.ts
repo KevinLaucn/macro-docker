@@ -1,3 +1,4 @@
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { throwOnErr } from '@core/util/result';
 import { queryClient } from '@queries/client';
 import {
@@ -19,7 +20,8 @@ const invalidateConnection = async () => {
 export function useCodexStatusQuery(enabled: () => boolean = () => true) {
   return useQuery(() => ({
     queryKey: authKeys.codexStatus.queryKey,
-    enabled: enabled(),
+    enabled:
+      getAppCapabilities().agents && getAppCapabilities().codex && enabled(),
     queryFn: () => throwOnErr(codexClient.status),
     retry: false,
     placeholderData: {
@@ -52,7 +54,8 @@ export function useCodexLoginQuery(attempt: () => CodexLogin | undefined) {
 export function useCodexEnvironmentsQuery(enabled: () => boolean) {
   return useQuery(() => ({
     queryKey: authKeys.codexEnvironments.queryKey,
-    enabled: enabled(),
+    enabled:
+      getAppCapabilities().agents && getAppCapabilities().codex && enabled(),
     queryFn: () => throwOnErr(codexClient.environments),
   }));
 }

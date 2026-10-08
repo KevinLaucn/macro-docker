@@ -2,13 +2,22 @@
  * @vitest-environment jsdom
  */
 
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { agentHarnessServiceClient } from '@service-agent-harness/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { ok } from 'neverthrow';
 import type { JSX } from 'solid-js';
 import { render } from 'solid-js/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildAgentModelTargets, useAgentModelsQueries } from './models';
+import {
+  buildAgentModelTargets,
+  useAgentModelsQueries,
+  useAgentModelsQuery,
+} from './models';
+
+vi.mock('@core/constant/featureFlags', () => ({
+  getAppCapabilities: vi.fn(() => ({ agents: true })),
+}));
 
 vi.mock('@service-agent-harness/client', () => ({
   agentHarnessServiceClient: {
@@ -35,6 +44,10 @@ function renderHook(factory: () => unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(getAppCapabilities).mockReturnValue({
+    ...getAppCapabilities(),
+    agents: true,
+  });
   queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -47,6 +60,20 @@ afterEach(() => {
 });
 
 describe('agent model discovery', () => {
+  it('does not load models when Agents is unavailable, even if the caller enables it', async () => {
+    vi.mocked(getAppCapabilities).mockReturnValue({
+      ...getAppCapabilities(),
+      agents: false,
+    });
+    renderHook(() =>
+      useAgentModelsQuery(
+        () => ({ harness: 'in-memory' }),
+        () => true
+      )
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(agentHarnessServiceClient.loadAgentModels).not.toHaveBeenCalled();
+  });
   it('constructs every available target in parallel without waiting for another target', async () => {
     const targets = buildAgentModelTargets(
       true,

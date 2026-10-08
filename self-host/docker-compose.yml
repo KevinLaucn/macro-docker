@@ -88,8 +88,9 @@ services:
           fi
         done
         if ! grep -q "env-config.js" /out/index.html 2>/dev/null; then
-          sed -i 's|<head>|<head><script src="/app/env-config.js"></script>|' /out/index.html 2>/dev/null || true
+          sed -i 's|<head>|<head><script src="/app/env-config.js"></script>|' /out/index.html
         fi
+        grep -q '<script src="/app/env-config.js"></script>' /out/index.html || { echo "Missing runtime config bootstrap" >&2; exit 1; }
         cat <<EOF > /out/env-config.js
         window.__MACRO_ENV__ = {
           ADMIN_EMAIL: "$${ADMIN_EMAIL:-hello@chnprints.com}",

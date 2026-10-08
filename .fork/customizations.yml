@@ -4,6 +4,25 @@ version: 1
 # owned_paths are exact upstream-owned files intentionally allowed to differ;
 # glob patterns are forbidden there. Test groups are implemented by CI.
 customizations:
+  - id: BROWSER-RUNTIME-COMPAT-001
+    title: Preserve recommendation display and tolerate keyless browser events
+    rationale: User-requested production fixes for long AI recommendation titles and malformed keyboard events. Retire each patch when upstream preserves these contracts.
+    risk: low
+    paths:
+      - apps/web/src/lib/queries/ai/homeRecommendations.ts
+      - apps/web/src/lib/queries/ai/tests/homeRecommendations.test.ts
+      - apps/web/src/lib/core/hotkey/utils.ts
+      - apps/web/src/lib/core/hotkey/utils.test.ts
+      - apps/web/src/components/app/split-layout/components/SplitPanel.tsx
+    owned_paths:
+      - apps/web/src/lib/queries/ai/homeRecommendations.ts
+      - apps/web/src/lib/queries/ai/tests/homeRecommendations.test.ts
+      - apps/web/src/lib/core/hotkey/utils.ts
+      - apps/web/src/lib/core/hotkey/utils.test.ts
+      - apps/web/src/components/app/split-layout/components/SplitPanel.tsx
+    tests:
+      - conventions
+      - web
   - id: FORK-GOVERNANCE-001
     title: Private fork governance and upstream parity gates
     rationale: Keep fork policy in private Skills and machine gates while upstream-provided Skills remain byte-identical to the selected upstream target.
@@ -276,11 +295,23 @@ customizations:
       - apps/web/src/lib/core/constant/featureFlags.ts
       - apps/web/src/lib/queries/agents/models.ts
       - apps/web/src/lib/queries/auth/codex.ts
+      - apps/web/src/lib/queries/agents/capabilities.ts
+      - apps/web/src/lib/queries/agents/capabilities.test.tsx
+      - apps/web/src/lib/queries/agents/models.test.tsx
+      - apps/web/src/lib/queries/agent-session/warm.ts
+      - apps/web/src/lib/queries/claude-auth/connection.ts
+      - apps/web/src/features/home/home-chat-input.tsx
       - services/sync-service/wrangler.docker.toml
     owned_paths:
       - apps/web/src/lib/core/constant/featureFlags.ts
       - apps/web/src/lib/queries/agents/models.ts
       - apps/web/src/lib/queries/auth/codex.ts
+      - apps/web/src/lib/queries/agents/capabilities.ts
+      - apps/web/src/lib/queries/agents/capabilities.test.tsx
+      - apps/web/src/lib/queries/agents/models.test.tsx
+      - apps/web/src/lib/queries/agent-session/warm.ts
+      - apps/web/src/lib/queries/claude-auth/connection.ts
+      - apps/web/src/features/home/home-chat-input.tsx
       - crates/macro_db_migrator/Cargo.toml
       - docker/docker-compose-databases.yml
       - docker/sync-service.Dockerfile

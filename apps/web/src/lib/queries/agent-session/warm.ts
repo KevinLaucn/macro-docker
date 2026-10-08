@@ -1,3 +1,4 @@
+import { getAppCapabilities } from '@core/constant/featureFlags';
 import { MACRO_NEW_BOT_ID } from '@core/constant/macroNew';
 import { throwOnErr } from '@core/util/result';
 import { agentHarnessServiceClient } from '@service-agent-harness/client';
@@ -21,7 +22,8 @@ export function useWarmAgentSessionQuery(userId: Accessor<string | undefined>) {
     const owner = userId();
     return {
       queryKey: agentSessionWarmKeys.owner(owner).queryKey,
-      enabled: !!owner,
+      // PRIVATE-HOOK: selfhost_runtime:agent-warm-gate
+      enabled: getAppCapabilities().agents && !!owner,
       staleTime: CLIENT_WARM_TTL_MS,
       gcTime: CLIENT_WARM_TTL_MS,
       retry: false,

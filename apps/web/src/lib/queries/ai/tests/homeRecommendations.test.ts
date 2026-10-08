@@ -32,6 +32,14 @@ function recommendations(...titles: string[]): HomeRecommendations {
   return { items: titles.map((title) => item(title)) };
 }
 
+it('accepts full email subjects longer than 160 characters', () => {
+  const result = recommendations('邮件主题'.repeat(80));
+  expect(recommendationSchema.parse(result)).toEqual(result);
+  expect(
+    recommendationSchema.safeParse(recommendations('x'.repeat(4097))).success
+  ).toBe(false);
+});
+
 describe('buildRecommendationPrompt', () => {
   const prompt = buildRecommendationPrompt();
 
