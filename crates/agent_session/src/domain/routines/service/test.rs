@@ -1,6 +1,8 @@
 use super::*;
 use crate::domain::error::Result as SessionResult;
-use crate::domain::model::{AgentMcpServers, ReplicaId, SandboxSize};
+use crate::domain::model::{
+    AgentMcpServers, ReplicaId, SandboxSize, SessionSource, SessionVisibility,
+};
 use crate::domain::ports::{
     AcceptedControl, BotFacts, ManagedAgentProfile, NoOpAgentSessionNameGenerator, NoOpRealtime,
     NoOpTurnObserver, NoopLifecyclePublisher, OpenExternalAgentSession, QueuedControl,
@@ -256,6 +258,8 @@ impl Fixture {
         PrepareRoutineSession {
             selection: self.selection(),
             session_id: self.session.id,
+            source: SessionSource::Routine,
+            visibility: SessionVisibility::Unlisted,
         }
     }
 
@@ -284,6 +288,7 @@ async fn managed_preparation_preserves_persona_and_applies_override_without_prom
     assert!(request.prompt.is_none());
     assert!(request.instructions.is_none());
     assert!(request.repo_url.is_none() && request.repo_branch.is_none());
+    assert_eq!(request.source, SessionSource::Routine);
     let persona = request.profile.as_ref().unwrap();
     assert_eq!(persona.bot_id, fx.session.bot_id);
     let profile = persona.profile.as_ref().unwrap();
@@ -314,6 +319,8 @@ async fn external_preparation_uses_requested_identity_and_model() {
                 bot_id: fx.session.bot_id,
                 owner: fx.session.owner_user().unwrap().clone(),
                 model: override_model,
+                source: SessionSource::Routine,
+                visibility: SessionVisibility::Unlisted,
             }]
         );
         assert!(fx.openings.managed.lock().unwrap().is_empty());
@@ -440,7 +447,8 @@ async fn every_subsequent_operation_checks_owner_and_persona_before_controls_or_
             fx.service
                 .prompt(PromptRoutineSession {
                     action,
-                    prompt: "task".into()
+                    prompt: "task".into(),
+                    context: None,
                 })
                 .await
                 .unwrap_err(),
@@ -460,6 +468,7 @@ async fn prompt_and_cancel_only_emit_attributed_prompt_and_stop_controls() {
         .prompt(PromptRoutineSession {
             action: action.clone(),
             prompt: "routine guidance and task".into(),
+            context: None,
         })
         .await
         .unwrap();
@@ -487,7 +496,8 @@ async fn ambiguous_prompt_failure_is_not_replayed() {
         fx.service
             .prompt(PromptRoutineSession {
                 action: fx.action(),
-                prompt: "task".into()
+                prompt: "task".into(),
+                context: None,
             })
             .await
             .unwrap_err(),
@@ -510,6 +520,7 @@ async fn refuses_known_prompt_replays_even_after_completion() {
         agent_session_id: fx.session.id,
         user_id: Some(action.owner.clone()),
         content: crate::domain::model::Message::ToRuntime(content),
+        logged_at: None,
     }]);
     let response = serde_json::json!({
         "direction": "to_server",
@@ -530,7 +541,8 @@ async fn refuses_known_prompt_replays_even_after_completion() {
         fx.service
             .prompt(PromptRoutineSession {
                 action,
-                prompt: "retry".into()
+                prompt: "retry".into(),
+                context: None,
             })
             .await
             .unwrap_err(),
@@ -553,7 +565,8 @@ async fn queued_prompt_prevents_second_submission() {
         fx.service
             .prompt(PromptRoutineSession {
                 action,
-                prompt: "retry".into()
+                prompt: "retry".into(),
+                context: None,
             })
             .await
             .unwrap_err(),

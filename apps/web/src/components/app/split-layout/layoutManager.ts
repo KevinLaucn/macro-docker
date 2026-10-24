@@ -10,6 +10,7 @@ import type {
   SplitRouter,
   SplitSearchUpdate,
 } from '@app/lib/split-router';
+import { trackNavigationLifecycle } from '@app/observability/navigation-lifecycle';
 import type {
   BlockAlias,
   BlockAliasContext,
@@ -23,6 +24,7 @@ import type {
   BlockOrchestrator,
 } from '@core/orchestrator';
 import { useFocusLock } from '@core/util/createControlledOpenSignal';
+import { fireAndForget } from '@core/util/fireAndForget';
 import {
   type Accessor,
   batch,
@@ -65,7 +67,7 @@ function afterNavigation(
   then: (outcome: NavigationResult) => void
 ): void {
   if (result instanceof Promise) {
-    void settleNavigation(result, then);
+    fireAndForget(settleNavigation(result, then), 'split-layout');
     return;
   }
 
@@ -175,6 +177,12 @@ export type ReferredFrom =
   | 'fork'
   | null;
 
+export type ReplaceAllSplitsOptions = {
+  referredFrom?: ReferredFrom;
+  /** Router state validated by the destination route, separate from runtime EntryState. */
+  routeState?: unknown;
+};
+
 export type SplitState = {
   id: SplitId;
   content: SplitContent; // mirror of the pane's current router entry
@@ -260,9 +268,7 @@ export type SplitEventWithType =
   | ({
       type: SplitEvent.ContentChange;
     } & SplitEventPayload[SplitEvent.ContentChange])
-  | ({
-      type: SplitEvent.ReturnFocus;
-    } & SplitEventPayload[SplitEvent.ReturnFocus]);
+  | { type: SplitEvent.ReturnFocus };
 
 /**
  * If a split layout helper passes and aliased block type, make sure to wrap
@@ -316,7 +322,7 @@ export type SplitManager = {
   readonly activeSplitId: Accessor<SplitId | undefined>;
   readonly activeSplit: Accessor<SplitHandle | undefined>;
   readonly lastActiveSplitId: Accessor<SplitId | undefined>;
-  readonly events: Accessor<SplitEventWithType>;
+  readonly events: Accessor<SplitEventWithType | undefined>;
   readonly resizeContext: Accessor<ResizeZoneCtx | undefined>;
 
   // methods
@@ -340,6 +346,9 @@ export type SplitManager = {
     options?: OpenWithSplitOptions
   ) => OpenSplitResult;
 
+  /** Starts loading `content`'s route, as on hover, without opening it. */
+  preloadContent: (content: SplitContent) => void;
+
   /** Set a split as active by its split id  */
   activateSplit: (id: SplitId) => void;
 
@@ -356,7 +365,7 @@ export type SplitManager = {
   /** Replace all splits with a single split containing the given content. */
   replaceAllSplits: (
     content: SplitContent,
-    options?: { referredFrom?: ReferredFrom }
+    options?: ReplaceAllSplitsOptions
   ) => SplitHandle | undefined;
 
   /** Check if a split exists by its split id */
@@ -573,7 +582,6 @@ export function createSplitLayout(
     activeSplitId: SplitId | undefined;
     lastActiveSplitId: SplitId | undefined;
     spotlightId: SplitId | undefined;
-    events: SplitEventWithType[];
     popovers: Map<
       string,
       {
@@ -590,9 +598,9 @@ export function createSplitLayout(
     activeSplitId: undefined,
     lastActiveSplitId: undefined,
     spotlightId: undefined,
-    events: [],
     popovers: new Map(),
   });
+  const [lastEvent, setLastEvent] = createSignal<SplitEventWithType>();
 
   const contentInstances = createContentInstanceRegistry();
   const unregisterContentInstances = contentInstances.register(() => [
@@ -710,10 +718,9 @@ export function createSplitLayout(
     type: SplitEvent,
     payload: SplitEventPayload[SplitEvent]
   ) {
-    setState('events', (prev) => [
-      ...prev,
-      { type, ...payload } as SplitEventWithType,
-    ]);
+    // Consumers read only the latest event. Keeping older payloads retains
+    // the departed views' params and captured state for the whole document.
+    setLastEvent({ type, ...payload } as SplitEventWithType);
   }
 
   const findSplitById = (id: SplitId) => state.splits.find((s) => s.id === id);
@@ -890,7 +897,7 @@ export function createSplitLayout(
   }
 
   function back(id: SplitId) {
-    void router.navigatePane(paneOf(id), -1);
+    fireAndForget(router.navigatePane(paneOf(id), -1), 'split-layout');
   }
 
   /**
@@ -912,15 +919,16 @@ export function createSplitLayout(
   }
 
   function forward(id: SplitId) {
-    void router.navigatePane(paneOf(id), 1);
+    fireAndForget(router.navigatePane(paneOf(id), 1), 'split-layout');
   }
 
   function removeFromHistory(
     id: SplitId,
     predicate: (content: SplitContent) => boolean
   ) {
-    void router.removeEntries(paneOf(id), (entry) =>
-      predicate(contentAt(entry))
+    fireAndForget(
+      router.removeEntries(paneOf(id), (entry) => predicate(contentAt(entry))),
+      'split-layout'
     );
   }
 
@@ -945,7 +953,10 @@ export function createSplitLayout(
       return;
     }
 
-    void navigateSplit(id, content, { replace: mergeHistory, referredFrom });
+    fireAndForget(
+      navigateSplit(id, content, { replace: mergeHistory, referredFrom }),
+      'split-layout'
+    );
   }
 
   /**
@@ -1023,14 +1034,17 @@ export function createSplitLayout(
     const entry = untrack(() => router.entry(paneOf(id)));
     if (entry && next.state) entryStates.set(entry.id, next.state);
 
-    void router.rewriteCurrent(paneOf(id), { location: toLocation(next) });
+    fireAndForget(
+      router.rewriteCurrent(paneOf(id), { location: toLocation(next) }),
+      'split-layout'
+    );
   }
 
   function reset(id: SplitId) {
     if (!findSplitById(id))
       return console.error(`Split with id ${id} not found`);
 
-    void navigateSplit(id, DEFAULT_SPLIT_CONTENT);
+    fireAndForget(navigateSplit(id, DEFAULT_SPLIT_CONTENT), 'split-layout');
   }
 
   /** Mirrors a pane's new current entry onto its split, creating the split when the pane is new. */
@@ -1212,7 +1226,7 @@ export function createSplitLayout(
         return snapshot.entries.slice(0, snapshot.index + 1).map(contentAt);
       },
       close: () => {
-        void router.close(paneOf(currentSplit.id));
+        fireAndForget(router.close(paneOf(currentSplit.id)), 'split-layout');
       },
       isFirst: () => state.splits.at(0)?.id === id,
       isLast: () => state.splits.at(-1)?.id === id,
@@ -1344,11 +1358,12 @@ export function createSplitLayout(
 
     const isLast = state.splits.length <= 1;
     if (isLast) {
-      if (createNewOnEmpty) void navigateSplit(id, DEFAULT_SPLIT_CONTENT);
+      if (createNewOnEmpty)
+        fireAndForget(navigateSplit(id, DEFAULT_SPLIT_CONTENT), 'split-layout');
       return;
     }
 
-    void router.remove(paneOf(id));
+    fireAndForget(router.remove(paneOf(id)), 'split-layout');
   }
 
   function canSwapSplit(id: SplitId, direction: 'left' | 'right') {
@@ -1393,6 +1408,17 @@ export function createSplitLayout(
   // The router owns each pane's history; splits mirror what its panes show.
   const paneSplits = mapArray(router.panes, (pane) => {
     const id = splitOf(pane);
+    let entryIds = new Set<string>();
+
+    createComputed(() => {
+      const retained = new Set(
+        router.history(pane)?.entries.map((entry) => entry.id)
+      );
+      for (const entryId of entryIds) {
+        if (!retained.has(entryId)) entryStates.delete(entryId);
+      }
+      entryIds = retained;
+    });
 
     createComputed(() => {
       const entry = router.entry(pane);
@@ -1413,6 +1439,7 @@ export function createSplitLayout(
 
     onCleanup(() => {
       unregisterGuard();
+      for (const entryId of entryIds) entryStates.delete(entryId);
       untrack(() => dropSplit(id));
     });
 
@@ -1424,7 +1451,7 @@ export function createSplitLayout(
     untrack(() => orderSplits(ids));
   });
 
-  const lastEvent = createMemo(() => state.events[state.events.length - 1]);
+  trackNavigationLifecycle(router, () => entryStates.size);
 
   const tabTitle = () => {
     if (state.activeSplitId === undefined) return undefined;
@@ -1665,7 +1692,7 @@ export function createSplitLayout(
   /** Shows `content` as the only split, in one navigation; a split already showing it stays. */
   function replaceAllSplits(
     content: SplitContent,
-    options: { referredFrom?: ReferredFrom } = {}
+    options: ReplaceAllSplitsOptions = {}
   ): SplitHandle | undefined {
     if (
       !canOpenContent(content, getSplitByContent(content.type, content.id)?.id)
@@ -1676,10 +1703,13 @@ export function createSplitLayout(
 
     const result = router.navigate(
       { location: toLocation(content) },
-      entryOptionsOf(content, {
-        referredFrom: options.referredFrom ?? null,
-        activate: true,
-      })
+      {
+        ...entryOptionsOf(content, {
+          referredFrom: options.referredFrom ?? null,
+          activate: true,
+        }),
+        ...(options.routeState !== undefined && { state: options.routeState }),
+      }
     );
     const showAlone = (outcome: NavigationResult) => {
       if (outcome.status !== 'committed') return;
@@ -1689,7 +1719,7 @@ export function createSplitLayout(
     };
 
     if (result instanceof Promise) {
-      void settleNavigation(result, showAlone);
+      fireAndForget(settleNavigation(result, showAlone), 'split-layout');
       return;
     }
 
@@ -1717,6 +1747,13 @@ export function createSplitLayout(
     replaceAllSplits,
     getSplit,
     openWithSplit,
+    preloadContent: (content) => {
+      try {
+        fireAndForget(router.preload(toLocation(content)), 'split-layout');
+      } catch {
+        // Speculative: the navigation itself reports content it can't route.
+      }
+    },
     removeSplit,
     swapSplit,
     canSwapSplit,

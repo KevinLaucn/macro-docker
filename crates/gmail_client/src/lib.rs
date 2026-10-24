@@ -58,6 +58,9 @@ use models_email::gmail::{
 pub struct GmailClient {
     /// The inner client used to make requests
     inner: reqwest::Client,
+    /// Sending crosses a durable submission boundary and must never be retried
+    /// or redirected automatically by the transport.
+    send_client: reqwest::Client,
     /// The base url for Gmail API
     base_url: String,
     /// The url for fetching google certs
@@ -67,10 +70,21 @@ pub struct GmailClient {
     /// The expected audience for the jwt passed by Google
     audience: String,
     /// The GCP topic name we listen on for inbox updates
-    subscription_topic: String,
+    subscription_topic: Option<String>,
 }
 
 impl GmailClient {
+    /// Client for API calls that do not register push subscriptions.
+    pub fn without_watch() -> Self {
+        Self::new_with_urls(
+            None,
+            "https://www.googleapis.com/gmail/v1".to_string(),
+            "https://people.googleapis.com/v1".to_string(),
+            "https://www.googleapis.com/oauth2/v3/certs".to_string(),
+            "macro-gmail-webhook".to_string(),
+        )
+    }
+
     pub fn new(subscription_topic: String) -> Self {
         Self::new_with_urls(
             subscription_topic,
@@ -87,7 +101,7 @@ impl GmailClient {
     /// endpoints. HTTP transport details and endpoint values remain private to
     /// this crate.
     pub fn new_with_urls(
-        subscription_topic: String,
+        subscription_topic: impl Into<Option<String>>,
         gmail_url: String,
         people_url: String,
         jwks_url: String,
@@ -95,11 +109,16 @@ impl GmailClient {
     ) -> Self {
         Self {
             inner: reqwest::Client::new(),
+            send_client: reqwest::Client::builder()
+                .retry(reqwest::retry::never())
+                .redirect(reqwest::redirect::Policy::none())
+                .build()
+                .expect("Gmail send HTTP client should initialize"),
             base_url: gmail_url.trim_end_matches('/').to_string(),
             certs_url: jwks_url,
             contacts_url: people_url.trim_end_matches('/').to_string(),
             audience,
-            subscription_topic,
+            subscription_topic: subscription_topic.into(),
         }
     }
 
@@ -258,6 +277,16 @@ impl GmailClient {
         messages::send_message(self, access_token, mime, thread_id).await
     }
 
+    /// Looks for a unique sent message by its RFC 5322 Message-ID, including trash.
+    #[tracing::instrument(skip(self, access_token, message_id), err)]
+    pub async fn find_sent_message(
+        &self,
+        access_token: &str,
+        message_id: &str,
+    ) -> Result<Option<models_email::gmail::SentMessageResource>, GmailApiHttpError> {
+        messages::find_sent_message(self, access_token, message_id).await
+    }
+
     /// Fetches an attachment from Gmail by its provider ID
     #[tracing::instrument(skip(self, access_token), err)]
     pub async fn get_attachment_data(
@@ -311,7 +340,8 @@ impl GmailClient {
     /// Fetches all of the user's main contacts, handling pagination.
     /// Returns raw Gmail PersonResource objects and a sync token for future incremental updates.
     /// Callers should map PersonResource to service layer Contact.
-    #[tracing::instrument(skip(self, access_token, sync_token), err)]
+    /// Failures log at WARN: expired sync tokens and missing contacts scopes are routine.
+    #[tracing::instrument(skip(self, access_token, sync_token), err(level = "warn"))]
     pub async fn get_contacts(
         &self,
         access_token: &str,
@@ -324,7 +354,8 @@ impl GmailClient {
     /// These are typically contacts auto-created from interactions.
     /// Returns raw Gmail PersonResource objects and a sync token.
     /// Callers should map PersonResource to service layer Contact.
-    #[tracing::instrument(skip(self, access_token, sync_token), err)]
+    /// Failures log at WARN: expired sync tokens and missing contacts scopes are routine.
+    #[tracing::instrument(skip(self, access_token, sync_token), err(level = "warn"))]
     pub async fn get_other_contacts(
         &self,
         access_token: &str,

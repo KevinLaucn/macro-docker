@@ -14,16 +14,20 @@ import type {
   AgentSessionQueueResponse,
   AgentSessionResponse,
   AnswerToolApprovalResponse,
+  AppConnectedRequest,
+  CodingPreferencesBody,
   ControlRequest,
   ControlResponse,
   CreateAgentSessionRequest,
   CreateAgentSessionResponse,
   DiscoverAgentCapabilitiesRequest,
   DiscoverAgentCapabilitiesResponse,
+  ExecutionRecord,
   LoadAgentModelsRequest,
   LoadAgentModelsResponse,
   PreviewAgentSessionsResponse,
   PullRequestSessionsResponse,
+  PullRequestsSessionsResponse,
   SandboxSize,
   SandboxSizeBody,
   SessionPullRequestsResponse,
@@ -33,7 +37,7 @@ import type {
   WarmAgentSessionResponse,
 } from './generated/schemas';
 
-export type { SandboxSize, SandboxSizeBody };
+export type { CodingPreferencesBody, SandboxSize, SandboxSizeBody };
 
 const agentHarnessHost = SERVER_HOSTS['agent-harness'];
 
@@ -295,10 +299,37 @@ export const agentHarnessServiceClient = {
     );
   },
 
+  getCodingPreferences() {
+    return fetchWithToken<CodingPreferencesBody>(
+      `${agentHarnessHost}/agent-coding-preferences`,
+      {
+        method: 'GET',
+      }
+    );
+  },
+
+  setCodingPreferences(preferences: CodingPreferencesBody) {
+    return fetchWithToken<CodingPreferencesBody>(
+      `${agentHarnessHost}/agent-coding-preferences`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(preferences),
+      }
+    );
+  },
+
   /**
    * The session's latest captured changes: changed files with statuses and
    * line counts, plus how the latest capture attempt went.
    */
+  getCodeExecution(sessionId: string, executionId: string) {
+    return fetchWithToken<ExecutionRecord>(
+      `${agentHarnessHost}/agent-sessions/${sessionId}/code-executions/${executionId}`,
+      { method: 'GET', errorResponseHandler: sessionError }
+    );
+  },
+
   getChanges(sessionId: string) {
     return fetchWithToken<AgentSessionChangesResponse>(
       `${agentHarnessHost}/agent-sessions/${sessionId}/changes`,
@@ -355,6 +386,21 @@ export const agentHarnessServiceClient = {
     ).then((result) => result.map(() => undefined));
   },
 
+  /**
+   * The sessions linked to each pull request in `urls` (at most 100) that the
+   * caller can view, with the thread each session was started from.
+   */
+  sessionsForPullRequests(urls: string[]) {
+    return fetchWithToken<PullRequestsSessionsResponse>(
+      `${agentHarnessHost}/agent-sessions/by-pull-requests`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls }),
+      }
+    );
+  },
+
   /** The sessions linked to the pull request at `url` that the caller can view. */
   sessionsForPullRequest(url: string) {
     return fetchWithToken<PullRequestSessionsResponse>(
@@ -383,6 +429,23 @@ export const agentHarnessServiceClient = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answer }),
+      }
+    );
+  },
+
+  /**
+   * Continue the session now that its owner connected `appSlug`. The
+   * harness wakes it with an `app.connected` system event, so the transcript
+   * shows no prompt. 422 when the app is not actually connected.
+   */
+  reportAppConnected(sessionId: string, appSlug: string) {
+    return fetchWithToken<Record<string, never>, typeof AI_USAGE_LIMIT_ERROR>(
+      `${agentHarnessHost}/agent-sessions/${sessionId}/app-connections`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appSlug } satisfies AppConnectedRequest),
+        errorResponseHandler: sessionAiError,
       }
     );
   },

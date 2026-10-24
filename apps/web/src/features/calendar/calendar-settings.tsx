@@ -3,9 +3,11 @@ import { toast } from '@core/component/Toast/Toast';
 import { enableMultiInbox } from '@core/constant/featureFlags';
 import { useUserId } from '@core/context/user';
 import { useAddInboxFlow } from '@core/email-link';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { t } from '@macro/i18n';
 import { useEmailLinksQuery } from '@queries/email/link';
 import { createSignal, Suspense } from 'solid-js';
+import { CalendarTeamSettings } from '../calendar-team/calendar-team';
 import { SettingsPage } from '../settings/primitives';
 import {
   type ConnectedCalendarAccount,
@@ -83,11 +85,13 @@ function CalendarSettingsContent() {
           (!accounts().some((a) => a.canManage) || multiInbox().enabled)
         }
         onRetry={() => {
-          void links.refetch();
-          void calendarsQuery.refetch();
+          fireAndForget(links.refetch(), 'calendar-settings');
+          fireAndForget(calendarsQuery.refetch(), 'calendar-settings');
         }}
-        onConnect={() => void connect('gmail_and_calendar')}
-        onEnable={() => void connect('calendar')}
+        onConnect={() =>
+          fireAndForget(connect('gmail_and_calendar'), 'calendar-settings')
+        }
+        onEnable={() => fireAndForget(connect('calendar'), 'calendar-settings')}
         onDisconnect={(account) =>
           setDisconnect({ linkId: account.id, emailAddress: account.email })
         }
@@ -138,6 +142,7 @@ export function CalendarSettings() {
       )}
     >
       <CalendarConnectionSettings />
+      <CalendarTeamSettings />
     </SettingsPage>
   );
 }

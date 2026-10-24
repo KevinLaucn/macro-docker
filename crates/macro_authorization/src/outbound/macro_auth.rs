@@ -6,6 +6,7 @@ use ::macro_auth::{
     middleware::decode_jwt::{self, JwtToken, JwtValidationArgs},
 };
 use rootcause::Report;
+use tracing::Level;
 
 use crate::domain::{
     models::{MacroAuthorizationError, ValidatedIdentity},
@@ -32,7 +33,7 @@ impl MacroAuthJwtValidator {
 }
 
 impl JwtValidator for MacroAuthJwtValidator {
-    #[tracing::instrument(err, skip(self, jwt))]
+    #[tracing::instrument(err(level = Level::DEBUG), skip(self, jwt))]
     fn validate(&self, jwt: &str) -> Result<ValidatedIdentity, Report<MacroAuthorizationError>> {
         decode_jwt::handler(&self.jwt_validation_args, jwt)
             .map(identity_from_token)
@@ -41,20 +42,23 @@ impl JwtValidator for MacroAuthJwtValidator {
 }
 
 fn identity_from_token(token: JwtToken) -> ValidatedIdentity {
-    let (user_id, fusion_user_id, organization_id) = match token {
+    let (user_id, fusion_user_id, organization_id, agent_id) = match token {
         JwtToken::MacroAccessToken(token) => (
             token.macro_user_id,
             token.root_macro_id.unwrap_or(token.fusion_user_id),
             token.macro_organization_id,
+            None,
         ),
         JwtToken::MacroApiToken(token) => (
             token.macro_user_id,
             token.fusion_user_id,
             token.macro_organization_id,
+            token.agent_id.map(bot_id::BotId::new_from_uuid),
         ),
     };
 
     ValidatedIdentity {
+        agent_id,
         user_id,
         fusion_user_id,
         organization_id,

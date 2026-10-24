@@ -26,7 +26,6 @@ export type DriveState = {
   expandedFolderIds: string[];
   favoritesOpen: boolean;
   rootOpen: boolean;
-  tagsOpen: boolean;
 };
 
 export const DRIVE_TABS = [

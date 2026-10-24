@@ -1,13 +1,16 @@
 import { t } from '@macro/i18n';
 import User from '@phosphor/user.svg';
 import Users from '@phosphor/users.svg';
+import { Badge } from '@ui';
 import { Show } from 'solid-js';
 import type { SchedulingScope } from '../core/types';
 
 export function OwnerBadge(props: { scope: SchedulingScope }) {
   return (
-    <span
-      class="inline-flex max-w-full items-center gap-1.5 rounded-md bg-ink/5 px-2 py-1 text-xs font-normal text-ink-muted"
+    <Badge
+      variant="outline"
+      size="sm"
+      class="max-w-full font-normal"
       title={
         props.scope.teamId
           ? t('Team · {name}', { name: props.scope.name })
@@ -25,6 +28,6 @@ export function OwnerBadge(props: { scope: SchedulingScope }) {
           ? t('Team · {name}', { name: props.scope.name })
           : t('Personal')}
       </span>
-    </span>
+    </Badge>
   );
 }

@@ -6,6 +6,7 @@
 mod test;
 
 pub mod channel_share;
+pub mod direct_share;
 pub mod source_grants;
 pub mod team_share;
 
@@ -439,6 +440,7 @@ pub async fn update_entity_access_channel_share_permissions(
                 .await?;
             }
             EntityType::Database
+            | EntityType::CrmPipeline
             | EntityType::Form
             | EntityType::AgentSession
             | EntityType::Chat
@@ -558,6 +560,7 @@ pub async fn update_entity_access_channel_share_permissions(
                 }
             }
             EntityType::Database
+            | EntityType::CrmPipeline
             | EntityType::Form
             | EntityType::AgentSession
             | EntityType::Chat

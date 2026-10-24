@@ -4,6 +4,7 @@ import {
   type EntityActionNavigationHandler,
   type EntityActionViewContext,
   makeBlockSenderAction,
+  makeChannelPictureAction,
   makeCopyAction,
   makeCopyBranchNameAction,
   makeCopyEntityIdAction,
@@ -24,6 +25,7 @@ import {
   makeRenameAction,
   makeShareAction,
 } from '@app/features/next-soup/actions';
+import type { MarkDoneDelegate } from '@app/features/next-soup/actions/mark-done-delegate';
 import {
   markCalendarNotificationSeenOnOpen,
   openEntityInSplitFromUnifiedList,
@@ -89,7 +91,12 @@ export const viewedProjectIdFromContent = (content: {
     ? content.id
     : undefined;
 
-export function createSoupEntityActions(): {
+export function createSoupEntityActions(
+  options: {
+    /** A list that completes its own rows, such as Home's work feed. */
+    markDoneDelegate?: () => MarkDoneDelegate | undefined;
+  } = {}
+): {
   buildActionGroups: BuildActionGroups;
   isFavorited: (entity: EntityData) => boolean;
 } {
@@ -102,6 +109,7 @@ export function createSoupEntityActions(): {
   const markDone = makeMarkDoneAction({
     userId: () => userId(),
     notificationSource: () => notificationSource,
+    delegate: options.markDoneDelegate,
   });
 
   const markNotDone = makeMarkNotDoneAction({
@@ -121,6 +129,8 @@ export function createSoupEntityActions(): {
   const renameAction = makeRenameAction({
     userId: () => userId(),
   });
+
+  const channelPictureAction = makeChannelPictureAction();
 
   const copyAction = makeCopyAction();
   const favoriteAction = makeFavoriteAction();
@@ -293,6 +303,23 @@ export function createSoupEntityActions(): {
         hotkeyToken: TOKENS.entity.action.rename,
         onClick: handle(renameAction.executeWithSoup),
       });
+    }
+
+    // Sits with Rename because it edits the same channel identity, under the
+    // same participant rule. Single-entity only: one upload, one channel.
+    if (entities.length === 1 && channelPictureAction.canExecute(entities[0])) {
+      middleItems.push({
+        id: 'set-channel-picture',
+        label: 'Set channel picture',
+        onClick: () => channelPictureAction.execute(entities),
+      });
+      if (channelPictureAction.hasPicture(entities[0])) {
+        middleItems.push({
+          id: 'remove-channel-picture',
+          label: 'Remove channel picture',
+          onClick: () => channelPictureAction.remove(entities),
+        });
+      }
     }
 
     if (canExecuteAll(favoriteAction.canExecute)) {

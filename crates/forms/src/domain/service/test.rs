@@ -24,6 +24,7 @@ use crate::domain::models::{
     FormStatus, QuestionLayout, StoredForm, Widget,
 };
 
+mod authoring_workflow;
 mod booking;
 mod catalog;
 mod create;
@@ -294,6 +295,7 @@ fn seed_rsvp(world: &Shared, audience: Audience) {
             confirmation_message: "".into(),
             created_at: now,
             updated_at: now,
+            is_hidden_in_drive: false,
         },
         trashed_at: None,
         name_follows_database: false,

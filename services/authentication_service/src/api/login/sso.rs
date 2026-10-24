@@ -65,7 +65,7 @@ pub(crate) fn is_allowed_original_url(url: &Url) -> bool {
         "https" => {
             matches!(
                 url.host_str(),
-                Some("localhost" | "tauri.localhost" | "dev.macro.com" | "macro.com")
+                Some("localhost" | "tauri.localhost" | "dev.macro.com" | "macro.com" | "www.macro.com")
             ) || matches!(
                 (url.host_str(), deployment_host().as_deref()),
                 (Some(host), Some(configured)) if host == configured

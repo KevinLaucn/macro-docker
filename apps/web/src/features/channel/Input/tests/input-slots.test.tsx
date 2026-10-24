@@ -4,7 +4,11 @@
 
 import { isMobile } from '@core/mobile/isMobile';
 import type { IUser } from '@core/user/types';
-import { render as renderBare, screen } from '@solidjs/testing-library';
+import {
+  fireEvent,
+  render as renderBare,
+  screen,
+} from '@solidjs/testing-library';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import userEvent from '@testing-library/user-event';
 import { createSignal, type JSX, onMount } from 'solid-js';
@@ -13,6 +17,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const editorMocks = vi.hoisted(() => ({
   agentsEnabled: false,
+  codexEnabled: false,
   cursorEnabled: false,
   clear: vi.fn(),
   focus: vi.fn(),
@@ -115,7 +120,7 @@ vi.mock('@core/util/upload', () => ({
 }));
 
 vi.mock('@core/codex/flag', () => ({
-  useCodexAgentsAccess: () => () => false,
+  useCodexAgentsAccess: () => () => editorMocks.codexEnabled,
 }));
 vi.mock('@core/cursor/flag', () => ({
   useCursorAgentsAccess: () => () => editorMocks.cursorEnabled,
@@ -354,6 +359,7 @@ vi.mock('@queries/channel/channel-participants', () => ({
 vi.mock('@core/context/user', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@core/context/user')>()),
   useUserId: () => () => 'macro|me@macro.test',
+  useIsAuthenticated: () => () => true,
 }));
 vi.mock('@queries/messages/mutations', () => ({
   useSendMessageMutation: () => ({ mutate: vi.fn() }),
@@ -364,7 +370,7 @@ vi.mock('@queries/messages/typing', () => ({
 
 import { MACRO_AGENT_PRINCIPAL_ID } from '@core/constant/macroAgent';
 import { MACRO_NEW_PRINCIPAL_ID } from '@core/constant/macroNew';
-import { cursorMentionUser } from '../../macroAi';
+import { codexMentionUser, cursorMentionUser } from '../../macroAi';
 import { ThreadReplyChannelInput } from '../../Thread/ThreadReplyChannelInput';
 import { createInputAttachmentTracker } from '../attachment-tracker';
 import { ChannelInput } from '../ChannelInput';
@@ -396,6 +402,7 @@ function render(ui: () => JSX.Element) {
 describe('Input slots', () => {
   beforeEach(() => {
     editorMocks.agentsEnabled = false;
+    editorMocks.codexEnabled = false;
     editorMocks.cursorEnabled = false;
     editorMocks.clear.mockClear();
     editorMocks.focus.mockClear();
@@ -481,11 +488,12 @@ describe('Input slots', () => {
     expect(screen.queryByRole('group', { name: 'Dictation' })).toBeNull();
   });
 
-  it('offers Cursor within its rollout before account setup', () => {
+  it('offers Cursor and Codex within their rollouts before account setup', () => {
     editorMocks.cursorEnabled = true;
+    editorMocks.codexEnabled = true;
     render(() => <ChannelInput input={baseInput} />);
     expect(editorMocks.mentionUsers?.().map((user) => user.name)).toEqual(
-      expect.arrayContaining(['Cursor', 'Claude', 'Codex'])
+      expect.arrayContaining(['Cursor', 'Codex'])
     );
   });
 
@@ -538,17 +546,14 @@ describe('Input slots', () => {
     ]);
   });
 
-  it('hides Cursor outside its rollout, including supplied bot entries', () => {
+  it('hides Cursor and Codex outside their rollouts, including supplied bot entries', () => {
+    const builtIns = () => [cursorMentionUser(), codexMentionUser()];
     render(() => (
-      <ChannelInput
-        input={baseInput}
-        participants={() => [cursorMentionUser()]}
-        bots={() => [cursorMentionUser()]}
-      />
+      <ChannelInput input={baseInput} participants={builtIns} bots={builtIns} />
     ));
     const names = editorMocks.mentionUsers?.().map((user) => user.name);
     expect(names).not.toContain('Cursor');
-    expect(names).toEqual(expect.arrayContaining(['Claude', 'Codex']));
+    expect(names).not.toContain('Codex');
   });
 
   it('does not start typing when the editor hydrates an empty composer', async () => {
@@ -622,6 +627,40 @@ describe('Input slots', () => {
     expect(editorMocks.focus).not.toHaveBeenCalled();
   });
 
+  it('waits for touch release before sending a channel message', async () => {
+    vi.mocked(isMobile).mockReturnValue(true);
+    const user = userEvent.setup();
+    const onSend = vi.fn();
+    render(() => (
+      <ChannelInput
+        input={{ ...baseInput, value: 'Send on release' }}
+        onSend={onSend}
+      />
+    ));
+    const button = screen.getByRole('button', { name: 'Send message' });
+    await user.pointer({ target: button, keys: '[TouchA>]' });
+    expect(onSend).not.toHaveBeenCalled();
+    await user.pointer({ keys: '[/TouchA]' });
+    expect(onSend).toHaveBeenCalledOnce();
+    expect(onSend.mock.calls[0]?.[0]?.value).toBe('Send on release');
+  });
+
+  it('does not send a cancelled press and still accepts an assistive click', () => {
+    const onSend = vi.fn();
+    render(() => (
+      <ChannelInput
+        input={{ ...baseInput, value: 'Keep this draft' }}
+        onSend={onSend}
+      />
+    ));
+    const button = screen.getByRole('button', { name: 'Send message' });
+    fireEvent.pointerDown(button, { pointerType: 'touch' });
+    fireEvent.pointerCancel(button, { pointerType: 'touch' });
+    expect(onSend).not.toHaveBeenCalled();
+    fireEvent.click(button, { detail: 0 });
+    expect(onSend).toHaveBeenCalledOnce();
+  });
+
   it('renders the default action composition and wires handlers through context', async () => {
     const user = userEvent.setup();
     const onSend = vi.fn();
@@ -651,10 +690,21 @@ describe('Input slots', () => {
 
     await user.click(screen.getByRole('button', { name: 'Send message' }));
     const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click');
-    await user.click(screen.getByRole('button', { name: 'Attach files' }));
-    expect(screen.queryByRole('menu')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Format' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Delete reply' }));
+    // The menu is modal, so it opens last.
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    expect(
+      screen.getAllByRole('menuitem').map((item) => item.textContent)
+    ).toEqual(
+      expect.arrayContaining([
+        'Mention@',
+        'Attach files',
+        'New task',
+        'New document',
+      ])
+    );
+    await user.click(screen.getByRole('menuitem', { name: 'Attach files' }));
 
     expect(onSend).toHaveBeenCalledOnce();
     expect(clickSpy).toHaveBeenCalledOnce();
@@ -678,7 +728,7 @@ describe('Input slots', () => {
     ));
 
     expect(screen.getByTestId('custom-actions')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Attach files' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Send message' })).toBeNull();
   });
 

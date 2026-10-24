@@ -1,5 +1,4 @@
 import { SoupContextProvider } from '@app/features/next-soup/soup-context';
-import { ContentLoading } from '@components/app/ContentLoading';
 import { MobileDrawer } from '@components/app/mobile/MobileDrawer';
 import { useHotkeyDOMScope } from '@core/hotkey/hotkeys';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
@@ -151,7 +150,7 @@ function PopoverSplitModal(props: {
       <SoupContextProvider>
         <Show when={props.popover.mount}>
           <Panel.Body>
-            <Suspense fallback={<ContentLoading />}>
+            <Suspense>
               <Dynamic component={props.popover.mount.element} />
             </Suspense>
           </Panel.Body>
@@ -194,7 +193,11 @@ function PopoverSplitModal(props: {
           >
             <MobileDrawer.Handle />
             <MobileDrawer.ScrollBody>
-              <Content />
+              {/* As in Dialog's drawer: at its natural height the body's
+                  overflow-clip cannot clip the drawer's scroll body. */}
+              <div class="shrink-0">
+                <Content />
+              </div>
             </MobileDrawer.ScrollBody>
           </MobileDrawer.Content>
         </MobileDrawer.Portal>

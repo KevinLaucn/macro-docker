@@ -10,6 +10,7 @@ import { RecipientDropRow } from '../components/recipient-drop-row';
 import type { EmailInbox } from '../context/compose-capabilities';
 import type { EmailRecipient, RecipientFieldId } from '../core/email-recipient';
 import { getRecipientDisplayName } from '../core/email-recipient';
+import { fromInboxOptions } from '../core/email-sender';
 import type { ReplyType } from '../core/reply-type';
 import type { EmailFormRecipients } from '../primitives/email-form-state';
 import type { createReplyRecipientFields } from '../primitives/reply-recipient-fields';
@@ -21,7 +22,7 @@ type ReplyEnvelopeProps = {
   inboxes: Accessor<EmailInbox[]>;
   activeInboxId: Accessor<string | undefined>;
   senderEmail: Accessor<string | undefined>;
-  onSenderChange: (id: string) => void;
+  onSenderChange: (id: string, senderEmail?: string) => void;
   subject: Accessor<string>;
   onSubjectChange: (subject: string) => void;
   showSubject: boolean;
@@ -135,8 +136,9 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
                     <FromInboxSelector
                       pill
                       class="min-w-0"
-                      links={props.inboxes()}
+                      links={fromInboxOptions(props.inboxes())}
                       activeInboxId={props.activeInboxId()}
+                      activeEmail={props.senderEmail()}
                       onSelect={props.onSenderChange}
                       portalScope={props.portalScope()}
                       disabled={props.disabled()}
@@ -305,8 +307,9 @@ export function ReplyEnvelope(props: ReplyEnvelopeProps) {
           <FromInboxSelector
             compact
             class="min-w-0 truncate text-ink-muted"
-            links={props.inboxes()}
+            links={fromInboxOptions(props.inboxes())}
             activeInboxId={props.activeInboxId()}
+            activeEmail={props.senderEmail()}
             onSelect={props.onSenderChange}
             portalScope={props.portalScope()}
             disabled={props.disabled()}

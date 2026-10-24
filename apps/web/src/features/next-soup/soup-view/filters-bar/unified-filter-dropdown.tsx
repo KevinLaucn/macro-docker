@@ -853,8 +853,8 @@ export const UnifiedFilterDropdown = (
               <Tooltip label="Filter" hotkey={TOKENS.soup.filter}>
                 <Dropdown.Trigger
                   variant={props.variant ?? 'outline'}
+                  size={props.hideLabel ? 'icon-md' : 'sm'}
                   depth={2}
-                  class={props.variant === 'ghost' ? undefined : 'bg-surface'}
                   aria-label={props.hideLabel ? 'Filter' : undefined}
                 >
                   <FilterIcon />
@@ -887,6 +887,7 @@ export const UnifiedFilterDropdown = (
                 <>
                   <Show when={isDocumentsView() && showTagsFilter()}>
                     <SearchableFilterSubmenu
+                      onSelectionComplete={() => setOpen(false)}
                       label={t('Tags')}
                       options={tagFilter.options}
                       activeIds={tagFilter.activeIds}
@@ -902,7 +903,9 @@ export const UnifiedFilterDropdown = (
                         options={category.options}
                         isSelected={isOptionActive}
                         onSelect={toggleFilter}
-                        closeOnSelect={!category.multiple}
+                        closeOnSelect={
+                          category.multiple ? 'unless-shift' : true
+                        }
                       />
                     )}
                   </For>
@@ -910,6 +913,7 @@ export const UnifiedFilterDropdown = (
                   {/* Assignee filter for tasks view */}
                   <Show when={isTasksView()}>
                     <SearchableFilterSubmenu
+                      onSelectionComplete={() => setOpen(false)}
                       label={t('Assignee')}
                       options={assigneeOptions}
                       activeIds={assigneeFilter}
@@ -920,6 +924,7 @@ export const UnifiedFilterDropdown = (
 
                   <Show when={showCreatedByFilter()}>
                     <SearchableFilterSubmenu
+                      onSelectionComplete={() => setOpen(false)}
                       label={t('Created by')}
                       options={createdByOptions}
                       activeIds={createdByIds}
@@ -931,6 +936,7 @@ export const UnifiedFilterDropdown = (
                   <For each={selectFilters}>
                     {(filter) => (
                       <SearchableFilterSubmenu
+                        onSelectionComplete={() => setOpen(false)}
                         label={filter.label}
                         active={filter.active?.()}
                         options={filter.options}
@@ -954,7 +960,9 @@ export const UnifiedFilterDropdown = (
                       icon={option.icon}
                       active={active()}
                       onSelect={() => toggleFilter(option.id)}
-                      closeOnSelect={!categories()[0]!.multiple}
+                      closeOnSelect={
+                        categories()[0]!.multiple ? 'unless-shift' : true
+                      }
                     />
                   );
                 }}
@@ -963,6 +971,7 @@ export const UnifiedFilterDropdown = (
 
             <Show when={!isDocumentsView() && showTagsFilter()}>
               <SearchableFilterSubmenu
+                onSelectionComplete={() => setOpen(false)}
                 label={t('Tags')}
                 options={tagFilter.options}
                 activeIds={tagFilter.activeIds}

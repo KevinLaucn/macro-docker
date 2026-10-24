@@ -39,7 +39,7 @@ export function PasteTextViewer(props: {
   );
 
   const fullText = () => (
-    <pre class="font-mono text-sm leading-relaxed bg-message p-4 m-0 whitespace-pre-wrap wrap-break-word overflow-auto">
+    <pre class="font-mono text-sm leading-relaxed bg-message p-4 m-0 whitespace-pre-wrap wrap-break-word overflow-auto select-text">
       {props.content}
     </pre>
   );
@@ -52,7 +52,6 @@ export function PasteTextViewer(props: {
           open={props.open}
           onOpenChange={props.onOpenChange}
           position="center"
-          class="rounded-lg border border-edge bg-surface shadow-lg"
         >
           <div class="flex items-center justify-between px-4 py-2 border-b border-edge text-xs text-ink-muted">
             {header()}

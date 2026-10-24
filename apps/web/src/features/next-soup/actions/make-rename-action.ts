@@ -1,6 +1,7 @@
 import { openBulkEditModal } from '@app/features/entity/bulk-edit/BulkEditEntityModal';
 import { toast } from '@core/component/Toast/Toast';
-import type { EntityData } from '@entity';
+import { fireAndForget } from '@core/util/fireAndForget';
+import { canEditChannelIdentity, type EntityData } from '@entity/types/entity';
 import { restoreSoupFocus } from '../utils';
 import type { EntityActionListState } from './entity-action-context';
 
@@ -24,10 +25,7 @@ export const makeRenameAction = (options: MakeRenameOptions) => {
     }
     if (entity.type === 'foreign') return false;
 
-    if (entity.type === 'channel') {
-      if (entity.channelType === 'direct_message') return false;
-      return entity.isParticipant !== false;
-    }
+    if (entity.type === 'channel') return canEditChannelIdentity(entity);
 
     return entity.ownerId === userId();
   };
@@ -60,13 +58,13 @@ export const makeRenameAction = (options: MakeRenameOptions) => {
         if (firstEntity) {
           soup.focus.set(firstEntity.id);
         }
-        restoreSoupFocus(firstEntity?.id);
+        fireAndForget(restoreSoupFocus(firstEntity?.id), 'entity-actions');
       },
       onCancel: () => {
         if (firstEntity) {
           soup.focus.set(firstEntity.id);
         }
-        restoreSoupFocus(firstEntity?.id);
+        fireAndForget(restoreSoupFocus(firstEntity?.id), 'entity-actions');
       },
     });
   };

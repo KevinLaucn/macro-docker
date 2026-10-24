@@ -3,7 +3,6 @@ import {
   type TurnOffCalendarTarget,
 } from '@app/features/calendar/components/TurnOffCalendarDialog';
 import { useCalendarUiFlag } from '@app/features/calendar/hooks/use-calendar-ui-flag';
-import { openAddInboxDialog } from '@app/features/inbox/AddInboxDialog';
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
 import { toast } from '@core/component/Toast/Toast';
 import {
@@ -21,10 +20,12 @@ import {
   calendarConsentScopes,
   reconnectScopes,
 } from '@core/email-link/consent';
-import GmailIcon from '@icon/mcp-gmail.svg';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { t } from '@macro/i18n';
+import GearIcon from '@phosphor/gear.svg';
 import ArrowsClockwiseIcon from '@phosphor-icons/core/regular/arrows-clockwise.svg?component-solid';
 import CalendarSlashIcon from '@phosphor-icons/core/regular/calendar-slash.svg?component-solid';
+import EnvelopeIcon from '@phosphor-icons/core/regular/envelope.svg?component-solid';
 import PlusIcon from '@phosphor-icons/core/regular/plus.svg?component-solid';
 import {
   type BackfillProgress,
@@ -39,9 +40,10 @@ import {
   type Link as EmailLink,
   SyncStatus,
 } from '@service-email/generated/schemas';
-import { Dialog, Panel, Tooltip } from '@ui';
+import { Dialog, Panel, Tooltip, Button as UiButton } from '@ui';
 import { createMemo, createSignal, For, Match, Show, Switch } from 'solid-js';
 import { match } from 'ts-pattern';
+import { InboxSettingsOperations } from './InboxSettingsOperations';
 import { ConnectAction, StatusDot } from './integration-ui';
 import {
   SettingsButton as Button,
@@ -57,7 +59,9 @@ import { clearSignatureState } from './SignatureSection';
  * disconnect controls. All the inbox + backfill logic is unchanged; only the
  * surrounding chrome moved from a standalone panel to a shared card.
  */
-export function EmailCard() {
+export function EmailCard(
+  props: { class?: string; onOpenSettings?: () => void } = {}
+) {
   const email = useEmail();
   const userId = useUserId();
   const multiInboxFlag = useFeatureFlag(enableMultiInbox);
@@ -105,7 +109,9 @@ export function EmailCard() {
   const [resyncingIds, setResyncingIds] = createSignal<ReadonlySet<string>>(
     new Set()
   );
-  const [isEmailActionPending, setIsEmailActionPending] = createSignal(false);
+  // Not a disabled state: disabling the opener drops focus to <body>, which
+  // is where closing the provider chooser would then return it.
+  let addingInbox = false;
 
   // The primary inbox is the user's own is_primary link; it sorts to the top
   // and is labelled. Everything else (other own inboxes + delegated/shared) follows.
@@ -119,14 +125,17 @@ export function EmailCard() {
     return { primary, others };
   });
 
-  const onConnectEmail = async () => {
-    if (isEmailActionPending()) return;
-    setIsEmailActionPending(true);
+  const connectEmail = async () => {
     try {
       await startAddInbox();
     } finally {
-      setIsEmailActionPending(false);
+      addingInbox = false;
     }
+  };
+  const onConnectEmail = () => {
+    if (addingInbox) return;
+    addingInbox = true;
+    fireAndForget(connectEmail(), 'add-inbox');
   };
 
   const handleResyncInbox = async (linkId: string) => {
@@ -157,11 +166,10 @@ export function EmailCard() {
 
   return (
     <>
-      <SettingsCard>
+      <SettingsCard class={props.class}>
         <IntegrationRow
-          icon={<GmailIcon />}
-          title={t('Gmail')}
-          description={t('Read, organize, and act on your email.')}
+          icon={<EnvelopeIcon />}
+          title={t('Email')}
           status={
             <Show when={emailActive()}>
               <StatusDot state="connected" label={t('Connected')} />
@@ -169,11 +177,18 @@ export function EmailCard() {
           }
         >
           <Show when={!emailActive()}>
-            <ConnectAction
-              label={t('Connect')}
-              onClick={onConnectEmail}
-              disabled={isEmailActionPending()}
-            />
+            <ConnectAction label={t('Connect')} onClick={onConnectEmail} />
+          </Show>
+          <Show when={props.onOpenSettings}>
+            <UiButton
+              variant="ghost"
+              size="icon-md"
+              label={t('Email settings')}
+              onClick={props.onOpenSettings}
+              class="touch:min-h-11 touch:min-w-11"
+            >
+              <GearIcon class="size-4" />
+            </UiButton>
           </Show>
         </IntegrationRow>
 
@@ -188,16 +203,26 @@ export function EmailCard() {
                 resyncing={resyncingIds().has(primary().id)}
                 onResync={() => handleResyncInbox(primary().id)}
                 onReconnect={() =>
-                  void startAddInbox({
-                    scopes: reconnectScopes(primary()),
-                    emailAddress: primary().email_address,
-                  })
+                  fireAndForget(
+                    startAddInbox({
+                      scopes: reconnectScopes(primary()),
+                      provider: primary().provider,
+                      reconnectLinkId: primary().id,
+                      emailAddress: primary().email_address,
+                    }),
+                    'add-inbox'
+                  )
                 }
                 onEnableCalendar={() =>
-                  void startAddInbox({
-                    scopes: calendarConsentScopes(primary()),
-                    emailAddress: primary().email_address,
-                  })
+                  fireAndForget(
+                    startAddInbox({
+                      scopes: calendarConsentScopes(primary()),
+                      provider: primary().provider,
+                      reconnectLinkId: primary().id,
+                      emailAddress: primary().email_address,
+                    }),
+                    'add-inbox'
+                  )
                 }
                 onRemove={() =>
                   setRemoveTarget({
@@ -231,16 +256,26 @@ export function EmailCard() {
                 resyncing={resyncingIds().has(link.id)}
                 onResync={() => handleResyncInbox(link.id)}
                 onReconnect={() =>
-                  void startAddInbox({
-                    scopes: reconnectScopes(link),
-                    emailAddress: link.email_address,
-                  })
+                  fireAndForget(
+                    startAddInbox({
+                      scopes: reconnectScopes(link),
+                      provider: link.provider,
+                      reconnectLinkId: link.id,
+                      emailAddress: link.email_address,
+                    }),
+                    'add-inbox'
+                  )
                 }
                 onEnableCalendar={() =>
-                  void startAddInbox({
-                    scopes: calendarConsentScopes(link),
-                    emailAddress: link.email_address,
-                  })
+                  fireAndForget(
+                    startAddInbox({
+                      scopes: calendarConsentScopes(link),
+                      provider: link.provider,
+                      reconnectLinkId: link.id,
+                      emailAddress: link.email_address,
+                    }),
+                    'add-inbox'
+                  )
                 }
                 onRemove={() =>
                   setRemoveTarget({
@@ -261,7 +296,7 @@ export function EmailCard() {
           <Show when={multiInboxFlag().enabled}>
             <SettingsRow
               label={t('Add another inbox')}
-              description={t('Connect more Gmail accounts.')}
+              description={t('Connect Gmail, Outlook.com, or Microsoft 365.')}
             >
               <Tooltip label={t('Add inbox')}>
                 <Button
@@ -269,7 +304,7 @@ export function EmailCard() {
                   size="md"
                   depth={3}
                   aria-label={t('Add inbox')}
-                  onClick={openAddInboxDialog}
+                  onClick={onConnectEmail}
                 >
                   <PlusIcon class="size-3.5" />
                   {t('Add account')}
@@ -344,7 +379,7 @@ function syncStatusLabel(status: SyncStatus): string {
     .with(SyncStatus.ERROR, () => t('Error — re-sync'))
     .with(SyncStatus.NEEDS_REAUTH, () => t('Reconnect to resume sync'))
     .with(SyncStatus.INACTIVE, () => t('Disabled'))
-    .exhaustive();
+    .exhaustive(() => t('Unknown sync status'));
 }
 
 // Live backfill progress bar. `completed`/`total` are the connection-gateway
@@ -412,8 +447,8 @@ function Chip(props: { label: string }) {
 // flow, which re-links and backfills.
 function DisabledPrimaryRow(props: { email: string; onEnable: () => void }) {
   return (
-    <div class="flex items-center justify-between gap-3 min-h-16 px-4 py-4">
-      <div class="min-w-0 flex flex-col gap-0.5">
+    <div class="flex flex-wrap items-center justify-between gap-3 min-h-14 px-4 py-3">
+      <div class="min-w-0 flex flex-wrap items-center gap-x-3 gap-y-1">
         <div class="flex items-center gap-2 min-w-0">
           <span class="ph-no-capture text-sm truncate text-ink-muted">
             {props.email}
@@ -445,8 +480,8 @@ function InboxRow(props: {
   const calendarUiEnabled = useCalendarUiFlag();
   return (
     <div class="flex flex-col">
-      <div class="flex flex-wrap items-center justify-between gap-3 min-h-15.25 py-4 px-4">
-        <div class="min-w-0 flex flex-col gap-0.5">
+      <div class="flex flex-wrap items-center justify-between gap-3 min-h-14 py-3 px-4">
+        <div class="min-w-0 flex flex-wrap items-center gap-x-3 gap-y-1">
           <div class="flex items-center gap-2 min-w-0">
             <span class="ph-no-capture text-sm truncate">
               {props.link.email_address}
@@ -458,6 +493,11 @@ function InboxRow(props: {
               <Chip label={t('Shared')} />
             </Show>
           </div>
+          <span class="text-xs text-ink-muted">
+            {props.link.provider === 'OUTLOOK'
+              ? 'Outlook / Microsoft 365'
+              : 'Gmail'}
+          </span>
           <Show when={ENABLE_INBOX_SYNC_STATUS}>
             <Switch
               fallback={
@@ -500,7 +540,7 @@ function InboxRow(props: {
             </Switch>
           </Show>
         </div>
-        <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <div class="flex max-w-full flex-wrap items-center gap-2 shrink-0">
           <Show when={props.link.needs_reauth}>
             <Button
               variant="accent"
@@ -593,6 +633,7 @@ function InboxRow(props: {
           </Tooltip>
         </div>
       </div>
+      <InboxSettingsOperations linkId={props.link.id} />
     </div>
   );
 }

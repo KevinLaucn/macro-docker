@@ -5,7 +5,8 @@ import { useCrmWorkspace } from '../context/workspace-context';
 import { useCurrentTeamQuery, useIsTeamAdmin } from './use-crm';
 
 export function CrmEmptyState() {
-  const { host, activeTab } = useCrmWorkspace();
+  const { host, activeTab, queryFilters } = useCrmWorkspace();
+  const peopleSearch = () => queryFilters.state.include.crmContactSearch;
   const teamQuery = useCurrentTeamQuery();
   const isTeamAdmin = useIsTeamAdmin();
   const teamResolved = () => teamQuery.data !== undefined;
@@ -42,9 +43,20 @@ export function CrmEmptyState() {
             isTeamAdmin()
               ? {
                   label: 'Open CRM settings',
-                  onClick: () => host.openSettings(),
+                  onClick: () => host.settings.open(),
                 }
               : undefined
+          }
+        />
+      </Match>
+      <Match when={activeTab() === 'people'}>
+        <EmptyStatePanel
+          graphic={EmptyStateCompaniesGraphic}
+          title={peopleSearch() ? 'No matching people' : 'No people yet'}
+          description={
+            peopleSearch()
+              ? 'Try a name or email address.'
+              : 'People connected to your CRM companies will appear here.'
           }
         />
       </Match>

@@ -18,6 +18,10 @@ export type ConfirmDialogDisplayProps = {
   /** Dialog copy. `children` is used when `body` is omitted. */
   body?: JSX.Element;
   children?: JSX.Element;
+  /** Phone-only artwork above centered copy and a single full-width action.
+   * Dismiss with the handle, backdrop, or Escape instead of a cancel button.
+   */
+  mobileHero?: JSX.Element;
   confirmLabel?: JSX.Element;
   cancelLabel?: JSX.Element;
   tone?: 'default' | 'danger' | 'success';
@@ -25,6 +29,8 @@ export type ConfirmDialogDisplayProps = {
   position?: DialogProps['position'];
   /** Dialog presentation only; the mobile drawer ignores it. */
   class?: string;
+  /** Lets the owning surface restore focus after a programmatic confirmation. */
+  onCloseAutoFocus?: DialogProps['onCloseAutoFocus'];
 };
 
 export type ConfirmDialogProps = ManagedDialogProps &
@@ -42,6 +48,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
         <Dialog
           open={props.open}
           onOpenChange={(open) => !props.pending && props.onOpenChange(open)}
+          onCloseAutoFocus={props.onCloseAutoFocus}
           position={props.position ?? 'center'}
           class={cn('w-110', props.class)}
           visibleScrim

@@ -6,6 +6,8 @@ import { useGlobalNotificationSource } from '@components/app/GlobalAppState';
 import { useBlockId } from '@core/block';
 import { DocumentBlockContainer } from '@core/component/DocumentBlockContainer';
 import { toEntityLoadError } from '@core/component/EntityLoadGate';
+import { TOKENS } from '@core/hotkey/tokens';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { buildEntityData } from '@entity';
 import { useThreadQuery } from '@queries/email/thread';
 import { representativeThreadMessage } from '@queries/email/thread-subject';
@@ -43,7 +45,11 @@ export default function BlockEmail() {
     });
   });
 
-  useBlockEntityCommands({ resolveEntity: commandEntity });
+  useBlockEntityCommands({
+    resolveEntity: commandEntity,
+    extraFavoriteHotkey: { hotkey: 's', hotkeyToken: TOKENS.email.star },
+    extraMuteHotkey: { hotkey: 'shift+m', hotkeyToken: TOKENS.email.mute },
+  });
 
   // The gate owns the load policy: structural errors are authoritative even
   // over cached data, a transport failure over cached data still renders the
@@ -75,7 +81,7 @@ export default function BlockEmail() {
             threadId={threadId()}
             linkId={threadData()?.link_id}
             debounceTime={100}
-            onRetry={() => void threadQuery.refetch()}
+            onRetry={() => fireAndForget(threadQuery.refetch(), 'email-thread')}
           >
             <Show when={threadId()}>
               {(id) => (

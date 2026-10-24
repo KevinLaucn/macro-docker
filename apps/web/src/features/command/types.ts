@@ -4,6 +4,15 @@ import type { HotkeyRegistrationOptions } from '@core/hotkey/types';
 
 export type CreatableName = BlockName | BlockAlias | 'initiative';
 
+/**
+ * Shows a created item in the surface that asked to create it, which stays
+ * mounted while the item is created. Returning false opens it in a split.
+ */
+export type OpenCreatedItem = (item: {
+  blockName: BlockName | BlockAlias;
+  id: string;
+}) => boolean;
+
 export type CreatableBlock = Omit<HotkeyRegistrationOptions, 'scopeId'> & {
   label: string;
   launcherHint?: string;

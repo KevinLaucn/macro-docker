@@ -97,7 +97,10 @@ mod legacy_upgrade {
 
     fn zip_names(bytes: &[u8]) -> Vec<String> {
         let archive = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
-        archive.file_names().map(str::to_string).collect()
+        archive
+            .file_names()
+            .map(|name| name.unwrap().into_owned())
+            .collect()
     }
 
     fn assert_main_content_type(bytes: &[u8], content_type: &str) {
@@ -364,5 +367,49 @@ mod conversion_table {
         assert!(resolve_file_type(None, "owner/doc/12").is_err());
         // A dotted owner segment is not an extension.
         assert!(resolve_file_type(None, "macro|first.last@macro.com/doc/12").is_err());
+    }
+}
+
+mod job_cleanup {
+    //! Tests `remove_job_folder` directly: CI builds with `--all-features`,
+    //! where `disable_cleanup` turns `cleanup_folder` into a no-op.
+
+    use std::path::Path;
+
+    use crate::utils::remove_job_folder;
+
+    /// Removes a job folder prepared by `setup` and checks the outcome.
+    fn check(setup: fn(&Path), expect_ok: bool) {
+        let root = tempfile::tempdir().unwrap();
+        let job = root.path().join("job");
+        setup(&job);
+
+        let result = remove_job_folder(job.to_str().unwrap());
+
+        assert_eq!(result.is_ok(), expect_ok, "{result:?}");
+        if expect_ok {
+            assert!(!job.exists());
+        }
+    }
+
+    #[test]
+    fn removes_the_job_folder() {
+        check(
+            |job| {
+                std::fs::create_dir(job).unwrap();
+                std::fs::write(job.join("IN.docx"), b"input").unwrap();
+            },
+            true,
+        );
+    }
+
+    #[test]
+    fn a_job_that_failed_before_creating_its_folder_cleans_up() {
+        check(|_| {}, true);
+    }
+
+    #[test]
+    fn other_failures_still_surface() {
+        check(|job| std::fs::write(job, b"not a folder").unwrap(), false);
     }
 }

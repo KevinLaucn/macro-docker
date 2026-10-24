@@ -146,8 +146,5 @@ export function createDriveState(options: {
 
     setRootOpen: (rootOpen: boolean) =>
       setState((current) => ({ ...current, rootOpen })),
-
-    setTagsOpen: (tagsOpen: boolean) =>
-      setState((current) => ({ ...current, tagsOpen })),
   };
 }

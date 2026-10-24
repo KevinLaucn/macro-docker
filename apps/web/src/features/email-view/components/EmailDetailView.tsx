@@ -7,7 +7,10 @@ import { createEmailThreadSource } from '@app/features/email-thread/queries/thre
 import { useBlockEntityCommands } from '@app/features/next-soup/actions';
 import { createSearchParams, useRouteParams } from '@app/lib/split-router';
 import { emailThreadRoute } from '@app/routes/routes';
-import { EmailThreadControls } from '@block-email/component/EmailThreadControls';
+import {
+  EmailThreadControlGroups,
+  EmailThreadHeaderActions,
+} from '@block-email/component/EmailThreadHeaderActions';
 import { EmailThreadLoadGate } from '@block-email/component/EmailThreadLoadGate';
 import {
   type EmailThreadToolsOptions,
@@ -18,7 +21,6 @@ import { registerEmailHotkeys } from '@block-email/util/emailHotkeys';
 import { useGlobalNotificationSource } from '@components/app/GlobalAppState';
 import { SidePanel } from '@components/app/side-panel';
 import { SplitFileMenu } from '@components/app/split-layout/components/SplitFileMenu';
-import { ListNavigationButtons } from '@components/app/split-layout/components/SplitHeader';
 import {
   useCanAutofocusSplitContent,
   useSplitDisplayName,
@@ -34,14 +36,15 @@ import { ENABLE_EMAIL_SHARING } from '@core/constant/featureFlags';
 import { TOKENS } from '@core/hotkey/tokens';
 import { registerScopeSignalHotkey } from '@core/hotkey/utils';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { buildEntityData } from '@entity';
 import { useThreadQuery } from '@queries/email/thread';
 import { representativeThreadMessage } from '@queries/email/thread-subject';
-import { ButtonGroup } from '@ui';
-import { createMemo, createSignal, Show } from 'solid-js';
+import { createEffect, createMemo, createSignal, Show } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { emailDetailSearch } from '../email-route';
 import { useEmailView } from '../email-view-context';
+import { useEmailReaderPane } from '../reader-pane';
 import type { EmailThreadTarget } from '../types';
 import { useEmailDetailListNavigation } from '../use-email-detail-list-navigation';
 
@@ -95,17 +98,10 @@ function EmailDetailHeader(
       <Show when={props.controlsMount}>
         {(mount) => (
           <Portal mount={mount()}>
-            <ButtonGroup variant="outline" size="icon-md" class="touch:hidden">
-              <EmailThreadControls {...controls} />
-              <Show when={props.listNavigation}>
-                {(navigation) => (
-                  <ListNavigationButtons
-                    navigation={navigation()}
-                    class="gap-0"
-                  />
-                )}
-              </Show>
-            </ButtonGroup>
+            <EmailThreadControlGroups
+              controls={controls}
+              navigation={props.listNavigation}
+            />
           </Portal>
         )}
       </Show>
@@ -120,6 +116,10 @@ export function EmailDetailView(props: {
 }) {
   const { closeThread, selectedThread } = useEmailView();
   const panel = useSplitPanelOrThrow();
+  // In the reading pane the thread keeps its keys in the reader's scope, and
+  // Escape hands the keyboard back to the list instead of closing it.
+  const pane = useEmailReaderPane();
+  const keyScope = pane?.hotkeyScope ?? panel.splitHotkeyScope;
   const notificationSource = useGlobalNotificationSource();
   const canAutofocus = useCanAutofocusSplitContent();
   const [controlsMount, setControlsMount] = createSignal<HTMLDivElement>();
@@ -168,12 +168,14 @@ export function EmailDetailView(props: {
   });
   useBlockEntityCommands({
     id: props.thread.id,
-    scopeId: panel.splitHotkeyScope,
+    scopeId: keyScope,
     resolveEntity: commandEntity,
     onDeleted: closeThread,
     onEmailReminderSaved: async () => {
       await listNavigation.afterReminderSaved?.();
     },
+    extraFavoriteHotkey: { hotkey: 's', hotkeyToken: TOKENS.email.star },
+    extraMuteHotkey: { hotkey: 'shift+m', hotkeyToken: TOKENS.email.mute },
   });
 
   let container: HTMLDivElement | undefined;
@@ -182,8 +184,13 @@ export function EmailDetailView(props: {
     element: () => container ?? null,
     enabled: () => canAutofocus && panel.isPanelActive() && !isTouchDevice(),
   });
+  createEffect(() => {
+    if (!pane || pane.focusRequest() !== props.thread.id) return;
+    pane.clearFocusRequest();
+    focusContainer();
+  });
   const listNavigation = useEmailDetailListNavigation(threadId);
-  const hotkeyScope = () => panel.splitHotkeyScope;
+  const hotkeyScope = () => keyScope;
   const host: EmailThreadHost = {
     returnToList: closeThread,
     listNavigation,
@@ -208,7 +215,7 @@ export function EmailDetailView(props: {
         // back to the list this thread was opened from.
         keyDownHandler: () => {
           if (handlers.cancel()) return true;
-          closeThread();
+          (pane?.focusList ?? closeThread)();
           return true;
         },
         hotkeyToken: TOKENS.email.cancelReply,
@@ -218,7 +225,7 @@ export function EmailDetailView(props: {
   };
   const breadcrumbValue = () => `email-thread:${props.thread.id}`;
   useListNavigationHotkeys({
-    scopeId: panel.splitHotkeyScope,
+    scopeId: keyScope,
     enabled: () =>
       panel.isPanelActive() && selectedThread()?.id === props.thread.id,
     navigation: listNavigation,
@@ -240,19 +247,19 @@ export function EmailDetailView(props: {
             aria-label="Email location"
             fallback={<EntityDetailBreadcrumbSkeleton />}
           />
-          <div class="ml-auto flex shrink-0 items-center gap-1 @max-[900px]/split-header:[&_[data-header-action]]:w-8 @max-[900px]/split-header:[&_[data-header-action]]:p-0 @max-[900px]/split-header:[&_[data-header-action-label]]:hidden">
-            <div ref={setControlsMount} class="flex items-center" />
-            <SidePanel.HeaderActionsOutlet />
-            <Show when={ENABLE_EMAIL_SHARING}>
-              <ShareTrigger
-                onClick={openShare}
-                id={props.thread.id}
-                blockType="email"
-                hotkeyScope={panel.splitHotkeyScope}
-              />
-            </Show>
-            <SidePanel.Toggle />
-          </div>
+          <EmailThreadHeaderActions
+            controls={<div ref={setControlsMount} class="flex items-center" />}
+            share={
+              <Show when={ENABLE_EMAIL_SHARING}>
+                <ShareTrigger
+                  onClick={openShare}
+                  id={props.thread.id}
+                  blockType="email"
+                  hotkeyScope={keyScope}
+                />
+              </Show>
+            }
+          />
         </ViewShell.TopBar>
         <div
           ref={container}
@@ -265,7 +272,7 @@ export function EmailDetailView(props: {
             threadId={props.thread.id}
             linkId={threadData()?.link_id}
             debounceTime={100}
-            onRetry={() => void threadQuery.refetch()}
+            onRetry={() => fireAndForget(threadQuery.refetch(), 'email-view')}
           >
             <EmailThreadHostView
               title={title()}

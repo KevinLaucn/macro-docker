@@ -1,8 +1,8 @@
 import { SidePanel } from '@components/app/side-panel';
 import PlusIcon from '@phosphor/plus.svg';
 import { Button } from '@ui';
-import { createMemo, Match, Show, Suspense, Switch } from 'solid-js';
-import { RecordSection } from '../components/record-section';
+import { createMemo, Match, onCleanup, Show, Suspense, Switch } from 'solid-js';
+import { RecordOverview } from '../components/record-overview';
 import { useCrmContext } from '../context/crm-context';
 import type { CrmContact as CompanyContact } from '../core/contact';
 import {
@@ -17,14 +17,19 @@ import { CompanyHeader } from './company-header';
 import { CompanyListsSection } from './company-list-membership';
 import { CompanyPropertiesSection } from './company-properties-section';
 import { CompanySharingSection } from './company-sharing-section';
-import { RecordCallsSection, RecordFilesSection } from './record-associations';
+import {
+  RecordCallsSection,
+  RecordFilesSection,
+  RecordReferencesSection,
+} from './record-associations';
 import { useCompanyQuery } from './use-crm';
 
 /**
  * Root of the company detail view, laid out like a project: the host's top
  * tab row picks the section, Overview shows the company with its description and
  * discussion, and the other sections list its team, emails, files, tasks and
- * calls. Properties and sharing open in the floating information panel.
+ * calls. Properties, sharing, and references open in the floating
+ * information panel.
  */
 export function Company(props: {
   companyId: string;
@@ -32,10 +37,18 @@ export function Company(props: {
   headerToggle?: boolean;
   onHidden?: () => void;
   onOpenContact?: (contact: CompanyContact) => void;
+  onOpenPipeline?: (pipelineId: string) => void;
 }) {
   const context = useCrmContext();
+  onCleanup(
+    context.registerTaskComposerRecord(() => ({
+      type: 'company',
+      id: props.companyId,
+    }))
+  );
   const openCreateContactModal = context.openCreateContact;
   const listsEnabled = context.listsEnabled();
+  const pipelinesEnabled = context.pipelinesEnabled();
   const { company, contacts } = useCompanyQuery(() => props.companyId);
   const section = () => props.section ?? 'overview';
   const scope = createMemo(
@@ -62,42 +75,42 @@ export function Company(props: {
         <div class="min-h-0 min-w-0 flex-1">
           <Switch>
             <Match when={section() === 'overview'}>
-              <div class="h-full overflow-y-auto px-6 pb-12 pt-12 scrollbar-hidden touch:pt-6">
-                <div class="mx-auto flex max-w-3xl min-w-0 flex-col gap-6">
-                  <CompanyHeader company={company()} />
-                  <CompanyDiscussionSection companyId={props.companyId} />
-                </div>
-              </div>
+              <RecordOverview>
+                <CompanyHeader company={company()} />
+                <Show when={pipelinesEnabled()}>
+                  <context.PipelineEntries
+                    record={{ type: 'company', id: props.companyId }}
+                    onOpenPipeline={props.onOpenPipeline}
+                  />
+                </Show>
+                <CompanyDiscussionSection companyId={props.companyId} />
+              </RecordOverview>
             </Match>
             <Match when={section() === 'team'}>
-              <RecordSection
-                title="Team"
+              <CompanyContactsSection
+                company={company()}
+                contacts={contacts()}
+                onOpenContact={props.onOpenContact}
                 actions={
                   <Button
-                    variant="ghost"
-                    size="sm"
+                    variant="outline"
                     // Contact emails are pinned to the company's primary
                     // domain; disabled until the company has loaded.
                     disabled={!company()?.domains[0]}
                     onClick={() => {
                       const domain = company()?.domains[0]?.domain;
                       if (domain)
-                        openCreateContactModal(props.companyId, domain);
+                        openCreateContactModal({
+                          companyId: props.companyId,
+                          domain,
+                        });
                     }}
                   >
-                    <PlusIcon class="size-3.5" />
+                    <PlusIcon class="size-4" />
                     Add contact
                   </Button>
                 }
-              >
-                <div class="px-2">
-                  <CompanyContactsSection
-                    company={company()}
-                    contacts={contacts()}
-                    onOpenContact={props.onOpenContact}
-                  />
-                </div>
-              </RecordSection>
+              />
             </Match>
             <Match when={section() === 'emails'}>
               <CompanyEmailsSection company={company()} />
@@ -108,7 +121,7 @@ export function Company(props: {
             <Match when={section() === 'tasks'}>
               <Suspense
                 fallback={
-                  <div class="p-6 text-center text-sm text-ink-muted">
+                  <div class="p-6 text-center text-sm text-ink-muted touch:pt-[calc(var(--mobile-content-inset-top,0px)+1.5rem)]">
                     Loading…
                   </div>
                 }
@@ -116,7 +129,7 @@ export function Company(props: {
                 <Show
                   when={scope()}
                   fallback={
-                    <div class="p-6 text-center text-sm text-ink-muted">
+                    <div class="p-6 text-center text-sm text-ink-muted touch:pt-[calc(var(--mobile-content-inset-top,0px)+1.5rem)]">
                       Loading…
                     </div>
                   }
@@ -148,8 +161,9 @@ export function Company(props: {
       <SidePanel.Section id="company-sharing" title="Sharing" order={25}>
         <CompanySharingSection company={company()} onHidden={props.onHidden} />
       </SidePanel.Section>
-      {/* TODO: add a References section (inbound channel messages + documents)
-          once the references backend supports the crm_company entity type. */}
+      <SidePanel.Section id="company-references" title="References" order={30}>
+        <RecordReferencesSection scope={scope()} />
+      </SidePanel.Section>
     </SidePanel.Layout>
   );
 }

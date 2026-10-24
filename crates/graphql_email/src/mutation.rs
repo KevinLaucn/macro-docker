@@ -4,8 +4,8 @@ use async_graphql::{Context, ErrorExtensions, ID, InputObject, Object, OutputTyp
 use chrono::Utc;
 use email::domain::{
     models::{
-        ContactInfo, CreateDraftInput, DeletedUserDraft, EmailErr, Message, SavedUserDraft,
-        UpdateThreadLabelsResult,
+        ContactInfo, CreateDraftInput, CreatedDraft, DeletedUserDraft, EmailErr, Message,
+        SavedUserDraft, UpdateThreadLabelsResult,
     },
     ports::EmailService,
 };
@@ -16,11 +16,64 @@ use graphql_common::{parse_id, require_authenticated_user};
 use macro_user_id::user_id::MacroUserIdStr;
 use uuid::Uuid;
 
+mod send;
+use send::{SendEmailMessageInput, SendEmailMessagePayload};
+
 #[cfg(test)]
 mod test;
 
 /// Domain-facing capability required by email thread mutations.
+#[derive(async_graphql::Enum, Clone, Copy, PartialEq, Eq)]
+pub enum EmailMessageResolutionAction {
+    /// Apply local edits over the reviewed provider version.
+    KeepLocal,
+    /// Replace the local editor content with the provider's current draft.
+    UseProvider,
+    /// Reconcile the recorded uncertain operation again.
+    Recheck,
+    /// Deliberately retry delivery after acknowledging possible duplication.
+    RetrySend,
+}
+
+/// Resolve exactly the message revision and provider version the user reviewed.
+#[derive(InputObject)]
+pub struct ResolveEmailMessageOperationInput {
+    /// Stable Macro message ID.
+    pub message_id: ID,
+    /// Opaque revision returned by operationStatus.
+    pub revision: String,
+    /// Opaque provider version returned by operationStatus.
+    pub remote_version: Option<String>,
+    /// Explicit recovery action.
+    pub action: EmailMessageResolutionAction,
+    /// Required only for RetrySend; never inferred from a timeout.
+    #[graphql(default)]
+    pub accept_duplicate_risk: bool,
+}
+
+/// Domain-facing capability required by email thread mutations.
 pub trait EmailMutationService: Send + Sync + 'static {
+    /// Resolve an owned/delegated message's conflict or uncertain delivery.
+    fn resolve_email_message_operation(
+        &self,
+        user_id: MacroUserIdStr<'static>,
+        request: email::domain::models::mailbox_operation::MessageResolutionRequest,
+    ) -> impl Future<Output = Result<Uuid, EmailErr>> + Send;
+    /// Apply provider-neutral state to an inbox owned by or delegated to the actor.
+    fn set_email_thread_state(
+        &self,
+        user_id: MacroUserIdStr<'static>,
+        thread_id: Uuid,
+        action: email::domain::models::mailbox_action::MailboxAction,
+    ) -> impl Future<Output = Result<(), EmailErr>> + Send;
+    /// Send from a caller-accessible inbox, with server-side sender validation.
+    fn send_email_message(
+        &self,
+        user_id: MacroUserIdStr<'static>,
+        link_id: Option<Uuid>,
+        input: CreateDraftInput,
+    ) -> impl Future<Output = Result<CreatedDraft, EmailErr>> + Send;
+
     /// Mark an accessible email thread as seen by the authenticated user.
     fn mark_email_thread_seen(
         &self,
@@ -67,6 +120,8 @@ pub trait EmailMutationService: Send + Sync + 'static {
         &self,
         user_id: MacroUserIdStr<'static>,
         draft_id: Uuid,
+
+        expected_generation: i32,
     ) -> impl Future<Output = Result<DeletedUserDraft, EmailErr>> + Send;
 }
 
@@ -74,6 +129,31 @@ impl<S> EmailMutationService for S
 where
     S: EmailService,
 {
+    async fn resolve_email_message_operation(
+        &self,
+        user_id: MacroUserIdStr<'static>,
+        request: email::domain::models::mailbox_operation::MessageResolutionRequest,
+    ) -> Result<Uuid, EmailErr> {
+        self.resolve_message_operation(user_id, request).await
+    }
+    async fn set_email_thread_state(
+        &self,
+        user_id: MacroUserIdStr<'static>,
+        thread_id: Uuid,
+        action: email::domain::models::mailbox_action::MailboxAction,
+    ) -> Result<(), EmailErr> {
+        self.change_thread_mailbox_state(user_id, thread_id, action)
+            .await
+    }
+    async fn send_email_message(
+        &self,
+        user_id: MacroUserIdStr<'static>,
+        link_id: Option<Uuid>,
+        input: CreateDraftInput,
+    ) -> Result<CreatedDraft, EmailErr> {
+        self.send_message_for_user(user_id, link_id, input).await
+    }
+
     async fn mark_email_thread_seen(
         &self,
         user_id: MacroUserIdStr<'static>,
@@ -123,8 +203,11 @@ where
         &self,
         user_id: MacroUserIdStr<'static>,
         draft_id: Uuid,
+
+        expected_generation: i32,
     ) -> Result<DeletedUserDraft, EmailErr> {
-        self.delete_draft_for_user(user_id, draft_id).await
+        self.delete_draft_for_user(user_id, draft_id, expected_generation)
+            .await
     }
 }
 
@@ -176,6 +259,30 @@ pub struct MarkEmailThreadSeenInput {
 pub struct MarkEmailThreadUnreadInput {
     /// Email thread to mark unread; its inbox determines the UNREAD label.
     pub thread_id: ID,
+}
+
+/// Semantic state fields shared by every mailbox provider.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, async_graphql::Enum)]
+pub enum EmailThreadStateField {
+    /// Read/unread state.
+    Read,
+    /// Follow-up star/flag.
+    Starred,
+    /// Recoverable trash membership.
+    Trashed,
+    /// Junk membership.
+    Junk,
+}
+
+/// Set one mailbox fact without looking up provider labels on the client.
+#[derive(InputObject)]
+pub struct SetEmailThreadStateInput {
+    /// Accessible thread to change.
+    pub thread_id: ID,
+    /// Semantic mailbox fact.
+    pub field: EmailThreadStateField,
+    /// Desired state.
+    pub value: bool,
 }
 
 /// Input for archive-based Done and its inverse. No client label lookup is needed.
@@ -230,6 +337,10 @@ impl From<SaveEmailDraftContactInput> for ContactInfo {
 /// existing draft.
 #[derive(InputObject)]
 pub struct SaveEmailDraftInput {
+    /// Generation from the last loaded draft. Omitted by legacy clients.
+    pub draft_generation: Option<i32>,
+    /// Verified sender address for the selected inbox. Absent selects its primary address.
+    pub sender_email: Option<String>,
     /// Draft handle: a client-generated ID, or a server ID from a fetched
     /// draft. Resolved scoped to the caller's inboxes, and bound to the
     /// server row the save settles on, so replays converge on one draft.
@@ -270,6 +381,8 @@ pub struct SaveEmailDraftInput {
 /// Input for deleting an email draft.
 #[derive(InputObject)]
 pub struct DeleteEmailDraftInput {
+    /// Generation from the last loaded draft.
+    pub draft_generation: Option<i32>,
     /// Draft handle to delete: a client-generated ID or a server ID, resolved
     /// like a save's. A handle that is already gone (or was never bound — a
     /// discard can replay before its draft's first save ever committed)
@@ -352,8 +465,10 @@ where
 /// attachments. The service fails the save response if attachment loading fails.
 fn saved_draft_message(saved: SavedUserDraft) -> Message {
     let SavedUserDraft {
+        operation_status,
         draft,
-        link,
+        link: _,
+        sender,
         created_at,
         updated_at,
         labels,
@@ -369,6 +484,8 @@ fn saved_draft_message(saved: SavedUserDraft) -> Message {
         draft.body_text.as_deref(),
     );
     Message {
+        draft_generation: draft.draft_generation,
+        operation_status,
         db_id: draft.db_id,
         provider_id: draft.provider_id,
         thread_db_id: draft.thread_db_id,
@@ -390,11 +507,8 @@ fn saved_draft_message(saved: SavedUserDraft) -> Message {
             || !attachments_draft.is_empty()
             || !attachments_forwarded.is_empty(),
         scheduled_send_time: draft.send_time,
-        from: Some(ContactInfo {
-            email: String::from(link.email_address),
-            name: None,
-            photo_url: None,
-        }),
+        scheduled_send_status: None,
+        from: Some(sender),
         to: draft.to,
         cc: draft.cc,
         bcc: draft.bcc,
@@ -416,8 +530,20 @@ fn saved_draft_message(saved: SavedUserDraft) -> Message {
 /// Error taxonomy for the draft mutations (save and delete), mirroring the
 /// REST `CreateDraftError` mapping with machine-readable `extensions.code`
 /// values the client can use to offer recovery without blocking its mutation queue.
-fn draft_mutation_error(error: &EmailErr) -> async_graphql::Error {
+pub fn draft_mutation_error(error: &EmailErr) -> async_graphql::Error {
     let (message, code) = match error {
+        EmailErr::SendAttemptConflict => (
+            "send attempt was reused with different content",
+            "SEND_ATTEMPT_CONFLICT",
+        ),
+        EmailErr::InvalidSendSnapshot(_) => (
+            "review the message and attachments before sending",
+            "INVALID",
+        ),
+        EmailErr::DraftGenerationConflict(_) => (
+            "draft changed on another device; preserve your edits and reload before retrying",
+            "DRAFT_VERSION_CONFLICT",
+        ),
         EmailErr::MessageAlreadySent(_) => {
             ("email draft has already been sent", "DRAFT_ALREADY_SENT")
         }
@@ -428,6 +554,18 @@ fn draft_mutation_error(error: &EmailErr) -> async_graphql::Error {
         EmailErr::MessageNotFound(_) => ("referenced email message not found", "NOT_FOUND"),
         EmailErr::ThreadNotFound => ("email thread not found", "NOT_FOUND"),
         EmailErr::InboxNotFound => ("email inbox not found", "INBOX_NOT_FOUND"),
+        EmailErr::InvalidSender => (
+            "address is not a verified sender for this inbox",
+            "INVALID_SENDER",
+        ),
+        EmailErr::SendAsPermissionRequired => (
+            "reconnect this inbox to use its sender addresses",
+            "NEEDS_REAUTH",
+        ),
+        EmailErr::SendAsUnavailable => (
+            "email sender addresses are unavailable",
+            "SEND_AS_UNAVAILABLE",
+        ),
         EmailErr::CannotReplyToDraft => ("cannot reply to a draft", "INVALID"),
         EmailErr::Base64DecodeError(_) | EmailErr::Utf8Error(_) => {
             ("email draft body is invalid", "INVALID")
@@ -539,6 +677,70 @@ where
         reload_thread::<O>(ctx, user_id, thread_id).await
     }
 
+    /// Set provider-neutral mailbox state and return the authoritative thread.
+    #[tracing::instrument(skip_all, err(Debug))]
+    async fn set_email_thread_state(
+        &self,
+        ctx: &Context<'_>,
+        input: SetEmailThreadStateInput,
+    ) -> async_graphql::Result<O::Thread> {
+        use email::domain::models::mailbox_action::MailboxAction;
+        let user = require_authenticated_user(ctx)?;
+        let thread = parse_id(input.thread_id, "threadId")?;
+        let action = match input.field {
+            EmailThreadStateField::Read => MailboxAction::Read(input.value),
+            EmailThreadStateField::Starred => MailboxAction::Flagged(input.value),
+            EmailThreadStateField::Trashed => MailboxAction::Trashed(input.value),
+            EmailThreadStateField::Junk => MailboxAction::Junk(input.value),
+        };
+        ctx.data::<Arc<S>>()?
+            .set_email_thread_state(user.clone(), thread, action)
+            .await
+            .map_err(|e| mutation_error(&e))?;
+        reload_thread::<O>(ctx, user, thread).await
+    }
+
+    /// Resolve an email write conflict and return the current canonical thread.
+    #[tracing::instrument(skip_all, err(Debug))]
+    async fn resolve_email_message_operation(
+        &self,
+        ctx: &Context<'_>,
+        input: ResolveEmailMessageOperationInput,
+    ) -> async_graphql::Result<O::Thread> {
+        use email::domain::models::mailbox_operation::{
+            MessageResolutionAction, MessageResolutionRequest,
+        };
+        let user = require_authenticated_user(ctx)?;
+        let message_id = parse_id(input.message_id, "messageId")?;
+        let revision = input
+            .revision
+            .parse::<i64>()
+            .ok()
+            .filter(|value| *value > 0)
+            .ok_or_else(|| async_graphql::Error::new("invalid operation revision"))?;
+        let action = match input.action {
+            EmailMessageResolutionAction::KeepLocal => MessageResolutionAction::KeepLocal,
+            EmailMessageResolutionAction::UseProvider => MessageResolutionAction::UseProvider,
+            EmailMessageResolutionAction::Recheck => MessageResolutionAction::Recheck,
+            EmailMessageResolutionAction::RetrySend => MessageResolutionAction::RetrySend,
+        };
+        let thread = ctx
+            .data::<Arc<S>>()?
+            .resolve_email_message_operation(
+                user.clone(),
+                MessageResolutionRequest {
+                    message_id,
+                    revision,
+                    remote_version: input.remote_version,
+                    action,
+                    accept_duplicate_risk: input.accept_duplicate_risk,
+                },
+            )
+            .await
+            .map_err(|error| mutation_error(&error))?;
+        reload_thread::<O>(ctx, user, thread).await
+    }
+
     /// Set archive-based Done and return the primary-backed canonical thread.
     #[tracing::instrument(skip_all, err(Debug))]
     async fn set_email_thread_archived(
@@ -586,6 +788,17 @@ where
             })?;
 
         reload_thread::<O>(ctx, user_id, thread_id).await
+    }
+
+    /// Enqueue a message from a caller-accessible inbox using a verified sender.
+    /// Delivery uses the existing undo window and worker, not the offline mutation queue.
+    #[tracing::instrument(skip_all, err(Debug))]
+    async fn send_email_message(
+        &self,
+        ctx: &Context<'_>,
+        input: SendEmailMessageInput,
+    ) -> async_graphql::Result<SendEmailMessagePayload> {
+        send::send::<S>(ctx, input).await
     }
 
     /// Create or update an email draft and return its thread's authoritative
@@ -648,7 +861,11 @@ where
         let service = ctx.data::<Arc<S>>()?;
 
         let deleted = service
-            .delete_email_draft(user_id.clone(), draft_id)
+            .delete_email_draft(
+                user_id.clone(),
+                draft_id,
+                input.draft_generation.unwrap_or(0),
+            )
             .await
             .map_err(|error| {
                 tracing::error!(
@@ -678,7 +895,9 @@ where
 
 /// Convert transport input into the domain draft input. Drafts carry no
 /// actor: attribution happens when the draft is actually sent.
-fn draft_input_from_graphql(input: SaveEmailDraftInput) -> async_graphql::Result<CreateDraftInput> {
+pub(crate) fn draft_input_from_graphql(
+    input: SaveEmailDraftInput,
+) -> async_graphql::Result<CreateDraftInput> {
     let send_time = input
         .send_time
         .as_deref()
@@ -693,6 +912,15 @@ fn draft_input_from_graphql(input: SaveEmailDraftInput) -> async_graphql::Result
         .transpose()?;
 
     Ok(CreateDraftInput {
+        frozen_signature_html: None,
+        draft_generation: input.draft_generation.unwrap_or(0),
+        sender_email: input
+            .sender_email
+            .map(|address| {
+                macro_user_id::email::EmailStr::try_from(address)
+                    .map_err(|_| draft_mutation_error(&EmailErr::InvalidSender))
+            })
+            .transpose()?,
         db_id: Some(parse_id(input.draft_id, "draftId")?),
         provider_id: input.provider_id,
         replying_to_id: input

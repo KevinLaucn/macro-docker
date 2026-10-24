@@ -243,6 +243,8 @@ export function getNotificationActionText(n: Notification): string {
     .with('mentioned_in_document_comment', () => 'mentioned')
     .with('replied_to_document_comment_thread', () => 'replied')
     .with('initiative_discussion', () => 'commented')
+    .with('entity_access_requested', () => 'requested access')
+    .with('entity_access_granted', () => 'granted access')
     .with('commented_on_document', 'crm_discussion', () => 'commented')
     .with('channel_invite', () => 'invited')
     .with('new_email', () => 'emailed')
@@ -268,11 +270,12 @@ export function getNotificationActionText(n: Notification): string {
     .with('call_started', () => 'called')
     .with('reminder', () => 'reminder')
     .with('calendar_event_reminder', () => 'starting soon')
+    .with('calendar_event_join_request', () => 'asked to join')
     .with('inbox_reauth_required', () => 'needs reconnection')
     .with('agent_session_settled', () => 'finished')
     .with('agent_session_waiting_for_input', () => 'asked')
     .with('agent_session_mentioned', () => 'mentioned')
-    .exhaustive();
+    .exhaustive(() => 'notified');
 }
 
 export function extractMessageContent(notification: Notification): string {
@@ -300,6 +303,10 @@ export function extractMessageContent(notification: Notification): string {
       (m) => m.content.text || ''
     )
     .with({ tag: 'initiative_discussion' }, (m) => m.content.text || '')
+    .with(
+      { tag: P.union('entity_access_requested', 'entity_access_granted') },
+      (m) => `${m.content.accessLevel} access to ${m.content.entityName}`
+    )
     .with({ tag: 'commented_on_document' }, (m) => m.content.text || '')
     .with({ tag: 'crm_discussion' }, (m) => m.content.text || '')
     .with({ tag: 'new_email' }, (m) => m.content.subject || '')
@@ -340,6 +347,7 @@ export function extractMessageContent(notification: Notification): string {
     .with({ tag: 'call_started' }, (m) => m.content.channel_name ?? '')
     .with({ tag: 'reminder' }, (m) => m.content.description)
     .with({ tag: 'calendar_event_reminder' }, (m) => m.content.title || '')
+    .with({ tag: 'calendar_event_join_request' }, (m) => m.content.title || '')
     .with({ tag: 'inbox_reauth_required' }, (m) => m.content.emailAddress || '')
     .with(
       { tag: 'agent_session_settled' },
@@ -347,7 +355,7 @@ export function extractMessageContent(notification: Notification): string {
     )
     .with({ tag: 'agent_session_waiting_for_input' }, (m) => m.content.question)
     .with({ tag: 'agent_session_mentioned' }, (m) => m.content.sessionName)
-    .exhaustive();
+    .exhaustive(() => '');
 }
 
 /**

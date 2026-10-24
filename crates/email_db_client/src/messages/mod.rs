@@ -7,6 +7,7 @@ pub mod insert;
 pub mod open_tracking;
 pub mod replying_to_id;
 pub mod scheduled;
+pub mod sent_identity;
 #[cfg(test)]
 mod test;
 pub mod update;

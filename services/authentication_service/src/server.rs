@@ -108,6 +108,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     // Parse our configuration from the environment.
     let config = Config::from_env().context("expected to be able to generate config")?;
+    let account_link_state_key = config.account_link_state_key()?;
     let signup_policy = Arc::new(
         config
             .signup_policy()
@@ -228,6 +229,23 @@ pub async fn run() -> anyhow::Result<()> {
         None => auth_client,
     };
     tracing::trace!("initialized auth client");
+    let microsoft_auth = microsoft_token_cipher.map(|cipher| {
+        use crate::{
+            domain::microsoft::{MicrosoftAuth, MicrosoftAuthService},
+            outbound::microsoft::{MicrosoftOAuthProvider, PgMicrosoftGrants},
+        };
+        Arc::new(
+            MicrosoftAuthService::new(
+                PgMicrosoftGrants::new(db.clone()),
+                MicrosoftOAuthProvider::new(
+                    Arc::new(auth_client.clone()),
+                    account_link_state_key.clone(),
+                ),
+                cipher,
+            )
+            .with_connections_enabled(config.outlook_connections_enabled),
+        ) as Arc<dyn MicrosoftAuth>
+    });
 
     let document_storage_service_client = DocumentStorageServiceClient::new(
         config.service_internal_auth_key.to_string().clone(),
@@ -376,8 +394,11 @@ pub async fn run() -> anyhow::Result<()> {
     }
 
     let teams_repo_impl = TeamRepositoryImpl::new(db.clone());
-    let customer_repo_impl =
-        CustomerRepositoryImpl::new(stripe_client.clone(), stripe_prices.seat_prices());
+    let customer_repo_impl = CustomerRepositoryImpl::new(
+        stripe_client.clone(),
+        stripe_prices.seat_prices(),
+        db.clone(),
+    );
     let favorites_service = favorites::domain::service::FavoritesServiceImpl::new(
         favorites::outbound::pg_favorites_repo::PgFavoritesRepo::new(db.clone()),
     );
@@ -471,6 +492,11 @@ pub async fn run() -> anyhow::Result<()> {
         GithubPullRequestServiceImpl::new(
             foreign_entity_service,
             PgGithubPullRequestRepo::new(db.clone()),
+        )
+        .with_event_publisher(
+            github_pull_requests::broker::BrokerGithubPullRequestPublisher(
+                macro_event_broker.clone(),
+            ),
         ),
         GithubLinkConfig {
             client_id: config.github_client_id.to_string(),
@@ -516,7 +542,30 @@ pub async fn run() -> anyhow::Result<()> {
         None
     };
 
+    let plan_customer = CustomerRepositoryImpl::new(
+        stripe_client.clone(),
+        stripe_prices.seat_prices(),
+        db.clone(),
+    );
     let stripe_client = Arc::new(stripe_client);
+    let plan_gateway = crate::outbound::subscription_plan::StripePlanGateway::new(
+        db.clone(),
+        stripe_client.clone(),
+        stripe_prices.seat_prices(),
+        plan_customer,
+    );
+    let subscription_plan = Arc::new(crate::service::subscription_plan::PlanService::new(
+        plan_gateway.clone(),
+    ));
+    let subscription_status = Arc::new(
+        crate::service::subscription_status::SubscriptionStatusService::new(
+            ai_billing::outbound::RolesTeamsEntitlementSource::new(
+                user_roles_and_permissions_service.clone(),
+                teams_repo_impl.clone(),
+            ),
+            plan_gateway,
+        ),
+    );
     let gtm_invite_service = Arc::new(gtm_invite_service);
     let subscription_checkout =
         Arc::new(crate::service::subscription_checkout::CheckoutService::new(
@@ -543,6 +592,29 @@ pub async fn run() -> anyhow::Result<()> {
         .with_enforcement(config.enable_ai_usage_enforcement)
         .with_billing(config.enable_ai_usage_billing),
     );
+    // The floor under every settlement request: on a schedule, settle
+    // everyone who recorded counted usage recently, whose period just closed,
+    // or who holds a reload that was never collected. Settlement is
+    // idempotent and serialized per payer in the database, so replicas may
+    // sweep concurrently. Not started while billing is off: every settlement
+    // would return before reading anything.
+    let settlement_sweep = config.enable_ai_usage_billing.is_enabled().then(|| {
+        tokio::spawn(ai_billing::inbound::run_settlement_sweep(
+            ai_billing::domain::SettlementSweep::new(
+                ai_billing_service.clone(),
+                ai_billing::outbound::PgSettlementCandidates::new(db.clone()),
+                ai_billing::outbound::RolesTeamsEntitlementSource::new(
+                    user_roles_and_permissions_service.clone(),
+                    teams_repo_impl.clone(),
+                ),
+            ),
+            ai_billing::inbound::SETTLEMENT_SWEEP_INITIAL_DELAY,
+            ai_billing::inbound::SETTLEMENT_SWEEP_INTERVAL,
+        ))
+    });
+    if settlement_sweep.is_none() {
+        tracing::info!("ai billing settlement sweep not started: ENABLE_AI_USAGE_BILLING is off");
+    }
     let document_storage_service_client = Arc::new(document_storage_service_client);
     // The harness and scheduled-action services validate the fleet-wide
     // internal key, not this service's own inbound key.
@@ -587,17 +659,37 @@ pub async fn run() -> anyhow::Result<()> {
         .map_err(|error| anyhow::anyhow!("{error:?}"))?,
     );
 
+    // Cleanup continues while new connections are disabled or OAuth is unconfigured.
+    let grant_repository = crate::outbound::microsoft::PgMicrosoftGrants::new(db.clone());
+    let grant_cleanup = tokio::spawn(async move {
+        let mut interval = tokio::time::interval(MICROSOFT_GRANT_CLEANUP_INTERVAL);
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        loop {
+            interval.tick().await;
+            if let Err(error) =
+                crate::domain::microsoft::collect_expired_grants(&grant_repository).await
+            {
+                tracing::error!(?error, "Microsoft grant expiry cleanup failed");
+            }
+        }
+    });
+
     let server_result = api::setup_and_serve(
         ApiContext {
+            inbox_connections: Arc::new(email::domain::inbox_entitlement::InboxConnectionService(
+                email::outbound::EmailPgRepo::new(db.clone()),
+            )),
             db,
             github_link_service: Arc::new(github_link_service_impl),
             auth_client: Arc::new(auth_client),
-            microsoft_token_cipher,
+            microsoft_auth,
             cursor_api_key_cipher,
             codex_connection,
             macro_cache_client: Arc::new(macro_cache_client),
             stripe_client,
             subscription_checkout,
+            subscription_plan,
+            subscription_status,
             document_storage_service_client,
             user_deletion,
             email_service_client: Arc::new(email_service_client),
@@ -608,6 +700,7 @@ pub async fn run() -> anyhow::Result<()> {
             signup_policy,
             rate_limit_service: rate_limit,
             calendar_scope_enabled: config.calendar_scope_enabled,
+            account_link_state_key,
             jwt_args,
             authorization_state,
             token_context: MacroApiTokenContext {
@@ -654,6 +747,14 @@ pub async fn run() -> anyhow::Result<()> {
     )
     .await;
 
+    grant_cleanup.abort();
+    let _ = grant_cleanup.await;
+    // A sweep interrupted here leaves nothing half done: each settlement
+    // step commits on its own and the next sweep, on any replica, resumes.
+    if let Some(sweep) = settlement_sweep {
+        sweep.abort();
+    }
+
     tracing::info!("waiting for event broker publishes to drain");
     event_broker_tracker.close();
     match tokio::time::timeout(EVENT_BROKER_DRAIN_TIMEOUT, event_broker_tracker.wait()).await {
@@ -671,6 +772,7 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 const EVENT_BROKER_DRAIN_TIMEOUT: Duration = Duration::from_secs(10);
+const MICROSOFT_GRANT_CLEANUP_INTERVAL: Duration = Duration::from_secs(5 * 60);
 
 // SAFETY: this is not a secret value
 const IOS_DEVELOPMENT_TEAM_ID: &str = "TY74Q77JBD";

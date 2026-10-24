@@ -51,6 +51,8 @@ function getNotificationIcon(
     .with('channel_message_send', () => ChatIcon)
     .with('channel_message_reaction', () => SmileyIcon)
     .with('new_email', () => EnvelopeIcon)
+    .with('entity_access_requested', () => UserPlusIcon)
+    .with('entity_access_granted', () => CheckIcon)
     .with('channel_invite', () => UserPlusIcon)
     .with('invite_to_team', () => UserPlusIcon)
     .with('task_assigned', () => CheckIcon)
@@ -69,11 +71,12 @@ function getNotificationIcon(
     .with('call_started', () => PhoneIcon)
     .with('reminder', () => BellIcon)
     .with('calendar_event_reminder', () => CalendarBlankIcon)
+    .with('calendar_event_join_request', () => UserPlusIcon)
     .with('inbox_reauth_required', () => EnvelopeIcon)
     .with('agent_session_settled', () => AgentIcon)
     .with('agent_session_waiting_for_input', () => QuestionIcon)
     .with('agent_session_mentioned', () => AtIcon)
-    .exhaustive();
+    .exhaustive(() => BellIcon);
 }
 
 /**

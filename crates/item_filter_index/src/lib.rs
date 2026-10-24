@@ -294,6 +294,11 @@ fn check_soup_flat(
     if ast.favorites_only == Some(true) {
         return Eligibility::Unsupported(UnsupportedReason::Literal("favorites"));
     }
+    // Association membership is resolved by the server from CRM records,
+    // properties, and references that no local row carries.
+    if ast.crm_association.is_some() {
+        return Eligibility::Unsupported(UnsupportedReason::Literal("crm_association"));
+    }
     if request.has_cursor {
         return Eligibility::Unsupported(UnsupportedReason::Cursor);
     }

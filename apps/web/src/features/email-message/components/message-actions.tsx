@@ -1,4 +1,5 @@
 import type { EmailMessage } from '@app/features/email-message/core/email-message';
+import { TOKENS } from '@core/hotkey/tokens';
 import { t } from '@macro/i18n';
 import ArrowBendUpLeft from '@phosphor/arrow-bend-up-left.svg';
 import ArrowBendUpRight from '@phosphor/arrow-bend-up-right.svg';
@@ -39,6 +40,7 @@ export function MessageActions(props: {
           noTouchResize
           onClick={onChangeReplyType('reply-all')}
           tooltip={t('Reply', { context: 'email' })}
+          hotkey={TOKENS.email.reply}
         >
           <ArrowBendUpLeft class="size-3.5" />
         </Button>
@@ -51,6 +53,7 @@ export function MessageActions(props: {
           noTouchResize
           onClick={onChangeReplyType('forward')}
           tooltip={t('Forward', { context: 'email' })}
+          hotkey={TOKENS.email.forward}
         >
           <ArrowBendUpRight class="size-3.5" />
         </Button>

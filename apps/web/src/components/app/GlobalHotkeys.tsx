@@ -16,28 +16,29 @@ import { useSubscribeToKeypress } from '@app/signal/hotkeyRoot';
 import { globalSplitManager } from '@app/signal/splitLayout';
 import { useHandleFileUpload } from '@app/util/handleFileUpload';
 import { useLogout } from '@core/auth/logout';
-import { useOpenInstructionsMd } from '@core/component/AI/util/instructions';
 import { toast } from '@core/component/Toast/Toast';
 import { enableSnippets, LOCAL_ONLY } from '@core/constant/featureFlags';
 import {
   type SettingsTab,
   useSettingsState,
 } from '@core/constant/SettingsState';
+import { getShortcutSheet, type ShortcutSheet } from '@core/hotkey/getCommands';
 import { registerHotkey } from '@core/hotkey/hotkeys';
-import { setActiveScope } from '@core/hotkey/state';
+import { activeScope, setActiveScope } from '@core/hotkey/state';
 import { TOKENS } from '@core/hotkey/tokens';
 import type { ValidHotkey } from '@core/hotkey/types';
+import { fireAndForget } from '@core/util/fireAndForget';
 import {
   handleFolderSelect,
   openFilePicker,
   openFolderPicker,
 } from '@core/util/upload';
+import { Telemetry } from '@macro-inc/observability';
 import IconGear from '@phosphor/gear.svg';
 import Plus from '@phosphor/plus.svg';
 import LogoutIcon from '@phosphor/sign-out.svg';
 import Upload from '@phosphor/upload.svg';
 import UserIcon from '@phosphor/user.svg';
-import { AiInstructionsIcon } from '@queries/storage/instructions-md';
 import { useMutationUndoContext } from '@queries/undo';
 import { debounce } from '@solid-primitives/scheduled';
 import { ThemeChips } from '@theme/components/ThemeChips';
@@ -59,6 +60,7 @@ import {
   resolveActiveThemeId,
   scheduleThemePreviewEnd,
 } from '@theme/utils/themeUtils';
+import { ResultAsync } from 'neverthrow';
 import { type Component, onCleanup, Show } from 'solid-js';
 import { useSplitLayout } from './split-layout/layout';
 
@@ -123,6 +125,29 @@ function useHotkeyAnalytics(): void {
   onCleanup(() => {
     debouncedTrack.clear();
   });
+}
+
+/** The sheet loads on demand; it is not part of the startup bundle. */
+async function toggleKeyboardShortcuts(sheet: ShortcutSheet) {
+  const span = Telemetry.span('hotkeys.shortcut_sheet.toggle');
+  try {
+    span.setAttr('shortcut_sheet.view_count', sheet.view.length);
+    span.setAttr('shortcut_sheet.app_count', sheet.app.length);
+    const loaded = await ResultAsync.fromPromise(
+      import('./KeyboardShortcutsDialog'),
+      (error) => error
+    );
+    if (loaded.isErr()) {
+      span.setAttr('shortcut_sheet.outcome', 'load_failed');
+      span.error(loaded.error);
+      toast.failure('Unable to show keyboard shortcuts');
+      return;
+    }
+    loaded.value.toggleKeyboardShortcuts(sheet);
+    span.setAttr('shortcut_sheet.outcome', 'toggled');
+  } finally {
+    span.end();
+  }
 }
 
 export default function GlobalShortcuts() {
@@ -343,22 +368,12 @@ export default function GlobalShortcuts() {
     description: 'Logout',
     icon: LogoutIcon,
     keyDownHandler: () => {
-      logout();
+      logout().catch((error) => {
+        Telemetry.error(error, { surface: 'logout' });
+        toast.failure('Failed to sign out');
+      });
       return true;
     },
-    runWithInputFocused: true,
-  });
-
-  const openInstructions = useOpenInstructionsMd();
-  registerHotkey({
-    hotkeyToken: TOKENS.global.instructions,
-    scopeId: 'global',
-    description: 'Open AI instructions',
-    keyDownHandler: () => {
-      openInstructions();
-      return true;
-    },
-    icon: AiInstructionsIcon,
     runWithInputFocused: true,
   });
 
@@ -568,6 +583,29 @@ export default function GlobalShortcuts() {
   });
 
   registerHotkey({
+    hotkeyToken: TOKENS.global.keyboardShortcuts,
+    // '?' arrives as shift+/ and prints back as '?'.
+    hotkey: 'shift+/',
+    scopeId: 'global',
+    description: 'Show keyboard shortcuts',
+    keywords: ['hotkeys', 'keys', 'help', 'cheat sheet'],
+    // Only the key: run from the command menu, the sheet would describe the
+    // menu rather than the view it was opened from.
+    hide: true,
+    keyDownHandler: (e) => {
+      // German and French layouts type `/` with Shift, which also reads as
+      // shift+/; only an actual `?` opens the sheet.
+      if (e && e.key !== '?') return false;
+      // Read before the sheet takes focus and changes the active scope.
+      fireAndForget(
+        toggleKeyboardShortcuts(getShortcutSheet(activeScope())),
+        'global-hotkeys'
+      );
+      return true;
+    },
+  });
+
+  registerHotkey({
     hotkeyToken: TOKENS.global.undo,
     hotkey: 'cmd+z',
     scopeId: 'global',
@@ -575,7 +613,10 @@ export default function GlobalShortcuts() {
     keyDownHandler: (e) => {
       if (!undoCtx.canUndo()) return false;
       e?.preventDefault();
-      undoCtx.undo({ onError: () => toast.failure('Failed to undo') });
+      fireAndForget(
+        undoCtx.undo({ onError: () => toast.failure('Failed to undo') }),
+        'global-hotkeys'
+      );
       return true;
     },
     condition: () => undoCtx.canUndo(),
@@ -589,7 +630,10 @@ export default function GlobalShortcuts() {
     keyDownHandler: (e) => {
       if (!undoCtx.canRedo()) return false;
       e?.preventDefault();
-      undoCtx.redo({ onError: () => toast.failure('Failed to redo') });
+      fireAndForget(
+        undoCtx.redo({ onError: () => toast.failure('Failed to redo') }),
+        'global-hotkeys'
+      );
       return true;
     },
     condition: () => undoCtx.canRedo(),

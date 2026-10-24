@@ -8,7 +8,7 @@ use anyhow::{Context, Result, bail};
 use serde_json::Value;
 
 use super::instance::{Instance, Port};
-use super::{gen_compose, identity, kickstart, stage::Stage};
+use super::{frontend, gen_compose, identity, kickstart, proxy, stage::Stage};
 
 #[cfg(test)]
 mod test;
@@ -50,7 +50,7 @@ pub fn write_kickstart(
     let doc = kickstart::build(
         instance.port(Port::Frontend),
         instance.port(Port::Auth),
-        instance.port(Port::DocCognition),
+        &[proxy::url(instance), frontend::https_origin(instance)?],
         &read_lambda(POPULATE_JWT_LAMBDA)?,
         &read_lambda(RECONCILE_LAMBDA)?,
         google,

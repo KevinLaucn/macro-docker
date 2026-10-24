@@ -6,10 +6,12 @@ import {
   listOwnedSlotName,
 } from '@app/components/list';
 import { setSidebarSectionCollapsed } from '@app/components/view-shell';
-import { useMobileSearchText } from '@app/features/command/mobile/use-mobile-search-text';
 import { normalizeFacetSelection } from '@app/features/soup';
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
-import { enableProjects } from '@app/lib/core/constant/featureFlags';
+import {
+  enableGantt,
+  enableProjects,
+} from '@app/lib/core/constant/featureFlags';
 import { makePersistedState } from '@app/lib/persistence';
 import {
   createSearchParams,
@@ -29,6 +31,7 @@ import {
 import { createAssertedContextProvider } from '@core/context/createContext';
 import { useUserId } from '@core/context/user';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { useTagSets, useTagSetsReady } from '@property/tags/tag-sets-context';
 import type { ContextProviderProps } from '@solid-primitives/context';
 import {
@@ -47,8 +50,10 @@ import {
   type Store,
 } from 'solid-js/store';
 import { TASK_DEFAULT_GROUP_BY } from './constants';
+import { toTaskBoardGrouping } from './core/task-board';
 import { DEFAULT_TASK_FACET_SELECTION } from './filters/task-facets';
 import { createTasksViewPersistence } from './persistence';
+import { createTasksViewSearch } from './primitives/create-tasks-view-search';
 import {
   type TasksDataSource,
   type TasksDataSourceItem,
@@ -57,6 +62,7 @@ import {
 } from './queries/use-tasks-query';
 import { tasksTabSearch, tasksTabSearchCodec } from './tasks-tab-search';
 import type {
+  TaskCreateOptions,
   TaskDetailTarget,
   TaskSortId,
   TasksTab,
@@ -68,6 +74,8 @@ export type TasksViewProviderProps = ContextProviderProps & {
   initialState?: TasksViewStateOptions;
   restoreEntryState?: boolean;
   scopeKey?: string;
+  /** Enables URL controls for an embedded view without sharing the parent namespace. */
+  searchNamespace?: string;
   sourceFactory?: (
     state: Store<TasksViewState>,
     options: UseTasksDataSourceOptions
@@ -77,6 +85,8 @@ export type TasksViewProviderProps = ContextProviderProps & {
     options?: EntityDetailNavigationOptions
   ) => boolean;
   onCloseTask?: () => void;
+  /** Host-owned task creation, including scope and permissions for embedded views. */
+  onCreateTask?: (options?: TaskCreateOptions) => void;
 };
 
 export type TasksListActivationMetadata = {
@@ -92,7 +102,9 @@ type TasksListController = ListController<
 export type TasksViewContext = {
   scopeKey?: string;
   state: Store<TasksViewState>;
+  createTask?: TasksViewProviderProps['onCreateTask'];
   projectsEnabled: Accessor<boolean>;
+  ganttEnabled: Accessor<boolean>;
   setState: SetStoreFunction<TasksViewState>;
   selectedTask: Accessor<TaskDetailTarget | undefined>;
   source: TasksDataSource;
@@ -113,6 +125,11 @@ export type TasksViewContext = {
   closeTask: () => void;
   setTab: (tab: TasksTab) => void;
   setFacets: (facets: TasksViewState['facets']) => void;
+  /**
+   * Filters by a single tag without changing tabs. Used by the inline
+   * "filter by tag" button on entity rows.
+   */
+  filterByTag: (optionId: string) => void;
   setPrimarySort: (id: TaskSortId) => void;
   isSidebarSectionOpen: (id: string) => boolean;
   setSidebarSectionOpen: (id: string, open: boolean) => void;
@@ -129,13 +146,20 @@ export const [TasksViewProvider, useTasksView] = createAssertedContextProvider<
     projectId?: string;
     projectsTab?: 'projects';
   }>();
-  const [tabSearch] = createSearchParams(tasksTabSearch);
+  const searchNamespace = props.searchNamespace ?? tasksTabSearch.namespace;
+  const syncSearch = !props.scopeKey || !!props.searchNamespace;
+  const [tabSearch, setTabSearch] = createSearchParams({
+    ...tasksTabSearch,
+    namespace: searchNamespace,
+  });
   const selectPreview = createPreviewSelectionGuard();
   const userId = useUserId();
   const tagSets = useTagSets();
   const tagSetsReady = useTagSetsReady();
   const projectsFlag = useFeatureFlag(enableProjects);
   const projectsEnabled = () => projectsFlag().enabled;
+  const ganttFlag = useFeatureFlag(enableGantt);
+  const ganttEnabled = () => ganttFlag().enabled;
 
   const initial = props.initialState ?? {};
   const initialTab = initial.tab ?? 'my-tasks';
@@ -145,6 +169,7 @@ export const [TasksViewProvider, useTasksView] = createAssertedContextProvider<
   const createState = () =>
     makePersistedState(
       createStore<TasksViewState>({
+        layout: initial.layout ?? 'list',
         tab: initialTab,
         search: initial.search ?? '',
         groupBy: initial.groupBy ?? TASK_DEFAULT_GROUP_BY[initialTab],
@@ -171,14 +196,24 @@ export const [TasksViewProvider, useTasksView] = createAssertedContextProvider<
   const [persistedState, setState] = props.scopeKey
     ? withSplitPanelOwner(ownedSlot('view-state'), createState)
     : createState();
-  const searchText = useMobileSearchText(
-    () => persistedState.search,
-    () => !props.scopeKey && panel.handle.isActive()
-  );
-  // A pending or disabled rollout must not overwrite the saved Projects tab.
+  // Rollout fallbacks must not overwrite saved tab or layout selections.
   const state = mergeProps(persistedState, {
-    get search() {
-      return searchText();
+    get layout() {
+      if (
+        isTouchDevice() ||
+        (persistedState.layout === 'gantt' && !ganttEnabled())
+      ) {
+        return 'list';
+      }
+      return persistedState.layout;
+    },
+    get groupBy() {
+      if (state.layout !== 'board') {
+        return persistedState.groupBy;
+      }
+
+      const grouping = toTaskBoardGrouping(persistedState.groupBy);
+      return grouping === 'project' && !projectsEnabled() ? 'status' : grouping;
     },
     get tab(): TasksTab {
       return persistedState.tab === 'projects' && !projectsEnabled()
@@ -187,31 +222,46 @@ export const [TasksViewProvider, useTasksView] = createAssertedContextProvider<
     },
   });
 
-  const routeTab = (): TasksTab =>
-    routeParams.projectId || routeParams.projectsTab
-      ? 'projects'
-      : tabSearch.tab;
-  createEffect(
-    on(routeTab, (tab) => {
-      if (props.scopeKey || persistedState.tab === tab) return;
-      setState(
-        produce((draft) => {
-          draft.tab = tab;
-          draft.groupBy = TASK_DEFAULT_GROUP_BY[tab];
-          draft.facets = normalizeFacetSelection(DEFAULT_TASK_FACET_SELECTION);
-          draft.collapsedGroupIds = [];
-        })
-      );
-    })
-  );
+  const routeTab = (): TasksTab => {
+    if (props.scopeKey) return initialTab;
+    if (routeParams.projectId || routeParams.projectsTab) return 'projects';
+
+    return tabSearch.tab;
+  };
+  const { setState: setStateWithSearch, setPrimarySort } =
+    createTasksViewSearch({
+      state: persistedState,
+      setState,
+      search: tabSearch,
+      setSearch: setTabSearch,
+      tab: routeTab,
+      enabled: syncSearch,
+      nonListLayoutsEnabled: () => !isTouchDevice(),
+    });
+  const currentSearch = () =>
+    tasksTabSearchCodec.serialize({
+      tab: state.tab,
+      // Preserve a rollout-hidden Gantt selection across task navigation.
+      layout: isTouchDevice() ? 'list' : persistedState.layout,
+      sort: state.sort[0]?.id,
+      sortReversed: state.sort[0]
+        ? state.sort[0].reversed
+          ? 'true'
+          : 'false'
+        : undefined,
+      // Layout and rollout fallbacks must not overwrite the selected grouping.
+      groupBy: persistedState.groupBy,
+    });
   const isGroupExpanded = (groupId: string) =>
     !state.collapsedGroupIds.includes(groupId);
+
   const source = withSplitPanelOwner(ownedSlot('data-source'), () =>
     (props.sourceFactory ?? useTasksDataSource)(state, {
       userId,
       tagSets,
       tagSetsReady,
       isGroupExpanded,
+      board: () => state.layout === 'board',
     })
   );
   type ActivationHandler = (
@@ -258,18 +308,20 @@ export const [TasksViewProvider, useTasksView] = createAssertedContextProvider<
   };
   const closeTask = () => {
     if (props.onCloseTask) return props.onCloseTask();
-    navigate(
-      {
-        route: state.tab === 'projects' ? tasksProjectsRoute : tasksSplitRoute,
-        params: {},
-      },
-      {
-        search: {
-          [tasksTabSearch.namespace]: tasksTabSearchCodec.serialize({
-            tab: state.tab,
-          }),
+    fireAndForget(
+      navigate(
+        {
+          route:
+            state.tab === 'projects' ? tasksProjectsRoute : tasksSplitRoute,
+          params: {},
         },
-      }
+        {
+          search: {
+            [searchNamespace]: currentSearch(),
+          },
+        }
+      ),
+      'tasks-view'
     );
   };
   const openTask = (
@@ -279,15 +331,16 @@ export const [TasksViewProvider, useTasksView] = createAssertedContextProvider<
     if (props.onOpenTask) return props.onOpenTask(task, options);
     if (!opensInline(options)) return false;
     if (!selectPreview.canSelect(taskSelection(task.id))) return true;
-    navigate(
-      { route: taskDetailRoute, params: { taskId: task.id } },
-      {
-        search: {
-          [tasksTabSearch.namespace]: tasksTabSearchCodec.serialize({
-            tab: state.tab,
-          }),
-        },
-      }
+    fireAndForget(
+      navigate(
+        { route: taskDetailRoute, params: { taskId: task.id } },
+        {
+          search: {
+            [searchNamespace]: currentSearch(),
+          },
+        }
+      ),
+      'tasks-view'
     );
     return true;
   };
@@ -297,32 +350,36 @@ export const [TasksViewProvider, useTasksView] = createAssertedContextProvider<
       if (props.scopeKey || routeParams.projectId) return;
       if (!selectPreview(task ? taskSelection(task.id) : undefined)) {
         if (previous) {
-          navigate(
-            { route: taskDetailRoute, params: { taskId: previous.id } },
-            {
-              replace: true,
-              search: {
-                [tasksTabSearch.namespace]: tasksTabSearchCodec.serialize({
-                  tab: state.tab,
-                }),
-              },
-            }
+          fireAndForget(
+            navigate(
+              { route: taskDetailRoute, params: { taskId: previous.id } },
+              {
+                replace: true,
+                search: {
+                  [searchNamespace]: currentSearch(),
+                },
+              }
+            ),
+            'tasks-view'
           );
         } else {
-          navigate(
-            {
-              route:
-                state.tab === 'projects' ? tasksProjectsRoute : tasksSplitRoute,
-              params: {},
-            },
-            {
-              replace: true,
-              search: {
-                [tasksTabSearch.namespace]: tasksTabSearchCodec.serialize({
-                  tab: state.tab,
-                }),
+          fireAndForget(
+            navigate(
+              {
+                route:
+                  state.tab === 'projects'
+                    ? tasksProjectsRoute
+                    : tasksSplitRoute,
+                params: {},
               },
-            }
+              {
+                replace: true,
+                search: {
+                  [searchNamespace]: currentSearch(),
+                },
+              }
+            ),
+            'tasks-view'
           );
         }
         return;
@@ -359,11 +416,14 @@ export const [TasksViewProvider, useTasksView] = createAssertedContextProvider<
     setState('facets', reconcile(normalizeFacetSelection(facets)));
   };
 
-  const setPrimarySort = (id: TaskSortId) => {
-    const current = state.sort[0];
-    const reversed = current?.id === id ? !current.reversed : false;
-
-    setState('sort', [{ id, reversed }]);
+  // Filters by a single tag without changing tabs. Used by the inline
+  // "filter by tag" button on entity rows.
+  const filterByTag = (optionId: string) => {
+    closeTask();
+    setState(
+      'facets',
+      reconcile(normalizeFacetSelection({ tags: [optionId] }))
+    );
   };
 
   const isSidebarSectionOpen = (id: string) =>
@@ -377,9 +437,13 @@ export const [TasksViewProvider, useTasksView] = createAssertedContextProvider<
 
   return {
     scopeKey: props.scopeKey,
+    get createTask() {
+      return props.onCreateTask;
+    },
     state,
     projectsEnabled,
-    setState,
+    ganttEnabled,
+    setState: setStateWithSearch,
     selectedTask,
     source,
     list,
@@ -388,6 +452,7 @@ export const [TasksViewProvider, useTasksView] = createAssertedContextProvider<
     closeTask,
     setTab,
     setFacets,
+    filterByTag,
     setPrimarySort,
     isSidebarSectionOpen,
     setSidebarSectionOpen,

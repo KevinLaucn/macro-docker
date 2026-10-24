@@ -1,11 +1,13 @@
 use std::sync::{Arc, Mutex};
 
 use calendar_events::domain::{
+    changes::{CalendarChangeQueryService, CalendarChangesPage, CalendarWatermark},
     models::{
-        CalendarEvent, CalendarMentionPreview, CalendarMentionRequestItem, CalendarOccurrence,
-        CalendarOccurrenceCursor, CalendarSyncStatus, EventReminders, EventStatus, EventTime,
-        EventTransparency, EventType, EventVisibility, OccurrenceException, OccurrenceListing,
-        OccurrenceRange, TeamOutOfOffice, VisibleCalendar,
+        CalendarCapabilities, CalendarEvent, CalendarMentionPreview, CalendarMentionRequestItem,
+        CalendarOccurrence, CalendarOccurrenceCursor, CalendarProvider, CalendarSyncStatus,
+        EventReminders, EventStatus, EventTime, EventTransparency, EventType, EventVisibility,
+        GuestPolicy, OccurrenceException, OccurrenceListing, OccurrenceRange, TeamOutOfOffice,
+        ViewerCapabilities, VisibleCalendar,
     },
     ports::CalendarOccurrenceService,
 };
@@ -56,6 +58,9 @@ fn listing() -> OccurrenceListing {
             is_read_only: false,
             attendees: Vec::new(),
             reminders: EventReminders::default(),
+            guest_policy: GuestPolicy::default(),
+            is_snapshot: false,
+            viewer_can: ViewerCapabilities::NONE,
             created_at: starts_at,
             updated_at: starts_at,
         },
@@ -102,6 +107,8 @@ impl CalendarOccurrenceService for RecordingCalendarReads {
             is_writable: true,
             is_subscription: false,
             sync_error: None,
+            provider: CalendarProvider::Google,
+            capabilities: CalendarCapabilities::google(),
             default_reminders: Vec::new(),
         }])
     }
@@ -126,13 +133,55 @@ impl CalendarOccurrenceService for RecordingCalendarReads {
     async fn primary_time_zone(&self, _requester_id: &str) -> Result<Option<String>, Report> {
         unreachable!("not part of the calendar user fields")
     }
+
+    async fn meeting_copies(
+        &self,
+        _requester_id: &str,
+        _event_id: uuid::Uuid,
+    ) -> Result<Vec<calendar_events::domain::models::MeetingCopy>, Report> {
+        unreachable!("no GraphQL read lists a meeting's copies")
+    }
+
+    async fn event_ics(
+        &self,
+        _requester_id: &str,
+        _event_id: uuid::Uuid,
+    ) -> Result<Option<calendar_events::domain::ics::CalendarEventIcs>, Report> {
+        unreachable!("not part of the calendar user fields")
+    }
+}
+
+impl CalendarChangeQueryService for RecordingCalendarReads {
+    async fn current_watermark(&self, requester_id: &str) -> Result<CalendarWatermark, Report> {
+        self.viewers.lock().unwrap().push(requester_id.to_owned());
+        Ok(CalendarWatermark::default())
+    }
+
+    async fn changes_since(
+        &self,
+        requester_id: &str,
+        _since: CalendarWatermark,
+    ) -> Result<CalendarChangesPage, Report> {
+        self.viewers.lock().unwrap().push(requester_id.to_owned());
+        Ok(CalendarChangesPage {
+            reset_required: true,
+            ..CalendarChangesPage::default()
+        })
+    }
+    async fn event_change(
+        &self,
+        _requester_id: &str,
+        _event_id: Uuid,
+    ) -> Result<Option<calendar_events::domain::changes::CalendarEventChange>, Report> {
+        Ok(None)
+    }
 }
 
 #[tokio::test]
 async fn calendar_fields_read_through_request_data_for_the_viewer() {
     let harness = harness();
     let reads = Arc::new(RecordingCalendarReads::default());
-    let context = CalendarGraphqlContext::new(Arc::clone(&reads));
+    let context = CalendarGraphqlContext::new(Arc::clone(&reads), Arc::clone(&reads));
 
     let id_only = harness
         .schema
@@ -157,8 +206,9 @@ async fn calendar_fields_read_through_request_data_for_the_viewer() {
                             start: "2026-10-05T00:00:00Z", end: "2026-10-12T00:00:00Z"
                         }) {
                             nodes { id eventId linkId event { id title } }
-                            hasNextPage syncStatus
+                            hasNextPage syncStatus watermark { linkId seq }
                         }
+                        calendarChanges(input: { since: [] }) { resetRequired }
                     } }"#,
                     authenticated_parts(),
                 )
@@ -174,10 +224,10 @@ async fn calendar_fields_read_through_request_data_for_the_viewer() {
     assert_eq!(node["id"], format!("{EVENT_ID}:2026-10-06T15:00:00+00:00"));
     assert_eq!(node["event"]["title"], "Planning");
     assert_eq!(user["calendarOccurrences"]["syncStatus"], "READY");
-    assert_eq!(
-        *reads.viewers.lock().unwrap(),
-        vec![VALID_USER_ID.to_owned(), VALID_USER_ID.to_owned()]
-    );
+    assert_eq!(user["calendarChanges"]["resetRequired"], true);
+    let viewers = reads.viewers.lock().unwrap();
+    assert_eq!(viewers.len(), 4);
+    assert!(viewers.iter().all(|viewer| viewer == VALID_USER_ID));
 }
 
 #[tokio::test]
@@ -190,4 +240,152 @@ async fn calendar_fields_fail_without_the_calendar_context() {
         .await;
 
     assert_eq!(response.errors.len(), 1);
+}
+
+#[derive(Default)]
+struct RecordingCalendarMutations {
+    deleted: Mutex<Vec<(String, Uuid)>>,
+}
+
+impl calendar_events::domain::ports::CalendarMutationService for RecordingCalendarMutations {
+    async fn create_event(
+        &self,
+        _requester_id: &str,
+        _email_link_id: Option<Uuid>,
+        _calendar_id: Option<Uuid>,
+        _draft: calendar_events::domain::models::CalendarEventDraft,
+    ) -> Result<CalendarEvent, calendar_events::domain::ports::CalendarMutationError> {
+        unreachable!("only deletion is exercised")
+    }
+
+    async fn list_visible_calendars(
+        &self,
+        _requester_id: &str,
+    ) -> Result<Vec<VisibleCalendar>, calendar_events::domain::ports::CalendarMutationError> {
+        unreachable!("only deletion is exercised")
+    }
+
+    async fn update_event(
+        &self,
+        _requester_id: &str,
+        _event_id: Uuid,
+        _calendar_id: Option<Uuid>,
+        _patch: calendar_events::domain::models::CalendarEventPatch,
+        _scope: calendar_events::domain::ports::CalendarUpdateScope,
+    ) -> Result<CalendarEvent, calendar_events::domain::ports::CalendarMutationError> {
+        unreachable!("only deletion is exercised")
+    }
+
+    async fn delete_event(
+        &self,
+        requester_id: &str,
+        event_id: Uuid,
+        _calendar_id: Option<Uuid>,
+        _scope: calendar_events::domain::ports::CalendarDeletionScope,
+    ) -> Result<(), calendar_events::domain::ports::CalendarMutationError> {
+        self.deleted
+            .lock()
+            .unwrap()
+            .push((requester_id.to_owned(), event_id));
+        Ok(())
+    }
+
+    async fn respond_to_event(
+        &self,
+        _requester_id: &str,
+        _event_id: Uuid,
+        _calendar_id: Option<Uuid>,
+        _response: calendar_events::domain::models::AttendeeResponseStatus,
+        _scope: calendar_events::domain::ports::CalendarRsvpScope,
+        _responding_email: Option<String>,
+    ) -> Result<CalendarEvent, calendar_events::domain::ports::CalendarMutationError> {
+        unreachable!("only deletion is exercised")
+    }
+
+    async fn invite_guests(
+        &self,
+        _requester_id: &str,
+        _event_id: Uuid,
+        _calendar_id: Option<Uuid>,
+        _guests: Vec<calendar_events::domain::models::CalendarAttendeeInput>,
+        _scope: calendar_events::domain::ports::CalendarUpdateScope,
+    ) -> Result<CalendarEvent, calendar_events::domain::ports::CalendarMutationError> {
+        unreachable!("only deletion is exercised")
+    }
+
+    async fn copy_shared_event(
+        &self,
+        _requester_id: &str,
+        _event_id: Uuid,
+        _calendar_id: Option<Uuid>,
+    ) -> Result<CalendarEvent, calendar_events::domain::ports::CalendarMutationError> {
+        unreachable!("only deletion is exercised")
+    }
+
+    async fn respond_to_join_request(
+        &self,
+        _requester_id: &str,
+        _request_id: Uuid,
+        _accept: bool,
+    ) -> Result<
+        calendar_events::domain::join_requests::CalendarJoinRequest,
+        calendar_events::domain::ports::CalendarMutationError,
+    > {
+        unreachable!("only deletion is exercised")
+    }
+
+    async fn disconnect_calendar(
+        &self,
+        _requester_id: &str,
+        _email_link_id: Uuid,
+    ) -> Result<(), calendar_events::domain::ports::CalendarMutationError> {
+        unreachable!("only deletion is exercised")
+    }
+}
+
+impl calendar_events::domain::ports::CalendarMacroCallService for RecordingCalendarMutations {
+    async fn create_event_with_macro_call(
+        &self,
+        _requester_id: &str,
+        _email_link_id: Option<Uuid>,
+        _calendar_id: Option<Uuid>,
+        _draft: calendar_events::domain::models::CalendarEventDraft,
+    ) -> Result<CalendarEvent, calendar_events::domain::meeting_links::CreateEventWithMacroCallError>
+    {
+        unreachable!("only deletion is exercised")
+    }
+}
+
+#[tokio::test]
+async fn calendar_mutations_run_for_the_authenticated_viewer() {
+    let harness = harness();
+    let mutations = Arc::new(RecordingCalendarMutations::default());
+    let reads = Arc::new(RecordingCalendarReads::default());
+    let context =
+        graphql_calendar::CalendarGraphqlMutationContext::new(Arc::clone(&mutations), reads);
+
+    let response = harness
+        .schema
+        .execute(
+            harness
+                .request(
+                    &format!(
+                        r#"mutation {{ deleteCalendarEvent(input: {{ eventId: "{EVENT_ID}" }}) {{ deletedEventId }} }}"#
+                    ),
+                    authenticated_parts(),
+                )
+                .data(MacroUserIdStr::parse_from_str(VALID_USER_ID).unwrap())
+                .data(context),
+        )
+        .await;
+
+    assert!(response.errors.is_empty(), "{:?}", response.errors);
+    assert_eq!(
+        response.data.into_json().unwrap()["deleteCalendarEvent"]["deletedEventId"],
+        EVENT_ID.to_string()
+    );
+    assert_eq!(
+        *mutations.deleted.lock().unwrap(),
+        vec![(VALID_USER_ID.to_owned(), EVENT_ID)]
+    );
 }

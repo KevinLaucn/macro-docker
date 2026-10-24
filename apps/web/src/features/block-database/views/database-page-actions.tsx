@@ -1,4 +1,4 @@
-import { toast } from '@core/component/Toast/Toast';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { downloadFile } from '@filesystem/download';
 import CaretRightIcon from '@phosphor/caret-right.svg';
 import DotsThreeIcon from '@phosphor/dots-three.svg';
@@ -6,6 +6,7 @@ import DownloadIcon from '@phosphor/download-simple.svg';
 import PencilIcon from '@phosphor/pencil-line.svg';
 import TrashIcon from '@phosphor/trash-simple.svg';
 import UploadIcon from '@phosphor/upload-simple.svg';
+import WebhookIcon from '@phosphor/webhooks-logo.svg';
 import type { DatabaseDetail } from '@service-storage/generated/schemas/databaseDetail';
 import type { ImportTable } from '@service-storage/generated/schemas/importTable';
 import type { TableDetail } from '@service-storage/generated/schemas/tableDetail';
@@ -13,19 +14,21 @@ import { DeleteDialog } from '@ui/components/DeleteDialog';
 import { Dropdown } from '@ui/components/Dropdown';
 import { errAsync, ResultAsync } from 'neverthrow';
 import { createSignal, Show } from 'solid-js';
-import { CsvImportDialog } from '../components/csv-import-dialog';
+import { toast } from '../../../lib/core/component/Toast/Toast';
+import { CsvImportDialog } from '../../database/components/csv-import-dialog';
 import {
   type DatabaseCsv,
   type DatabaseCsvFailure,
   databaseCsvMessage,
   MAX_CSV_BYTES,
   parseDatabaseCsv,
-} from '../core/csv';
-import { isDatabaseNameTaken } from '../core/property-creation';
+} from '../../database/core/csv';
+import { isDatabaseNameTaken } from '../../database/core/property-creation';
 import {
   type DatabaseEntityFailure,
   databaseEntityMessage,
-} from '../core/write-failure';
+} from '../../database/core/write-failure';
+import { WebhooksDialog } from '../component/WebhooksDialog';
 import {
   exportDatabaseTableCsv,
   importDatabaseTable,
@@ -47,6 +50,7 @@ export function DatabasePageActions(props: {
   const [deleting, setDeleting] = createSignal(false);
   const [deleteError, setDeleteError] = createSignal('');
   const [draft, setDraft] = createSignal<{ data: DatabaseCsv; name: string }>();
+  const [webhooksOpen, setWebhooksOpen] = createSignal(false);
   let fileInput: HTMLInputElement | undefined;
   let menuButton: HTMLButtonElement | undefined;
   let focusTitleAfterClose = false;
@@ -94,7 +98,11 @@ export function DatabasePageActions(props: {
     const exported = await exportDatabaseTableCsv(props.detail, table);
     setExporting(false);
     exported.match(
-      (blob) => downloadFile(blob, `${table.table.name}.csv`),
+      (blob) =>
+        fireAndForget(
+          downloadFile(blob, `${table.table.name}.csv`),
+          'database-page-actions'
+        ),
       (failure) =>
         toast.failure(
           failure.kind === 'too-large'
@@ -131,7 +139,12 @@ export function DatabasePageActions(props: {
           accept=".csv,text/csv"
           class="hidden"
           aria-label="Choose CSV file"
-          onChange={(event) => void selectFile(event.currentTarget.files?.[0])}
+          onChange={(event) =>
+            fireAndForget(
+              selectFile(event.currentTarget.files?.[0]),
+              'database-page-actions'
+            )
+          }
         />
       </Show>
       <Dropdown>
@@ -170,6 +183,13 @@ export function DatabasePageActions(props: {
                 <UploadIcon class="size-4 shrink-0" />
                 Import CSV
               </Dropdown.Item>
+              <Dropdown.Item
+                disabled={!props.table}
+                onSelect={() => setWebhooksOpen(true)}
+              >
+                <WebhookIcon class="size-4 shrink-0" />
+                Webhooks
+              </Dropdown.Item>
             </Show>
             <Dropdown.Sub>
               <Dropdown.SubTrigger disabled={exporting()}>
@@ -180,7 +200,9 @@ export function DatabasePageActions(props: {
               <Dropdown.SubContent class="w-56">
                 <Dropdown.Item
                   disabled={!props.table || exporting()}
-                  onSelect={() => void exportCsv()}
+                  onSelect={() =>
+                    fireAndForget(exportCsv(), 'database-page-actions')
+                  }
                 >
                   Current table as CSV
                 </Dropdown.Item>
@@ -214,12 +236,24 @@ export function DatabasePageActions(props: {
           />
         )}
       </Show>
+      <Show when={webhooksOpen() && props.table}>
+        {(table) => (
+          <WebhooksDialog
+            databaseId={props.detail.database.id}
+            table={table()}
+            onClose={() => setWebhooksOpen(false)}
+            returnFocus={menuButton}
+          />
+        )}
+      </Show>
       <DeleteDialog
         open={confirmDelete()}
         onOpenChange={setConfirmDelete}
         title="Delete database?"
         pending={deleting()}
-        onDelete={() => void removeDatabase()}
+        onDelete={() =>
+          fireAndForget(removeDatabase(), 'database-page-actions')
+        }
         body={
           <>
             <p>

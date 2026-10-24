@@ -456,6 +456,21 @@ export function GraphicsSurface(props: {
               projection.camera().y,
             ])}
           >
+            <For each={projection.session().transform?.snapGuides}>
+              {(guide) => (
+                <line
+                  data-graphics-snap-guide={guide.axis}
+                  x1={guide.axis === 'x' ? guide.value : guide.start}
+                  y1={guide.axis === 'y' ? guide.value : guide.start}
+                  x2={guide.axis === 'x' ? guide.value : guide.end}
+                  y2={guide.axis === 'y' ? guide.value : guide.end}
+                  stroke={SELECTION_COLOR}
+                  stroke-width="1"
+                  stroke-dasharray="4 3"
+                  vector-effect="non-scaling-stroke"
+                />
+              )}
+            </For>
             <For each={indicatedShapes()}>
               {(id) => {
                 const initial = scene().items[id];
@@ -491,7 +506,13 @@ export function GraphicsSurface(props: {
               }}
             </For>
           </g>
-          <Show when={!projection.session().transform && singleConnector()}>
+          <Show
+            when={
+              props.input?.editing !== false &&
+              !projection.session().transform &&
+              singleConnector()
+            }
+          >
             {(item) => (
               <For each={['start', 'end'] as const}>
                 {(end) => {
@@ -565,12 +586,12 @@ export function GraphicsSurface(props: {
                 style={{
                   'pointer-events':
                     props.selectionHitArea === 'shapes' ? 'none' : 'all',
-                  cursor: 'move',
+                  cursor: props.input?.editing === false ? 'default' : 'move',
                 }}
               />
             )}
           </Show>
-          <Show when={!singleConnector()}>
+          <Show when={props.input?.editing !== false && !singleConnector()}>
             {/* Screen-space hit strips; corners are painted afterward and win overlaps. */}
             <For each={resizeHandles.filter(isResizeEdge)}>
               {(handle, index) => (
@@ -635,7 +656,7 @@ export function GraphicsSurface(props: {
               )}
             </Show>
           </Show>
-          <Show when={radiusRectangle()}>
+          <Show when={props.input?.editing !== false && radiusRectangle()}>
             {(item) => (
               <RadiusHandles
                 item={item()}

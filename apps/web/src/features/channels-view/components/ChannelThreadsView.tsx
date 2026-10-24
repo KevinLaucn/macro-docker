@@ -1,6 +1,8 @@
 import { ViewShell } from '@app/components/view-shell';
 import { DebugSuspense } from '@channel/DebugSuspense';
 import { MessageThread, threadListItem } from '@core/messages/MessageThread';
+import { createScrollTopFade } from '@core/util/createScrollTopFade';
+import { fireAndForget } from '@core/util/fireAndForget';
 import type { ChannelEntity, ChannelThreadEntity } from '@entity';
 import ArrowSquareOutIcon from '@phosphor/arrow-square-out.svg';
 import { useMessageThreadQuery } from '@queries/messages/thread-replies';
@@ -134,7 +136,7 @@ function ThreadCard(props: {
             <Button
               variant="outline"
               size="xs"
-              onClick={() => void query.refetch()}
+              onClick={() => fireAndForget(query.refetch(), 'channels-view')}
             >
               Try again
             </Button>
@@ -192,6 +194,7 @@ function ThreadList(props: {
   onOpenThread: ChannelThreadsViewProps['onOpenThread'];
 }) {
   const [scrollRoot, setScrollRoot] = createSignal<HTMLDivElement>();
+  createScrollTopFade(scrollRoot);
   const [virtualizer, setVirtualizer] = createSignal<VirtualizerHandle>();
   // A card being replied to stays mounted while scrolled away, so its draft
   // and focus survive virtualization.
@@ -207,7 +210,7 @@ function ThreadList(props: {
       handle.scrollSize - handle.viewportSize - offset > LOAD_MORE_THRESHOLD
     )
       return;
-    void props.query.fetchNextPage();
+    fireAndForget(props.query.fetchNextPage(), 'channels-view');
   };
 
   return (
@@ -223,7 +226,9 @@ function ThreadList(props: {
               <Button
                 variant="outline"
                 size="xs"
-                onClick={() => void props.query.refresh()}
+                onClick={() =>
+                  fireAndForget(props.query.refresh(), 'channels-view')
+                }
               >
                 Try again
               </Button>
@@ -279,7 +284,9 @@ function ThreadList(props: {
                 <Button
                   variant="outline"
                   size="xs"
-                  onClick={() => void props.query.refresh()}
+                  onClick={() =>
+                    fireAndForget(props.query.refresh(), 'channels-view')
+                  }
                 >
                   Try again
                 </Button>

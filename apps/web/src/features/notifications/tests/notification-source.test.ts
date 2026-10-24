@@ -818,6 +818,7 @@ describe('createNotificationSource', () => {
         isFetching: false,
       };
       let runs = 0;
+      let first: Promise<unknown> | undefined;
       const { source, dispose } = createRoot((dispose) => {
         const source = createNotificationSource(
           {} as ConnectionGatewayWebsocket
@@ -826,9 +827,10 @@ describe('createNotificationSource', () => {
           runs += 1;
           // Bound a regression so an accidental subscription cannot loop the test.
           if (runs > 1) return;
-          void (operation === 'seen'
-            ? source.bulkMarkAsRead([row])
-            : source.bulkMarkAsDone([row]));
+          first =
+            operation === 'seen'
+              ? source.bulkMarkAsRead([row])
+              : source.bulkMarkAsDone([row]);
         });
         return { source, dispose };
       });
@@ -837,6 +839,7 @@ describe('createNotificationSource', () => {
         await (operation === 'seen'
           ? source.bulkMarkAsRead([row])
           : source.bulkMarkAsDone([row]));
+        await first;
         await Promise.resolve();
         expect(runs).toBe(1);
       } finally {

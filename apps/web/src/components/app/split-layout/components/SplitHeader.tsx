@@ -8,12 +8,14 @@ import { useSoup } from '@app/features/next-soup/soup-context';
 import { openEntityInSplitFromUnifiedList } from '@app/features/next-soup/utils';
 import { projectRouteId } from '@app/features/projects/core/route';
 import { useGlobalNotificationSource } from '@components/app/GlobalAppState';
+import { HeaderActionGroup } from '@components/app/HeaderActionGroup';
 import { type BlockName, NonDocumentBlockTypes } from '@core/block';
 import { fileTypeToBlockName } from '@core/constant/allBlocks';
 import { TOKENS } from '@core/hotkey/tokens';
 import { isMobile } from '@core/mobile/isMobile';
 import { isNativeMobilePlatform } from '@core/mobile/isNativeMobilePlatform';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { type EntityDragEvent, isEntityDragEvent } from '@entity';
 import CollapseIcon from '@phosphor/arrows-in.svg';
 import ExpandIcon from '@phosphor/arrows-out.svg';
@@ -26,6 +28,7 @@ import { createDroppable, useDragDropContext } from '@thisbeyond/solid-dnd';
 import { Button, cn } from '@ui';
 import {
   createMemo,
+  onCleanup,
   type ParentProps,
   type Setter,
   Show,
@@ -33,7 +36,7 @@ import {
 } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { match, P } from 'ts-pattern';
-import { splitBackInterceptor } from '../back-interceptor';
+import { runSplitBack } from '../back-interceptor';
 import { SplitLayoutContext, SplitPanelContext } from '../context';
 import type { SplitContent } from '../layoutManager';
 import {
@@ -132,18 +135,21 @@ function SplitBackButton() {
         !context.handle.canGoBack() &&
         !hasAgentsBackFallback(context.handle.content())
       }
-      onClick={() => {
-        if (splitBackInterceptor()?.()) return;
-        if (
-          !context.handle.canGoBack() &&
-          hasAgentsBackFallback(context.handle.content())
-        ) {
-          context.handle.replace({
-            next: { type: 'component', id: 'agents' },
-            mergeHistory: true,
-          });
-        } else context.handle.goBack();
-      }}
+      onClick={() =>
+        runSplitBack({
+          canGoBack: () =>
+            context.handle.canGoBack() ||
+            hasAgentsBackFallback(context.handle.content()),
+          goBack: () => {
+            if (!context.handle.canGoBack()) {
+              context.handle.replace({
+                next: { type: 'component', id: 'agents' },
+                mergeHistory: true,
+              });
+            } else context.handle.goBack();
+          },
+        })
+      }
     >
       <CaretLeft />
     </Button>
@@ -303,12 +309,15 @@ function SoupNavigationButtons() {
     const next = soup.navigate.by(offset, { skipGroupHeaders: true });
     if (!next) return;
 
-    void openEntityInSplitFromUnifiedList(next.row.original, {
-      splitHandle: context.handle,
-      mergeHistory: true,
-      referredFrom: navigationReferredFrom(),
-      notificationSource,
-    });
+    fireAndForget(
+      openEntityInSplitFromUnifiedList(next.row.original, {
+        splitHandle: context.handle,
+        mergeHistory: true,
+        referredFrom: navigationReferredFrom(),
+        notificationSource,
+      }),
+      'open-entity-in-split'
+    );
   };
 
   return (
@@ -331,28 +340,30 @@ export function ListNavigationButtons(props: {
   class?: string;
 }) {
   return (
-    <div class={cn('flex items-center gap-0.5', props.class)}>
-      <Button
-        size="icon-md"
-        label="Previous item"
-        hotkey={TOKENS.entity.step.start}
-        disabled={!props.navigation.canPrevious()}
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={props.navigation.previous}
-      >
-        <CaretUp class="size-4" />
-      </Button>
-      <Button
-        size="icon-md"
-        label="Next item"
-        hotkey={TOKENS.entity.step.end}
-        disabled={!props.navigation.canNext()}
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={props.navigation.next}
-      >
-        <CaretDown class="size-4" />
-      </Button>
-    </div>
+    <HeaderActionGroup label="Item navigation">
+      <div class={cn('flex items-center touch:gap-0.5', props.class)}>
+        <Button
+          size="icon-md"
+          label="Previous item"
+          hotkey={TOKENS.entity.step.start}
+          disabled={!props.navigation.canPrevious()}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={props.navigation.previous}
+        >
+          <CaretUp class="size-4" />
+        </Button>
+        <Button
+          size="icon-md"
+          label="Next item"
+          hotkey={TOKENS.entity.step.end}
+          disabled={!props.navigation.canNext()}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={props.navigation.next}
+        >
+          <CaretDown class="size-4" />
+        </Button>
+      </div>
+    </HeaderActionGroup>
   );
 }
 
@@ -365,6 +376,14 @@ export function SplitHeader(props: {
   if (!panel) {
     throw new Error('<SplitHeader> must be used within a <SplitLayout>');
   }
+
+  const hideMobileBack = () => {
+    const content = panel.handle.content();
+    return (
+      isListViewID(content.id) ||
+      (content.type === 'component' && content.id === 'booking-links')
+    );
+  };
 
   const droppableId = `split-header-${panel.handle.id}`;
   const droppable = createDroppable(droppableId, {
@@ -395,11 +414,14 @@ export function SplitHeader(props: {
     if (!next) return;
     if (current.type === next.type && current.id === next.id) return;
 
-    void openEntityInSplitFromUnifiedList(data, {
-      splitHandle: panel.handle,
-      allowDuplicate: true,
-      notificationSource,
-    });
+    fireAndForget(
+      openEntityInSplitFromUnifiedList(data, {
+        splitHandle: panel.handle,
+        allowDuplicate: true,
+        notificationSource,
+      }),
+      'open-entity-in-split'
+    );
   });
 
   return (
@@ -437,8 +459,10 @@ export function SplitHeader(props: {
             </Portal>
           )}
         </Show>
+        {/* pl-1 + the close wrapper's pl-2 insets the 24px close button 12px
+            from the left, matching its inset from the top of the 48px header. */}
         <div
-          class="absolute inset-0 flex justify-start items-center not-touch:pl-[5px] touch:px-(--mobile-chrome-gutter) touch:gap-2"
+          class="absolute inset-0 flex justify-start items-center not-touch:pl-1 touch:px-(--mobile-chrome-gutter) touch:gap-2"
           ref={props.collapseController.setRow}
         >
           <Show
@@ -450,19 +474,17 @@ export function SplitHeader(props: {
               </div>
             }
           >
-            {/* Mobile back island. List views never render the back button
-                (their header hosts the filter pills instead), so the island
-                hides for them even when history allows going back. */}
+            {/* List views and Scheduling use navigation islands instead of Back. */}
             <HeaderIsland
               class={cn(
                 'relative gap-0 px-1',
                 ((!panel.handle.canGoBack() &&
                   !hasAgentsBackFallback(panel.handle.content())) ||
-                  isListViewID(panel.handle.content().id)) &&
+                  hideMobileBack()) &&
                   'hidden'
               )}
             >
-              <Show when={!isListViewID(panel.handle.content().id)}>
+              <Show when={!hideMobileBack()}>
                 <SplitBackButton />
               </Show>
             </HeaderIsland>
@@ -479,14 +501,24 @@ export function SplitHeader(props: {
             contentClass="h-full flex items-center gap-0.5 pl-2 touch:pl-0 touch:gap-2 touch:max-w-full"
             contentRef={(element) => {
               panel.layoutRefs.headerLeft = element;
+              onCleanup(() => {
+                if (panel.layoutRefs.headerLeft === element) {
+                  panel.layoutRefs.headerLeft = undefined;
+                }
+              });
             }}
           />
 
-          <div class="header-actions h-full grow shrink flex items-center justify-end gap-1 px-2 touch:px-0 touch:gap-2">
+          <div class="header-actions h-full grow shrink flex items-center justify-end gap-2 px-2 touch:px-0">
             <div
               class="contents"
               ref={(ref) => {
                 panel.layoutRefs.headerRight = ref;
+                onCleanup(() => {
+                  if (panel.layoutRefs.headerRight === ref) {
+                    panel.layoutRefs.headerRight = undefined;
+                  }
+                });
               }}
             />
             <SoupNavigationButtons />

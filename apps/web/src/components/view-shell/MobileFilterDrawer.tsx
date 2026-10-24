@@ -27,6 +27,8 @@ type MobileFilterDrawerProps = {
   triggerLabel?: string;
   label?: string;
   class?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   /** Active filter chips or other controls beside Clear all. */
   footer?: JSX.Element;
 };
@@ -34,15 +36,21 @@ type MobileFilterDrawerProps = {
 /** Presentation only; callers own filter state and compose the drawer contents. */
 function Root(props: MobileFilterDrawerProps) {
   const [scrollRef, setScrollRef] = createSignal<HTMLElement>();
+  const [trigger, setTrigger] = createSignal<HTMLButtonElement>();
 
   return (
     <MobileDrawer
       side="bottom"
+      open={props.open}
+      onOpenChange={props.onOpenChange}
       preventScroll={false}
       preventScrollbarShift={false}
       breakPoints={[0.85]}
+      restoreFocus
+      finalFocusEl={trigger()}
     >
       <MobileDrawer.Trigger
+        ref={setTrigger}
         as={Button}
         aria-label={props.triggerLabel ?? 'Open filters'}
         variant="ghost"
@@ -180,7 +188,10 @@ function Option(props: {
     <MobileDrawer.Item
       role={props.selectionMode === 'single' ? 'radio' : 'checkbox'}
       aria-checked={props.checked}
-      class={props.class}
+      class={cn(
+        '[&[role=checkbox][aria-checked=true]:has(+[role=checkbox][aria-checked=true])]:rounded-b-none [&[role=checkbox][aria-checked=true]+[role=checkbox][aria-checked=true]]:rounded-t-none',
+        props.class
+      )}
       onClick={() => props.onChange(!props.checked)}
     >
       <Show when={props.icon}>

@@ -27,6 +27,7 @@ mod middleware;
 // Routes
 mod annotations;
 mod documents;
+mod folders_query;
 mod graphql_soup;
 mod health;
 mod history;
@@ -97,6 +98,13 @@ fn api_router(state: ApiContext) -> Router {
     // Webhook router is outside auth — LiveKit validates via its own JWT,
     // cal.com validates via HMAC signature.
     let webhook_router = Router::new()
+        .nest(
+            "/call/guest-chat",
+            messages::inbound::guest_chat::router(
+                state.guest_chat_service.clone(),
+                state.call_public_rate_limiter.clone(),
+            ),
+        )
         .nest(
             "/call",
             call::inbound::axum_router::webhook_router(
@@ -216,6 +224,22 @@ fn api_router(state: ApiContext) -> Router {
         .merge(calendar_events::inbound::axum_router::calendar_router(
             state.calendar_state.clone(),
         ))
+        .merge(
+            calendar_events::inbound::join_request_router::calendar_join_request_router(
+                state.calendar_join_request_state.clone(),
+            ),
+        )
+        .merge(calendar_events::inbound::team_router::team_calendar_router(
+            calendar_events::inbound::team_router::CalendarTeamRouterState::new(
+                std::sync::Arc::new(calendar_events::domain::team::CalendarTeamServiceImpl::new(
+                    calendar_events::outbound::pg_team::PgCalendarTeamRepository::new(
+                        state.db.clone(),
+                    ),
+                    state.config.calendar_team_sharing_enabled,
+                )),
+                state.authorization_state.clone(),
+            ),
+        ))
         .nest(
             "/channels",
             channels::inbound::axum_router::channels_router(state.channels_state.clone()),
@@ -260,16 +284,27 @@ fn api_router(state: ApiContext) -> Router {
             reminders::inbound::axum_router::reminders_router(state.reminders_state.clone()),
         )
         .nest(
+            "/entities",
+            access_requests::inbound::axum_router::router(state.access_requests_state.clone()),
+        )
+        .nest(
             "/initiatives",
             initiative::inbound::axum_router::initiative_router(state.initiative_state.clone()),
         )
         .nest(
             "/databases",
-            databases::inbound::axum_router::databases_router(state.databases_state.clone()).merge(
-                databases::inbound::starter_router::starter_router(
+            databases::inbound::axum_router::databases_router(state.databases_state.clone())
+                .merge(databases_sql::inbound::axum_router::sql_router(
+                    state.sql_state.clone(),
+                ))
+                .merge(databases::inbound::starter_router::starter_router(
                     state.database_starter_state.clone(),
+                ))
+                .merge(
+                    database_webhooks::inbound::axum_router::database_webhooks_router(
+                        state.database_webhooks_state.clone(),
+                    ),
                 ),
-            ),
         )
         .nest(
             "/forms",
@@ -312,7 +347,10 @@ fn api_router(state: ApiContext) -> Router {
         )
         .nest(
             "/crm",
-            crm::inbound::axum_router::crm_router(state.crm_state.clone()),
+            crm::inbound::axum_router::crm_router(state.crm_state.clone()).nest(
+                "/pipelines",
+                crm::inbound::pipelines::router(state.pipeline_state.clone()),
+            ),
         )
         .merge(
             bots::inbound::channel_webhook_router::channel_bot_webhook_router(

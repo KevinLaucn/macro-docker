@@ -4,16 +4,18 @@
  * authentication_service
  * OpenAPI spec version: 0.1.0
  */
+import type { AutoReloadSnapshotMonthlyBudget } from './autoReloadSnapshotMonthlyBudget';
 import type { AutoReloadSnapshotMonthlySpendLimitCents } from './autoReloadSnapshotMonthlySpendLimitCents';
 
 /**
  * The payer's automatic reload settings, as shown in Billing settings.
  */
 export interface AutoReloadSnapshot {
-  /** Whether reloads will fire: overage is on and reloads are not suspended. */
+  /** Whether reloads will fire: the payer opted in and reloads are not suspended. */
   active: boolean;
   /** Reload once the effective balance drops below this, in customer cents. */
   minimum_balance_cents: number;
+  monthly_budget?: AutoReloadSnapshotMonthlyBudget;
   /** Most reloaded per UTC calendar month, in customer cents. `null` when
 there is no limit. */
   monthly_spend_limit_cents?: AutoReloadSnapshotMonthlySpendLimitCents;

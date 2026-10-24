@@ -10,13 +10,16 @@ import Minus from '@phosphor/minus.svg';
 import Percent from '@phosphor/percent.svg';
 import Plus from '@phosphor/plus.svg';
 import TextB from '@phosphor/text-b.svg';
+import TextIndent from '@phosphor/text-indent.svg';
 import TextItalic from '@phosphor/text-italic.svg';
+import TextOutdent from '@phosphor/text-outdent.svg';
 import TextStrikethrough from '@phosphor/text-strikethrough.svg';
 import TextUnderline from '@phosphor/text-underline.svg';
 import X from '@phosphor/x.svg';
 import { Button, type ButtonProps } from '@ui/components/Button';
 import { Show } from 'solid-js';
 import type { SpreadsheetMentions } from '../context/spreadsheet-mentions';
+import type { TableReferences } from '../core/formula-completion';
 import type {
   FormulaReferenceSpan,
   FormulaTextSelection,
@@ -249,6 +252,28 @@ export function SpreadsheetToolbar(props: SpreadsheetToolbarProps) {
         <Divider />
         <BorderMenu {...props} />
         <AlignmentMenu {...props} />
+        <ToolbarButton
+          size="icon-sm"
+          label="Decrease indent"
+          disabled={props.readonly}
+          onClick={() => {
+            props.onCommand('indent-decrease');
+            props.onRestoreFocus?.();
+          }}
+        >
+          <TextOutdent class="size-[18px]" />
+        </ToolbarButton>
+        <ToolbarButton
+          size="icon-sm"
+          label="Increase indent"
+          disabled={props.readonly}
+          onClick={() => {
+            props.onCommand('indent-increase');
+            props.onRestoreFocus?.();
+          }}
+        >
+          <TextIndent class="size-[18px]" />
+        </ToolbarButton>
         <VerticalAlignmentMenu {...props} />
         <ToolbarButton
           size="icon-sm"
@@ -303,6 +328,7 @@ export function FormulaBar(props: {
   readonly: boolean;
   editing?: boolean;
   complete: CompleteFormula;
+  tableReferences?: () => TableReferences | undefined;
   selectionRequest?: FormulaTextSelection;
   references?: FormulaReferenceSpan[];
   pickingReference?: boolean;
@@ -360,6 +386,7 @@ export function FormulaBar(props: {
         mentions={props.mentions}
         label="Formula bar"
         complete={props.complete}
+        tableReferences={props.tableReferences}
         selectionRequest={props.selectionRequest}
         references={props.references}
         pickingReference={props.pickingReference}

@@ -1,4 +1,4 @@
-import { TabsInset } from '@core/component/TabsInset';
+import { Tabs } from '@ui';
 import { createSignal } from 'solid-js';
 import { RecordSection } from '../components/record-section';
 import type {
@@ -11,6 +11,7 @@ import { useContactEmailsQuery } from './use-crm';
 
 export function ContactEmailsSection(props: { contact?: CrmContactResponse }) {
   const email = () => props.contact?.email;
+  const [search, setSearch] = createSignal('');
   const [view, setView] = createSignal<EmailView>('team');
   const [signalView, setSignalView] = createSignal<EmailSignalView>('all');
   const emailsQuery = useContactEmailsQuery(email, view, signalView);
@@ -18,29 +19,38 @@ export function ContactEmailsSection(props: { contact?: CrmContactResponse }) {
   return (
     <RecordSection
       title="Emails"
+      search={search()}
+      onSearchChange={setSearch}
       actions={
         <>
-          <TabsInset
-            list={[
+          <Tabs
+            aria-label="Email importance"
+            size="sm"
+            touch="inset"
+            options={[
               { value: 'signal', label: 'Signal' },
               { value: 'all', label: 'All' },
             ]}
             value={signalView()}
-            onChange={(v) => setSignalView(v as EmailSignalView)}
+            onChange={setSignalView}
           />
-          <TabsInset
-            list={[
+          <Tabs
+            aria-label="Email inboxes"
+            size="sm"
+            touch="inset"
+            options={[
               { value: 'team', label: 'Team' },
               { value: 'me', label: 'Me' },
             ]}
             value={view()}
-            onChange={(v) => setView(v as EmailView)}
+            onChange={setView}
           />
         </>
       }
     >
       <RecordItemList
         source={emailsQuery}
+        search={search()}
         pending={!props.contact}
         empty={`No ${signalView() === 'signal' ? 'signal emails' : 'emails'} with this contact ${view() === 'me' ? 'in your inbox' : 'yet'}.`}
       />

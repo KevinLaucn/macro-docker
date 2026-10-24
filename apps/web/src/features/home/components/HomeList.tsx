@@ -30,6 +30,7 @@ import {
 } from '@components/app/split-layout/layoutUtils';
 import { useChannelsContext } from '@core/context/channels';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
+import { fireAndForget } from '@core/util/fireAndForget';
 import {
   type EntityData,
   EntitySelectionToolbar,
@@ -90,7 +91,10 @@ type HomeListActivationMetadata = {
 
 type HomeListProps = {
   hasPreview: boolean;
-  onPreviewEntityChange: (entity: PreviewSelection | undefined) => void;
+  onPreviewEntityChange: (
+    entity: PreviewSelection | undefined,
+    options?: { activate?: boolean }
+  ) => void;
   onPreviewActivate?: () => void;
 };
 
@@ -130,15 +134,20 @@ export function HomeList(props: HomeListProps) {
       controller: list,
       handle: panel.handle,
       openEntityInSplit: (entity, options) => {
-        void openEntityInSplitFromUnifiedList(entity, {
-          splitHandle: panel.handle,
-          ...options,
-        });
+        fireAndForget(
+          openEntityInSplitFromUnifiedList(entity, {
+            splitHandle: panel.handle,
+            ...options,
+          }),
+          'open-entity-in-split'
+        );
       },
     });
   });
 
-  const { buildActionGroups } = createSoupEntityActions();
+  const { buildActionGroups } = createSoupEntityActions({
+    markDoneDelegate: source.markDoneDelegate,
+  });
   const entityActionViewContext = () =>
     resolveEntityActionViewContext({
       activeListView: panel.handle.content().id,
@@ -162,15 +171,20 @@ export function HomeList(props: HomeListProps) {
 
     if (!isTouchDevice() && !newSplit) {
       markEntitySeen(sourceRow.entity);
-      showPreview(sourceRow.entity);
+      showPreview(sourceRow.entity, { activate: true });
       props.onPreviewActivate?.();
+      // Home keeps the keyboard only when the item opened in Home itself.
+      if (panel.isPanelActive()) listRoot()?.focus({ preventScroll: true });
       return;
     }
 
-    void openEntity(sourceRow.entity, {
-      event: metadata?.event,
-      newSplit,
-    });
+    fireAndForget(
+      openEntity(sourceRow.entity, {
+        event: metadata?.event,
+        newSplit,
+      }),
+      'home'
+    );
   }
 
   function markEntitySeen(entity: WithNotification<EntityData>) {
@@ -180,9 +194,13 @@ export function HomeList(props: HomeListProps) {
     }
   }
 
-  function showPreview(entity: WithNotification<EntityData>) {
+  function showPreview(
+    entity: WithNotification<EntityData>,
+    options?: { activate?: boolean }
+  ) {
     props.onPreviewEntityChange(
-      entity?.type === 'initiative' ? undefined : entity
+      entity?.type === 'initiative' ? undefined : entity,
+      options
     );
   }
 
@@ -344,7 +362,7 @@ export function HomeList(props: HomeListProps) {
 
         if (distanceFromEnd > 3) return;
 
-        void source.loadMore();
+        fireAndForget(source.loadMore(), 'home');
       },
     },
     activation: {
@@ -354,12 +372,18 @@ export function HomeList(props: HomeListProps) {
   });
 
   const onRowClick = (rowId: string, event: MouseEvent) => {
+    // Rows cancel their press, so the browser never moves focus into Home.
+    // Activate Home before opening: an item that opens in another split
+    // activates that split afterwards, without a focus change in Home that
+    // the split focus tracker could later use to take activation back.
+    panel.handle.activate();
     if (
       event.metaKey ||
       event.ctrlKey ||
       (isTouchDevice() && list.selection.count() > 0)
     ) {
       listInteractions.selection.toggle(rowId);
+      listRoot()?.focus({ preventScroll: true });
       return;
     }
 
@@ -380,6 +404,7 @@ export function HomeList(props: HomeListProps) {
     splitHandle: panel.handle,
     createActionNavigationHandler,
     condition: panel.isPanelActive,
+    markDoneDelegate: source.markDoneDelegate,
   });
 
   function actionGroupsFor(row: HomeActionRow) {
@@ -472,7 +497,7 @@ export function HomeList(props: HomeListProps) {
     const distance =
       container.scrollHeight - container.scrollTop - container.clientHeight;
     if (distance < 300) {
-      void source.loadMore();
+      fireAndForget(source.loadMore(), 'home');
     }
   }
 
@@ -509,7 +534,7 @@ export function HomeList(props: HomeListProps) {
               <button
                 type="button"
                 class="underline"
-                onClick={() => void source.refresh()}
+                onClick={() => fireAndForget(source.refresh(), 'home')}
               >
                 Retry
               </button>
@@ -537,7 +562,7 @@ export function HomeList(props: HomeListProps) {
               if (!action) return;
 
               focusActionRow(row);
-              void action.onClick();
+              fireAndForget(action.onClick(), 'home');
             }}
           >
             <Switch>
@@ -564,7 +589,7 @@ export function HomeList(props: HomeListProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => void source.refresh()}
+                    onClick={() => fireAndForget(source.refresh(), 'home')}
                   >
                     Try again
                   </Button>
@@ -627,6 +652,7 @@ export function HomeList(props: HomeListProps) {
                               list={actionState}
                               selectedEntities={selectedEntities}
                               viewContext={entityActionViewContext()}
+                              markDoneDelegate={source.markDoneDelegate}
                               onOpenChange={(open) => {
                                 if (!open) return;
                                 focusActionRow({

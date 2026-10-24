@@ -18,6 +18,7 @@ export type ItemType =
   | 'foreign'
   | 'crm_company'
   | 'crm_contact'
+  | 'crm_pipeline'
   | 'initiative';
 
 /** Item type assumed when a surface has no better information. */
@@ -58,6 +59,8 @@ export function stringToItemType(str: string): ItemType | undefined {
       'project',
       'channel',
       'crm_company',
+      'crm_contact',
+      'crm_pipeline',
       'initiative',
       (itemType) => itemType
     )
@@ -84,6 +87,7 @@ export function blockNameToItemType(
     .with('calendar', () => 'calendar_event')
     .with('company', () => 'crm_company')
     .with('contact', () => 'crm_contact')
+    .with('pipeline', () => 'crm_pipeline')
     .with('pr', () => 'foreign')
     .otherwise(() => DEFAULT_ITEM_TYPE);
 }

@@ -2,7 +2,8 @@ use crate::driver;
 use crate::key::RecordKey;
 use crate::{PhysicalResetReason, TursoStorageError};
 use cache_core::codec::{
-    cache_namespace, decode_record, decode_record_updates, encode_record, encode_record_updates,
+    MIGRATABLE_CACHE_FORMAT_VERSIONS, cache_namespace, cache_namespace_at, decode_record,
+    decode_record_updates, encode_record, encode_record_updates,
 };
 use cache_core::predicate::reconciliation::{
     PredicateBaselineEntry, PredicateReconciliation, predicate_membership,
@@ -226,7 +227,7 @@ impl TursoStorage {
         let result = initialize(&connection, scope, fresh);
         drop(connection);
         match result {
-            Ok(()) => Ok((
+            Ok(_) => Ok((
                 Self {
                     health: AtomicU8::new(0),
                     session,
@@ -612,10 +613,105 @@ impl TursoFileDatabase {
 
     /// Opens this database, validating compatibility and queued writes for `scope`.
     /// Full-file integrity scans are explicit via [`TursoStorage::check_integrity`].
+    ///
+    /// A database carried forward from a migratable format is compacted first, so
+    /// the upgrade also releases the space its dropped records occupied.
     pub fn open(&self, scope: &str) -> Result<TursoStorage, TursoStorageError> {
         let fresh = !self.path.exists();
+        let (storage, migrated) = self.open_with_outcome(scope, fresh)?;
+        if !migrated {
+            return Ok(storage);
+        }
+        self.compact_after_migration(storage, scope)
+    }
+
+    fn open_with_outcome(
+        &self,
+        scope: &str,
+        fresh: bool,
+    ) -> Result<(TursoStorage, bool), TursoStorageError> {
         let io: Arc<dyn IO> = Arc::new(PlatformIO::new().map_err(TursoStorageError::turso)?);
         open_native_database(io, &self.turso_path, scope, fresh)
+    }
+
+    /// Copy the migrated database's small live set into a fresh file and swap it
+    /// in. Freed pages are reused but never returned, so without this an upgrade
+    /// would keep the previous file size indefinitely.
+    ///
+    /// Compaction is an optimization on top of an already-committed migration:
+    /// every failure falls back to the migrated database, because reporting a
+    /// reset-required error here would make `open_or_reset` delete the queued
+    /// mutations the migration just preserved.
+    fn compact_after_migration(
+        &self,
+        storage: TursoStorage,
+        scope: &str,
+    ) -> Result<TursoStorage, TursoStorageError> {
+        let compact_path = self.path.with_extension("migrated");
+        let _ = remove_native_file(&compact_path);
+        let vacuumed = compact_path
+            .to_str()
+            .ok_or(TursoStorageError::InvalidInput)
+            .and_then(|compact_path| {
+                driver::execute(
+                    &storage.connection(),
+                    &format!("VACUUM INTO {}", sql_literal(compact_path)),
+                    Vec::new(),
+                )
+            })
+            .is_ok();
+        if !vacuumed {
+            let _ = remove_native_file(&compact_path);
+            return Ok(storage);
+        }
+        // The compacted file is complete; a close failure cannot invalidate it.
+        let _ = storage.try_close();
+        if self.install_compacted(&compact_path).is_err() {
+            let _ = remove_native_file(&compact_path);
+            return Ok(self.open_with_outcome(scope, false)?.0);
+        }
+        Ok(self.open_with_outcome(scope, false)?.0)
+    }
+
+    /// Move the compacted database into place while keeping the original
+    /// recoverable, so an interrupted swap never leaves no database behind.
+    fn install_compacted(&self, compact_path: &Path) -> std::io::Result<()> {
+        let backup_path = self.path.with_extension("backup");
+        for suffix in COMPANION_SUFFIXES {
+            let _ = std::fs::remove_file(companion_path(&backup_path, suffix));
+        }
+        std::fs::rename(&self.path, &backup_path)?;
+        let mut installed = Ok(());
+        for suffix in COMPANION_SUFFIXES {
+            let source = companion_path(compact_path, suffix);
+            if !source.exists() {
+                continue;
+            }
+            if let Err(error) = std::fs::rename(source, companion_path(&self.path, suffix)) {
+                installed = Err(error);
+                break;
+            }
+        }
+        match installed {
+            Ok(()) => {
+                // The compacted file is installed; the original is disposable now.
+                for suffix in COMPANION_SUFFIXES {
+                    let _ = std::fs::remove_file(companion_path(&backup_path, suffix));
+                }
+                Ok(())
+            }
+            Err(error) => {
+                // Restore the migrated original so the next open still sees it.
+                for suffix in COMPANION_SUFFIXES {
+                    let _ = std::fs::remove_file(companion_path(&self.path, suffix));
+                    let backup = companion_path(&backup_path, suffix);
+                    if backup.exists() {
+                        let _ = std::fs::rename(backup, companion_path(&self.path, suffix));
+                    }
+                }
+                Err(error)
+            }
+        }
     }
 
     /// Opens this database, physically replacing incompatible or uncertain
@@ -639,6 +735,18 @@ impl TursoFileDatabase {
     }
 }
 
+/// Main, WAL, and shared-memory files that belong to one native database path.
+#[cfg(not(target_arch = "wasm32"))]
+const COMPANION_SUFFIXES: [&str; 3] = ["", "-wal", "-shm"];
+
+/// `path`, `path-wal`, or `path-shm` for a native database path.
+#[cfg(not(target_arch = "wasm32"))]
+fn companion_path(path: &Path, suffix: &str) -> PathBuf {
+    let mut value = path.as_os_str().to_owned();
+    value.push(suffix);
+    PathBuf::from(value)
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 fn remove_native_file(path: &Path) -> Result<(), TursoStorageError> {
     match std::fs::remove_file(path) {
@@ -654,7 +762,7 @@ fn open_native_database(
     path: &str,
     scope: &str,
     fresh: bool,
-) -> Result<TursoStorage, TursoStorageError> {
+) -> Result<(TursoStorage, bool), TursoStorageError> {
     let database = Database::open(io, path, OpenOptions::new(Arc::new(SqliteDialect)))
         .map_err(TursoStorageError::turso)
         .map_err(|error| if fresh { error } else { error.initialization() })?;
@@ -662,21 +770,27 @@ fn open_native_database(
         .connect()
         .map_err(TursoStorageError::turso)
         .map_err(|error| if fresh { error } else { error.initialization() })?;
-    if let Err(error) = initialize(&connection, scope, fresh) {
-        if connection.close().is_err() {
-            return Err(TursoStorageError::reset(
-                PhysicalResetReason::TransactionOutcomeUncertain,
-            ));
+    let migrated = match initialize(&connection, scope, fresh) {
+        Ok(migrated) => migrated,
+        Err(error) => {
+            if connection.close().is_err() {
+                return Err(TursoStorageError::reset(
+                    PhysicalResetReason::TransactionOutcomeUncertain,
+                ));
+            }
+            return Err(error);
         }
-        return Err(error);
-    }
-    Ok(TursoStorage {
-        health: AtomicU8::new(0),
-        database,
-        connection,
-        #[cfg(all(test, not(target_arch = "wasm32")))]
-        fault: Mutex::new(None),
-    })
+    };
+    Ok((
+        TursoStorage {
+            health: AtomicU8::new(0),
+            database,
+            connection,
+            #[cfg(all(test, not(target_arch = "wasm32")))]
+            fault: Mutex::new(None),
+        },
+        migrated,
+    ))
 }
 
 /// Reopenable Turso `MemoryIO` database used by native conformance tests.
@@ -712,7 +826,7 @@ impl TursoMemoryDatabase {
             (state.io.clone(), !state.initialized)
         };
         let io_trait: Arc<dyn IO> = io;
-        let storage = open_native_database(io_trait, &self.path, scope, fresh)?;
+        let (storage, _) = open_native_database(io_trait, &self.path, scope, fresh)?;
         if fresh {
             self.state
                 .lock()
@@ -846,7 +960,7 @@ impl Storage for TursoStorage {
                     require_changed(changed, 1)?;
                     self.fault_after(TestFaultSite::Put, index)?;
                 }
-                write_search_documents(&connection, &entries)
+                write_derived_rows(&connection, &entries)
             })
         })();
         self.latch_result(result)
@@ -877,7 +991,7 @@ impl Storage for TursoStorage {
                     )?;
                     self.fault_after(TestFaultSite::Put, index)?;
                 }
-                write_search_documents(&connection, &entries)?;
+                write_derived_rows(&connection, &entries)?;
                 write_projection_mutations(&connection, projections)
             })
         })();
@@ -915,7 +1029,7 @@ impl Storage for TursoStorage {
                     )?;
                     self.fault_after(TestFaultSite::Delete, index)?;
                 }
-                Ok(())
+                calendar::delete_ranges(&connection, &keys)
             })
         })();
         self.latch_result(result)
@@ -1307,7 +1421,7 @@ impl Storage for TursoStorage {
                         self.fault_after(TestFaultSite::Complete, index)?;
                     }
                 }
-                write_search_documents(&connection, &entries)?;
+                write_derived_rows(&connection, &entries)?;
                 write_projection_mutations(&connection, projections)?;
                 require_changed(
                     driver::execute(
@@ -1363,7 +1477,7 @@ impl Storage for TursoStorage {
                         self.fault_after(TestFaultSite::Complete, index)?;
                     }
                 }
-                write_search_documents(&connection, &entries)?;
+                write_derived_rows(&connection, &entries)?;
                 write_projection_mutations(&connection, projections)?;
                 require_changed(
                     driver::execute(
@@ -1375,8 +1489,9 @@ impl Storage for TursoStorage {
                 )?;
                 mutation_retry::remove(&connection, sql_id)?;
                 write_shadow_reconciliation(&connection, reconciliation, |index| {
-                    self.fault_after(TestFaultSite::Complete, entries.len() + index)
+                    self.fault_after(TestFaultSite::Complete, entries.len() + 1 + index)
                 })?;
+                self.fault_after(TestFaultSite::Complete, entries.len())?;
                 Ok(true)
             })
         })();
@@ -1443,8 +1558,9 @@ impl Storage for TursoStorage {
                 )?;
                 mutation_retry::remove(&connection, sql_id)?;
                 write_shadow_reconciliation(&connection, reconciliation, |index| {
-                    self.fault_after(TestFaultSite::Discard, index)
+                    self.fault_after(TestFaultSite::Discard, index + 1)
                 })?;
+                self.fault_after(TestFaultSite::Discard, 0)?;
                 Ok(true)
             })
         })();
@@ -1452,8 +1568,17 @@ impl Storage for TursoStorage {
     }
 
     async fn clear(&mut self) -> Result<(), Self::Error> {
+        self.reset_with_records(Vec::new(), Vec::new()).await
+    }
+
+    async fn reset_with_records(
+        &mut self,
+        entries: Vec<(EntityKey<'static>, Record)>,
+        projections: Vec<ProjectionMutation>,
+    ) -> Result<(), Self::Error> {
         self.require_healthy()?;
-        let result = {
+        let result = (|| {
+            let entries = prepare_records(entries)?;
             let connection = self.connection();
             driver::write_transaction(&connection, || {
                 driver::execute(&connection, "DELETE FROM optimistic_layers", Vec::new())?;
@@ -1464,10 +1589,27 @@ impl Storage for TursoStorage {
                 driver::execute(&connection, "DELETE FROM search_documents", Vec::new())?;
                 driver::execute(&connection, "DELETE FROM index_documents", Vec::new())?;
                 driver::execute(&connection, "DELETE FROM records", Vec::new())?;
+                calendar::clear(&connection)?;
                 self.fault_after(TestFaultSite::Clear, 2)?;
-                Ok(())
+                let mut statement = driver::prepare(&connection, RECORD_UPSERT)?;
+                for (index, entry) in entries.iter().enumerate() {
+                    require_changed(
+                        driver::execute_prepared(
+                            &mut statement,
+                            vec![
+                                text(&entry.key.typename),
+                                text(&entry.key.id),
+                                Value::from_blob(entry.value.clone()),
+                            ],
+                        )?,
+                        1,
+                    )?;
+                    self.fault_after(TestFaultSite::Put, index)?;
+                }
+                write_derived_rows(&connection, &entries)?;
+                write_projection_mutations(&connection, projections)
             })
-        };
+        })();
         self.latch_result(result)
     }
 }
@@ -1575,6 +1717,7 @@ impl PredicateIndexStorage for TursoStorage {
                         key,
                     )?;
                 }
+                calendar::delete_ranges(&connection, &keys)?;
                 write_projection_mutations(&connection, projections)
             })
         })();
@@ -2889,15 +3032,51 @@ fn sql_bound(bound: RangeBound, lower: bool) -> (&'static str, i64) {
     }
 }
 
+/// Carry a cache written by a migratable older format forward.
+///
+/// Records and the derived rows they feed are refetchable, so they are dropped.
+/// Queued mutations, optimistic layers, and their projections are kept, which is
+/// why this is not a physical reset. The namespace moves to this build inside the
+/// same transaction, so an interrupted migration leaves the previous state intact
+/// and is retried on the next open.
+fn migrate_previous_format(
+    connection: &Arc<Connection>,
+    scope: &str,
+    previous_namespace: &str,
+) -> Result<(), TursoStorageError> {
+    let migratable = MIGRATABLE_CACHE_FORMAT_VERSIONS
+        .iter()
+        .any(|version| cache_namespace_at(scope, *version) == previous_namespace);
+    if !migratable {
+        return Err(TursoStorageError::reset(PhysicalResetReason::Compatibility));
+    }
+    driver::write_transaction(connection, || {
+        driver::execute(connection, "DELETE FROM search_documents", Vec::new())?;
+        // Facts cascade from their index documents.
+        driver::execute(connection, "DELETE FROM index_documents", Vec::new())?;
+        driver::execute(connection, "DELETE FROM records", Vec::new())?;
+        calendar::clear(connection)?;
+        driver::execute(
+            connection,
+            "UPDATE meta SET value = ?1 WHERE key = 'namespace'",
+            vec![text(&cache_namespace(scope))],
+        )?;
+        Ok(())
+    })
+    .map_err(TursoStorageError::initialization)
+}
+
+/// Validates or initializes a database. Returns whether a previous format was
+/// carried forward, which native owners compact after opening.
 fn initialize(
     connection: &Arc<Connection>,
     scope: &str,
     fresh: bool,
-) -> Result<(), TursoStorageError> {
+) -> Result<bool, TursoStorageError> {
     enable_foreign_keys(connection).map_err(TursoStorageError::initialization)?;
     if fresh {
         driver::write_transaction(connection, || {
-            for sql in CREATE_SCHEMA {
+            for sql in CREATE_SCHEMA.into_iter().chain(calendar::CREATE_SCHEMA) {
                 driver::execute(connection, sql, Vec::new())?;
             }
             driver::execute(
@@ -2916,13 +3095,14 @@ fn initialize(
                 vec![text(&STORAGE_SCHEMA_VERSION.to_string())],
             )?;
             save_search_projection_version(connection)?;
+            calendar::save_projection_version(connection)?;
             page_retention::save_version(connection)?;
             Ok(())
         })
         .map_err(TursoStorageError::initialization)?;
         enable_foreign_keys(connection).map_err(TursoStorageError::initialization)?;
         validate_frozen_schema(connection)?;
-        return Ok(());
+        return Ok(false);
     }
 
     // Ordinary reopen only validates compatibility and pending writes. A changed
@@ -2942,15 +3122,30 @@ fn initialize(
     if metadata.len() != expected.len() {
         return Err(TursoStorageError::reset(PhysicalResetReason::Compatibility));
     }
+    let mut previous_namespace = None;
     for (row, (expected_key, expected_value)) in metadata.iter().zip(expected) {
         let key = required_text(row, 0)
             .map_err(|_| TursoStorageError::reset(PhysicalResetReason::Compatibility))?;
         let value = required_text(row, 1)
             .map_err(|_| TursoStorageError::reset(PhysicalResetReason::Compatibility))?;
-        if key != expected_key || value != expected_value {
+        if key != expected_key {
             return Err(TursoStorageError::reset(PhysicalResetReason::Compatibility));
         }
+        if value != expected_value {
+            // Only the namespace may differ, and only for a migratable format.
+            if key != "namespace" {
+                return Err(TursoStorageError::reset(PhysicalResetReason::Compatibility));
+            }
+            previous_namespace = Some(value.to_owned());
+        }
     }
+    let migrated = match previous_namespace {
+        Some(previous_namespace) => {
+            migrate_previous_format(connection, scope, &previous_namespace)?;
+            true
+        }
+        None => false,
+    };
     for sql in [
         RECORD_GET,
         RECORD_UPSERT,
@@ -2984,13 +3179,18 @@ fn initialize(
     ] {
         driver::validate(connection, sql).map_err(TursoStorageError::initialization)?;
     }
-    for sql in INDEX_FACTS_DELETE {
+    for sql in INDEX_FACTS_DELETE
+        .into_iter()
+        .chain(calendar::VALIDATED_SQL)
+    {
         driver::validate(connection, sql).map_err(TursoStorageError::initialization)?;
     }
     validate_queue_consistency(connection)?;
     validate_optimistic_shadow_consistency(connection)?;
     page_retention::compact_legacy_pages(connection)?;
-    ensure_search_projection_version(connection)
+    ensure_search_projection_version(connection)?;
+    calendar::ensure_projection_version(connection)?;
+    Ok(migrated)
 }
 
 fn save_search_projection_version(connection: &Arc<Connection>) -> Result<(), TursoStorageError> {
@@ -3565,7 +3765,8 @@ fn validate_frozen_schema(connection: &Arc<Connection>) -> Result<(), TursoStora
         connection,
         "optimistic_uncertain_attributes",
         "optimistic_index_documents",
-    )
+    )?;
+    calendar::validate_schema(connection)
 }
 
 const SQLITE_SEQUENCE_TABLE: &str = "sqlite_sequence";
@@ -3611,6 +3812,14 @@ fn validate_allowed_schema_objects(connection: &Arc<Connection>) -> Result<(), T
         "search_documents_browse_idx",
         "sort_facts_lookup_idx",
     ];
+    let expected = expected
+        .into_iter()
+        .chain(calendar::TABLES)
+        .collect::<Vec<_>>();
+    let named_indexes = named_indexes
+        .into_iter()
+        .chain(calendar::NAMED_INDEXES)
+        .collect::<Vec<_>>();
     let support = [SQLITE_SEQUENCE_TABLE, TURSO_AUTOINCREMENT_TABLE];
     let mut seen = vec![false; expected.len()];
     let mut named_index_seen = vec![false; named_indexes.len()];
@@ -4496,6 +4705,7 @@ struct EncodedRecord {
     key: RecordKey,
     value: Vec<u8>,
     search_documents: Vec<SearchDocument>,
+    calendar_range: Option<cache_core::calendar::CalendarRangeRow>,
 }
 
 fn prepare_records(
@@ -4508,6 +4718,7 @@ fn prepare_records(
                 key: RecordKey::from_entity(&key)?,
                 value: encode_record(&record),
                 search_documents: project_search_documents(&key, &record),
+                calendar_range: cache_core::calendar::project_calendar_range(&key, &record),
             })
         })
         .collect()
@@ -4602,6 +4813,15 @@ fn upsert_search_documents_batch(
         )?;
     }
     Ok(())
+}
+
+/// Writes every derived row of upserted records in the records' transaction.
+fn write_derived_rows(
+    connection: &Arc<Connection>,
+    entries: &[EncodedRecord],
+) -> Result<(), TursoStorageError> {
+    write_search_documents(connection, entries)?;
+    calendar::write_ranges(connection, entries)
 }
 
 fn write_search_documents(
@@ -4793,6 +5013,13 @@ fn text(value: &str) -> Value {
     Value::from_text(value.to_owned())
 }
 
+/// SQL string literal for statements that accept no bound parameters
+/// (`VACUUM INTO <path>`).
+#[cfg(not(target_arch = "wasm32"))]
+fn sql_literal(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}
+
 fn optional_text(value: Option<&str>) -> Value {
     value.map_or(Value::Null, text)
 }
@@ -4968,6 +5195,7 @@ impl TursoStorage {
 
 mod alternatives;
 mod bounded_selection;
+mod calendar;
 mod conjunction;
 mod integrity;
 mod mutation_retry;

@@ -107,14 +107,38 @@ where
         // Persist first: never report a terminal rejection while the durable
         // queue still says that the command will run after a restart.
         for entry in waiting {
-            self.resolve_announced_reply(
-                session_id,
-                entry.announced,
-                entry.announce.as_ref(),
-                entry.actor.as_ref(),
-                ReplyOutcome::Failed,
-            )
-            .await;
+            let conversation_store = self.conversation_turns.as_ref().filter(|_| {
+                entry.announce.as_ref().is_some_and(|origin| {
+                    origin.reply_placement == crate::domain::model::ReplyPlacement::Timeline
+                })
+            });
+            if let Some(store) = conversation_store {
+                store
+                    .finish(
+                        entry.action_id,
+                        crate::domain::conversation_turns::ConversationTurnState::Failed,
+                        ReplyOutcome::Failed,
+                    )
+                    .await?;
+            }
+            let resolved = self
+                .resolve_announced_reply(
+                    session_id,
+                    entry.announced,
+                    entry.announce.as_ref(),
+                    entry.actor.as_ref(),
+                    ReplyOutcome::Failed,
+                    // A refused entry never opened a turn: there is nothing
+                    // it said or did to show, only that it was refused.
+                    agent_fold::domain::model::TurnId(0),
+                    Vec::new(),
+                )
+                .await;
+            if resolved && let Some(store) = conversation_store {
+                store
+                    .finalize_reply(entry.action_id, &ReplyOutcome::Failed)
+                    .await?;
+            }
             self.publish_command_rejected(
                 session_id,
                 entry.action_id,
@@ -165,9 +189,6 @@ fn macro_funded(kind: AgentKind) -> bool {
         AgentKind::InMemory | AgentKind::SandboxedCoder => true,
         // Independently billed tools/helpers have their own admission; runtime
         // execution itself uses the owner's subscription or external provider.
-        AgentKind::Cursor
-        | AgentKind::CodexCloud
-        | AgentKind::ClaudeCloud
-        | AgentKind::External => false,
+        AgentKind::Cursor | AgentKind::CodexCloud | AgentKind::External => false,
     }
 }

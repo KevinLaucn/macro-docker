@@ -8,16 +8,27 @@ import type { SafeFetchInit } from '@core/util/safeFetch';
 import { getMacroApiToken } from '@service-auth/fetch';
 import type {
   CalendarEvent,
+  CalendarEventProviderUrl,
+  CalendarJoinRequest,
+  CalendarReplacementView,
+  CopyCalendarEventRequest,
   CreateCalendarEventRequest,
+  InviteCalendarEventGuestsRequest,
   ListCalendarsResponse,
+  PrepareCalendarReplacementRequest,
+  RespondToJoinRequestRequest,
   RsvpCalendarEventRequest,
   UpdateCalendarEventRequest,
 } from '@service-calendar/generated/schemas';
+import type { AvailabilityCalendarBody } from '@service-calendar/generated/schemas/availabilityCalendarBody';
+import type { AvailabilityCalendarsResponse } from '@service-calendar/generated/schemas/availabilityCalendarsResponse';
 import { CalendarMutationErrorCode } from '@service-calendar/generated/schemas/calendarMutationErrorCode';
+import type { TeamCalendarSharingBody } from '@service-calendar/generated/schemas/teamCalendarSharingBody';
 import type { Result } from 'neverthrow';
 import type {
   AddDraftAttachmentRequest,
   AddDraftAttachmentResponse,
+  ApiMessageOperation,
   ApiPaginatedThreadCursor,
   CreateDraftRequest,
   CreateDraftResponse,
@@ -30,12 +41,18 @@ import type {
   ListEmailFiltersResponse,
   ListLabelsResponse,
   ListLinksResponse,
+  MailboxSettingsOperation,
+  ParsedMessage,
   PatchSettingsRequest,
   PatchSettingsResponse,
+  ResolveMessageOperationRequest,
   ResyncResponse,
   SendMessageRequest,
   SendMessageResponse,
   SharedInboxConflictResponse,
+  TransferDraftRequest,
+  TransferDraftResponse,
+  TransferRecoveryResponse,
   UpdateLabelBatchRequest,
   UpdateLabelBatchResponse,
   UpdateThreadLabelRequest,
@@ -65,6 +82,9 @@ export type CalendarRsvpScope = 'all' | 'this_event';
 
 /** How much of a recurring series a calendar update applies to. */
 export type CalendarUpdateScope = 'all' | 'this_event';
+
+/** How much of a recurring series an invitation adds guests to. */
+export type CalendarInviteScope = 'all' | 'this_event';
 
 function emailLinkHeaders(linkId?: string): Record<string, string> | undefined {
   return linkId ? { [EMAIL_LINK_ID_HEADER]: linkId } : undefined;
@@ -126,6 +146,7 @@ export const ALREADY_INITIALIZED_CODE = 'ALREADY_INITIALIZED' as const;
 export const NO_GMAIL_GRANT_CODE = 'NO_GMAIL_GRANT' as const;
 
 type InitErrorCode =
+  | 'PAYMENT_REQUIRED'
   | typeof SHARED_INBOX_CONFLICT_CODE
   | typeof ALREADY_INITIALIZED_CODE
   | typeof NO_GMAIL_GRANT_CODE;
@@ -140,6 +161,18 @@ export const SIGNATURE_IMAGES_UNRESOLVED_CODE =
   'SIGNATURE_IMAGES_UNRESOLVED' as const;
 
 export const emailClient = {
+  settingsOperations: (linkId: string) =>
+    emailFetch<MailboxSettingsOperation[]>(
+      `${emailHost}/email/settings/operations`,
+      { headers: emailLinkHeaders(linkId) }
+    ),
+
+  async threadOperations(threadId: string) {
+    return emailFetch<import('./generated/schemas').MailboxOperation[]>(
+      `/email/threads/${threadId}/operations`
+    );
+  },
+
   async getCalendarInvitations(threadId: string) {
     return emailFetch<Record<string, InvitationResolution>>(
       `/email/threads/${threadId}/calendar-invitations`
@@ -158,6 +191,12 @@ export const emailClient = {
       // the shared-inbox conflict fields and 400 a machine-readable code; other
       // statuses fall back to the same HTTP_ERROR shape callers already branch on.
       errorResponseHandler: async (response) => {
+        if (response.status === 402)
+          return {
+            code: 'PAYMENT_REQUIRED',
+            message:
+              'A professional subscription is required to add another inbox',
+          };
         if (response.status === 409) {
           const body = (await response
             .json()
@@ -205,6 +244,13 @@ export const emailClient = {
       )
     ).map((result) => result);
   },
+  async getMessage(args: { message_id: string }) {
+    return (
+      await emailFetch<ParsedMessage>(`/email/messages/${args.message_id}`, {
+        method: 'GET',
+      })
+    ).map((result) => result);
+  },
   async getUserLabels() {
     return (
       await emailFetch<ListLabelsResponse>(`/email/labels`, {
@@ -246,6 +292,31 @@ export const emailClient = {
         body: JSON.stringify({ value, label_id, message_ids }),
       })
     ).map((result) => result);
+  },
+  async messageOperation(messageId: string) {
+    return emailFetch<{ operation?: ApiMessageOperation | null }>(
+      `/email/drafts/${messageId}/operation`,
+      { method: 'GET' }
+    );
+  },
+  async resolveMessageOperation(
+    messageId: string,
+    input: ResolveMessageOperationRequest
+  ) {
+    return emailFetch(`/email/drafts/${messageId}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  },
+  async updateThreadState(args: {
+    thread_id: string;
+    field: 'read' | 'starred' | 'trashed' | 'junk';
+    value: boolean;
+  }) {
+    return emailFetch(`/email/threads/${args.thread_id}/state`, {
+      method: 'PATCH',
+      body: JSON.stringify({ field: args.field, value: args.value }),
+    });
   },
   async updateThreadLabel(
     args: { thread_id: string } & UpdateThreadLabelRequest
@@ -310,13 +381,16 @@ export const emailClient = {
   },
 
   async scheduleMessage(
-    args: { draftID: string } & UpsertScheduledRequest,
+    args: {
+      draftID: string;
+      draftGeneration?: number;
+    } & UpsertScheduledRequest,
     linkId?: string
   ) {
-    const { draftID, ...rest } = args;
+    const { draftID, draftGeneration, ...rest } = args;
     return (
       await emailFetch<UpsertScheduledResponse>(
-        `/email/drafts/scheduled/${draftID}`,
+        `/email/drafts/scheduled/${draftID}?draft_generation=${draftGeneration ?? 0}`,
         {
           method: 'PUT',
           body: JSON.stringify(rest),
@@ -326,10 +400,13 @@ export const emailClient = {
     ).map((result) => result);
   },
 
-  async unscheduleMessage(args: { draftID: string }, linkId?: string) {
+  async unscheduleMessage(
+    args: { draftID: string; draftGeneration?: number },
+    linkId?: string
+  ) {
     return (
       await emailFetch<EmptyResponse>(
-        `/email/drafts/scheduled/${args.draftID}`,
+        `/email/drafts/scheduled/${args.draftID}?draft_generation=${args.draftGeneration ?? 0}`,
         {
           method: 'DELETE',
           headers: emailLinkHeaders(linkId),
@@ -519,25 +596,45 @@ export const emailClient = {
       })
     ).map((result) => result);
   },
-  async deleteDraft(args: { id: string }, linkId?: string) {
+  async recoverDraftTransfer(id: string) {
+    return emailFetch<TransferRecoveryResponse>(
+      `/email/draft-transfers/${id}/recover`,
+      { method: 'POST' }
+    );
+  },
+  async transferDraft(id: string, body: TransferDraftRequest, linkId: string) {
+    return emailFetch<TransferDraftResponse>(`/email/drafts/${id}/transfer`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: emailLinkHeaders(linkId),
+    });
+  },
+  async deleteDraft(
+    args: { id: string; draftGeneration?: number },
+    linkId?: string
+  ) {
     const { id } = args;
     return (
-      await emailFetch<EmptyResponse>(`/email/drafts/${id}`, {
-        method: 'DELETE',
-        headers: emailLinkHeaders(linkId),
-      })
+      await emailFetch<EmptyResponse>(
+        `/email/drafts/${id}?draft_generation=${args.draftGeneration ?? 0}`,
+        {
+          method: 'DELETE',
+          headers: emailLinkHeaders(linkId),
+        }
+      )
     ).map((result) => result);
   },
   async addDraftAttachment(
     args: {
       draftID: string;
+      draftGeneration?: number;
       attachment: AddDraftAttachmentRequest;
     },
     linkId?: string
   ) {
     return (
       await emailFetch<AddDraftAttachmentResponse>(
-        `/email/drafts/${args.draftID}/attachments`,
+        `/email/drafts/${args.draftID}/attachments?draft_generation=${args.draftGeneration ?? 0}`,
         {
           method: 'POST',
           body: JSON.stringify(args.attachment),
@@ -569,13 +666,22 @@ export const emailClient = {
       return result;
     });
   },
+  async completeDraftAttachment(
+    args: { draftID: string; attachmentID: string; draftGeneration?: number },
+    linkId?: string
+  ) {
+    return emailFetch<EmptyResponse>(
+      `/email/drafts/${args.draftID}/attachments/${args.attachmentID}/complete?draft_generation=${args.draftGeneration ?? 0}`,
+      { method: 'POST', headers: emailLinkHeaders(linkId) }
+    );
+  },
   async removeDraftAttachment(
-    args: { draftID: string; attachmentID: string },
+    args: { draftID: string; attachmentID: string; draftGeneration?: number },
     linkId?: string
   ) {
     return (
       await emailFetch<EmptyResponse>(
-        `/email/drafts/${args.draftID}/attachments/${args.attachmentID}`,
+        `/email/drafts/${args.draftID}/attachments/${args.attachmentID}?draft_generation=${args.draftGeneration ?? 0}`,
         {
           method: 'DELETE',
           headers: emailLinkHeaders(linkId),
@@ -586,6 +692,7 @@ export const emailClient = {
   async addForwardedAttachment(
     args: {
       draftID: string;
+      draftGeneration?: number;
       attachmentID: string;
     },
     linkId?: string
@@ -596,23 +703,27 @@ export const emailClient = {
         filename: string | null;
         mime_type: string | null;
         size_bytes: number | null;
-      }>(`/email/drafts/${args.draftID}/forwarded-attachments`, {
-        method: 'POST',
-        body: JSON.stringify({ attachment_id: args.attachmentID }),
-        headers: emailLinkHeaders(linkId),
-      })
+      }>(
+        `/email/drafts/${args.draftID}/forwarded-attachments?draft_generation=${args.draftGeneration ?? 0}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ attachment_id: args.attachmentID }),
+          headers: emailLinkHeaders(linkId),
+        }
+      )
     ).map((result) => result);
   },
   async removeForwardedAttachment(
     args: {
       draftID: string;
+      draftGeneration?: number;
       attachmentID: string;
     },
     linkId?: string
   ) {
     return (
       await emailFetch<EmptyResponse>(
-        `/email/drafts/${args.draftID}/forwarded-attachments/${args.attachmentID}`,
+        `/email/drafts/${args.draftID}/forwarded-attachments/${args.attachmentID}?draft_generation=${args.draftGeneration ?? 0}`,
         {
           method: 'DELETE',
           headers: emailLinkHeaders(linkId),
@@ -668,10 +779,96 @@ export const emailClient = {
       headers: emailLinkHeaders(linkId),
     });
   },
+  async prepareCalendarReplacement(
+    eventId: string,
+    args: PrepareCalendarReplacementRequest
+  ) {
+    return fetchWithToken<CalendarReplacementView, CalendarMutationErrorCode>(
+      `${calendarHost}/events/${eventId}/replacement`,
+      {
+        method: 'POST',
+        body: JSON.stringify(args),
+        errorResponseHandler: calendarMutationErrorHandler,
+      }
+    );
+  },
+  async confirmCalendarReplacement(operationId: string) {
+    return fetchWithToken<CalendarReplacementView, CalendarMutationErrorCode>(
+      `${calendarHost}/replacements/${operationId}/confirm`,
+      {
+        method: 'POST',
+        errorResponseHandler: calendarMutationErrorHandler,
+      }
+    );
+  },
+  async calendarReplacementStatus(operationId: string) {
+    return fetchWithToken<CalendarReplacementView, CalendarMutationErrorCode>(
+      `${calendarHost}/replacements/${operationId}`,
+      {
+        method: 'GET',
+        errorResponseHandler: calendarMutationErrorHandler,
+      }
+    );
+  },
+  async discardCalendarReplacement(operationId: string) {
+    return fetchWithToken<EmptyResponse, CalendarMutationErrorCode>(
+      `${calendarHost}/replacements/${operationId}`,
+      {
+        method: 'DELETE',
+        errorResponseHandler: calendarMutationErrorHandler,
+      }
+    );
+  },
+  async calendarEventProviderUrl(
+    eventId: string,
+    options: { calendarId?: string; recurrenceId?: string }
+  ) {
+    const params = new URLSearchParams();
+    if (options.calendarId) params.set('calendarId', options.calendarId);
+    if (options.recurrenceId) params.set('recurrenceId', options.recurrenceId);
+    return fetchWithToken<CalendarEventProviderUrl, CalendarMutationErrorCode>(
+      `${calendarHost}/events/${eventId}/provider-url?${params}`,
+      {
+        method: 'GET',
+        errorResponseHandler: calendarMutationErrorHandler,
+      }
+    );
+  },
   async listCalendars() {
     return fetchWithToken<ListCalendarsResponse>(`${calendarHost}/calendars`, {
       method: 'GET',
     });
+  },
+
+  async getTeamCalendarSharing(signal?: AbortSignal) {
+    return fetchWithToken<TeamCalendarSharingBody>(
+      `${calendarHost}/team-sharing`,
+      { method: 'GET', signal }
+    );
+  },
+
+  async setTeamCalendarSharing(body: TeamCalendarSharingBody) {
+    return fetchWithToken<TeamCalendarSharingBody>(
+      `${calendarHost}/team-sharing`,
+      { method: 'PUT', body: JSON.stringify(body) }
+    );
+  },
+
+  async getAvailabilityCalendars(signal?: AbortSignal) {
+    return fetchWithToken<AvailabilityCalendarsResponse>(
+      `${calendarHost}/availability-calendars`,
+      { method: 'GET', signal }
+    );
+  },
+
+  async setAvailabilityCalendar(
+    calendarId: string,
+    body: AvailabilityCalendarBody
+  ) {
+    return fetchWithToken<EmptyResponse>(
+      `${calendarHost}/availability-calendars/${encodeURIComponent(calendarId)}`,
+      { method: 'PUT', body: JSON.stringify(body) }
+    );
   },
   async createCalendarEvent(args: CreateCalendarEventRequest) {
     return fetchWithToken<CalendarEvent, CalendarMutationErrorCode>(
@@ -725,6 +922,42 @@ export const emailClient = {
       `${calendarHost}/events/${eventId}/rsvp`,
       {
         method: 'PUT',
+        body: JSON.stringify(args),
+        errorResponseHandler: calendarMutationErrorHandler,
+      }
+    );
+  },
+  async inviteCalendarEventGuests(
+    eventId: string,
+    args: InviteCalendarEventGuestsRequest
+  ) {
+    return fetchWithToken<CalendarEvent, CalendarMutationErrorCode>(
+      `${calendarHost}/events/${eventId}/guests`,
+      {
+        method: 'POST',
+        body: JSON.stringify(args),
+        errorResponseHandler: calendarMutationErrorHandler,
+      }
+    );
+  },
+  async respondToCalendarJoinRequest(
+    requestId: string,
+    args: RespondToJoinRequestRequest
+  ) {
+    return fetchWithToken<CalendarJoinRequest, CalendarMutationErrorCode>(
+      `${calendarHost}/join-requests/${requestId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(args),
+        errorResponseHandler: calendarMutationErrorHandler,
+      }
+    );
+  },
+  async copyCalendarEvent(eventId: string, args: CopyCalendarEventRequest) {
+    return fetchWithToken<CalendarEvent, CalendarMutationErrorCode>(
+      `${calendarHost}/events/${eventId}/copy`,
+      {
+        method: 'POST',
         body: JSON.stringify(args),
         errorResponseHandler: calendarMutationErrorHandler,
       }

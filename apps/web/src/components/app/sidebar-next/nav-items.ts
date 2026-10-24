@@ -4,6 +4,7 @@ import type { SidebarItem } from '@components/app/app-sidebar/sidebar';
 import { TOKENS } from '@core/hotkey/tokens';
 import BuildingsIcon from '@phosphor/buildings.svg';
 import CalendarBlankIcon from '@phosphor/calendar-blank.svg';
+import CalendarCheckIcon from '@phosphor/calendar-check.svg';
 import ChatsCircleIcon from '@phosphor/chats-circle.svg';
 import EnvelopeIcon from '@phosphor/envelope.svg';
 import FolderSimpleIcon from '@phosphor/folder-simple.svg';
@@ -11,9 +12,11 @@ import GitPullRequestIcon from '@phosphor/git-pull-request.svg';
 import HouseIcon from '@phosphor/house.svg';
 import ListChecksIcon from '@phosphor/list-checks.svg';
 import PhoneCallIcon from '@phosphor/phone-call.svg';
+import PulseIcon from '@phosphor/pulse.svg';
 import AgentIcon from '@phosphor/sparkle.svg';
 import BuildingsFillIcon from '@phosphor-fill/buildings-fill.svg';
 import CalendarBlankFillIcon from '@phosphor-fill/calendar-blank-fill.svg';
+import CalendarCheckFillIcon from '@phosphor-fill/calendar-check-fill.svg';
 import ChatsCircleFillIcon from '@phosphor-fill/chats-circle-fill.svg';
 import EnvelopeFillIcon from '@phosphor-fill/envelope-fill.svg';
 import FolderSimpleFillIcon from '@phosphor-fill/folder-simple-fill.svg';
@@ -21,6 +24,7 @@ import GitPullRequestFillIcon from '@phosphor-fill/git-pull-request-fill.svg';
 import HouseFillIcon from '@phosphor-fill/house-fill.svg';
 import ListChecksFillIcon from '@phosphor-fill/list-checks-fill.svg';
 import PhoneCallFillIcon from '@phosphor-fill/phone-call-fill.svg';
+import PulseFillIcon from '@phosphor-fill/pulse-fill.svg';
 import AgentFillIcon from '@phosphor-fill/sparkle-fill.svg';
 import type { NavIcon } from './nav-glyph';
 import type { SidebarPrefs } from './use-sidebar-prefs';
@@ -30,11 +34,19 @@ import type { SidebarPrefs } from './use-sidebar-prefs';
  * the button switches to while its view is active. Both are required here,
  * unlike `SidebarItem['icon']` — a rail button is nothing but its glyph.
  */
-export type SidebarNextNavItem = SidebarItem & {
+export type SidebarNextNavItem = Omit<SidebarItem, 'hotkeyToken'> & {
+  /** Only destinations with a registered GoTo shortcut expose a key hint. */
+  hotkeyToken?: SidebarItem['hotkeyToken'];
   icon: NavIcon;
   /** Phosphor `fill` weight of `icon`, shown while the view is active. */
   iconActive: NavIcon;
 };
+
+/** More-menu destinations do not require an active icon or keyboard shortcut. */
+export type SidebarNextMenuItem = Omit<
+  SidebarNextNavItem,
+  'iconActive' | 'hotkeyToken'
+>;
 
 /**
  * SidebarRail's nav buttons, in default render order.
@@ -138,14 +150,32 @@ export const SIDEBAR_NEXT_NAV_ITEMS = [
     hotkey: 'v',
     hotkeyToken: TOKENS.sidebar.goTo.reviews,
   },
+  {
+    id: 'activity',
+    label: 'Activity',
+    href: '/activity',
+    icon: PulseIcon,
+    iconActive: PulseFillIcon,
+    hotkey: 'y',
+    hotkeyToken: TOKENS.sidebar.goTo.activity,
+  },
+  {
+    id: 'booking-links',
+    label: 'Scheduling',
+    href: '/scheduling',
+    icon: CalendarCheckIcon,
+    iconActive: CalendarCheckFillIcon,
+  },
 ] satisfies SidebarNextNavItem[];
 
-/** Feature flag gates for feature-gated nav buttons. */
+/** Feature flag gates for sidebar destinations. */
 export type NavItemGates = {
   showCalendar: boolean;
+  showScheduling: boolean;
   showCustomers: boolean;
   showCalls: boolean;
   showReviews: boolean;
+  showActivity: boolean;
   /** User preferences for which items are shown and in what order. */
   prefs: SidebarPrefs;
 };
@@ -156,9 +186,11 @@ export const isNavItemAvailable = (
   gates: NavItemGates
 ): boolean => {
   if (item.id === 'calendar') return gates.showCalendar;
+  if (item.id === 'booking-links') return gates.showScheduling;
   if (item.id === 'companies') return gates.showCustomers;
   if (item.id === 'calls') return gates.showCalls;
   if (item.id === 'reviews') return gates.showReviews;
+  if (item.id === 'activity') return gates.showActivity;
   return true;
 };
 
@@ -210,10 +242,8 @@ export const customizableNavItems = (
     gates.prefs.order
   );
 
-/**
- * Items hidden from the rail but available for quick open in the More menu.
- */
-export const moreMenuItems = (gates: NavItemGates): SidebarNextNavItem[] =>
+/** Hidden rail items, available for quick open in the More menu. */
+export const moreMenuItems = (gates: NavItemGates): SidebarNextMenuItem[] =>
   customizableNavItems(gates).filter(
     (item) => item.id !== 'home' && gates.prefs.hidden.has(item.id)
   );

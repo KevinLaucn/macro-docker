@@ -9,11 +9,14 @@ import {
   EmailThread,
   type EmailThreadProps,
 } from '@app/features/email-thread/email-thread';
+import { HeaderActionGroup } from '@components/app/HeaderActionGroup';
 import { SidePanel } from '@components/app/side-panel';
 import { useSplitLayout } from '@components/app/split-layout/layout';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { buildMentionMarkdownString } from '@macro-inc/lexical-core';
 import type { Accessor, JSX } from 'solid-js';
 import { Show } from 'solid-js';
+import { QueuedSendStatus } from '../email-compose/queued-send-status';
 import { EmailTaskButton } from './component/EmailTaskButton';
 import { EmailSidePanelSections } from './component/sidepanel/EmailSidePanelSections';
 
@@ -45,10 +48,6 @@ export function EmailThreadHostView(props: EmailThreadHostViewProps) {
       type: 'component',
       id: 'task-compose',
       params: {
-        initialTitle:
-          props.title.length > 70
-            ? `${props.title.slice(0, 70)}...`
-            : props.title,
         initialContent: buildMentionMarkdownString({
           type: 'document',
           documentId: props.threadId(),
@@ -66,13 +65,14 @@ export function EmailThreadHostView(props: EmailThreadHostViewProps) {
       threadTransport={props.threadTransport}
       host={props.host}
       openCalendar={(target) => {
-        void openCalendarEventSplit(target);
+        fireAndForget(openCalendarEventSplit(target), 'email-thread');
       }}
       header={props.topBar?.({ createTask })}
       actions={<ThreadActions title={props.title} onCreateTask={createTask} />}
       frame={(content) => (
         <>
           {props.chrome?.({ createTask })}
+          <QueuedSendStatus threadId={props.threadId()} />
           <SidePanel.Layout
             floating
             defaultOpen={false}
@@ -94,7 +94,7 @@ function ThreadActions(props: { title: string; onCreateTask: () => void }) {
   const context = useEmailThreadState();
   return (
     <SidePanel.HeaderActions>
-      <div class="flex shrink-0 items-center gap-1">
+      <HeaderActionGroup label="Actions">
         <Show when={context.thread()?.db_id}>
           {(id) => (
             <AskMacroButton
@@ -105,7 +105,7 @@ function ThreadActions(props: { title: string; onCreateTask: () => void }) {
         <Show when={context.thread()?.db_id}>
           <EmailTaskButton onClick={props.onCreateTask} />
         </Show>
-      </div>
+      </HeaderActionGroup>
     </SidePanel.HeaderActions>
   );
 }

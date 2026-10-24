@@ -4,6 +4,7 @@ import { useFeatureFlag } from '@app/lib/analytics/posthog';
 import { enableDatabases } from '@core/constant/featureFlags';
 import type { DatabaseOp } from '@core/database-sql/generated/types';
 import { traceDatabaseOps } from '@core/database-sql/trace';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { catchToResult, type ResultError, throwOnErr } from '@core/util/result';
 import { storageServiceClient } from '@service-storage/client';
 import type {
@@ -47,7 +48,7 @@ export function useDatabaseDiscoverySync(isActive: Accessor<boolean>) {
       () => isActive() && flag().enabled,
       (active) => {
         if (!active) return;
-        void queryClient.invalidateQueries({
+        queryClient.invalidateQueries({
           queryKey: databasesKeys.list.queryKey,
         });
       }
@@ -227,13 +228,13 @@ export function applyDatabaseOps(
             { throwOnError: false }
           );
           if (createsColumnData) await refresh;
-          else void refresh;
+          else fireAndForget(refresh, 'database-mutations');
         }
         return response.results;
       })
       // A refused batch is one error: the first op the service could not apply.
       .mapErr(([refusal]) => {
-        void invalidateDatabase(databaseId);
+        fireAndForget(invalidateDatabase(databaseId), 'database-mutations');
         return refusal;
       })
   );
@@ -280,7 +281,8 @@ export function undoDatabaseChange(
           changes.map(({ table, version }) => [table, version])
         )
       );
-      if (changes.length > 0) void invalidateDatabase(databaseId);
+      if (changes.length > 0)
+        fireAndForget(invalidateDatabase(databaseId), 'database-mutations');
       for (const { table, version } of changes)
         for (const listener of advancedListeners)
           listener({ databaseId, tableId: table, version });
@@ -331,13 +333,14 @@ export function createDatabase(params: {
 }): ResultAsync<string, ResultError<DatabaseSchemaErrorCode>[]> {
   return storageServiceClient.databases
     .create({ name: params.name })
-    .map(async ({ id }) => {
+    .map(({ id }) => {
       analytics.track('create_entity', {
         entityType: 'database',
         entityId: id,
         source: params.source,
       });
-      await queryClient.invalidateQueries({
+      // Creation is committed. Refresh discovery without blocking the new editor.
+      queryClient.invalidateQueries({
         queryKey: databasesKeys.list.queryKey,
       });
       return id;

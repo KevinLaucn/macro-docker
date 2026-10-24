@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@app/components/view-shell/ListSkeleton';
 /**
  * App-facing entry for the `form` block. It reads the legacy block state once
  * (id, params, split) and hands identity, capabilities and host actions to
@@ -7,6 +8,8 @@
  */
 
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
+import { HeaderActionButton } from '@components/app/HeaderActionButton';
+import { HeaderActionGroup } from '@components/app/HeaderActionGroup';
 import { ResponsivePermissionsBadge } from '@components/app/ResponsiveBlockToolbar';
 import { HeaderIsland } from '@components/app/split-layout/components/HeaderIsland';
 import {
@@ -25,8 +28,8 @@ import { BlockLiveIndicators } from '@core/component/LiveIndicators';
 import { ShareTrigger } from '@core/component/TopBar/ShareButton';
 import { useShareModal } from '@core/component/TopBar/shareModal';
 import { enableForms } from '@core/constant/featureFlags';
-import { useSettingsState } from '@core/constant/SettingsState';
 import { isMobile } from '@core/mobile/isMobile';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { openExternalUrl } from '@core/util/url';
 import { useCopyLink } from '@core/util/useCopyLink';
 import { getWebOrigin } from '@core/util/webOrigin';
@@ -34,7 +37,6 @@ import ArrowSquareOut from '@phosphor/arrow-square-out.svg';
 import Eye from '@phosphor/eye.svg';
 import PaperPlaneTilt from '@phosphor/paper-plane-tilt.svg';
 import { useFormSharePermissionsQuery } from '@queries/storage/forms';
-import { Button } from '@ui';
 import { createSignal, type JSX, Show } from 'solid-js';
 import type { FormTab } from './components/form-tabs';
 import { FormProvider } from './context/form-context';
@@ -45,8 +47,16 @@ import { createFormShareInput } from './form-global-sharing';
 import { reservePreviewTab } from './form-preview-tab';
 import { createPreview } from './primitives/create-preview';
 import { FormCardView } from './views/form-card-view';
-import { FormPageView } from './views/form-page-view';
+import { type FormHeaderProps, FormPageView } from './views/form-page-view';
 import { RespondView } from './views/respond-view';
+
+function FormHeader(props: FormHeaderProps) {
+  return (
+    <SplitHeaderLeft>
+      <div class="ml-2 min-w-0 max-w-xl shrink">{props.tabs}</div>
+    </SplitHeaderLeft>
+  );
+}
 
 function FormBlockContent(props: {
   respondOnly: boolean;
@@ -54,13 +64,13 @@ function FormBlockContent(props: {
 }) {
   const formId = useBlockId();
   const { replaceOrInsertSplit, insertSplit } = useSplitLayout();
-  const settings = useSettingsState();
   const panel = useSplitPanelOrThrow();
   const context = createAppFormContext({
     openRelated: (destination) =>
       replaceOrInsertSplit({ type: 'database', id: destination.databaseId }),
     openChannel: (channelId) => insertSplit({ type: 'channel', id: channelId }),
-    openCalendarSettings: () => settings.openSettingsInSplit('Booking links'),
+    openCalendarSettings: () =>
+      insertSplit({ type: 'component', id: 'booking-links' }),
   });
   const source = context.createFormSource(
     () => formId,
@@ -81,7 +91,8 @@ function FormBlockContent(props: {
   const link = () => respondLink(`${getWebOrigin()}/app/`, formId);
   // Sharing a form hands out its respond link; editors copy theirs apart.
   const copyEntityLink = useCopyLink();
-  const copyRespondLink = () => void copyEntityLink(link());
+  const copyRespondLink = () =>
+    fireAndForget(copyEntityLink(link()), 'form-share');
   const shareInput = createFormShareInput({
     formId: () => formId,
     detail: source.detail,
@@ -124,16 +135,18 @@ function FormBlockContent(props: {
     <Show
       when={published()}
       fallback={
-        <Button variant="cta" size="sm" onClick={openShare}>
-          <PaperPlaneTilt class="size-3.5" />
-          Publish
-        </Button>
+        <HeaderActionButton
+          label="Publish"
+          icon={<PaperPlaneTilt />}
+          onClick={openShare}
+        />
       }
     >
-      <Button variant="outline" size="sm" onClick={openRespond}>
-        <ArrowSquareOut class="size-3.5" />
-        Open form
-      </Button>
+      <HeaderActionButton
+        label="Open form"
+        icon={<ArrowSquareOut class="size-3.5" />}
+        onClick={openRespond}
+      />
     </Show>
   );
   let respondScroll: HTMLDivElement | undefined;
@@ -153,7 +166,7 @@ function FormBlockContent(props: {
           <BlockLiveIndicators />
         </Show>
         <HeaderIsland>
-          <div class="order-[1000] flex items-center gap-1.5">
+          <div class="order-[1000] flex items-center gap-2 touch:gap-1.5">
             <Show
               when={
                 !props.respondOnly &&
@@ -161,16 +174,15 @@ function FormBlockContent(props: {
                 source.detail()?.access !== 'view'
               }
             >
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={preview.opening()}
-                onClick={() => void preview.open()}
-              >
-                <Eye class="size-3.5" />
-                Preview
-              </Button>
-              {primary()}
+              <HeaderActionGroup label="Form actions">
+                <HeaderActionButton
+                  label="Preview"
+                  icon={<Eye class="size-3.5" />}
+                  disabled={preview.opening()}
+                  onClick={() => fireAndForget(preview.open(), 'form-preview')}
+                />
+                {primary()}
+              </HeaderActionGroup>
             </Show>
             <ShareTrigger
               id={formId}
@@ -186,6 +198,7 @@ function FormBlockContent(props: {
         when={props.respondOnly}
         fallback={
           <FormPageView
+            header={FormHeader}
             source={source}
             tab={tab()}
             respondLink={link()}
@@ -223,12 +236,12 @@ function FormBlockContent(props: {
 function FormCardContent() {
   const formId = useBlockId();
   const { insertSplit } = useSplitLayout();
-  const settings = useSettingsState();
   const context = createAppFormContext({
     openRelated: (destination) =>
       insertSplit({ type: 'database', id: destination.databaseId }),
     openChannel: (channelId) => insertSplit({ type: 'channel', id: channelId }),
-    openCalendarSettings: () => settings.openSettingsInSplit('Booking links'),
+    openCalendarSettings: () =>
+      insertSplit({ type: 'component', id: 'booking-links' }),
   });
   const source = context.createFormSource(() => formId);
   const open = () => {
@@ -246,7 +259,7 @@ function FormCardContent() {
         fallback={
           <Show
             when={source.failure()}
-            fallback={<div class="h-24 animate-pulse rounded-lg bg-hover" />}
+            fallback={<ListSkeleton.Bar class="h-24 w-full rounded-xl" />}
           >
             <p class="p-3 text-sm text-ink-muted">This form isn’t available.</p>
           </Show>

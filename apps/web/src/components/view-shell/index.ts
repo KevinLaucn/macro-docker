@@ -9,6 +9,7 @@ export {
 } from './collapsed-sections';
 export {
   type ListControlOption,
+  ListFilterCountBadge,
   ListFilterDropdown,
   type ListFilterDropdownProps,
   type ListFilterGroup,
@@ -16,6 +17,9 @@ export {
   type ListGroupDropdownProps,
   ListSortDropdown,
   type ListSortDropdownProps,
+  type ViewLayout,
+  ViewLayoutDropdown,
+  type ViewLayoutDropdownProps,
 } from './ListDropdowns';
 export { MobileFilterDrawer } from './MobileFilterDrawer';
 export { SearchBar, type SearchBarProps } from './SearchBar';

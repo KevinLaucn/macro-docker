@@ -13,23 +13,26 @@ check.call("attachment routes", routes.include?('get(get::handler)') &&
   routes.include?('get(get::download_handler)') &&
   routes.include?('get(get_document_id::handler)'))
 
-provider = read.call("services/email_service/src/api/email/attachments/get.rs")
-cached, fallback = provider.split("let presigned_url = if exists {", 2).last.to_s.split("} else {", 2)
+provider = read.call("services/email_service/src/outbound/attachment_access.rs")
+domain = read.call("crates/email/src/domain/attachment_access.rs")
+repo = read.call("crates/email/src/outbound/email_pg_repo/attachment_access.rs")
 check.call("cache-first read and owning-inbox provider fallback",
-  provider.match?(/\.exists\(bucket, &object_key\)/) &&
-  provider.index("fetch_attachment_by_id") && provider.index("let exists") &&
-  provider.index("fetch_attachment_by_id") < provider.index("let exists") &&
-  cached.to_s.include?("get_presigned_url(") && !cached.to_s.include?(".get_attachment(") &&
-  fallback.to_s.include?(".get_attachment(link.id, &message_provider_id, provider_attachment_id)") &&
-  fallback.to_s.include?("upload_single_attachment("))
+  repo.include?("fetch_attachment_by_id") &&
+  domain.include?("self.files.cached_url(&record).await?") &&
+  domain.include?("let bytes = self.provider.bytes(&record).await?;") &&
+  domain.include?("self.files.store_download(&record, bytes).await?") &&
+  provider.match?(/\.exists\(&self\.bucket, &key\)/) &&
+  provider.include?(".get_attachment(record.link.id, &record.message_provider_id, id)") &&
+  provider.include?("async fn store_download("))
 
 document = read.call("services/email_service/src/api/email/attachments/get_document_id.rs")
 handler, probe = document.split("async fn verify_and_get_cached_document_id(", 2)
 missing = probe.to_s[/Ok\(false\) => \{(.*?)\n        \}/m, 1].to_s
 check.call("private missing-document recovery reaches the existing upload",
   handler.scan("verify_and_get_cached_document_id(&ctx, attachment_id).await?").length == 2 &&
-  handler.include?("acquire_lock(") && handler.include?("upload_and_get_document_id(") &&
-  handler.include?("upload_attachment(ctx_upload, upload_args)") &&
+  handler.include?("acquire_lock(") && handler.include?(".attachment_reads") &&
+  handler.include?(".document(") &&
+  provider.include?("crate::util::upload_attachment::store_attachment(") &&
   probe.to_s.include?(".exists(&bucket, &s3_key)") &&
   missing.include?("DELETE FROM document_email") && missing.include?('UPDATE "Document"') &&
   missing.include?("Ok(None)"))

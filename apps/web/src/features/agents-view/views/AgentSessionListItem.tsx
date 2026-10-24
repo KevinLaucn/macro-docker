@@ -2,6 +2,7 @@ import { parseGithubPrUrl, prHtmlUrl } from '@app/features/block-pr/util/prKey';
 import { useSplitLayout } from '@components/app/split-layout/layout';
 import { openInNewSplitForMention } from '@core/util/openInNewSplit';
 import type { AgentSessionEntity } from '@entity';
+import RoutineIcon from '@phosphor/clock-clockwise.svg';
 import SparkleIcon from '@phosphor/sparkle.svg';
 import FilledSparkleIcon from '@phosphor-icons/core/fill/sparkle-fill.svg?component-solid';
 import { Show } from 'solid-js';
@@ -60,6 +61,16 @@ export function AgentSessionListItem(props: Props) {
     };
   };
 
+  const hideLeading = () => props.surface === 'agents';
+  const codeStatusIndicator = () =>
+    props.surface === 'agents' && mode() === 'code' ? (
+      <AgentSessionStatusIndicator state={state()} unread={props.unread} />
+    ) : undefined;
+  const workStatusIndicator = () =>
+    props.surface === 'agents' && mode() !== 'code' ? (
+      <AgentSessionStatusIndicator state={state()} unread={props.unread} />
+    ) : undefined;
+
   return (
     <AgentSessionRow
       id={props.entity.id}
@@ -68,6 +79,7 @@ export function AgentSessionListItem(props: Props) {
       state={state()}
       active={props.active}
       unread={props.unread}
+      hideLeading={hideLeading()}
       onOpen={props.onOpen}
       timestamp={compactAge(conversationTimestamp(props.entity))}
       leading={
@@ -86,18 +98,28 @@ export function AgentSessionListItem(props: Props) {
         </Show>
       }
       trailing={
-        <Show when={props.surface === 'home' && props.unread}>
-          <span
-            aria-label="Unread"
-            class="size-1.5 shrink-0 rounded-full bg-accent"
-          />
-        </Show>
+        <>
+          <Show when={props.entity.source === 'routine'}>
+            <RoutineIcon
+              aria-label="Routine run"
+              class="size-3.5 shrink-0 text-ink-extra-muted"
+            />
+          </Show>
+          <Show when={props.surface === 'home' && props.unread}>
+            <span
+              aria-label="Unread"
+              class="size-1.5 shrink-0 rounded-full bg-accent"
+            />
+          </Show>
+          {workStatusIndicator()}
+        </>
       }
     >
       <Show when={details()}>
         {(details) => (
           <AgentSessionCodeDetails
             details={details()}
+            statusIndicator={codeStatusIndicator()}
             onOpenPullRequest={
               props.entity.pullRequestId
                 ? (event) => {

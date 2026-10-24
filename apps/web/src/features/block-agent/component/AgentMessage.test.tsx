@@ -23,6 +23,13 @@ vi.mock('../context/AgentSessionContext', () => ({
 // The layer under test is how a message lays its parts out — which calls fold
 // into a group and at what index — so every part renderer and ui primitive
 // is a marker. The per-part components have their own tests.
+const openedOrigins = vi.hoisted(() => [] as unknown[]);
+vi.mock('../open-prompt-origin', () => ({
+  useOpenPromptOrigin: () => (destination: unknown) => {
+    openedOrigins.push(destination);
+  },
+}));
+
 vi.mock('@core/util/message-send-motion', () => ({
   messageSendMotion: () => {},
 }));
@@ -162,6 +169,9 @@ const message = (
   agentSessionId: 'session',
   requestId: null,
   pending: false,
+  postedAt: null,
+  segments: [],
+  phase: null,
   turn: 0,
   author: { kind: 'agent' },
   parts,
@@ -783,5 +793,71 @@ describe('Message failed turns', () => {
       'https://www.cursor.com/dashboard?tab=settings'
     );
     expect(view.queryByTestId('action-line')).toBeNull();
+  });
+});
+
+describe('Message prompt footer', () => {
+  const context = (xml: string) =>
+    `<m-agent-context>${JSON.stringify({ version: 1, text: xml }).replace(/</g, '\\u003c')}</m-agent-context>\nWork on the assigned task.`;
+
+  it('says under the prompt what started it, and goes there on click', () => {
+    openedOrigins.length = 0;
+    const view = render(() => (
+      <Message
+        message={{
+          ...message([
+            text(
+              context(
+                '<trigger kind="task_assigned" discussion="d1"><assigned by="Julia" by_id="macro|julia@example.com"/><task id="task-1" title="Fix calendar popover scroll" status="Todo"/></trigger>'
+              )
+            ),
+          ]),
+          author: { kind: 'user', userId: 'macro|me@macro.com' },
+        }}
+        inFlight={false}
+      />
+    ));
+
+    const line = view.getByRole('button', {
+      name: 'via task Fix calendar popover scroll from Julia',
+    });
+    line.click();
+    expect(openedOrigins).toEqual([{ kind: 'task', taskId: 'task-1' }]);
+  });
+
+  it('shows only when a prompt typed in the session was posted', () => {
+    const view = render(() => (
+      <Message
+        message={{
+          ...message([
+            text(
+              context('<session owner="Me" owner_id="macro|me@macro.com"/>')
+            ),
+          ]),
+          author: { kind: 'user', userId: 'macro|me@macro.com' },
+          postedAt: '2026-10-15T14:02:00+00:00',
+        }}
+        inFlight={false}
+      />
+    ));
+    const footer = view.getByTestId('prompt-footer');
+    expect(footer.querySelector('button')).toBeNull();
+    expect(footer.querySelector('time')?.dateTime).toBe(
+      '2026-10-15T14:02:00+00:00'
+    );
+  });
+
+  it('adds nothing under a prompt the log has not confirmed', () => {
+    const view = render(() => (
+      <Message
+        message={{
+          ...message([text('Do the thing.')]),
+          author: { kind: 'user', userId: 'macro|me@macro.com' },
+          pending: true,
+        }}
+        inFlight={false}
+      />
+    ));
+    expect(view.queryByTestId('prompt-footer')).toBeNull();
   });
 });

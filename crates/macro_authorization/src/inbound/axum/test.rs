@@ -179,6 +179,7 @@ fn bot_authentication(bot_scope: BotScope, acting_user_id: Option<&str>) -> BotA
         bot_scope,
         team_id: (bot_scope == BotScope::Team).then_some(BOT_TEAM_ID),
         acting_user: acting_user_id.map(|user_id| MacroUserAuthentication {
+            agent_id: None,
             macro_user_id: MacroUserIdStr::try_from(user_id.to_owned())
                 .expect("valid bot acting user id"),
             user_context: user_context(user_id, Some(42)),
@@ -732,6 +733,71 @@ async fn user_rejects_missing_and_invalid_user_credentials() {
         service.calls(),
         [AuthorizationCall::Jwt("expired".to_string())]
     );
+}
+
+/// Records the level of every event emitted while installed.
+#[derive(Clone, Default)]
+struct EventLevels(Arc<Mutex<Vec<tracing::Level>>>);
+
+impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for EventLevels {
+    fn on_event(
+        &self,
+        event: &tracing::Event<'_>,
+        _context: tracing_subscriber::layer::Context<'_, S>,
+    ) {
+        self.0
+            .lock()
+            .expect("levels lock poisoned")
+            .push(*event.metadata().level());
+    }
+}
+
+#[tokio::test]
+async fn authorization_failures_log_at_the_level_of_their_cause() {
+    use tracing::Level;
+    use tracing_subscriber::layer::SubscriberExt;
+
+    async fn check(request: Request<Body>, expected: Level) {
+        let (router, _service) = test_router();
+        let levels = EventLevels::default();
+        let _guard =
+            tracing::subscriber::set_default(tracing_subscriber::registry().with(levels.clone()));
+
+        send(&router, request).await;
+
+        assert_eq!(*levels.0.lock().expect("levels lock poisoned"), [expected]);
+    }
+
+    check(
+        empty_body(request("/user").header("authorization", "Bearer expired")),
+        Level::INFO,
+    )
+    .await;
+    check(
+        empty_body(request("/user").header("authorization", "Bearer invalid")),
+        Level::WARN,
+    )
+    .await;
+    check(
+        empty_body(request("/internal").header(INTERNAL_API_KEY_HEADER, "invalid")),
+        Level::WARN,
+    )
+    .await;
+    check(
+        empty_body(bot_request("/bot", "bot-forbidden")),
+        Level::WARN,
+    )
+    .await;
+    check(
+        empty_body(bot_request("/bot", "bot-unavailable")),
+        Level::ERROR,
+    )
+    .await;
+    check(
+        empty_body(user_api_key_request("/required", "mak_unavailable")),
+        Level::ERROR,
+    )
+    .await;
 }
 
 #[tokio::test]
@@ -2137,6 +2203,7 @@ fn policies_report_typed_acting_entity_variants_with_display_parity() {
 
 fn macro_user_authentication(user_id: &str) -> MacroUserAuthentication {
     MacroUserAuthentication {
+        agent_id: None,
         macro_user_id: MacroUserIdStr::try_from(user_id.to_owned()).expect("valid Macro user ID"),
         user_context: user_context(user_id, None),
     }

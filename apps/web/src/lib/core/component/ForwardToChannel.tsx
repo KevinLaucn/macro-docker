@@ -20,6 +20,7 @@ import { useCombinedRecipients } from '@core/signal/useCombinedRecipient';
 import type { WithCustomUserInput } from '@core/user';
 import { useSendMessageToPeople } from '@core/util/channels';
 import { getDestinationFromOptions } from '@core/util/destination';
+import { fireAndForget } from '@core/util/fireAndForget';
 import CheckIcon from '@phosphor/check.svg?component-solid';
 import PaperPlaneTilt from '@phosphor/paper-plane-tilt.svg';
 import {
@@ -498,7 +499,7 @@ export function ForwardToChannel(props: ForwardToChannelProps) {
       // Holding the shortcut repeats keydown; swallow the repeats so one press
       // sends one share, but keep capturing them so none reaches the composer.
       if (event?.repeat) return true;
-      void handleSubmit();
+      fireAndForget(handleSubmit(), 'forward-to-channel');
       return true;
     },
   });
@@ -677,7 +678,7 @@ export function ForwardToChannel(props: ForwardToChannelProps) {
                   onClick={() => {
                     const options = selectedOptions();
                     if (options && options.length > 0) {
-                      void handleSubmit();
+                      fireAndForget(handleSubmit(), 'forward-to-channel');
                     }
                   }}
                 >

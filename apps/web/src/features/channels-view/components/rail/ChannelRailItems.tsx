@@ -1,10 +1,8 @@
 import { dismissIncomingCallEverywhere } from '@app/features/block-call/sidebar/incoming-calls';
-import {
-  type EntityActionViewContext,
-  toEntityActionListState,
-} from '@app/features/next-soup/actions';
+import { toEntityActionListState } from '@app/features/next-soup/actions';
 import { SoupEntityContextMenu } from '@app/features/soup/SoupEntityContextMenu';
 import { joinChannelCall } from '@channel/Call/join-channel-call';
+import { CHANNEL_ACTION_VIEW_CONTEXT } from '@channel/Channel/channel-actions';
 import { ChannelMutedIndicator } from '@channel/components/ChannelMutedIndicator';
 import { StaticMarkdown } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { inlineWrappingMarkdownTheme } from '@core/component/LexicalMarkdown/theme';
@@ -43,12 +41,6 @@ export type ChannelRailItemProps = {
   selected: boolean;
   focused: boolean;
   onActivate: (event: MouseEvent) => void;
-};
-
-export const CHANNEL_ACTION_VIEW_CONTEXT: EntityActionViewContext = {
-  supportsMarkDone: false,
-  supportsOpenInNewSplit: false,
-  senderBucket: undefined,
 };
 
 /**
@@ -138,6 +130,7 @@ export function IncomingCallActions(props: {
   class?: string;
   layout?: 'compact' | 'wide';
 }) {
+  const userId = useUserId();
   const isWide = () => props.layout === 'wide';
 
   return (
@@ -162,7 +155,7 @@ export function IncomingCallActions(props: {
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
-              dismissIncomingCallEverywhere(callId());
+              dismissIncomingCallEverywhere(callId(), userId());
             }}
           >
             <XIcon class="size-3" />
@@ -278,6 +271,7 @@ export function ConversationCard(props: ConversationCardProps) {
   return (
     <div
       id={props.id}
+      data-channel-conversation
       role="treeitem"
       tabIndex={-1}
       class={cn(

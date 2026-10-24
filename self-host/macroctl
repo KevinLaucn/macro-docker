@@ -129,7 +129,7 @@ cmd_generate_secrets() {
   # One value per identity, mirroring which env vars must agree with each other
   # (see tooling/xtask/crates/xtask_local/src/local/local_env.rs).
   local pg_pw fa_db_pw internal dss doc_perm internal_call url_signing jwt
-  local fa_api fa_client_secret os_pw aws_secret admin_pw mcp_key
+  local fa_api fa_client_secret os_pw aws_secret admin_pw mcp_key account_link
   local app_id tenant_id key_id template_id
   local priv_rsa pub_rsa
   pg_pw=$(rand_hex 24);        fa_db_pw=$(rand_hex 24)
@@ -139,6 +139,7 @@ cmd_generate_secrets() {
   fa_api=$(rand_b64 32);       fa_client_secret=$(rand_b64 32)
   os_pw=$(rand_hex 24);        aws_secret=$(rand_hex 20)
   admin_pw=$(rand_b64 18);     mcp_key=$(rand_b64_strict)
+  account_link=$(rand_b64 32)
   app_id=$(uuid4); tenant_id=$(uuid4); key_id=$(uuid4); template_id=$(uuid4)
   rand_rsa
 
@@ -152,6 +153,7 @@ cmd_generate_secrets() {
   DOC_PERM="$doc_perm" INTERNAL_CALL="$internal_call" URL_SIGNING="$url_signing" \
   JWT="$jwt" FA_API="$fa_api" FA_CLIENT_SECRET="$fa_client_secret" OS_PW="$os_pw" \
   AWS_SECRET="$aws_secret" ADMIN_PW="$admin_pw" MCP_KEY="$mcp_key" \
+  ACCOUNT_LINK="$account_link" \
   APP_ID="$app_id" TENANT_ID="$tenant_id" KEY_ID="$key_id" TEMPLATE_ID="$template_id" \
   PRIV_RSA="\"${priv_rsa}\"" PUB_RSA="\"${pub_rsa}\"" \
   MACRO_VERSION="$macro_version" \
@@ -181,6 +183,7 @@ cmd_generate_secrets() {
       v["FUSIONAUTH_JWT_SIGNING_KEY_ID"]        = env("KEY_ID")
       v["FUSIONAUTH_PASSWORDLESS_TEMPLATE_ID"]  = env("TEMPLATE_ID")
       v["MCP_CREDENTIALS_KEY_SECRET_NAME"]      = env("MCP_KEY")
+      v["ACCOUNT_LINK_STATE_SECRET"]            = env("ACCOUNT_LINK")
       v["OPENSEARCH_PASSWORD"]                  = env("OS_PW")
       v["AWS_SECRET_ACCESS_KEY"]                = env("AWS_SECRET")
       v["ADMIN_PASSWORD"]                       = env("ADMIN_PW")

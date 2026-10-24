@@ -29,7 +29,6 @@ import HashIcon from '@phosphor/hash.svg';
 import PaperPlaneTiltIcon from '@phosphor/paper-plane-tilt.svg';
 import RobotIcon from '@phosphor/robot.svg';
 import XIcon from '@phosphor/x.svg';
-import type { Bot } from '@service-storage/generated/schemas/bot';
 import { debounce } from '@solid-primitives/scheduled';
 import { Avatar, cn, Layer } from '@ui';
 import * as EmailValidator from 'email-validator';
@@ -94,7 +93,7 @@ function RecipientChip(props: {
   );
 }
 
-function AgentAvatar(props: { agent: Bot }) {
+function AgentAvatar(props: { agent: CombinedRecipientItem<'agent'>['data'] }) {
   return (
     <Avatar size="sm">
       <Show
@@ -979,7 +978,7 @@ export function RecipientSelector<K extends CombinedRecipientKind>(
                   inputRef()?.focus({ preventScroll: true });
                 }
               }}
-              class="z-modal-content translate-y-1 rounded-xl p-1.5 glass bg-menu-glass menu-open-animation text-sm [--color-surface:var(--color-menu)]"
+              class="menu-surface z-modal-content translate-y-1 p-1.5 menu-open-animation text-sm"
             >
               <Combobox.Listbox
                 ref={setListboxRef}

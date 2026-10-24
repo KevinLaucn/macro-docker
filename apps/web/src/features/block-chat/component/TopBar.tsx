@@ -10,7 +10,6 @@ import { BlockItemSplitLabel } from '@components/app/split-layout/components/Spl
 import { useBlockId } from '@core/block';
 import { ProviderIcon } from '@core/component/AI/component/ProviderIcon';
 import { useChatInputContext } from '@core/component/AI/context';
-import { useOpenInstructionsMd } from '@core/component/AI/util/instructions';
 import {
   getShareDrawerRecipientInput,
   ShareTrigger,
@@ -22,7 +21,6 @@ import { useGetPermissions } from '@core/signal/permissions';
 import { useBlockDocumentName } from '@core/util/currentBlockDocumentName';
 import IconShared from '@icon/share.svg';
 import ChatDebugIcon from '@phosphor/chat-text.svg';
-import Notepad from '@phosphor/notepad.svg';
 import type { Accessor } from 'solid-js';
 
 export function TopBar(props: {
@@ -35,8 +33,6 @@ export function TopBar(props: {
   const name = useBlockDocumentName(DEFAULT_CHAT_NAME);
   const chatName = () => name();
 
-  const openInstructions = useOpenInstructionsMd();
-
   const permissions = useGetPermissions();
   const openShare = useShareModal(() => ({
     id: blockId,
@@ -48,11 +44,6 @@ export function TopBar(props: {
   }));
 
   const ops: FileOperation[] = [
-    {
-      label: 'Edit AI Instructions',
-      icon: Notepad,
-      action: openInstructions,
-    },
     ...(DEV_MODE_ENV && props.toggleStreamDebug
       ? [
           {

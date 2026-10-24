@@ -1,3 +1,4 @@
+import { reloadApp } from '@app/observability/reload';
 /**
  * The Photoshop block: app chrome (header, file menu, sharing) around the
  * editor, wired to the worker engine, live collaboration, and document
@@ -34,6 +35,7 @@ import {
   useBlockDocumentDownloadName,
   useBlockDocumentName,
 } from '@core/util/currentBlockDocumentName';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { downloadFile } from '@filesystem/download';
 import IconShared from '@icon/share.svg';
 import DownloadSimple from '@phosphor/download-simple.svg';
@@ -113,7 +115,7 @@ function PsdHost(props: {
           message:
             'This document was replaced by a newer file (an upload or an AI edit). Reload to edit the latest version.',
           action: 'Reload',
-          onAction: () => window.location.reload(),
+          onAction: () => reloadApp('user_recovery'),
         }
       : props.notice;
   onMount(() => {
@@ -148,7 +150,7 @@ function PsdHost(props: {
         setFailure(e instanceof Error ? e.message : String(e));
       }
     };
-    void open();
+    fireAndForget(open(), 'psd-editor');
     onCleanup(() => {
       disposed = true;
       shared?.close();
@@ -174,7 +176,8 @@ function PsdHost(props: {
                 context={{
                   engine: e(),
                   fileName: props.fileName,
-                  download: (blob, name) => void downloadFile(blob, name),
+                  download: (blob, name) =>
+                    fireAndForget(downloadFile(blob, name), 'psd-editor'),
                   notifyError: (message) => toast.failure(message),
                   notifyInfo: (message) => toast.success(message),
                   canEdit,
@@ -329,7 +332,7 @@ export default function PsdBlock(props: { share?: string }) {
       const url = data()?.blobUrl;
       if (!url) return;
       const response = await fetch(url);
-      void downloadFile(await response.blob(), downloadName());
+      await downloadFile(await response.blob(), downloadName());
     } catch {
       toast.failure('Error downloading file');
     }
@@ -357,7 +360,7 @@ export default function PsdBlock(props: { share?: string }) {
               group: 'file',
               label: 'Download',
               icon: DownloadSimple,
-              action: () => void download(),
+              action: () => fireAndForget(download(), 'psd-editor'),
             },
             { op: 'delete' },
           ]}
@@ -377,7 +380,11 @@ export default function PsdBlock(props: { share?: string }) {
             {(d) => (
               <Show
                 when={d.bytes}
-                fallback={<DownloadOnly onDownload={() => void download()} />}
+                fallback={
+                  <DownloadOnly
+                    onDownload={() => fireAndForget(download(), 'psd-editor')}
+                  />
+                }
               >
                 {(bytes) => (
                   <CollaborativePsdHost

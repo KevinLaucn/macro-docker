@@ -13,6 +13,7 @@ import { useNavigatedFromJK } from '@components/app/useNavigatedFromJK';
 import { useBlockId } from '@core/block';
 import { LoadErrorPanel } from '@core/component/EntityLoadGate';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
+import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { nativeNetworkStatus } from '@core/mobile/native-network-status';
 import { createMethodRegistration } from '@core/orchestrator';
 import { blockHandleSignal } from '@core/signal/load';
@@ -33,6 +34,7 @@ import { useAgentSession } from '../context/AgentSessionContext';
 import { parseAgentMessageTarget } from '../core/search-location';
 import { createAgentRouteTarget } from '../primitives/create-agent-route-target';
 import { AgentComposer } from './AgentComposer';
+import { AgentConnections } from './AgentConnections';
 import { AgentPreviewBanner } from './AgentPreviewBanner';
 import { AgentSessionReadMarker } from './AgentSessionReadMarker';
 import { AgentSplitHeader } from './AgentSplitHeader';
@@ -158,15 +160,21 @@ function AgentBlockContent(props: {
             {/* The Changes pane opens beside the transcript; closed, the
                 transcript keeps the whole width. */}
             <ChangesSplit>
-              <Transcript searchTarget={searchTarget()} />
+              <AgentConnections>
+                <Transcript searchTarget={searchTarget()} />
+              </AgentConnections>
               {/* Full-frame mobile: composer + queue float in the bottom
                   accessory region above the dock; desktop stays inline. */}
               <AgentComposerRegion>
                 {/* Home/chat: re-enable pointer events on the accessory
                     contribution — the float host is pointer-transparent. */}
                 {/* pb matches ChannelInputContainer so the composer sits at
-                    the same height as the channel input. */}
-                <div class="flex w-full justify-center shrink-0 px-4 pb-2.5 pointer-events-auto touch:px-(--mobile-chrome-gutter) touch:pb-0">
+                    the same height as the channel input, and like it holds
+                    the corner prompt while inline on desktop. */}
+                <div
+                  class="flex w-full justify-center shrink-0 px-4 pb-2.5 pointer-events-auto touch:px-(--mobile-chrome-gutter) touch:pb-0"
+                  data-holds-prompts={isTouchDevice() ? undefined : ''}
+                >
                   <div class="macro-message-width mx-auto flex flex-col gap-2">
                     <Show
                       when={!session()?.isArchived}

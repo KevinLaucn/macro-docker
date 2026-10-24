@@ -6,7 +6,6 @@
  */
 import type {
   AddServerRequest,
-  AiAdmissionErrorBody,
   BrowsePipedreamMcpCatalogParams,
   CallToolRequest,
   CallToolResponse,
@@ -15,8 +14,12 @@ import type {
   ChatMessageError,
   CompleteOnboardingRequest,
   CreateChatRequest,
+  DecisionErrorBody,
+  DecisionRequest,
+  DecisionResponse,
   DeleteMcpServerParams,
   DeletePipedreamMcpConnectionParams,
+  DismissedPrompts,
   DocumentTextPart,
   ErrorBody,
   ErrorResponse,
@@ -29,6 +32,7 @@ import type {
   McpAuthCallbackParams,
   MemoryErrorBody,
   MemoryResponse,
+  NotionImportReport,
   OnboardingRow,
   OnboardingState,
   PatchChatRequest,
@@ -1184,6 +1188,96 @@ export const getCitationHandler = async (
   } as getCitationHandlerResponse;
 };
 
+export type decisionsResponse200 = {
+  data: DecisionResponse;
+  status: 200;
+};
+
+export type decisionsResponse400 = {
+  data: DecisionErrorBody;
+  status: 400;
+};
+
+export type decisionsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type decisionsResponse402 = {
+  data: DecisionErrorBody;
+  status: 402;
+};
+
+export type decisionsResponse413 = {
+  data: void;
+  status: 413;
+};
+
+export type decisionsResponse500 = {
+  data: DecisionErrorBody;
+  status: 500;
+};
+
+export type decisionsResponse502 = {
+  data: DecisionErrorBody;
+  status: 502;
+};
+
+export type decisionsResponse503 = {
+  data: DecisionErrorBody;
+  status: 503;
+};
+
+export type decisionsResponse504 = {
+  data: DecisionErrorBody;
+  status: 504;
+};
+
+export type decisionsResponseSuccess = decisionsResponse200 & {
+  headers: Headers;
+};
+export type decisionsResponseError = (
+  | decisionsResponse400
+  | decisionsResponse401
+  | decisionsResponse402
+  | decisionsResponse413
+  | decisionsResponse500
+  | decisionsResponse502
+  | decisionsResponse503
+  | decisionsResponse504
+) & {
+  headers: Headers;
+};
+
+export type decisionsResponse =
+  | decisionsResponseSuccess
+  | decisionsResponseError;
+
+export const getDecisionsUrl = () => {
+  return `/decisions`;
+};
+
+export const decisions = async (
+  decisionRequest: DecisionRequest,
+  options?: RequestInit
+): Promise<decisionsResponse> => {
+  const res = await fetch(getDecisionsUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(decisionRequest),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: decisionsResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as decisionsResponse;
+};
+
 /**
  * @summary Health check
  */
@@ -1218,6 +1312,107 @@ export const healthHandler = async (
     status: res.status,
     headers: res.headers,
   } as healthHandlerResponse;
+};
+
+/**
+ * @summary Where the user's Notion workspace import stands.
+ */
+export type notionReportHandlerResponse200 = {
+  data: NotionImportReport;
+  status: 200;
+};
+
+export type notionReportHandlerResponse500 = {
+  data: void;
+  status: 500;
+};
+
+export type notionReportHandlerResponseSuccess =
+  notionReportHandlerResponse200 & {
+    headers: Headers;
+  };
+export type notionReportHandlerResponseError =
+  notionReportHandlerResponse500 & {
+    headers: Headers;
+  };
+
+export type notionReportHandlerResponse =
+  | notionReportHandlerResponseSuccess
+  | notionReportHandlerResponseError;
+
+export const getNotionReportHandlerUrl = () => {
+  return `/import/notion`;
+};
+
+export const notionReportHandler = async (
+  options?: RequestInit
+): Promise<notionReportHandlerResponse> => {
+  const res = await fetch(getNotionReportHandlerUrl(), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: notionReportHandlerResponse['data'] = body
+    ? JSON.parse(body)
+    : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as notionReportHandlerResponse;
+};
+
+/**
+ * @summary Stop planning or writing the user's Notion import. Objects already
+imported stay.
+ */
+export type cancelNotionHandlerResponse200 = {
+  data: NotionImportReport;
+  status: 200;
+};
+
+export type cancelNotionHandlerResponse500 = {
+  data: void;
+  status: 500;
+};
+
+export type cancelNotionHandlerResponseSuccess =
+  cancelNotionHandlerResponse200 & {
+    headers: Headers;
+  };
+export type cancelNotionHandlerResponseError =
+  cancelNotionHandlerResponse500 & {
+    headers: Headers;
+  };
+
+export type cancelNotionHandlerResponse =
+  | cancelNotionHandlerResponseSuccess
+  | cancelNotionHandlerResponseError;
+
+export const getCancelNotionHandlerUrl = () => {
+  return `/import/notion/cancel`;
+};
+
+export const cancelNotionHandler = async (
+  options?: RequestInit
+): Promise<cancelNotionHandlerResponse> => {
+  const res = await fetch(getCancelNotionHandlerUrl(), {
+    ...options,
+    method: 'POST',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: cancelNotionHandlerResponse['data'] = body
+    ? JSON.parse(body)
+    : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as cancelNotionHandlerResponse;
 };
 
 /**
@@ -1270,7 +1465,7 @@ export const runImportHandler = async (
 };
 
 /**
- * @summary Discover candidates for user selection without auto-importing them.
+ * @summary Discover candidates for user selection. Only Slack supports discovery.
  */
 export type discoverHandlerResponse204 = {
   data: void;
@@ -1325,132 +1520,7 @@ export const discoverHandler = async (
 };
 
 /**
- * @summary Dismiss one source's import section.
- */
-export type dismissRunHandlerResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type dismissRunHandlerResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type dismissRunHandlerResponse500 = {
-  data: void;
-  status: 500;
-};
-
-export type dismissRunHandlerResponseSuccess = dismissRunHandlerResponse204 & {
-  headers: Headers;
-};
-export type dismissRunHandlerResponseError = (
-  | dismissRunHandlerResponse400
-  | dismissRunHandlerResponse500
-) & {
-  headers: Headers;
-};
-
-export type dismissRunHandlerResponse =
-  | dismissRunHandlerResponseSuccess
-  | dismissRunHandlerResponseError;
-
-export const getDismissRunHandlerUrl = (source: string) => {
-  return `/import/runs/${source}/dismiss`;
-};
-
-export const dismissRunHandler = async (
-  source: string,
-  options?: RequestInit
-): Promise<dismissRunHandlerResponse> => {
-  const res = await fetch(getDismissRunHandlerUrl(source), {
-    ...options,
-    method: 'POST',
-  });
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: dismissRunHandlerResponse['data'] = body ? JSON.parse(body) : {};
-  return {
-    data,
-    status: res.status,
-    headers: res.headers,
-  } as dismissRunHandlerResponse;
-};
-
-/**
- * @summary Restart a failed (or dismissed) gather run for one source.
- */
-export type retryGatherHandlerResponse204 = {
-  data: void;
-  status: 204;
-};
-
-export type retryGatherHandlerResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type retryGatherHandlerResponse402 = {
-  data: AiAdmissionErrorBody;
-  status: 402;
-};
-
-export type retryGatherHandlerResponse500 = {
-  data: void;
-  status: 500;
-};
-
-export type retryGatherHandlerResponse503 = {
-  data: AiAdmissionErrorBody;
-  status: 503;
-};
-
-export type retryGatherHandlerResponseSuccess =
-  retryGatherHandlerResponse204 & {
-    headers: Headers;
-  };
-export type retryGatherHandlerResponseError = (
-  | retryGatherHandlerResponse400
-  | retryGatherHandlerResponse402
-  | retryGatherHandlerResponse500
-  | retryGatherHandlerResponse503
-) & {
-  headers: Headers;
-};
-
-export type retryGatherHandlerResponse =
-  | retryGatherHandlerResponseSuccess
-  | retryGatherHandlerResponseError;
-
-export const getRetryGatherHandlerUrl = (source: string) => {
-  return `/import/runs/${source}/retry`;
-};
-
-export const retryGatherHandler = async (
-  source: string,
-  options?: RequestInit
-): Promise<retryGatherHandlerResponse> => {
-  const res = await fetch(getRetryGatherHandlerUrl(source), {
-    ...options,
-    method: 'POST',
-  });
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: retryGatherHandlerResponse['data'] = body ? JSON.parse(body) : {};
-  return {
-    data,
-    status: res.status,
-    headers: res.headers,
-  } as retryGatherHandlerResponse;
-};
-
-/**
- * @summary Get the authenticated user's onboarding state. While the flow is active
-this also starts any gather runs that are due, so polling this endpoint
-is what keeps onboarding moving.
+ * @summary Get the authenticated user's onboarding state.
  */
 export type getStateHandlerResponse200 = {
   data: OnboardingState;
@@ -2006,6 +2076,115 @@ export const completeHandler = async (
     status: res.status,
     headers: res.headers,
   } as completeHandlerResponse;
+};
+
+/**
+ * @summary List the sidebar prompts the authenticated user dismissed on any device.
+ */
+export type dismissedPromptsHandlerResponse200 = {
+  data: DismissedPrompts;
+  status: 200;
+};
+
+export type dismissedPromptsHandlerResponse500 = {
+  data: void;
+  status: 500;
+};
+
+export type dismissedPromptsHandlerResponseSuccess =
+  dismissedPromptsHandlerResponse200 & {
+    headers: Headers;
+  };
+export type dismissedPromptsHandlerResponseError =
+  dismissedPromptsHandlerResponse500 & {
+    headers: Headers;
+  };
+
+export type dismissedPromptsHandlerResponse =
+  | dismissedPromptsHandlerResponseSuccess
+  | dismissedPromptsHandlerResponseError;
+
+export const getDismissedPromptsHandlerUrl = () => {
+  return `/onboarding/prompts`;
+};
+
+export const dismissedPromptsHandler = async (
+  options?: RequestInit
+): Promise<dismissedPromptsHandlerResponse> => {
+  const res = await fetch(getDismissedPromptsHandlerUrl(), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: dismissedPromptsHandlerResponse['data'] = body
+    ? JSON.parse(body)
+    : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as dismissedPromptsHandlerResponse;
+};
+
+/**
+ * @summary Dismiss one sidebar prompt for the authenticated user, on every device.
+Idempotent.
+ */
+export type dismissPromptHandlerResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type dismissPromptHandlerResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type dismissPromptHandlerResponse500 = {
+  data: void;
+  status: 500;
+};
+
+export type dismissPromptHandlerResponseSuccess =
+  dismissPromptHandlerResponse204 & {
+    headers: Headers;
+  };
+export type dismissPromptHandlerResponseError = (
+  | dismissPromptHandlerResponse400
+  | dismissPromptHandlerResponse500
+) & {
+  headers: Headers;
+};
+
+export type dismissPromptHandlerResponse =
+  | dismissPromptHandlerResponseSuccess
+  | dismissPromptHandlerResponseError;
+
+export const getDismissPromptHandlerUrl = (promptId: string) => {
+  return `/onboarding/prompts/${promptId}/dismiss`;
+};
+
+export const dismissPromptHandler = async (
+  promptId: string,
+  options?: RequestInit
+): Promise<dismissPromptHandlerResponse> => {
+  const res = await fetch(getDismissPromptHandlerUrl(promptId), {
+    ...options,
+    method: 'POST',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: dismissPromptHandlerResponse['data'] = body
+    ? JSON.parse(body)
+    : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as dismissPromptHandlerResponse;
 };
 
 /**
@@ -2639,6 +2818,11 @@ export type structuredCompletionResponse503 = {
   status: 503;
 };
 
+export type structuredCompletionResponse504 = {
+  data: StructuredCompletionError;
+  status: 504;
+};
+
 export type structuredCompletionResponseSuccess =
   structuredCompletionResponse200 & {
     headers: Headers;
@@ -2650,6 +2834,7 @@ export type structuredCompletionResponseError = (
   | structuredCompletionResponse403
   | structuredCompletionResponse500
   | structuredCompletionResponse503
+  | structuredCompletionResponse504
 ) & {
   headers: Headers;
 };

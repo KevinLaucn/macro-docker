@@ -47,6 +47,14 @@ pub(crate) fn disabled_admission() -> std::sync::Arc<dyn AiAdmissionService> {
 struct UnavailableBilling;
 
 impl ai_billing::domain::BillingService for UnavailableBilling {
+    async fn change_plan(
+        &self,
+        _: &MacroUserIdStr<'_>,
+        _: ai_billing::domain::plan_change::PlanChange,
+    ) -> ai_billing::domain::Result<()> {
+        panic!("this use case must not change plans")
+    }
+
     async fn check_allowance(
         &self,
         _: &MacroUserIdStr<'_>,
@@ -138,10 +146,13 @@ pub(crate) struct ScriptedEngine {
 /// What one turn asked of the engine, as far as tests care.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct RecordedTurn {
+    pub(crate) purpose: crate::domain::engine::TurnPurpose,
     /// Model the turn was to run on.
     pub(crate) model: String,
     /// Reasoning effort the turn was to use.
     pub(crate) reasoning_effort: agent::ReasoningEffort,
+    /// Provider speed selected for this turn.
+    pub(crate) speed: agent::ModelSpeed,
     /// The conversation, flattened to text per message.
     pub(crate) messages: Vec<String>,
     /// Every image URL attached across the conversation, in order.
@@ -175,8 +186,10 @@ impl TurnEngine for ScriptedEngine {
             .lock()
             .expect("requests lock")
             .push(RecordedTurn {
+                purpose: request.purpose,
                 model: request.model.clone(),
                 reasoning_effort: request.reasoning_effort,
+                speed: request.speed,
                 messages: request
                     .messages
                     .iter()

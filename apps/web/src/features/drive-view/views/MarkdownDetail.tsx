@@ -24,17 +24,10 @@ import { ENABLE_MARKDOWN_SIDE_PANEL } from '@core/constant/featureFlags';
 import { createMethodRegistration } from '@core/orchestrator';
 import { DocumentDebouncedNotificationReadMarker } from '@notifications';
 import SpinnerIcon from '@phosphor/spinner.svg';
+import { useItemRawName } from '@queries/preview';
 import { Button } from '@ui';
-import {
-  createComputed,
-  createResource,
-  ErrorBoundary,
-  type JSX,
-  Match,
-  Show,
-  Suspense,
-  Switch,
-} from 'solid-js';
+import { createComputed, type JSX, Match, Show, Switch } from 'solid-js';
+import { FileDetailLoadGate } from '../components/FileDetail';
 import type { FileDetailContext } from '../util/file-detail-context';
 
 export type MarkdownDetailContext = FileDetailContext<MarkdownDocumentData>;
@@ -93,6 +86,14 @@ function MarkdownDetailContent(props: {
   const state = createMarkdownDocumentState();
   createMarkdownRouteNavigation(() => props.documentId, state.params.navigate);
 
+  // Subscribe to live name updates so the title updates when another person renames it.
+  const liveName = useItemRawName(() => ({
+    id: props.documentId,
+    type: 'document',
+  }));
+  const persistedName = () =>
+    liveName() ?? props.data.metadata.documentName ?? '';
+
   // Mention chips and notifications aim an open document at a comment or node
   // through its block handle; without one the click only activates the view.
   createComputed(() => {
@@ -109,7 +110,7 @@ function MarkdownDetailContent(props: {
       state={state}
       documentSource={{ type: 'sync', source: props.data.source }}
       permissions={props.data.permissions}
-      persistedName={props.data.metadata.documentName}
+      persistedName={persistedName()}
       fallbackName={props.fallbackName}
     >
       <ModalsProvider>
@@ -146,55 +147,26 @@ function MarkdownDetailContent(props: {
 
 /** Renders a markdown document without a block container or split header. */
 export function MarkdownDetail(props: MarkdownDetailProps) {
-  const [document, { refetch }] = createResource(
-    () => props.documentId,
-    loadMarkdownDocument
-  );
-  const entityLabel = () => (props.kind === 'task' ? 'task' : 'document');
-
   return (
-    <Suspense
-      fallback={<MarkdownDetailBodyState entityLabel={entityLabel()} />}
+    <FileDetailLoadGate
+      documentId={props.documentId}
+      label={props.kind === 'task' ? 'task' : 'document'}
+      load={loadMarkdownDocument}
     >
-      <Switch>
-        <Match when={document.error}>
-          {(error) => (
-            <MarkdownDetailBodyState
-              entityLabel={entityLabel()}
-              error={error()}
-              actionLabel="Try again"
-              onAction={() => void refetch()}
-            />
-          )}
-        </Match>
-        <Match when={document()}>
-          {(data) => (
-            <ErrorBoundary
-              fallback={(error, reset) => (
-                <MarkdownDetailBodyState
-                  entityLabel={entityLabel()}
-                  error={error}
-                  actionLabel="Reset"
-                  onAction={reset}
-                />
-              )}
-            >
-              <MarkdownDetailContent
-                documentId={props.documentId}
-                kind={props.kind ?? 'document'}
-                fallbackName={
-                  props.fallbackName ||
-                  blockNameToDefaultFile(
-                    props.kind && props.kind !== 'document' ? props.kind : 'md'
-                  )
-                }
-                data={data()}
-                children={props.children}
-              />
-            </ErrorBoundary>
-          )}
-        </Match>
-      </Switch>
-    </Suspense>
+      {(data) => (
+        <MarkdownDetailContent
+          documentId={props.documentId}
+          kind={props.kind ?? 'document'}
+          fallbackName={
+            props.fallbackName ||
+            blockNameToDefaultFile(
+              props.kind && props.kind !== 'document' ? props.kind : 'md'
+            )
+          }
+          data={data}
+          children={props.children}
+        />
+      )}
+    </FileDetailLoadGate>
   );
 }

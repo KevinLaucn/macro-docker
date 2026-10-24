@@ -111,10 +111,10 @@ document_storage_service_client = { path = "../../crates/document_storage_servic
 doppleganger = { workspace = true }
 doppler-config = { workspace = true }
 ego-tree = { workspace = true }
-email = { path = "../../crates/email", default-features = false, features = ["axum", "calendar_invitations", "gmail_token", "inbound", "outbound"] }
+email = { path = "../../crates/email", features = ["axum", "calendar_invitations", "gmail_token", "inbound", "outbound", "mailbox"] }
 entity_access = { path = "../../crates/entity_access", default-features = false, features = ["outbound"] }
 entity_access_management = { path = "../../crates/entity_access_management" }
-email_api_client = { path = "../../crates/email_api_client", features = ["ports", "outbound-gmail"] }
+email_api_client = { path = "../../crates/email_api_client", features = ["ports", "outbound-gmail", "outbound-outlook", "microsoft-gate"] }
 email_db_client = { path = "../../crates/email_db_client" }
 email_utils = { path = "../../crates/email_utils" }
 filter_ast = { path = "../../crates/filter_ast" }
@@ -145,8 +145,10 @@ notification = { path = "../../crates/notification", default-features = false }
 macro_user_id = { path = "../../crates/macro_user_id" }
 macro_uuid = { path = "../../crates/macro_uuid" }
 mime_guess = "2.0.5"
+channels = { path = "../../crates/channels", features = ["outbound"] }
 contacts = { path = "../../crates/contacts" }
-model = { path = "../../crates/model", default-features = false }
+generic_email_domains = { path = "../../crates/generic_email_domains" }
+model = { path = "../../crates/model" }
 model-entity = { path = "../../crates/model-entity" }
 model_file_type = { path = "../../crates/model_file_type" }
 model_notifications = { path = "../../crates/model_notifications" }
@@ -191,6 +193,7 @@ tower-http = { workspace = true, features = [
   "compression-gzip",
 ] }
 tracing = { workspace = true }
+unicode-segmentation = { workspace = true }
 url = { workspace = true }
 urlencoding = { workspace = true }
 utoipa = { workspace = true }

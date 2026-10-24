@@ -1,21 +1,23 @@
 import { toast } from '@core/component/Toast/Toast';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { throwOnErr } from '@core/util/result';
 import { authServiceClient } from '@service-auth/client';
 import type { InviteToTeamRequest } from '@service-auth/generated/schemas/inviteToTeamRequest';
 import type { TeamInvitesResponse } from '@service-auth/generated/schemas/teamInvitesResponse';
 import { useMutation, useQuery } from '@tanstack/solid-query';
 import type { Accessor } from 'solid-js';
-
 import { queryClient } from '../client';
 import { type MutationCallbacks, withCallbacks } from '../utils';
-
 import { teamKeys } from './keys';
+
+function fetchTeamInvites() {
+  return throwOnErr(() => authServiceClient.getTeamInvites());
+}
 
 export function useTeamInvitesQuery(teamId: Accessor<string>) {
   return useQuery(() => ({
     queryKey: teamKeys.invites(teamId()).queryKey,
-    queryFn: async () =>
-      await throwOnErr(() => authServiceClient.getTeamInvites()),
+    queryFn: fetchTeamInvites,
     enabled: !!teamId(),
   }));
 }
@@ -38,7 +40,7 @@ export function useInviteToTeamMutation(callbacks?: InviteToTeamCallbacks) {
     ...withCallbacks<void, Error, InviteToTeamArgs>(
       {
         onSuccess: (_data, { teamId }) => {
-          invalidateTeamInvites(teamId);
+          fireAndForget(invalidateTeamInvites(teamId), 'team-invitations');
           toast.success('Invitation sent');
         },
 
@@ -99,7 +101,7 @@ export function useDeleteTeamInviteMutation(
         },
 
         onSuccess: (_data, { teamId }) => {
-          invalidateTeamInvites(teamId);
+          fireAndForget(invalidateTeamInvites(teamId), 'team-invitations');
           toast.success('Invitation cancelled');
         },
 

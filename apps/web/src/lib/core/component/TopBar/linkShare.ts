@@ -2,10 +2,11 @@ import type { ItemType } from '@service-storage/client';
 import type { AccessLevel } from '@service-storage/generated/schemas/accessLevel';
 import type { LinkShare } from '@service-storage/generated/schemas/linkShare';
 import type { UpdateSharePermissionRequestV2 } from '@service-storage/generated/schemas/updateSharePermissionRequestV2';
+import { match } from 'ts-pattern';
 
 export const NO_LINK_SHARE = 'NONE' as const;
 
-export type ShareItemType = ItemType | 'initiative';
+export type ShareItemType = ItemType | 'initiative' | 'crm_pipeline';
 
 const TEAM_SHAREABLE_ITEM_TYPES: ReadonlySet<ShareItemType> =
   new Set<ShareItemType>([
@@ -15,26 +16,42 @@ const TEAM_SHAREABLE_ITEM_TYPES: ReadonlySet<ShareItemType> =
     'project',
     'agent_session',
     'initiative',
+    'crm_pipeline',
+    'database',
   ]);
 
 export function isTeamShareSupportedForItem(itemType: ShareItemType): boolean {
   return TEAM_SHAREABLE_ITEM_TYPES.has(itemType);
 }
 
-/** Human noun for share-modal copy such as "Share this chat with the owner's team." */
+/**
+ * Human noun for copy such as "Share this chat with the owner's team." or a
+ * mention card's "You don't have access to this event".
+ */
 export function getShareItemNoun(itemType: ShareItemType): string {
-  switch (itemType) {
-    case 'email':
-      return 'email thread';
-    case 'agent_session':
-      return 'agent session';
-    case 'project':
-      return 'folder';
-    case 'initiative':
-      return 'project';
-    default:
-      return itemType;
-  }
+  return match(itemType)
+    .with('email', () => 'email thread')
+    .with('agent_session', () => 'agent session')
+    .with('project', () => 'folder')
+    .with('initiative', () => 'project')
+    .with('crm_pipeline', () => 'pipeline')
+    .with('crm_company', () => 'company')
+    .with('crm_contact', () => 'contact')
+    .with('calendar_event', () => 'event')
+    .with('channel_message', () => 'message')
+    .with('channel_thread', () => 'thread')
+    .with('foreign', () => 'item')
+    .with(
+      'document',
+      'chat',
+      'channel',
+      'call',
+      'database',
+      'form',
+      'routine',
+      (noun) => noun
+    )
+    .exhaustive();
 }
 
 export type LinkShareScope = LinkShare | typeof NO_LINK_SHARE;
@@ -151,6 +168,10 @@ export const CALL_TEAM_SHARE_SCOPE_OPTIONS = (
 }));
 
 export function teamShareScopeOptionsForItem(itemType: ShareItemType) {
+  if (itemType === 'crm_pipeline')
+    return TEAM_SHARE_SCOPE_OPTIONS.filter(
+      (option) => option.value === 'NONE' || option.value === 'edit'
+    );
   return itemType === 'call'
     ? CALL_TEAM_SHARE_SCOPE_OPTIONS
     : TEAM_SHARE_SCOPE_OPTIONS;

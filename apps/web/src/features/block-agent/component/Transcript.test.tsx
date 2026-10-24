@@ -11,6 +11,7 @@ import { Transcript } from './Transcript';
 
 const session = vi.hoisted(() => ({
   sessionId: () => 'session',
+  metadata: () => ({ notifications: [] }),
   turn: (): TurnState => 'idle',
   messages: () => [] as FoldedMessage[],
   quoteSelection: vi.fn(),

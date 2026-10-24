@@ -77,6 +77,12 @@ export type GithubPullRequestEntity = ForeignEntityBase & {
     labels: GithubPullRequestLabel[];
     authorLogin?: string;
     authorId?: number;
+    /** The pull request description (body), when stored. */
+    description?: string;
+    /** The branch carrying the pull request's changes, when stored. */
+    headBranch?: string;
+    /** Whether the pull request is a draft, when known. */
+    draft?: boolean;
   };
 };
 
@@ -203,6 +209,17 @@ export type AgentSessionEntity = EntityBase & {
   turnState?: string | null;
   bot?: { id: string; name: string; avatarUrl?: string | null } | null;
   threadId?: string | null;
+  /**
+   * Who started the session: a person, another agent that dispatched it, or a
+   * routine. Absent from older cached rows.
+   */
+  source?: 'user' | 'agent' | 'routine';
+  /**
+   * Where the session is shown: unlisted sessions (routine runs, unless the
+   * routine lists them) are left out of Home and the default Agents list, and
+   * hidden ones are returned only by id. Absent from older cached rows.
+   */
+  visibility?: 'listed' | 'unlisted' | 'hidden';
   status: string;
   properties?: SoupProperty[];
 };
@@ -300,6 +317,8 @@ export type EmailEntity = EntityBase & {
   linkId?: string;
   labels?: SoupLabel[] | ApiLabel[];
   hasIcsAttachment?: boolean;
+  /** A sent file, not an inline image or calendar invite, is on the thread. */
+  hasFileAttachment?: boolean;
   attachments?: EmailAttachment[];
   properties?: SoupProperty[];
   /** ISO 8601 time of the thread draft's confirmed scheduled send. */
@@ -572,6 +591,21 @@ export const isNonMemberChannelEntity = (entity: EntityData): boolean => {
   return isChannelEntity(entity) && entity.isParticipant === false;
 };
 
+/**
+ * Whether the viewer may edit a channel's identity — its name and its picture.
+ *
+ * Any active participant of a named channel qualifies, which is what the server
+ * enforces for both the rename and the picture endpoints. A direct message
+ * takes its name and picture from the other participant, so neither applies.
+ */
+export const canEditChannelIdentity = (entity: EntityData): boolean => {
+  return (
+    isChannelEntity(entity) &&
+    entity.channelType !== 'direct_message' &&
+    entity.isParticipant !== false
+  );
+};
+
 export const isChannelMessageEntity = (
   entity: EntityData
 ): entity is ChannelMessageEntity => {
@@ -619,6 +653,10 @@ export const isCrmContactEntity = (
 ): entity is CrmContactEntity => {
   return entity.type === 'crm_contact';
 };
+
+/** The full-email identity shared by CRM contacts and Macro users. Plus
+ * aliases stay distinct, as in the backend's authorized contact deduplication. */
+export const crmContactEmailKey = (email: string) => email.trim().toLowerCase();
 
 export const isDocumentEntity = (
   entity: EntityData

@@ -104,6 +104,13 @@ impl ProjectService for FakeProjectService {
         Ok(vec![project()])
     }
 
+    async fn list_accessible_projects(
+        &self,
+        _user_id: MacroUserIdStr<'static>,
+    ) -> Result<Vec<Project>, ProjectError> {
+        Ok(vec![project()])
+    }
+
     async fn list_pending_projects(
         &self,
         _user_id: MacroUserIdStr<'static>,
@@ -424,6 +431,7 @@ impl MacroAuthorizationService for FakeAuthorizationService {
             acting_user: acting_user
                 .and_then(|claims| claims.user_id)
                 .map(|user_id| MacroUserAuthentication {
+                    agent_id: None,
                     macro_user_id: user(&user_id),
                     user_context: user_context(&user_id),
                 }),

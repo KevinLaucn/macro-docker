@@ -33,7 +33,7 @@
 .downloads-header h1 {
   margin: 0 0 14px;
   font:
-    315 clamp(30px, 4vw, 40px) / 1.12 "Roboto Slab Variable",
+    calc(315 + var(--cream-slab-weight-increase, 0)) clamp(30px, 4vw, 40px) / 1.12 "Roboto Slab Variable",
     display,
     serif;
   letter-spacing: -0.035em;

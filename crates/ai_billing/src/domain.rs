@@ -1,20 +1,24 @@
 //! Domain layer: plans and the configured pricing, the settlement ledger, ports,
-//! and the billing service.
+//! the billing service, and the reconciliation sweep.
 
 pub mod admission;
+pub mod credit_grant;
 pub mod financial;
 pub mod ledger;
 pub mod models;
 pub mod period;
+pub mod plan_change;
 pub mod policy;
 pub mod ports;
 pub mod pricing;
 pub mod service;
+pub mod sweep;
 
 pub use admission::{
     AdmissionFuture, AiAdmissionError, AiAdmissionService, BillingAdmissionService,
     DisabledAiAdmissionService,
 };
+pub use credit_grant::{CreditGrant, CreditGrantRepo, CreditGrantService, GrantTarget};
 pub use ledger::{
     ReloadState, SettlementPlan, SettlementPolicy, SettlementState, plan_reload, plan_settlement,
 };
@@ -31,10 +35,11 @@ pub use models::{
 pub use ports::{
     BillingRepo, BillingService, CreditCheckoutRequest, CreditReloadRequest, EntitlementSource,
     OverageChargeRequest, PaymentGateway, PendingCharge, PendingReload, ResolvedReload,
-    SettlementOutcome, SettlementTrigger, UsageReader,
+    SettlementCandidates, SettlementOutcome, SettlementTrigger, UsageReader,
 };
 pub use pricing::{
     AiPricing, IncludedAllowanceCents, OverageMarkupPercent, PlanAllowances, PricingError,
     cost_cents,
 };
-pub use service::BillingServiceImpl;
+pub use service::{BillingServiceImpl, RECONCILED_CLOSED_PERIODS};
+pub use sweep::{RECONCILIATION_LOOKBACK, SettlementSweep, SweepReport};

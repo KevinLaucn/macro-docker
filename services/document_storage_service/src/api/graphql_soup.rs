@@ -1,13 +1,11 @@
 use crate::api::context::{ApiContext, AuthorizationService};
+use crate::api::folders_query::DssFoldersQueryReader;
 use agent_session::outbound::postgres::PgAgentSessionRepo;
-use async_graphql::{
-    Data,
-    http::{ALL_WEBSOCKET_PROTOCOLS, GraphiQLSource},
-};
-use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
+use async_graphql::{Data, http::GraphiQLSource};
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
     Router,
-    extract::{OriginalUri, State, WebSocketUpgrade},
+    extract::{OriginalUri, State},
     http::{StatusCode, request::Parts},
     response::{Html, IntoResponse, Response},
     routing::get,
@@ -17,11 +15,15 @@ use bots::outbound::pg_bots_repo::PgBotsRepo;
 use complete_graph::GraphqlRequestParts;
 use entity_registry::OwnerGrantPolicy;
 use entity_registry_db_utils::OwnedEntityRegistrar;
-use graphql_soup::{email_mutation_thread_loader, soup_item_loader};
+use graphql_soup::email_mutation_thread_loader;
 use macro_authorization::{
     OptionalMacroAuthorizationExtractor, UserOrInternalService, UserOrInternalServiceAuthorization,
 };
 use macro_user_id::user_id::MacroUserIdStr;
+
+mod websocket;
+
+use websocket::GraphqlWebSocketUpgrade;
 
 const GRAPHQL_PATH: &str = "/soup/graphql";
 const GRAPHQL_SUBSCRIPTION_PATH: &str = "/soup/graphql/ws";
@@ -75,8 +77,7 @@ async fn subscription_handler(
     Cached(auth): Cached<
         OptionalMacroAuthorizationExtractor<AuthorizationService, UserOrInternalService>,
     >,
-    protocol: GraphQLProtocol,
-    upgrade: WebSocketUpgrade,
+    upgrade: GraphqlWebSocketUpgrade,
 ) -> Response {
     let Some(acting_user) = auth
         .authorization
@@ -94,15 +95,7 @@ async fn subscription_handler(
 
     let schema = state.graphql_soup_schema.clone();
     let data = graphql_subscription_context_data(&state, macro_user_id, organization_id);
-    upgrade
-        .protocols(ALL_WEBSOCKET_PROTOCOLS)
-        .on_upgrade(move |socket| async move {
-            GraphQLWebSocket::new(socket, schema, protocol)
-                .with_data(data)
-                .serve()
-                .await;
-        })
-        .into_response()
+    upgrade.serve(schema, data)
 }
 
 fn graphql_subscription_context_data(
@@ -150,12 +143,6 @@ fn insert_graphql_context_data(
         state.soup_router_state.email_service(),
         state.entity_access_service.clone(),
     );
-    // Ordinary queries and subscription hydration use the replica-backed
-    // Soup reader. The mutation-only loader below retains the primary reader.
-    let soup_item_loader = soup_item_loader(
-        state.soup_router_state.service(),
-        state.soup_router_state.email_service(),
-    );
     data.insert(macro_user_id.clone());
     data.insert(entity_mutation::EntityMutationActor {
         user_id: macro_user_id.clone(),
@@ -168,24 +155,30 @@ fn insert_graphql_context_data(
     data.insert(state.graphql_entity_mutation_service.clone());
     data.insert(state.favorites_mutation_service.clone());
     data.insert(state.favorites_service.clone());
+    data.insert(graphql_soup::FoldersQuery::new(DssFoldersQueryReader(
+        state.projects_state.service.clone(),
+    )));
     data.insert(state.channel_service.clone());
     data.insert(state.graphql_initiative_context.clone());
     data.insert(state.graphql_scheduled_action_context.clone());
     data.insert(state.graphql_calendar_context.clone());
+    data.insert(state.graphql_calendar_mutation_context.clone());
+    data.insert(state.graphql_work_feed_context.clone());
     data.insert(state.graphql_initiative_entity_loader.clone());
     data.insert(state.graphql_agent_session_entity_loader.clone());
-    data.insert(graphql_initiative::initiative_detail_loader(
+    data.insert(state.graphql_primary_soup_item_loader.clone());
+    data.insert(graphql_initiative::initiative_loader(
         state.graphql_initiative_context.clone(),
         macro_user_id.clone(),
     ));
-    data.insert(graphql_initiative::initiative_summary_loader(
-        state.graphql_initiative_context.clone(),
+    data.insert(graphql_crm::pipeline_entries_loader(
+        state.graphql_crm_context.clone(),
         macro_user_id.clone(),
     ));
     data.insert(state.graphql_notification_reader.clone());
     data.insert(state.soup_router_state.email_service());
     data.insert(state.entity_access_service.clone());
-    data.insert(soup_item_loader);
+    data.insert(state.graphql_soup_item_loader.clone());
     data.insert(state.agent_session_log_subscriptions.clone());
     // Mutation replies must read their committed state from the primary email
     // service. Ordinary Soup lists and subscriptions retain their own reader.

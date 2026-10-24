@@ -86,9 +86,10 @@ function envOverride(env: string | undefined): boolean | undefined {
  * Define a feature flag. Pass `key` for PostHog, or `env` (and no `key`)
  * for env-only. `env` is the name after `VITE_`, e.g. `'ENABLE_REMINDERS'`.
  *
- * `default` is used when env is unset. Omit it on env-only flags for `false`.
- * For remote flags, omit it (or pass `undefined`) to defer to PostHog.
- * The caller decides when a default applies, e.g. `DEV_MODE_ENV || undefined`.
+ * `default` is used when env is unset. A new flag is usually on in dev:
+ * `DEV_MODE_ENV` for env-only, `onInDev` (`DEV_MODE_ENV || undefined`) for
+ * remote. One that stays off in dev says why in a comment. Omitted, an
+ * env-only flag is `false` and a remote flag defers to PostHog.
  *
  * Remote: `useFeatureFlag(flag)` or `isFeatureEnabled(flag)`.
  * Env-only: `isFeatureEnabled(flag)` only.
@@ -108,11 +109,10 @@ export function defineFlag(config: RemoteFlagConfig | EnvFlagConfig): Flag {
   };
 }
 
-/** Opt-in versioned canvas documents. Unset overrides defer to PostHog. */
-export const enableCanvasNext = defineFlag({
-  key: 'enable-canvas-next',
-  env: 'ENABLE_CANVAS_NEXT',
-  default: LOCAL_ONLY ? false : undefined,
+/** Opt into the carousel create menu; otherwise use the detailed launcher. */
+export const enableCarouselCreateMenu = defineFlag({
+  key: 'enable-carousel-create-menu',
+  env: 'ENABLE_CAROUSEL_CREATE_MENU',
 });
 
 /**
@@ -174,6 +174,13 @@ export const enableSlackArchiveImport = defineFlag({
   default: onInDev,
 });
 
+/** Sidebar prompt cards: imports, calendars, repositories, and Home setup. */
+export const enableSidebarPromotions = defineFlag({
+  key: 'enable-sidebar-promotions',
+  env: 'ENABLE_SIDEBAR_PROMOTIONS',
+  default: onInDev,
+});
+
 /** Shows the Reviews shortcut in Tasks; copied Reviews links remain accessible. */
 export const enableTasksReviews = defineFlag({
   key: 'enable-tasks-reviews',
@@ -181,11 +188,10 @@ export const enableTasksReviews = defineFlag({
   default: onInDev,
 });
 
-// Claude Cloud demo onboarding and harness/model discovery. Off until PostHog
-// enables it, including in dev; override locally with VITE_CLAUDE_CLOUD.
-export const claudeCloud = defineFlag({
-  key: 'claude-cloud',
-  env: 'CLAUDE_CLOUD',
+/** Gantt layouts stay hidden until enabled remotely or with a local override. */
+export const enableGantt = defineFlag({
+  key: 'enable-gantt',
+  env: 'ENABLE_GANTT',
 });
 
 export const ENABLE_PDF_MODIFICATION_DATA_AUTOSAVE = defineFlag({
@@ -304,22 +310,6 @@ export const ENABLE_BEARER_TOKEN_AUTH = defineFlag({
 export const ENABLE_MARKDOWN_SEARCH_TEXT = defineFlag({
   env: 'ENABLE_MARKDOWN_SEARCH_TEXT',
   default: DEV_MODE_ENV,
-}).enabled;
-
-export const CANVAS_SVG_IMPORT = defineFlag({
-  env: 'CANVAS_SVG_IMPORT',
-  default: true,
-}).enabled;
-
-export const ENABLE_CANVAS_VIDEO = defineFlag({
-  env: 'ENABLE_CANVAS_VIDEO',
-  default: true,
-}).enabled;
-
-// TODO: figure out why the image does not load into canvas after upload
-export const ENABLE_CANVAS_HEIC = defineFlag({
-  env: 'ENABLE_CANVAS_HEIC',
-  default: false,
 }).enabled;
 
 // TODO - comments are not stable in markdown multiplayer, they will need more work.
@@ -483,11 +473,24 @@ export const enableCrm = defineFlag({
   default: onInDev,
 });
 
+/** CRM activity tabs and context-aware task composition. Off until opted in. */
+export const enableCrmActivity = defineFlag({
+  key: 'enable-crm-activity',
+  env: 'ENABLE_CRM_ACTIVITY',
+});
+
 // Company collections are paused until ready; preserve stored lists while off.
 export const enableCrmLists = defineFlag({
   key: 'enable-crm-lists',
   env: 'ENABLE_CRM_LISTS',
   default: false,
+});
+
+// Pipelines roll out per team; while off the CRM tab hides them without touching stored pipelines.
+export const enableCrmPipelines = defineFlag({
+  key: 'enable-crm-pipelines',
+  env: 'ENABLE_CRM_PIPELINES',
+  default: onInDev,
 });
 
 // Native Projects frontend: navigation, creation, task assignment and project
@@ -577,6 +580,13 @@ export const enableGraphqlSoup = defineFlag({
   env: 'ENABLE_GRAPHQL_SOUP',
 });
 
+/** Serves calendar reads from the normalized cache; requires GraphQL Soup. */
+export const enableGraphqlCalendar = defineFlag({
+  key: 'enable-graphql-calendar',
+  env: 'ENABLE_GRAPHQL_CALENDAR',
+  default: DEV_MODE_ENV || undefined,
+});
+
 /** Independent emergency stop. Any true env/PostHog source wins. */
 export const disableBrowserTursoCache = defineFlag({
   key: 'disable-browser-turso-cache',
@@ -613,6 +623,15 @@ export const botManagement = defineFlag({
 export const enableCalendarUi = defineFlag({
   key: 'enable-calendar-ui',
   env: 'ENABLE_CALENDAR_UI',
+  default: onInDev,
+});
+
+// Calendar meeting notes and document-side meeting-link management. On in dev;
+// production uses PostHog's internal-user rollout. This is a UI rollout, not
+// an authorization check: saved meeting grants remain enforced by the service.
+export const enableCalendarMeetingNotes = defineFlag({
+  key: 'enable-calendar-meeting-notes',
+  env: 'ENABLE_CALENDAR_MEETING_NOTES',
   default: onInDev,
 });
 
@@ -676,6 +695,36 @@ export const enableCalendarTeamOoo = defineFlag({
   default: onInDev,
 });
 
+// Read-only team calendar projections; the server separately controls rollout.
+export const enableCalendarTeamSharing = defineFlag({
+  key: 'enable-calendar-team-sharing',
+  env: 'ENABLE_CALENDAR_TEAM_SHARING',
+  default: onInDev,
+});
+
+// A guest adding guests: the event details "Add guests" action and the
+// composer's add-only guest editing. The invite endpoints enforce the
+// organizer's policy unflagged, so this only hides the entry points.
+// PostHog-gated with a dev-mode default; override with
+// VITE_ENABLE_CALENDAR_GUEST_INVITES.
+export const enableCalendarGuestInvites = defineFlag({
+  key: 'enable-calendar-guest-invites',
+  env: 'ENABLE_CALENDAR_GUEST_INVITES',
+  default: onInDev,
+});
+
+// Adding a channel-shared event to your own calendar: the "Add to calendar"
+// action on a shared event's mention card. On in dev only until a real Google
+// import has passed on dev; there is no PostHog flag yet, so it stays off in
+// production. "Download .ics" beside it is not gated. Override with
+// VITE_ENABLE_CALENDAR_ADD_SHARED_EVENT. The agent's AddSharedCalendarEvent
+// tool reads the server switch ENABLE_CALENDAR_ADD_SHARED_EVENT instead.
+export const enableCalendarAddSharedEvent = defineFlag({
+  key: 'enable-calendar-add-shared-event',
+  env: 'ENABLE_CALENDAR_ADD_SHARED_EVENT',
+  default: onInDev,
+});
+
 // Sharing a personal tag with the team: the "Share with team" action on
 // personal tags in Settings › Tags, and the prompt that merges into an
 // existing team label when the names collide. The backend endpoints ship
@@ -735,6 +784,13 @@ export const enableChatV3Agents = defineFlag({
   default: onInDev,
 });
 
+// Private conversations with agent personas. On in dev; there is no PostHog
+// flag. Override with VITE_ENABLE_AGENT_DMS.
+export const ENABLE_AGENT_DMS = defineFlag({
+  env: 'ENABLE_AGENT_DMS',
+  default: DEV_MODE_ENV,
+}).enabled;
+
 // The built-in @cursor mention, using the mentioning user's own Cursor account.
 // Account setup is checked after the mention; this flag controls discovery.
 // Override with VITE_ENABLE_CURSOR_AGENTS.
@@ -767,16 +823,6 @@ export const enableRoutineConditions = defineFlag({
 export const enableRecentView = defineFlag({
   key: 'enable-recent-view',
   env: 'ENABLE_RECENT_VIEW',
-  default: onInDev,
-});
-
-// Settings › Notifications: the dedicated preferences tab (delivery, per-type
-// opt-outs, muted items). When off, the tab is hidden and Account keeps the
-// existing desktop/mobile toggle. PostHog-gated with a dev-mode default;
-// override with VITE_ENABLE_NOTIFICATION_SETTINGS.
-export const enableNotificationSettings = defineFlag({
-  key: 'enable-notification-settings',
-  env: 'ENABLE_NOTIFICATION_SETTINGS',
   default: onInDev,
 });
 
@@ -851,6 +897,7 @@ export function getAppCapabilities(): AppCapabilities {
     codex: resolveCapability('ENABLE_CODEX_AGENTS', features?.codex, selfHost),
   };
 }
+
 /**
  * The in-browser PowerPoint editor (`block-pptx`). Off shows uploaded
  * `.pptx` files as before: download only. On in dev; deployed environments

@@ -25,14 +25,22 @@ export type SpreadsheetCommand =
   | 'sort-asc'
   | 'sort-desc'
   | 'trim-whitespace'
+  | 'dropdown'
+  | 'table'
+  | 'goal-seek'
+  | 'custom-date-format'
   | 'border-all'
   | 'border-outer'
   | 'border-none'
+  | 'indent-decrease'
+  | 'indent-increase'
   | 'insert-sum'
   | 'insert-average'
   | 'insert-count'
   | 'insert-min'
-  | 'insert-max';
+  | 'insert-max'
+  | 'insert-checkbox'
+  | 'remove-checkbox';
 
 export type SpreadsheetToolbarProps = {
   readonly: boolean;
@@ -41,6 +49,8 @@ export type SpreadsheetToolbarProps = {
   canUndo: boolean;
   canRedo: boolean;
   cell: SpreadsheetCell | undefined;
+  /** Whether the active cell is in a table, whose options the menu offers. */
+  inTable?: boolean;
   zoom: number;
   showGridlines: boolean;
   showFormulaBar: boolean;
@@ -83,12 +93,28 @@ export const SPREADSHEET_FUNCTIONS = [
 ];
 
 export const SPREADSHEET_NUMBER_FORMATS = [
-  { value: 'general' as const, label: t('Automatic'), example: '1,234.5' },
-  { value: 'number' as const, label: t('Number'), example: '1,234.00' },
-  { value: 'currency' as const, label: t('Currency'), example: '$1,234.00' },
-  { value: 'percent' as const, label: t('Percent'), example: '12.50%' },
-  { value: 'date' as const, label: t('Date'), example: '9/17/2026' },
-  { value: 'time' as const, label: t('Time'), example: '12:30 PM' },
-  { value: 'scientific' as const, label: t('Scientific'), example: '1.23E+03' },
-  { value: 'text' as const, label: t('Plain text'), example: '1234' },
-];
+  { value: 'general', label: t('Automatic'), example: '1,234.5' },
+  { value: 'number', label: t('Number'), example: '1,234.00' },
+  { value: 'currency', label: t('Currency'), example: '$1,234.00' },
+  { value: 'accounting', label: t('Accounting'), example: '$ (1,234.00)' },
+  { value: 'percent', label: t('Percent'), example: '12.50%' },
+  { value: 'date', label: t('Date'), example: '9/17/2026' },
+  { value: 'time', label: t('Time'), example: '12:30 PM' },
+  { value: 'scientific', label: t('Scientific'), example: '1.23E+03' },
+  { value: 'text', label: t('Plain text'), example: '1234' },
+] as const;
+
+/** Excel date codes offered beside the default Date format, with how each
+ * shows Thursday, 17 September 2026. */
+export const SPREADSHEET_DATE_FORMATS = [
+  { numberFormat: 'mmm yyyy', example: 'Sep 2026' },
+  { numberFormat: 'mmm dd, yyyy', example: 'Sep 17, 2026' },
+  { numberFormat: 'mm/dd/yyyy', example: '09/17/2026' },
+  { numberFormat: 'dd/mm/yyyy', example: '17/09/2026' },
+  { numberFormat: 'yyyy-mm-dd', example: '2026-09-17' },
+  { numberFormat: 'd mmm yyyy', example: '17 Sep 2026' },
+  {
+    numberFormat: 'dddd, mmmm d, yyyy',
+    example: 'Thursday, September 17, 2026',
+  },
+] as const;

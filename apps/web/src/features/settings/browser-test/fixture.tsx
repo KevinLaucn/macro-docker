@@ -195,7 +195,6 @@ function Fixture() {
                 setTab(result.tab);
                 setSelected({ ...result });
               }}
-              onLogout={() => {}}
             />
           </ViewShell.Aside>
           <ViewShell.Main>

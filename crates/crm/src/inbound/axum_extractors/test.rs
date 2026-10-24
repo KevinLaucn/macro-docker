@@ -59,6 +59,7 @@ impl JwtValidator for FakeJwtValidator {
     fn validate(&self, jwt: &str) -> Result<ValidatedIdentity, Report<MacroAuthorizationError>> {
         match jwt {
             VALID_TOKEN => Ok(ValidatedIdentity {
+                agent_id: None,
                 user_id: USER_ID.to_string(),
                 fusion_user_id: "test-fusion-user".to_string(),
                 organization_id: None,
@@ -236,6 +237,17 @@ impl CrmService for FakeCrmService {
         _query: crate::domain::contact_listing::CrmContactListQuery,
     ) -> Result<Vec<crate::domain::contact_listing::CrmContactForSoup>, CrmError> {
         Ok(vec![])
+    }
+
+    async fn resolve_association(
+        &self,
+        _user_id: &str,
+        _access: Option<
+            &crate::domain::auth::CrmTeamReceipt<entity_access::domain::models::MemberTeamRole>,
+        >,
+        _record: crate::domain::association::CrmAssociation,
+    ) -> Result<crate::domain::association::CrmRecordAssociation, CrmError> {
+        panic!("unexpected resolve_association call")
     }
 
     async fn populate_contact(

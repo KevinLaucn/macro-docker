@@ -1,12 +1,12 @@
 use crate::pubsub::context::PubSubContext;
 use crate::pubsub::inbox_sync::email_api_error::handle_operation_error;
 use crate::pubsub::util::{
-    CrmContactRecipient, build_notification_recipients, enqueue_populate_crm_contacts,
+    CrmContactRecipient, build_contact_connections, build_notification_recipients,
+    enqueue_populate_crm_contacts,
 };
 use crate::pubsub::util::{cg_refresh_email, publish_email_event};
 use crate::util::process_pre_insert::{process_message_pre_insert, process_threads_pre_insert};
 use crate::util::upload_attachment::{UploadAttachmentContext, upload_attachment};
-use contacts::domain::models::messages::ContactConnection;
 use contacts::domain::ports::ContactsIngress;
 use email::domain::events::{
     EmailEventOrigin, EmailMacroEvent, MessageDraftSyncedMetadata, MessageReceivedMetadata,
@@ -37,6 +37,7 @@ use models_email::service::message::{Message, is_inbound, is_outbound, is_spam_o
 use models_email::service::pubsub::{DetailedError, FailureReason, ProcessingError};
 use models_email::service::thread::Thread;
 use notification::domain::models::{SendNotificationRequest, SendNotificationRequestBuilder};
+use sqlx::PgPool;
 use std::collections::HashSet;
 use std::result;
 use std::sync::Arc;
@@ -226,14 +227,9 @@ pub async fn upsert_message(
     // if the message's thread doesn't exist in the database, we need to fetch and insert the whole thread.
     // if it does exist in the database, we just need to insert the already fetched message.
     if let Some(thread_db_id) = thread_provider_to_db_map.get(&provider_thread_id) {
-        process_and_insert_message(ctx, link.id, *thread_db_id, &mut message)
-            .await
-            .map_err(|e| {
-                ProcessingError::NonRetryable(DetailedError {
-                    reason: FailureReason::DatabaseQueryFailed,
-                    source: e.context("Failed to process and insert message".to_string()),
-                })
-            })?;
+        // Retryable: a concurrent delete can drop the thread after the lookup
+        // above, and the redelivery then takes the whole-thread branch below.
+        process_and_insert_message(&ctx.db, link.id, *thread_db_id, &mut message).await?;
     } else {
         // Propagated verbatim: fetch_and_insert_thread already routed provider
         // errors through handle_operation_error (retry queue vs redelivery),
@@ -526,23 +522,11 @@ async fn handle_contacts_sync(
         sender_email.into_iter().collect()
     };
 
-    if connection_emails.is_empty() {
+    let connections = build_contact_connections(&link.macro_id, link.id, connection_emails);
+
+    if connections.is_empty() {
         return Ok(());
     }
-
-    let connections = connection_emails
-        .iter()
-        .map(|email| {
-            MacroUserIdStr::try_from_email(email)
-                .map(|contact| ContactConnection::new(link.macro_id.clone(), contact))
-        })
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| {
-            ProcessingError::NonRetryable(DetailedError {
-                reason: FailureReason::SqsEnqueueFailed,
-                source: anyhow::anyhow!(e).context("invalid user email for contacts"),
-            })
-        })?;
 
     ctx.contacts_ingress
         .enqueue_contact_connections(connections)
@@ -650,31 +634,23 @@ fn thread_from_normalized_messages(
 }
 
 /// Process and insert message
-#[tracing::instrument(skip(ctx))]
+#[tracing::instrument(skip(db))]
 async fn process_and_insert_message(
-    ctx: &PubSubContext,
+    db: &PgPool,
     link_id: Uuid,
     thread_db_id: Uuid,
     message: &mut Message,
-) -> anyhow::Result<()> {
+) -> result::Result<(), ProcessingError> {
     process_message_pre_insert(message).await;
 
-    email_db_client::messages::insert::insert_message(
-        &ctx.db,
-        thread_db_id,
-        message,
-        link_id,
-        true,
-    )
-    .await
-    .map_err(|e| {
-        ProcessingError::Retryable(DetailedError {
-            reason: FailureReason::DatabaseQueryFailed,
-            source: e.context("Failed to insert messages".to_string()),
+    email_db_client::messages::insert::insert_message(db, thread_db_id, message, link_id, true)
+        .await
+        .map_err(|e| {
+            ProcessingError::Retryable(DetailedError {
+                reason: FailureReason::DatabaseQueryFailed,
+                source: e.context("Failed to insert message".to_string()),
+            })
         })
-    })?;
-
-    Ok(())
 }
 
 /// Notify downstream services about new message in a user's inbox

@@ -20,12 +20,14 @@
  */
 
 import {
+  AgentFoldWorkerUnavailable,
   closeSession,
   type FoldInput,
   pushSession,
   readSession,
   type SessionFoldSnapshot,
 } from '@core/agent-fold/client';
+import { fireAndForget } from '@core/util/fireAndForget';
 import {
   AgentSessionLogUnavailable,
   canFollowAgentSessionLog,
@@ -48,9 +50,16 @@ import type {
   SessionBot,
 } from '@service-agent-harness/generated/schemas';
 import { subscribeGraphqlSoupReconnected } from '@service-storage/graphql-soup';
+import { CombinedError } from '@urql/core';
 import { v7 as uuidv7 } from 'uuid';
-import { SessionLoadTrace, traceAcquire } from './load-telemetry';
+import {
+  type LoadFailure,
+  SessionLoadTrace,
+  traceAcquire,
+  transcriptSize,
+} from './load-telemetry';
 import { frameDelivery, PromptTrace } from './prompt-telemetry';
+import { createdRecently, forgetSessionCreated } from './recently-created';
 import { publishSessionTurn } from './session-turn';
 
 export type AgentSessionListener = (events: FoldedStreamEvent[]) => void;
@@ -92,15 +101,48 @@ export class AgentSessionAccessDenied extends Error {
   }
 }
 
+/**
+ * The harness refused a session this tab had just created.
+ *
+ * Its own type because it is not the refusal it looks like: a create is
+ * answered before everything it wrote is readable, and the first read of a
+ * brand-new session can arrive inside that gap. Retrying is the right
+ * response, which is exactly what {@link AgentSessionAccessDenied} says it
+ * is not - so the two cannot share a type.
+ */
+export class AgentSessionNotReady extends Error {
+  constructor(readonly sessionId: string) {
+    super(`agent session is not readable yet: ${sessionId}`);
+    this.name = 'AgentSessionNotReady';
+  }
+}
+
 /** The log query answered that the viewer cannot see this session. */
 const inaccessible = (error: unknown) =>
   error instanceof AgentSessionLogUnavailable &&
   error.reason === 'inaccessible';
 
+/** Why the log query failed, for the load span. */
+function logFailure(error: unknown): LoadFailure {
+  const cause = error instanceof Error ? error.cause : undefined;
+  if (cause instanceof CombinedError) {
+    return cause.networkError ? 'log_network' : 'log_graphql';
+  }
+  return cause === undefined ? 'log_fetch' : 'log_unreadable';
+}
+
 const accessDenied = (errors: { code: string }[]) =>
   errors.some(
     (error) => error.code === 'UNAUTHORIZED' || error.code === 'FORBIDDEN'
   );
+
+/**
+ * No session behind this id. The harness answers it apart from a refusal, so
+ * a read that has overtaken its own create can be told from one that is not
+ * this viewer's at all.
+ */
+const missing = (errors: { code: string }[]) =>
+  errors.some((error) => error.code === 'NOT_FOUND');
 
 /**
  * Whether this action takes the turn, rather than riding alongside one. ACP
@@ -112,6 +154,17 @@ function occupiesTurn(action: AgentAction): boolean {
 }
 
 const RESYNC_RETRY_DELAYS_MS = [1_000, 3_000, 10_000];
+
+/**
+ * Waits before re-reading a session this tab created and was refused.
+ *
+ * Front-loaded: the gap being waited out is usually milliseconds, so the
+ * first retry lands inside a frame or two and nobody sees anything. The tail
+ * is there for a create whose writes take unusually long to become readable;
+ * past the last one, a refusal is reported as a failed load - with a Retry -
+ * rather than retried forever against a session that may really be gone.
+ */
+const CREATE_SETTLE_RETRY_DELAYS_MS = [150, 400, 1_000, 2_500, 5_000];
 
 export class AgentSession {
   private static readonly open = new Map<string, AgentSession>();
@@ -146,8 +199,11 @@ export class AgentSession {
   static ingest(event: AgentSessionLogEvent): void {
     const session = AgentSession.open.get(event.agentSessionId);
     if (!session || session.followed) return;
-    void session.enqueueAll(
-      event.entries.map((row) => ({ kind: 'confirmed', row }))
+    fireAndForget(
+      session.enqueueAll(
+        event.entries.map((row) => ({ kind: 'confirmed', row }))
+      ),
+      'agent-session'
     );
   }
 
@@ -218,15 +274,18 @@ export class AgentSession {
     // Subscribed before the fetch so no row between the two is lost: rows
     // that arrive during the load are buffered and folded after the snapshot.
     this.unsubscribeSocket = subscribeSocketSessionStarted(() => {
-      void this.resync();
+      fireAndForget(this.resync(), 'agent-session');
     });
     this.unsubscribeUpdated = subscribeAgentSessionUpdated((event) => {
-      if (event.agentSessionId === this.id) void this.resync();
+      if (event.agentSessionId === this.id)
+        fireAndForget(this.resync(), 'agent-session');
     });
     // The subscription survives a reconnect, but not the rows published
     // while the socket was down.
     this.unsubscribeReconnected = this.followed
-      ? subscribeGraphqlSoupReconnected(() => void this.resync())
+      ? subscribeGraphqlSoupReconnected(() =>
+          fireAndForget(this.resync(), 'agent-session')
+        )
       : () => undefined;
     this.trace = new SessionLoadTrace(id);
     this.watch = this.openWatch();
@@ -251,11 +310,14 @@ export class AgentSession {
       this.followed
         ? {
             rows: (rows) => {
-              void this.enqueueAll(
-                rows.map((row) => ({ kind: 'confirmed', row }))
+              fireAndForget(
+                this.enqueueAll(
+                  rows.map((row) => ({ kind: 'confirmed', row }))
+                ),
+                'agent-session'
               );
             },
-            gap: () => void this.resync(),
+            gap: () => fireAndForget(this.resync(), 'agent-session'),
           }
         : undefined
     );
@@ -280,12 +342,21 @@ export class AgentSession {
     if (this.loadFailed) {
       this.loadFailed = false;
       this.trace = new SessionLoadTrace(this.id);
-      this.watch.stop();
-      this.watch = this.openWatch();
-      this.sessionRow = agentHarnessServiceClient.get(this.id);
+      this.reissueReads();
       this.loading = this.startLoad();
     }
     return this.loading;
+  }
+
+  /**
+   * Start the row and log reads again, for an attempt that is being made
+   * afresh. The old watch is stopped first: its rows belong to a load that
+   * is no longer the one in flight.
+   */
+  private reissueReads(): void {
+    this.watch.stop();
+    this.watch = this.openWatch();
+    this.sessionRow = agentHarnessServiceClient.get(this.id);
   }
 
   /**
@@ -321,12 +392,15 @@ export class AgentSession {
       // window would both speculate - the second one showing a bubble the
       // server's `queued` then takes away again.
       if (occupiesTurn(action)) this.setTurn('starting');
-      void this.enqueue({
-        kind: 'speculated',
-        actionId,
-        action,
-        userId: options.userId,
-      });
+      fireAndForget(
+        this.enqueue({
+          kind: 'speculated',
+          actionId,
+          action,
+          userId: options.userId,
+        }),
+        'agent-session'
+      );
     }
 
     // The harness adopts the id the client speculated under; the response
@@ -338,29 +412,38 @@ export class AgentSession {
 
     if (!speculated) return result;
     if (result.isErr()) {
-      void this.enqueue({ kind: 'retracted', actionId });
+      fireAndForget(
+        this.enqueue({ kind: 'retracted', actionId }),
+        'agent-session'
+      );
       return result;
     }
     // Queued after all: the turn opened between the check and the POST. The
     // harness logs the row only when the queue dispatches it, so holding the
     // speculation would show an open turn for the whole wait.
     if (result.value.status === 'queued') {
-      void this.enqueue({ kind: 'retracted', actionId });
+      fireAndForget(
+        this.enqueue({ kind: 'retracted', actionId }),
+        'agent-session'
+      );
       return result;
     }
     // A stop is a notification and carries no id on the wire, so the log
     // confirms it by content whatever id the harness accepted it under.
     const accepted = result.value.actionId;
     if (accepted !== actionId && action.type !== 'stop') {
-      void this.enqueueAll([
-        { kind: 'retracted', actionId },
-        {
-          kind: 'speculated',
-          actionId: accepted,
-          action,
-          userId: options.userId,
-        },
-      ]);
+      fireAndForget(
+        this.enqueueAll([
+          { kind: 'retracted', actionId },
+          {
+            kind: 'speculated',
+            actionId: accepted,
+            action,
+            userId: options.userId,
+          },
+        ]),
+        'agent-session'
+      );
     }
     return result;
   }
@@ -414,17 +497,23 @@ export class AgentSession {
     options: { userId?: string } = {}
   ): void {
     if (occupiesTurn(action)) this.setTurn('starting');
-    void this.enqueue({
-      kind: 'speculated',
-      actionId,
-      action,
-      userId: options.userId,
-    });
+    fireAndForget(
+      this.enqueue({
+        kind: 'speculated',
+        actionId,
+        action,
+        userId: options.userId,
+      }),
+      'agent-session'
+    );
   }
 
   /** Take back a speculation the log will not confirm. Unknown ids are a no-op. */
   retract(actionId: string): void {
-    void this.enqueue({ kind: 'retracted', actionId });
+    fireAndForget(
+      this.enqueue({ kind: 'retracted', actionId }),
+      'agent-session'
+    );
   }
 
   /**
@@ -524,7 +613,8 @@ export class AgentSession {
       this.watch.cached.then((cached) => {
         this.trace.cacheRead(
           readStartedAt,
-          cached && { rows: cached.rows.length }
+          cached && { rows: cached.rows.length },
+          this.watch.cacheMiss()
         );
         return cached;
       }),
@@ -546,12 +636,15 @@ export class AgentSession {
   }
 
   /** A surface put this session's transcript on screen. */
-  rendered(kind: 'cached' | 'fetched'): void {
-    this.trace.rendered(kind);
+  rendered(
+    kind: 'cached' | 'fetched',
+    messages: SessionFoldSnapshot['messages']
+  ): void {
+    this.trace.rendered(kind, transcriptSize(messages));
   }
 
   private startLoad(): Promise<AgentSessionRecord> {
-    return this.fetchAndFold().then(
+    return this.fetchFoldAndSettle().then(
       (record) => {
         this.trace.end('loaded');
         return record;
@@ -565,6 +658,55 @@ export class AgentSession {
         throw error;
       }
     );
+  }
+
+  /**
+   * The load, waiting out a create that has not finished becoming readable.
+   *
+   * Only {@link AgentSessionNotReady} is retried, and only for a session this
+   * tab created: every other failure is reported on the first attempt, as
+   * before. Each attempt re-reads from scratch, because the refused answers
+   * are already settled promises.
+   */
+  private async fetchFoldAndSettle(): Promise<AgentSessionRecord> {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        const record = await this.fetchAndFold();
+        // Readable: a refusal after this is a real one.
+        forgetSessionCreated(this.id);
+        return record;
+      } catch (error: unknown) {
+        const delay = CREATE_SETTLE_RETRY_DELAYS_MS[attempt];
+        if (
+          delay === undefined ||
+          this.closed ||
+          !(error instanceof AgentSessionNotReady)
+        ) {
+          throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        if (this.closed) throw new AgentSessionReleased(this.id);
+        this.trace.retriedBeforeReady(attempt + 1);
+        this.reissueReads();
+      }
+    }
+  }
+
+  /**
+   * How a refusal should be reported.
+   *
+   * A session this tab created seconds ago is far likelier to be mid-create
+   * than not ours, and is retried. Anything else is a refusal in earnest, and
+   * its cached transcript must not be shown to this viewer again.
+   */
+  private refused(): Error {
+    if (createdRecently(this.id)) {
+      this.trace.failing('not_ready');
+      return new AgentSessionNotReady(this.id);
+    }
+    this.forgetCached();
+    this.trace.failing('access_denied');
+    return new AgentSessionAccessDenied(this.id);
   }
 
   private async fetchAndFold(): Promise<AgentSessionRecord> {
@@ -583,17 +725,21 @@ export class AgentSession {
     // not one.
     if (this.closed) throw new AgentSessionReleased(this.id);
     if (session.isErr()) {
-      if (accessDenied(session.error)) {
-        this.forgetCached();
-        throw new AgentSessionAccessDenied(this.id);
+      if (accessDenied(session.error)) throw this.refused();
+      // The harness knows of no such session. For one this tab just created
+      // that is the create still landing, and worth another read; otherwise
+      // it is gone, and the surface should offer a retry rather than claim
+      // the viewer was refused.
+      if (missing(session.error) && createdRecently(this.id)) {
+        this.trace.failing('not_ready');
+        throw new AgentSessionNotReady(this.id);
       }
+      this.trace.failing('session_fetch');
       throw new Error(`agent session could not be fetched: ${this.id}`);
     }
     if (!log.ok) {
-      if (inaccessible(log.error)) {
-        this.forgetCached();
-        throw new AgentSessionAccessDenied(this.id);
-      }
+      if (inaccessible(log.error)) throw this.refused();
+      this.trace.failing(logFailure(log.error));
       throw new Error(`agent session log could not be fetched: ${this.id}`, {
         cause: log.error,
       });
@@ -602,13 +748,22 @@ export class AgentSession {
 
     const foldStartedAt = performance.now();
     this.settled = true;
-    await this.apply([{ kind: 'snapshot', rows: log.log.rows }]);
-    // Inputs can keep arriving while each push is in flight; drain until a
-    // check finds nothing, then flip ready so the next one goes straight in.
-    await this.drainBuffered();
-    this.trace.folded(foldStartedAt);
-    this.setTurn((await readSession(this.id)).metadata.turn);
-    if (this.resyncRequested) void this.resync();
+    try {
+      await this.apply([{ kind: 'snapshot', rows: log.log.rows }]);
+      // Inputs can keep arriving while each push is in flight; drain until a
+      // check finds nothing, then flip ready so the next one goes straight in.
+      await this.drainBuffered();
+      this.trace.folded(foldStartedAt);
+      this.setTurn((await readSession(this.id)).metadata.turn);
+    } catch (error) {
+      this.trace.failing(
+        error instanceof AgentFoldWorkerUnavailable
+          ? 'worker_unavailable'
+          : 'fold'
+      );
+      throw error;
+    }
+    if (this.resyncRequested) fireAndForget(this.resync(), 'agent-session');
     return { session: session.value, bot: log.log.bot };
   }
 
@@ -660,11 +815,14 @@ export class AgentSession {
       await this.drainBuffered();
       this.syncing = false;
       if (!this.closed && this.resyncRequested) {
-        void this.resync(true);
+        fireAndForget(this.resync(true), 'agent-session');
       } else if (!this.closed && failed) {
         const delay = RESYNC_RETRY_DELAYS_MS[this.resyncRetry++];
         if (delay !== undefined)
-          this.resyncTimer = setTimeout(() => void this.resync(true), delay);
+          this.resyncTimer = setTimeout(
+            () => fireAndForget(this.resync(true), 'agent-session'),
+            delay
+          );
       }
     }
   }

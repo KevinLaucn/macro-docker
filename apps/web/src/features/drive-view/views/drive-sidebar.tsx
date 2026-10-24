@@ -3,12 +3,14 @@ import {
   SearchBar,
   ViewSidebar,
 } from '@app/components/view-shell';
+import { ConnectorImportSidebar } from '@app/features/connector-import/connector-import';
 import { FavoriteContextMenu } from '@app/features/favorites/FavoriteContextMenu';
 import { FavoriteIcon } from '@app/features/favorites/FavoriteIcon';
 import { useFavoriteDisplayName } from '@app/util/favorites';
+import { fireAndForget } from '@core/util/fireAndForget';
 import FolderIcon from '@phosphor/folder.svg';
 import SearchIcon from '@phosphor/magnifying-glass.svg';
-import { SidebarTagsSection } from '@property/tags/SidebarTagsSection';
+import UploadIcon from '@phosphor/upload-simple.svg';
 import type { Favorite } from '@service-storage/generated/schemas/favorite';
 import { Button } from '@ui';
 import { createMemo, createSignal, For, Show } from 'solid-js';
@@ -164,7 +166,9 @@ export function DriveSidebarContent(props: { onNavigate?: () => void }) {
                       Folders couldn’t be loaded.
                       <Button
                         variant="ghost"
-                        onClick={() => void sidebar.retryFolders()}
+                        onClick={() =>
+                          fireAndForget(sidebar.retryFolders(), 'drive-view')
+                        }
                       >
                         Try again
                       </Button>
@@ -193,21 +197,50 @@ export function DriveSidebarContent(props: { onNavigate?: () => void }) {
           </ViewSidebar.Nav>
         </CollapsibleSection.Content>
       </CollapsibleSection.Root>
-      <SidebarTagsSection
-        activeIds={state.value().facets.tags ?? []}
-        onActiveIdsChange={state.setTags}
-        open={state.value().tagsOpen}
-        onOpenChange={state.setTagsOpen}
-        onNavigate={props.onNavigate}
-      />
     </>
   );
 }
 
+/** The import card, offering local uploads beside connected apps. */
+function DriveImportPromotion() {
+  const { actions } = useDriveView();
+  return (
+    <ConnectorImportSidebar
+      category="files"
+      class="mt-auto"
+      alternatives={[
+        {
+          icon: UploadIcon,
+          label: 'Upload files',
+          description: 'Choose files from this computer.',
+          onSelect: actions.uploadFiles,
+        },
+        {
+          icon: FolderIcon,
+          label: 'Upload a folder',
+          description: 'Bring over a folder and everything in it.',
+          onSelect: actions.uploadFolder,
+        },
+      ]}
+    />
+  );
+}
+
 export function DriveSidebar() {
+  const { state } = useDriveView();
   return (
     <ViewSidebar.Root aria-label="Drive navigation">
-      <ViewSidebar.Header>
+      <ViewSidebar.Header
+        searchLabel="Search files"
+        search={() => (
+          <SearchBar
+            label="Search files"
+            placeholder="Search files"
+            value={state.value().search}
+            onValueChange={state.setSearch}
+          />
+        )}
+      >
         <div class="flex min-w-0 items-center gap-1">
           <ViewSidebar.CloseButton />
           <ViewSidebar.Title>Drive</ViewSidebar.Title>
@@ -218,6 +251,7 @@ export function DriveSidebar() {
       </ViewSidebar.Primary>
       <ViewSidebar.Content>
         <DriveSidebarContent />
+        <DriveImportPromotion />
       </ViewSidebar.Content>
     </ViewSidebar.Root>
   );

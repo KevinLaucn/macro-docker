@@ -5686,5 +5686,9 @@
   "Visible to your whole team": "整个团队可见",
   "Only you and people you share with": "仅你和共享对象可见",
   "Only the owner can share access to this session. You can copy a link for people who already have access.": "仅所有者可以共享此会话的访问权限。你可以为已有访问权限的人复制链接。",
-  "Only the owner can share access to this project. You can copy a link for people who already have access.": "仅所有者可以共享此项目的访问权限。你可以为已有访问权限的人复制链接。"
+  "Only the owner can share access to this project. You can copy a link for people who already have access.": "仅所有者可以共享此项目的访问权限。你可以为已有访问权限的人复制链接。",
+  "View messages": "查看消息",
+  "Review email draft before sending": "发送前审阅邮件草稿",
+  "Copy message link": "复制消息链接",
+  "Reply to this message": "回复此消息"
 }

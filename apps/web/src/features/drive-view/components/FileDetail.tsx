@@ -1,12 +1,19 @@
 import {
+  DocumentAccessDenied,
+  useSharedAccessUpdates,
+} from '@app/features/access-requests/access-requests';
+import { shareEntity } from '@app/features/access-requests/core/types';
+import {
   DocumentFileSidePanelSections,
   SidePanel,
 } from '@components/app/side-panel';
+import { toEntityLoadError } from '@core/component/EntityLoadGate';
 import {
   getPermissions,
   hasPermissions,
   Permissions,
 } from '@core/component/SharePermissions';
+import { fireAndForget } from '@core/util/fireAndForget';
 import SpinnerIcon from '@phosphor/spinner.svg';
 import type { AccessLevel } from '@service-storage/generated/schemas/accessLevel';
 import type { DocumentMetadata } from '@service-storage/generated/schemas/documentMetadata';
@@ -86,27 +93,58 @@ function FileDetailBodyState(props: {
   );
 }
 
-export function FileDetailLoadGate<T extends object>(props: {
+export function FileDetailLoadGate<
+  T extends { userAccessLevel: AccessLevel },
+>(props: {
   documentId: string;
   label: string;
   load: (documentId: string) => Promise<T>;
   children: (data: T) => JSX.Element;
 }) {
-  const [document, { refetch }] = createResource(
+  const [document, { refetch, mutate }] = createResource(
     () => props.documentId,
     props.load
   );
+  const reload = () => {
+    // Dispose the old editor and its sync source before loading a new token.
+    mutate(undefined);
+    fireAndForget(refetch(), 'drive-view');
+  };
+  const sharedAccess = useSharedAccessUpdates(
+    () => shareEntity('document', props.documentId),
+    (level) => {
+      if (level === null) {
+        mutate(undefined);
+        return;
+      }
+      const loaded = document.state === 'ready' ? document.latest : undefined;
+      if (loaded?.userAccessLevel !== level) reload();
+    }
+  );
+  const accessDenied = () => {
+    if (sharedAccess() === null) return true;
+    const error = toEntityLoadError(document.error);
+    return error === 'UNAUTHORIZED' || error === 'FORBIDDEN';
+  };
 
   return (
     <Suspense fallback={<FileDetailBodyState label={props.label} />}>
       <Switch>
+        <Match when={accessDenied()}>
+          <DocumentAccessDenied
+            documentId={props.documentId}
+            onAccessGranted={() => {
+              if (document.error) reload();
+            }}
+          />
+        </Match>
         <Match when={document.error}>
           {(error) => (
             <FileDetailBodyState
               label={props.label}
               error={error()}
               actionLabel="Try again"
-              onAction={() => void refetch()}
+              onAction={() => fireAndForget(refetch(), 'drive-view')}
             />
           )}
         </Match>

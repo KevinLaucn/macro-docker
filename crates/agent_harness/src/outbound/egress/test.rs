@@ -496,15 +496,63 @@ fn external_runtime_uses_host_reachable_urls_with_the_existing_session_credentia
         "http://agent-harness-service:8102",
     )
     .with_external_base_url(Some("http://localhost:28102/".into()));
-    let sandbox = egress(&[]);
+    let mut sandbox = egress(&["datadog"]);
+    let custom = listing("https://wiki.example.com/mcp", "Wiki");
+    let custom_path = format!("/mcp-custom/{}", custom.key);
+    sandbox.custom_servers.push(custom);
     let servers = provisioner.external_mcp_servers(&sandbox);
-    assert_eq!(servers.len(), 2);
-    for (server, path) in servers.iter().zip(["/mcp/internal", "/mcp-preview"]) {
+    assert_eq!(servers.len(), 5);
+    for (server, (name, path)) in servers.iter().zip([
+        ("macro", "/mcp-macro"),
+        ("macro_internal", "/mcp/internal"),
+        ("macro-preview", "/mcp-preview"),
+        ("datadog", "/mcp/datadog"),
+        ("Wiki", custom_path.as_str()),
+    ]) {
         let McpServer::Http(server) = server else {
             panic!("expected HTTP MCP");
         };
         assert_eq!(server.url, format!("http://localhost:28102{path}"));
+        assert_eq!(server.name, name);
         assert_eq!(server.headers[0].value, sandbox.authorization_header());
     }
     assert_eq!(sandbox.base_url, "https://egress.macro.com");
+}
+
+#[tokio::test]
+async fn native_provider_wins_without_hiding_other_hosted_apps() {
+    let mut native = custom_server("https://mcp.linear.app/mcp", "Linear", true);
+    native.credentials = Some(
+        serde_json::from_value(serde_json::json!({"client_id":"test","token_response":null}))
+            .unwrap(),
+    );
+    let provisioner = EgressProvisioner::new(
+        Arc::new(FixedConnections(vec![
+            connection("linear", true),
+            connection("stripe", true),
+            connection("slack", true),
+            connection("slack_v2", true),
+        ])),
+        Arc::new(FixedServers(vec![native])),
+        "https://egress.macro.com",
+    );
+    let provisioned = provisioner
+        .provision(
+            AgentSessionId::new(),
+            &MacroUserIdStr::try_from_email("owner@example.com").unwrap(),
+            &AgentMcpServers::OwnerConnections,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        provisioned
+            .sandbox
+            .mcp_servers
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>(),
+        ["stripe", "slack"]
+    );
+    assert_eq!(provisioned.sandbox.custom_servers.len(), 1);
+    assert_eq!(provisioned.sandbox.custom_servers[0].name, "Linear");
 }

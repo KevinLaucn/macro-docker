@@ -1,7 +1,6 @@
 import { useAnalytics } from '@app/lib/analytics/analytics-context';
 import { globalSplitManager } from '@app/signal/splitLayout';
 import { SidebarOpenInSplitMenu } from '@components/app/app-sidebar/sidebar';
-import { rememberBootShell } from '@components/app/boot-shell';
 import { UserIcon } from '@core/component/UserIcon';
 import { useSettingsState } from '@core/constant/SettingsState';
 import { useSettingsTabAvailable } from '@core/constant/settingsTabsConfig';
@@ -12,8 +11,10 @@ import GearIcon from '@phosphor/gear.svg';
 import GearFillIcon from '@phosphor-fill/gear-fill.svg';
 import { isRealNamePart, useOwnUserName } from '@queries/auth/user-name-self';
 import { Button, cn, pressHandlers } from '@ui';
-import { createEffect, createMemo, Show } from 'solid-js';
+import { createMemo, Show } from 'solid-js';
+import { useAppUpdate } from './app-update';
 import { NavGlyph } from './nav-glyph';
+import { UpdateButton } from './update-button';
 
 /**
  * Sizes the gear and punches a gap around the avatar badge (16px, centred at
@@ -43,10 +44,6 @@ const MobileAppButton = () => {
   const isTabAvailable = useSettingsTabAvailable();
 
   const isActive = () => isSettingsActive() && activeTabId() === 'Mobile App';
-
-  createEffect(() =>
-    rememberBootShell({ mobileApp: isTabAvailable('Mobile App') })
-  );
 
   const open = (event: MouseEvent) => {
     event.preventDefault();
@@ -80,14 +77,15 @@ const MobileAppButton = () => {
 };
 
 /**
- * The rail's bottom actions: the mobile app link, then Settings, opened like
- * any other rail view. The gear carries the signed-in account's photo as a
- * badge, so people with several accounts can still tell which one they are in.
+ * The rail's bottom actions: a ready app update, the mobile app link, then
+ * Settings, opened like any other rail view. The gear carries the account photo
+ * as a badge, so people with several accounts can tell which one they are in.
  */
 export const FooterActions = (props: {
   onMenuOpenChange?: (open: boolean) => void;
 }) => {
   const analytics = useAnalytics();
+  const update = useAppUpdate();
   const { openSettings, openSettingsInSplit, settingsOpen, activeTabId } =
     useSettingsState();
   const userId = useUserId();
@@ -115,6 +113,14 @@ export const FooterActions = (props: {
 
   return (
     <div class="flex w-full shrink-0 flex-col items-center gap-1">
+      {/* Keyed by id: a new update remounts the button, so its popover opens again. */}
+      <Show when={update()?.id} keyed>
+        {(_id) => (
+          <Show when={update()}>
+            {(current) => <UpdateButton update={current} />}
+          </Show>
+        )}
+      </Show>
       <MobileAppButton />
       <SidebarOpenInSplitMenu
         content={() => SETTINGS_CONTENT}

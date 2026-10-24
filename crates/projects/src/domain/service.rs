@@ -201,6 +201,16 @@ where
             .map_err(|error| internal_error(error, "unable to list projects"))
     }
 
+    async fn list_accessible_projects(
+        &self,
+        user_id: MacroUserIdStr<'static>,
+    ) -> Result<Vec<Project>, ProjectError> {
+        self.repo
+            .get_accessible_projects_for_user(user_id.as_ref())
+            .await
+            .map_err(|error| internal_error(error, "unable to list accessible projects"))
+    }
+
     async fn list_pending_projects(
         &self,
         user_id: MacroUserIdStr<'static>,
@@ -472,6 +482,7 @@ where
             }
         }
 
+        let moving = args.project_parent_id.is_some();
         let project_uuid = parse_internal_uuid(&project.id, "project ID")?;
         let old_parent_uuid = project
             .parent_id
@@ -494,21 +505,26 @@ where
             .await?;
 
         self.bump_project_modified(&project.id).await;
-        let _ = self
-            .entity_access_management_service
-            .move_project(
-                &project_uuid,
-                old_parent_uuid.as_ref(),
-                new_parent_uuid.as_ref(),
-            )
-            .await
-            .inspect_err(|error| {
-                tracing::error!(
-                    error = ?error,
-                    project_id = %project.id,
-                    "unable to update entity access for project"
-                );
-            });
+        // Only a move changes inherited access: an edit that leaves the parent
+        // alone (a rename, a share change) must keep what the project and its
+        // contents inherit from the folders above.
+        if moving {
+            let _ = self
+                .entity_access_management_service
+                .move_project(
+                    &project_uuid,
+                    old_parent_uuid.as_ref(),
+                    new_parent_uuid.as_ref(),
+                )
+                .await
+                .inspect_err(|error| {
+                    tracing::error!(
+                        error = ?error,
+                        project_id = %project.id,
+                        "unable to update entity access for project"
+                    );
+                });
+        }
         if let Some(parent_id) = project.parent_id.as_deref() {
             self.bump_project_modified(parent_id).await;
         }

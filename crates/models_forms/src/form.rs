@@ -7,6 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::ids::FormId;
 
 /// Who may respond to a form.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(
     Debug,
     Clone,
@@ -34,6 +35,7 @@ pub enum Audience {
 
 /// Whether a form takes responses, as its owner set it. A form also stops
 /// taking them once its closing time passes.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(
     Debug,
     Clone,
@@ -59,6 +61,7 @@ pub enum FormStatus {
 
 /// The caller's level on a form: view responds, edit changes questions and
 /// reads responses, owner also sets the audience, closes and trashes it.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(
     Debug,
     Clone,
@@ -83,6 +86,7 @@ pub enum FormAccess {
 }
 
 /// A form: a view of one database table whose rows are its responses.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, utoipa::ToSchema, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Form {
@@ -125,6 +129,9 @@ pub struct Form {
     pub created_at: DateTime<Utc>,
     /// When its facts or layout last changed.
     pub updated_at: DateTime<Utc>,
+    /// Whether Drive leaves it, and the database behind it, out of its
+    /// listings, as for a channel poll.
+    pub is_hidden_in_drive: bool,
 }
 
 impl Form {
@@ -136,6 +143,7 @@ impl Form {
 }
 
 /// A request to create a form.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, utoipa::ToSchema, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateForm {
@@ -146,6 +154,7 @@ pub struct CreateForm {
 }
 
 /// Where a new form's responses go.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, utoipa::ToSchema, specta::Type)]
 #[serde(
     tag = "kind",
@@ -155,7 +164,12 @@ pub struct CreateForm {
 pub enum FormSource {
     /// A new database named like the form, whose one table, "Responses",
     /// starts with only the form's own columns.
-    New,
+    New {
+        /// Keep the form, and the database made for it, out of Drive, as
+        /// for a channel poll.
+        #[serde(default, rename = "isHiddenInDrive")]
+        is_hidden_in_drive: bool,
+    },
     /// An existing table in a database the caller owns. The form starts with a
     /// question per column.
     Table {
@@ -173,6 +187,7 @@ pub enum FormSource {
 /// A change to a form's facts; what is left out stays. The description and
 /// confirmation message take edit, the rest owner. A form is renamed
 /// through the entity mutation router.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(
     Debug, Clone, PartialEq, Default, Serialize, Deserialize, utoipa::ToSchema, specta::Type,
 )]
@@ -236,6 +251,7 @@ where
 
 /// A form the caller reaches through a grant, as the forms catalog lists
 /// it, with the caller's level on it.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, utoipa::ToSchema, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ListedForm {

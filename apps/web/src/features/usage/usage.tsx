@@ -7,6 +7,7 @@ import {
   PROD_MODE_ENV,
 } from '@core/constant/featureFlags';
 import { useSettingsState } from '@core/constant/SettingsState';
+import { fireAndForget } from '@core/util/fireAndForget';
 import {
   useAiBillingPlansQuery,
   useAiBillingSummaryQuery,
@@ -68,7 +69,7 @@ export function Usage() {
     loading: () => summary.isPending,
     failed: () => summary.isError,
     refresh: () => {
-      void summary.refetch();
+      fireAndForget(summary.refetch(), 'usage');
     },
     checkout: {
       pending: () => checkout.isPending,
@@ -94,6 +95,7 @@ export function Usage() {
       },
     },
     autoReload: {
+      budget: () => usageSummary()?.autoReload.budget,
       settings: () => {
         if (autoReloadPreview()) return previewSettings();
         return usageSummary()?.autoReload.settings ?? DEFAULT_AUTO_RELOAD;
@@ -151,6 +153,11 @@ export function Usage() {
     },
     developer: DEV_MODE_ENV
       ? {
+          openBillingLab: LOCAL_ONLY
+            ? () => {
+                window.open('/billing-lab.html', '_blank', 'noopener');
+              }
+            : undefined,
           active: usagePreview.active,
           plan: usagePreview.plan,
           beforeLaunch: usagePreview.beforeLaunch,

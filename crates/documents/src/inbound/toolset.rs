@@ -1,7 +1,9 @@
 //! Toolset inbound adapter for Documents.
 
-mod comment_on_document;
+mod canvas;
+mod comment_on_text;
 mod create_document;
+mod create_skill;
 mod design;
 mod edit_document;
 mod illustrator;
@@ -10,7 +12,6 @@ mod presentation;
 mod read_content;
 mod read_metadata;
 mod rename_document;
-mod resolve_document_comment;
 mod spreadsheet;
 mod upload_file;
 mod word_document;
@@ -32,8 +33,10 @@ use crate::{
     domain::ports::mentions::NoOpDocumentMentionTracker,
     domain::presentation::{NoPresentationFiles, PresentationFiles, PresentationService},
     inbound::toolset::{
-        comment_on_document::CommentOnDocument,
+        canvas::{ApplyCanvasEdits, EditCanvas, ReadCanvas, RenderCanvas},
+        comment_on_text::CommentOnText,
         create_document::CreateDocument,
+        create_skill::CreateSkill,
         design::ReadDesign,
         edit_document::EditDocument,
         illustrator::ReadIllustratorDocument,
@@ -42,7 +45,6 @@ use crate::{
         read_content::ReadContent,
         read_metadata::ReadMetadata,
         rename_document::RenameDocument,
-        resolve_document_comment::ResolveDocumentComment,
         spreadsheet::{CalculateSpreadsheet, EditSpreadsheet, ReadSpreadsheet},
         upload_file::UploadFile,
         word_document::{EditWordDocument, ReadWordDocument},
@@ -203,7 +205,7 @@ impl<
         let sync_service_client = Arc::new(sync_service_client);
         let creator = DocumentCreator::new(
             service.clone(),
-            LexicalSyncMarkdownInitializer::new(
+            LexicalSyncMarkdownInitializer::detached(
                 lexical_client.as_ref().clone(),
                 sync_service_client.as_ref().clone(),
             ),
@@ -361,11 +363,15 @@ where
         .add_tool::<ReadMetadata, DocumentToolContext<DSvc, ESvc, EDSvc>>()
         .add_tool::<ReadContent, DocumentToolContext<DSvc, ESvc, EDSvc>>()
         .add_tool::<CreateDocument, DocumentToolContext<DSvc, ESvc, EDSvc>>()
+        .add_tool::<CreateSkill, DocumentToolContext<DSvc, ESvc, EDSvc>>()
         .add_tool::<UploadFile, DocumentToolContext<DSvc, ESvc, EDSvc>>()
         .add_tool::<RenameDocument, DocumentToolContext<DSvc, ESvc, EDSvc>>()
         .add_tool::<EditDocument, DocumentToolContext<DSvc, ESvc, EDSvc>>()
-        .add_tool::<CommentOnDocument, DocumentToolContext<DSvc, ESvc, EDSvc>>()
-        .add_tool::<ResolveDocumentComment, DocumentToolContext<DSvc, ESvc, EDSvc>>()
+        .add_tool::<ReadCanvas, DocumentToolContext<DSvc, ESvc, EDSvc>>()
+        .add_tool::<RenderCanvas, DocumentToolContext<DSvc, ESvc, EDSvc>>()
+        .add_tool::<ApplyCanvasEdits, DocumentToolContext<DSvc, ESvc, EDSvc>>()
+        .add_tool::<EditCanvas, DocumentToolContext<DSvc, ESvc, EDSvc>>()
+        .add_tool::<CommentOnText, DocumentToolContext<DSvc, ESvc, EDSvc>>()
         .add_tool::<ReadSpreadsheet, DocumentToolContext<DSvc, ESvc, EDSvc>>()
         .add_tool::<CalculateSpreadsheet, DocumentToolContext<DSvc, ESvc, EDSvc>>()
         .add_tool::<EditSpreadsheet, DocumentToolContext<DSvc, ESvc, EDSvc>>()

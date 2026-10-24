@@ -3,6 +3,7 @@
  * reading order, each shown selected in its shape when visited.
  */
 
+import { fireAndForget } from '@core/util/fireAndForget';
 import CaretDown from '@phosphor/caret-down.svg';
 import CaretUp from '@phosphor/caret-up.svg';
 import X from '@phosphor/x.svg';
@@ -89,7 +90,7 @@ export function FindReplace(props: {
     }
     next = (next + list.length) % list.length;
     setCurrent(next);
-    void reveal(list[next]);
+    fireAndForget(reveal(list[next]), 'pptx-editor');
   }
 
   async function replaceOne() {
@@ -110,7 +111,7 @@ export function FindReplace(props: {
     }
     const next = Math.min(at, after.length - 1);
     setCurrent(next);
-    void reveal(after[next]);
+    fireAndForget(reveal(after[next]), 'pptx-editor');
   }
 
   async function replaceAll() {
@@ -137,7 +138,7 @@ export function FindReplace(props: {
 
   return (
     <div
-      class="absolute top-2 right-3 z-20 flex w-80 flex-col gap-1.5 rounded-xl border border-edge bg-menu p-2 shadow-xl"
+      class="menu-surface absolute top-2 right-3 z-20 flex w-80 flex-col gap-1.5 p-2"
       data-testid="pptx-find"
       role="search"
       onKeyDown={onKeyDown}
@@ -205,7 +206,7 @@ export function FindReplace(props: {
             size="xs"
             variant="outline"
             disabled={matches().length === 0}
-            onClick={() => void replaceOne()}
+            onClick={() => fireAndForget(replaceOne(), 'pptx-editor')}
           >
             Replace
           </Button>
@@ -214,7 +215,7 @@ export function FindReplace(props: {
             variant="outline"
             data-testid="pptx-replace-all"
             disabled={matches().length === 0}
-            onClick={() => void replaceAll()}
+            onClick={() => fireAndForget(replaceAll(), 'pptx-editor')}
           >
             All
           </Button>

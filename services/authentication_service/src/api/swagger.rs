@@ -1,8 +1,11 @@
 use github::domain::models::{
     EnrichGithubPullRequestsProxyRequest, EnrichGithubPullRequestsResponse,
     EnrichedGithubPullRequest, GithubMergeMethod, GithubPullRequestCheckRun,
-    GithubPullRequestComment, GithubPullRequestRef, GithubPullRequestStatus,
+    GithubPullRequestComment, GithubPullRequestMergeability, GithubPullRequestMergeabilityEntry,
+    GithubPullRequestMergeabilityRequest, GithubPullRequestMergeabilityResponse,
+    GithubPullRequestNumber, GithubPullRequestRef, GithubPullRequestStatus,
     MergeGithubPullRequestRequest, MergeGithubPullRequestResponse,
+    SetGithubPullRequestDraftRequest, SetGithubPullRequestDraftResponse,
 };
 use gtm_invite::inbound::axum_router::dto::{
     CreateGtmInviteLinkRequest, GtmInviteLink, GtmInviteLinkList, GtmInviteLinkStatus,
@@ -11,11 +14,14 @@ use gtm_invite::inbound::axum_router::dto::{
 use model::authentication::login::request::{AppleLoginRequest, PasswordRequest};
 use teams::domain::model::{
     PatchTeamCrmSettingsRequest, PatchTeamCrmSettingsResponse, PatchTeamMemberPlanRequest,
-    PatchTeamRequest, PatchTeamUserRole, Team, TeamInviteDetails, TeamMember, TeamPlan, TeamRole,
-    TeamWithMembers,
+    PatchTeamRequest, PatchTeamUserRole, Team, TeamInviteDetails, TeamInviteLinkTeam,
+    TeamInviteLinkToken, TeamMember, TeamPlan, TeamRole, TeamWithMembers,
 };
 use teams::inbound::axum_router::get_team_invites::TeamInvitesResponse as TeamTeamInvitesResponse;
 use teams::inbound::axum_router::get_user_invites::TeamInvitesResponse as UserTeamInvitesResponse;
+use teams::inbound::axum_router::invite_link::{
+    CreatedTeamInviteLinkResponse, JoinTeamByInviteLinkResponse, TeamInviteLinkResponse,
+};
 use teams::inbound::axum_router::toggle_auto_join_domain::ToggleAutoJoinDomainResponse;
 use teams::inbound::axum_router::toggle_non_admin_invites::ToggleNonAdminInvitesResponse;
 use teams::inbound::axum_router::{
@@ -33,7 +39,6 @@ use crate::api::link::github::{GithubLinkStatusResponse, InitGithubLinkResponse}
 use crate::api::link::gmail::{GmailLinkStatusResponse, InitGmailLinkResponse};
 use crate::api::link::outlook::InitOutlookLinkResponse;
 use crate::api::merge::create_merge_request::CreateAccountMergeRequest;
-use crate::api::user::create_user::CreateUserRequest;
 use crate::api::user::get_legacy_user_permissions::GetLegacyUserPermissionsResponse;
 use crate::api::user::get_user_link_exists::UserLinkResponse;
 use crate::api::user::get_user_organization::UserOrganizationResponse;
@@ -92,6 +97,7 @@ use model::user::{
                 link::gmail::init_gmail_link_handler,
                 link::gmail::check_gmail_link_status_handler,
                 link::outlook::init_outlook_link_handler,
+                link::outlook::email_connection_providers,
 
                 // Cursor API key (settings -> Connections). Fully qualified:
                 // the `cursor_api_key` crate shadows the module of the same
@@ -112,6 +118,8 @@ use model::user::{
                 /// /github_pull_requests
                 github_pull_requests::handler,
                 github_pull_requests::merge_handler,
+                github_pull_requests::draft_handler,
+                github_pull_requests::mergeability_handler,
 
                 /// /oauth
                 oauth::oauth_redirect::handler,
@@ -124,7 +132,6 @@ use model::user::{
                 jwt::macro_api_token::handler,
 
                 /// /user
-                user::create_user::handler,
                 user::get_user_info::handler,
                 user::delete_user::handler,
                 user::post_profile_pictures::handler,
@@ -143,6 +150,8 @@ use model::user::{
                 user::stripe::create_checkout_session_v2::create_checkout_session,
                 user::stripe::create_portal_session::create_portal_session,
                 user::stripe::change_plan::change_plan,
+                user::stripe::subscription_status::subscription_status,
+                user::stripe::trial_eligibility::trial_eligibility,
 
                 /// /ai-billing
                 ai_billing::inbound::axum_router::get_summary_handler::<crate::api::context::AiBillingServiceType, crate::api::context::AuthorizationService>,
@@ -178,6 +187,11 @@ use model::user::{
                 teams::inbound::axum_router::remove_user_from_team::handler::<crate::api::context::TeamsServiceType, crate::api::context::EntityAccessServiceType, crate::api::context::AuthorizationService>,
                 teams::inbound::axum_router::patch_team_member_plan::handler::<crate::api::context::TeamsServiceType, crate::api::context::EntityAccessServiceType, crate::api::context::AuthorizationService>,
                 teams::inbound::axum_router::delete_team_invite::handler::<crate::api::context::TeamsServiceType, crate::api::context::EntityAccessServiceType, crate::api::context::AuthorizationService>,
+                teams::inbound::axum_router::invite_link::get_handler::<crate::api::context::TeamsServiceType, crate::api::context::EntityAccessServiceType, crate::api::context::AuthorizationService>,
+                teams::inbound::axum_router::invite_link::create_handler::<crate::api::context::TeamsServiceType, crate::api::context::EntityAccessServiceType, crate::api::context::AuthorizationService>,
+                teams::inbound::axum_router::invite_link::delete_handler::<crate::api::context::TeamsServiceType, crate::api::context::EntityAccessServiceType, crate::api::context::AuthorizationService>,
+                teams::inbound::axum_router::invite_link::get_team_handler::<crate::api::context::TeamsServiceType, crate::api::context::EntityAccessServiceType, crate::api::context::AuthorizationService>,
+                teams::inbound::axum_router::invite_link::join_handler::<crate::api::context::TeamsServiceType, crate::api::context::EntityAccessServiceType, crate::api::context::AuthorizationService>,
 
                 /// /referral
                 referral::inbound::axum_router::get_referral_code_handler::<crate::api::context::ReferralServiceType, crate::api::context::RateLimiter, crate::api::context::AuthorizationService>,
@@ -219,7 +233,6 @@ use model::user::{
                         UserTokensResponse,
                         UserLinkResponse,
                         MacroApiTokenResponse,
-                        CreateUserRequest,
                         ResendFusionauthVerifyUserEmailRequest,
                         GenerateEmailLinkRequest,
                         CreateInProgressLinkResponse,
@@ -269,6 +282,13 @@ use model::user::{
                         GithubMergeMethod,
                         MergeGithubPullRequestRequest,
                         MergeGithubPullRequestResponse,
+                        SetGithubPullRequestDraftRequest,
+                        SetGithubPullRequestDraftResponse,
+                        GithubPullRequestNumber,
+                        GithubPullRequestMergeability,
+                        GithubPullRequestMergeabilityEntry,
+                        GithubPullRequestMergeabilityRequest,
+                        GithubPullRequestMergeabilityResponse,
 
                         UserQuota,
                         UserOrganizationResponse,
@@ -302,6 +322,11 @@ use model::user::{
                         PatchTeamCrmSettingsResponse,
                         ToggleAutoJoinDomainResponse,
                         ToggleNonAdminInvitesResponse,
+                        TeamInviteLinkResponse,
+                        CreatedTeamInviteLinkResponse,
+                        JoinTeamByInviteLinkResponse,
+                        TeamInviteLinkTeam,
+                        TeamInviteLinkToken,
                         TeamTeamInvitesResponse,
                         UserTeamInvitesResponse,
 
@@ -376,6 +401,31 @@ mod tests {
         let response_properties = &schemas["MergeGithubPullRequestResponse"]["properties"];
         assert!(response_properties.get("sha").is_some());
         assert!(response_properties.get("pullRequest").is_some());
+    }
+
+    #[test]
+    fn github_pull_requests_openapi_includes_draft_and_mergeability_paths() {
+        let openapi = serde_json::to_value(ApiDoc::openapi()).unwrap();
+        let draft = &openapi["paths"]["/github_pull_requests/draft"]["post"];
+        assert_eq!(draft["operationId"], "set_github_pull_request_draft");
+        assert_eq!(
+            draft["requestBody"]["content"]["application/json"]["schema"]["$ref"].as_str(),
+            Some("#/components/schemas/SetGithubPullRequestDraftRequest")
+        );
+        let mergeability = &openapi["paths"]["/github_pull_requests/mergeability"]["post"];
+        assert_eq!(
+            mergeability["operationId"],
+            "get_github_pull_request_mergeability"
+        );
+        assert_eq!(
+            mergeability["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+                .as_str(),
+            Some("#/components/schemas/GithubPullRequestMergeabilityResponse")
+        );
+        assert_eq!(
+            openapi["components"]["schemas"]["GithubPullRequestMergeability"]["enum"],
+            serde_json::json!(["mergeable", "conflicting", "unknown"])
+        );
     }
 
     #[test]

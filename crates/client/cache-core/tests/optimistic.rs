@@ -203,6 +203,18 @@ impl Storage for ClaimFailingStorage {
         self.inner.clear().await.unwrap();
         Ok(())
     }
+
+    async fn reset_with_records(
+        &mut self,
+        entries: Vec<(EntityKey<'static>, Record)>,
+        projections: Vec<ProjectionMutation>,
+    ) -> Result<(), Self::Error> {
+        self.inner
+            .reset_with_records(entries, projections)
+            .await
+            .unwrap();
+        Ok(())
+    }
 }
 
 fn query_vars() -> serde_json::Map<String, Json> {
@@ -764,7 +776,7 @@ fn claim_failure_after_enqueue_preserves_one_durable_visible_mutation() {
 }
 
 #[test]
-fn durable_mutations_advance_revision_before_reconciliation() {
+fn reconciliation_failures_do_not_commit_or_publish_partial_state() {
     block_on(async {
         let (mut write_engine, _) = reconciliation_engine().await;
         write_engine.storage().fail_next_queue_load();
@@ -783,7 +795,8 @@ fn durable_mutations_advance_revision_before_reconciliation() {
             Err(EngineError::Storage(ref error))
                 if error.to_string() == "injected reconciliation queue load failure"
         ));
-        assert_eq!(write_engine.current_revision().to_string(), "3");
+        assert_eq!(write_engine.current_revision().to_string(), "2");
+        assert_unsettled(&mut write_engine).await;
 
         let (mut commit_engine, transaction) = reconciliation_engine().await;
         let claim = claim_reconciliation_head(&mut commit_engine).await;
@@ -803,7 +816,8 @@ fn durable_mutations_advance_revision_before_reconciliation() {
             Err(EngineError::Storage(ref error))
                 if error.to_string() == "injected reconciliation queue load failure"
         ));
-        assert_eq!(commit_engine.current_revision().to_string(), "3");
+        assert_eq!(commit_engine.current_revision().to_string(), "2");
+        assert_unsettled(&mut commit_engine).await;
 
         let (mut rollback_engine, transaction) = reconciliation_engine().await;
         let claim = claim_reconciliation_head(&mut rollback_engine).await;
@@ -816,8 +830,33 @@ fn durable_mutations_advance_revision_before_reconciliation() {
             Err(EngineError::Storage(ref error))
                 if error.to_string() == "injected reconciliation queue load failure"
         ));
-        assert_eq!(rollback_engine.current_revision().to_string(), "3");
+        assert_eq!(rollback_engine.current_revision().to_string(), "2");
+        assert_unsettled(&mut rollback_engine).await;
     });
+}
+
+async fn assert_unsettled(engine: &mut Engine<ClaimFailingStorage>) {
+    assert_eq!(
+        engine.storage().load_mutation_queue().await.unwrap().len(),
+        1
+    );
+    let ReadResult::Hit { data } = engine
+        .read_query(None, QUERY, Some("Soup"), &query_vars())
+        .await
+        .unwrap()
+    else {
+        panic!("expected the pending edit to remain visible")
+    };
+    assert_eq!(property_of(&data)["value"]["stringValue"], "doing");
+    let record = engine
+        .storage()
+        .get_batch(&[EntityKey(PROPERTY_KEY.into())])
+        .await
+        .unwrap();
+    let CacheValue::Object(value) = &record[0].as_ref().unwrap().fields["value"] else {
+        panic!("expected the durable base")
+    };
+    assert_eq!(value["value"], CacheValue::String("todo".into()));
 }
 
 #[test]
@@ -1065,6 +1104,74 @@ fn pending_uuid_replacement_moves_to_tail_and_keeps_only_latest_layer() {
         );
         let data = read_hit(&mut engine, None).await;
         assert_eq!(property_of(&data)["value"]["stringValue"], json!("b"));
+    });
+}
+
+#[test]
+fn pending_uuid_replacement_keeps_the_first_enqueue_time() {
+    block_on(async {
+        const X: &str = "0f0b1a43-1d47-4a52-9b8f-3a1e2f6f7a01";
+        const Y: &str = "0f0b1a43-1d47-4a52-9b8f-3a1e2f6f7a02";
+        let mut engine = engine_with_base("Status", "todo").await;
+        begin_value(&mut engine, X, "a", 100).await;
+        begin_value(&mut engine, X, "b", 250).await;
+        // A clock that moved backwards cannot make the replacement look newer.
+        begin_value(&mut engine, Y, "c", 500).await;
+        begin_value(&mut engine, Y, "d", 400).await;
+
+        let queued = engine.storage().load_mutation_queue().await.unwrap();
+        assert_eq!(
+            queued
+                .iter()
+                .map(|row| row.mutation.created_at_ms)
+                .collect::<Vec<_>>(),
+            [100, 400]
+        );
+        let inspected = engine.inspect_mutations().await.unwrap();
+        assert_eq!(
+            inspected
+                .iter()
+                .map(|item| item.enqueued_at_ms)
+                .collect::<Vec<_>>(),
+            [Some(100), Some(400)]
+        );
+        let wire = serde_json::to_value(&inspected[0]).unwrap();
+        assert_eq!(wire["enqueuedAtMs"], json!(100));
+    });
+}
+
+#[test]
+fn active_uuid_replacement_keeps_its_own_enqueue_time() {
+    block_on(async {
+        const X: &str = "0f0b1a43-1d47-4a52-9b8f-3a1e2f6f7a03";
+        let mut engine = engine_with_base("Status", "todo").await;
+        begin_value(&mut engine, X, "a", 100).await;
+        let (_, _) = claim_head(&mut engine, "runner", 110).await;
+        begin_value(&mut engine, X, "b", 300).await;
+
+        let queued = engine.storage().load_mutation_queue().await.unwrap();
+        assert!(queued[0].superseded);
+        assert_eq!(
+            queued
+                .iter()
+                .map(|row| row.mutation.created_at_ms)
+                .collect::<Vec<_>>(),
+            [100, 300]
+        );
+    });
+}
+
+#[test]
+fn enqueue_time_outside_the_javascript_safe_range_is_unknown() {
+    block_on(async {
+        const X: &str = "0f0b1a43-1d47-4a52-9b8f-3a1e2f6f7a04";
+        let mut engine = engine_with_base("Status", "todo").await;
+        begin_value(&mut engine, X, "a", 1 << 60).await;
+
+        let inspected = engine.inspect_mutations().await.unwrap();
+        assert_eq!(inspected[0].enqueued_at_ms, None);
+        let wire = serde_json::to_value(&inspected[0]).unwrap();
+        assert!(wire.get("enqueuedAtMs").is_none());
     });
 }
 

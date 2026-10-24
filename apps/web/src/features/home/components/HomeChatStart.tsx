@@ -4,11 +4,11 @@ import {
   ViewSidebar,
 } from '@app/components/view-shell';
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
-import { rememberBootShell } from '@components/app/boot-shell';
 import { DragDropWrapper } from '@core/component/AI/component/DragDrop';
 import { ChatInputProvider } from '@core/component/AI/context';
+import { ComposerGreeting } from '@core/component/ComposerGreeting';
 import { enableChatV3Agents } from '@core/constant/featureFlags';
-import { createEffect, Show } from 'solid-js';
+import { Show } from 'solid-js';
 import { HomeChatInput } from '../home-chat-input';
 import { HomeRecommendedActions } from './home-recommended-actions';
 
@@ -18,11 +18,6 @@ export function HomeChatStart() {
   const agents = useFeatureFlag(enableChatV3Agents);
   const showHomeTopBar = () =>
     shell.aside.isCollapsed() || shell.aside.isOverlay();
-  // The next load's boot shell draws this greeting and composer layout.
-  createEffect(() => {
-    if (agents().loading) return;
-    rememberBootShell({ homeComposer: agents().enabled ? 'agents' : 'legacy' });
-  });
   return (
     <ChatInputProvider>
       <Show when={showHomeTopBar()}>
@@ -60,9 +55,11 @@ export function HomeChatStart() {
           >
             <div class="self-end">
               <Show when={!agents().enabled}>
-                <h1 class="mb-6 min-h-0 min-w-0 self-end text-center text-2xl font-normal leading-[42px] text-ink">
-                  What should we get done in Macro?
-                </h1>
+                <div class="mb-6 min-h-0 min-w-0">
+                  <ComposerGreeting as="h1">
+                    What should we get done in Macro?
+                  </ComposerGreeting>
+                </div>
               </Show>
             </div>
             <HomeChatInput

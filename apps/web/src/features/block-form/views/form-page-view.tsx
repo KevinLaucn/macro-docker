@@ -1,5 +1,15 @@
+import { ListSkeleton } from '@app/components/view-shell/ListSkeleton';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { Button } from '@ui';
-import { createUniqueId, Match, Show, Switch } from 'solid-js';
+import {
+  type Component,
+  createUniqueId,
+  type JSX,
+  Match,
+  Show,
+  Switch,
+} from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 import { type FormTab, FormTabs } from '../components/form-tabs';
 import {
   type FormDetailSource,
@@ -7,7 +17,6 @@ import {
   useFormContext,
 } from '../context/form-context';
 import type { FormDetail } from '../core/form-model';
-import { availabilityLine, formAvailability } from '../core/form-status';
 import type { Preview } from '../primitives/create-preview';
 import { BuilderView } from './builder-view';
 import { RespondView } from './respond-view';
@@ -60,9 +69,19 @@ export function FormSkeleton() {
       aria-busy="true"
       aria-label="Loading form"
     >
-      <div class="h-32 animate-pulse rounded-xl bg-hover" />
-      <div class="h-48 animate-pulse rounded-xl bg-hover" />
-      <div class="h-24 animate-pulse rounded-xl bg-hover" />
+      <ListSkeleton.Bar class="h-32 w-full rounded-xl" />
+      <ListSkeleton.Bar class="h-48 w-full rounded-xl" />
+      <ListSkeleton.Bar class="h-24 w-full rounded-xl" />
+    </div>
+  );
+}
+
+export type FormHeaderProps = { tabs: JSX.Element };
+
+function InlineFormHeader(props: FormHeaderProps) {
+  return (
+    <div class="flex items-center justify-between gap-3 px-4 py-2">
+      {props.tabs}
     </div>
   );
 }
@@ -72,6 +91,7 @@ function EditorTabs(props: {
   detail: FormDetail;
   tab: FormTab;
   idPrefix: string;
+  header?: Component<FormHeaderProps>;
   onTabChange: (tab: FormTab) => void;
 }) {
   const context = useFormContext();
@@ -80,25 +100,27 @@ function EditorTabs(props: {
     () => props.detail.access !== 'view'
   );
   return (
-    <FormTabs
-      tab={props.tab}
-      idPrefix={props.idPrefix}
-      responsesCount={summary.value()?.submitted}
-      onChange={props.onTabChange}
-      status={availabilityLine(
-        formAvailability(props.detail.form, props.detail.tableGone, new Date()),
-        new Date()
-      )}
+    <Dynamic
+      component={props.header ?? InlineFormHeader}
+      tabs={
+        <FormTabs
+          tab={props.tab}
+          idPrefix={props.idPrefix}
+          responsesCount={summary.value()?.submitted}
+          onChange={props.onTabChange}
+        />
+      }
     />
   );
 }
 
 /**
- * The form page (RFC 02 §2): editors get Build, Responses and Share with the
- * status at the right; viewers land on the respond page.
+ * The form page: editors get Build, Responses and Share; viewers land on the respond page.
  */
 type FormPageProps = {
   source: FormDetailSource;
+  /** Host placement for navigation. */
+  header?: Component<FormHeaderProps>;
   tab: FormTab;
   respondLink: string;
   /** What a preview waits for before it reads the form. */
@@ -142,6 +164,7 @@ function EditorPanels(
   return (
     <>
       <EditorTabs
+        header={props.header}
         detail={props.detail}
         idPrefix={props.tabsId}
         tab={props.tab}
@@ -156,10 +179,7 @@ function EditorPanels(
         <Switch>
           <Match when={props.tab === 'build'}>{builder}</Match>
           <Match when={props.tab === 'responses'}>
-            <ResponsesView
-              detail={props.detail}
-              onOpenDatabase={props.onOpenDatabase}
-            />
+            <ResponsesView detail={props.detail} />
           </Match>
           <Match when={props.tab === 'share'}>{sharing}</Match>
         </Switch>
@@ -181,7 +201,9 @@ export function FormPageView(props: FormPageProps) {
             {(failure) => (
               <FormLoadFailureView
                 failure={failure()}
-                onRetry={() => void props.source.refetch()}
+                onRetry={() =>
+                  fireAndForget(props.source.refetch(), 'form-detail')
+                }
               />
             )}
           </Show>

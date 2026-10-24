@@ -1,10 +1,10 @@
-import type { DatabaseEntityType } from '@app/features/block-database/core/column-inference';
 import type { AnswerColumn, AnswerOption } from '@core/database-sql/answer';
 import type { Cell, EntityKind } from '@core/database-sql/generated/types';
 import { formatTime } from '@core/util/date';
 import { markdownToPlainText } from '@macro-inc/lexical-core/utils/parsers';
 import { formatDate } from '@property/utils/formatting';
 import { match } from 'ts-pattern';
+import type { DatabaseEntityType } from '../../database/core/column-inference';
 import { formatQueryValue } from './query';
 
 /** What one result value shows, drawn with the database grid's own pieces. */
@@ -189,6 +189,6 @@ function referenceCount(type: DatabaseEntityType, count: number): string {
     .with('CALL_RECORD', () => ['call', 'calls'])
     .with('CALENDAR_EVENT', () => ['event', 'events'])
     .with('DATABASE_ROW', () => ['linked record', 'linked records'])
-    .exhaustive();
+    .exhaustive(() => ['item', 'items']);
   return `${count} ${count === 1 ? one : many}`;
 }

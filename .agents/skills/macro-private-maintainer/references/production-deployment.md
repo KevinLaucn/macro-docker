@@ -10,7 +10,12 @@
 ## 1. 生产环境拓扑
 
 - **容器化引擎**：Docker Compose，统一编排 Web 前端、核心 Rust 服务集群、PostgreSQL、Redis、OpenSearch 等。
-- **反向代理与 SSL**：基于 1Panel / OpenResty 或 Nginx 托管，负责公网 SSL 终结、请求限流与反向代理路由。
+- **服务合并与路由契约**：
+  - `agent_harness_service` 已合并承载 `document_cognition_service`（`/cognition`）、`scheduled_action_service`（`/scheduled-action`）、`preview`（`/preview`）及 `public_mcp`（`/mcp`）。
+  - Caddy 对 `/cognition`、`/scheduled-action`、`/preview`、`/mcp` 必须使用不剥离前缀的 `handle`（匹配裸路径与 `/*` 子路径），对 `/agent-harness/*` 使用 `handle_path`。
+  - 生产环境 `agent_harness_service` 保持常驻（无 `agents` profile 门控），强制 `DEV_DANGEROUS_LOCAL_CONTAINERS=false`、非 `root` 运行且禁止挂载宿主机 `/var/run/docker.sock`。
+  - `/calendar/*` 路由由独立的 `calendar_service` 容器承载（不再由 `email_service` 承载）。
+- **反向代理与 SSL**：基于 1Panel / OpenResty 或 Nginx / Caddy 托管，负责公网 SSL 终结、请求限流与反向代理路由。
 - **配置分离**：业务配置和敏感环境变量落盘于生产主路径下的 `.env`，模板见 `self-host/.env.example`。
 
 ## 2. 生产镜像发布与 Profile 体系

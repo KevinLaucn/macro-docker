@@ -4,8 +4,7 @@ false && internalDrag;
 
 import { Lightbox } from '@core/component/Lightbox';
 import { toast } from '@core/component/Toast/Toast';
-import { debouncedDependent } from '@core/util/debounce';
-
+import { fireAndForget } from '@core/util/fireAndForget';
 import { Dialog } from '@kobalte/core/dialog';
 import { mergeRegister } from '@lexical/utils';
 import {
@@ -108,39 +107,42 @@ export function MarkdownImage(props: ImageDecoratorProps) {
       setImageUrl(props.url);
       return;
     }
-    getMediaUrl({
-      type: props.srcType,
-      id: props.id,
-      url: props.url,
-    }).then((maybeUrl) => {
-      if (maybeUrl.isErr()) {
-        setState('error');
-        if (
-          maybeUrl.isErr() &&
-          maybeUrl.error.some((error) => error.code === 'UNAUTHORIZED')
-        )
-          setImageError('UNAUTHORIZED');
-        else if (maybeUrl.error.some((error) => error.code === 'NOT_FOUND'))
-          setImageError('MISSING');
-        else if (
-          maybeUrl.isErr() &&
-          maybeUrl.error.some((error) => error.code === 'GONE')
-        )
-          setImageError('GONE');
-        else setImageError('FALLBACK');
-        return;
-      }
-      const url = maybeUrl.value;
-      setImageUrl(url);
-      if (props.srcType === 'dss') {
-        editor()?.update(
-          () => {
-            $upgradeDSSMediaUrl(props.key, url, 'image');
-          },
-          { discrete: true, tag: 'historic' }
-        );
-      }
-    });
+    fireAndForget(
+      getMediaUrl({
+        type: props.srcType,
+        id: props.id,
+        url: props.url,
+      }).then((maybeUrl) => {
+        if (maybeUrl.isErr()) {
+          setState('error');
+          if (
+            maybeUrl.isErr() &&
+            maybeUrl.error.some((error) => error.code === 'UNAUTHORIZED')
+          )
+            setImageError('UNAUTHORIZED');
+          else if (maybeUrl.error.some((error) => error.code === 'NOT_FOUND'))
+            setImageError('MISSING');
+          else if (
+            maybeUrl.isErr() &&
+            maybeUrl.error.some((error) => error.code === 'GONE')
+          )
+            setImageError('GONE');
+          else setImageError('FALLBACK');
+          return;
+        }
+        const url = maybeUrl.value;
+        setImageUrl(url);
+        if (props.srcType === 'dss') {
+          editor()?.update(
+            () => {
+              $upgradeDSSMediaUrl(props.key, url, 'image');
+            },
+            { discrete: true, tag: 'historic' }
+          );
+        }
+      }),
+      'markdown-media'
+    );
   });
 
   const isSelectedAsNode = () => {
@@ -246,17 +248,26 @@ export function MarkdownImage(props: ImageDecoratorProps) {
     cleanupListners();
   });
 
-  const debouncedScale = debouncedDependent(scale, 60);
-  createEffect(
-    on(debouncedScale, (value) => {
-      editor()?.update(() => {
+  const persistScale = debounce((value: number) => {
+    const currentEditor = editor();
+    if (!interactable() || !currentEditor?.isEditable()) return;
+    currentEditor.update(() => {
+      if (!currentEditor.isEditable()) return;
+      const node = $getNodeByKey(props.key);
+      if (node && $isImageNode(node)) node.setScale(value, false);
+    });
+  }, 60);
+  createEffect(on(scale, persistScale));
+  createEffect(() => {
+    if (!interactable()) {
+      persistScale.clear();
+      const committedScale = editor()?.read(() => {
         const node = $getNodeByKey(props.key);
-        if (node && $isImageNode(node)) {
-          node.setScale(value, false);
-        }
+        return node && $isImageNode(node) ? node.getScale() : props.scale;
       });
-    })
-  );
+      setScale(committedScale ?? props.scale);
+    }
+  });
 
   const debouncedSetHover = debounce((state: boolean) => {
     setImageHover(state);
@@ -298,17 +309,21 @@ export function MarkdownImage(props: ImageDecoratorProps) {
           setImageHover(false);
         }}
       >
-        <Show when={state() === 'ok' && editor()?.isEditable()}>
+        <Show when={state() === 'ok' && interactable()}>
           <ResizeHandle
             scale={scale}
-            setScale={setScale}
+            setScale={(value) => {
+              if (interactable() && editor()?.isEditable()) setScale(value);
+            }}
             side="left"
             imageDims={effectiveDims}
             containerRef={containerRef}
           />
           <ResizeHandle
             scale={scale}
-            setScale={setScale}
+            setScale={(value) => {
+              if (interactable() && editor()?.isEditable()) setScale(value);
+            }}
             side="right"
             imageDims={effectiveDims}
             containerRef={containerRef}

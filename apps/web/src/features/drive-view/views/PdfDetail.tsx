@@ -29,7 +29,10 @@ import {
   hasPermissions,
   Permissions,
 } from '@core/component/SharePermissions';
+import { toast } from '@core/component/Toast/Toast';
 import { openLoginModal } from '@core/component/TopBar/LoginButton';
+import { fireAndForget } from '@core/util/fireAndForget';
+import { Telemetry } from '@macro-inc/observability';
 import DownloadIcon from '@phosphor/download-simple.svg';
 import Printer from '@phosphor/printer.svg';
 import { useSearchParams } from '@solidjs/router';
@@ -55,15 +58,33 @@ function PdfDetailContent(props: {
     isAuthenticated: !!isAuth(),
     openLogin: openLoginModal,
   });
+  const download = async () => {
+    try {
+      await downloadPdfDocument({
+        ...auth(),
+        documentProxy: pdf.documentProxy(),
+        hasModifications: hasModificationData(),
+        hasComments: hasComments(),
+        documentId: pdf.documentId(),
+        fileName,
+      });
+    } catch (error) {
+      Telemetry.error(error, { surface: 'pdf-file-actions' });
+      toast.failure('Unable to download file');
+    }
+  };
   const operations: FileOperation[] = [
     {
       label: 'Print',
       icon: Printer,
       action: () => {
-        void printPdfDocument({
-          ...auth(),
-          documentProxy: pdf.documentProxy(),
-        });
+        fireAndForget(
+          printPdfDocument({
+            ...auth(),
+            documentProxy: pdf.documentProxy(),
+          }),
+          'pdf-file-actions'
+        );
       },
     },
     {
@@ -71,14 +92,7 @@ function PdfDetailContent(props: {
       label: 'Download',
       icon: DownloadIcon,
       action: () => {
-        void downloadPdfDocument({
-          ...auth(),
-          documentProxy: pdf.documentProxy(),
-          hasModifications: hasModificationData(),
-          hasComments: hasComments(),
-          documentId: pdf.documentId(),
-          fileName,
-        });
+        fireAndForget(download(), 'pdf-file-actions');
       },
     },
     ...(props.data.documentMetadata.fileType === 'docx'
@@ -88,11 +102,14 @@ function PdfDetailContent(props: {
             label: 'Download DOCX',
             icon: DownloadIcon,
             action: () => {
-              void downloadDocxDocument({
-                ...auth(),
-                documentId: pdf.documentId(),
-                fileName,
-              });
+              fireAndForget(
+                downloadDocxDocument({
+                  ...auth(),
+                  documentId: pdf.documentId(),
+                  fileName,
+                }),
+                'pdf-file-actions'
+              );
             },
           },
         ]

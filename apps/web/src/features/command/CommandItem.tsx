@@ -1,7 +1,7 @@
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
 import { UserIcon } from '@core/component/UserIcon';
 import { hasValidHotkey } from '@core/hotkey/utils';
-import { Entity, type EntityData } from '@entity';
+import { type CrmContactEntity, Entity, type EntityData } from '@entity';
 import SearchIcon from '@phosphor/magnifying-glass.svg';
 import PlusIcon from '@phosphor/plus.svg';
 import WideStar from '@phosphor/sparkle.svg';
@@ -51,9 +51,10 @@ function CommandItemHotkey(props: { item: CommandMenuItem }) {
   };
 
   const hasHotkey = () =>
-    hasValidHotkey(token()) ||
-    Boolean(shortcut()) ||
-    Boolean(sequence()?.length);
+    !commandItem()?.hideHotkey &&
+    (hasValidHotkey(token()) ||
+      Boolean(shortcut()) ||
+      Boolean(sequence()?.length));
 
   const StepHotkey = (step: DisplayHotkeyStep) => (
     <div class="p-2 py-0.5 border border-edge-muted rounded-md">
@@ -111,7 +112,7 @@ function CommandDisplay(props: { item: CommandMenuItem }) {
 
   return (
     <div class="flex items-center gap-2 flex-1 min-w-0">
-      <div class="size-5 flex items-center justify-center text-ink-muted shrink-0">
+      <div class="size-5 mobile:scale-150 flex items-center justify-center text-ink-muted shrink-0">
         <Show
           when={command()?.commandPaletteIcon}
           fallback={
@@ -145,10 +146,29 @@ function EntityDisplay(props: { entity: EntityData }) {
 
   return (
     <div class="flex items-center gap-2 flex-1 min-w-0">
-      <div class="size-5 p-0.5 flex items-center justify-center text-ink-muted shrink-0">
+      <div class="size-5 mobile:scale-150 p-0.5 flex items-center justify-center text-ink-muted shrink-0">
         <Entity.Icon entity={props.entity} />
       </div>
       <Entity.Title entity={props.entity} />
+    </div>
+  );
+}
+
+function ContactDisplay(props: { contact: CrmContactEntity }) {
+  const showEmail = () =>
+    Boolean(props.contact.name) && props.contact.name !== props.contact.email;
+
+  return (
+    <div class="flex items-center gap-2 flex-1 min-w-0">
+      <div class="size-5 mobile:scale-150 p-0.5 flex items-center justify-center text-ink-muted shrink-0">
+        <Entity.Icon entity={props.contact} />
+      </div>
+      <span class="truncate">
+        <Show when={showEmail()} fallback={props.contact.email}>
+          {props.contact.name}
+          <span class="ml-[0.5em] opacity-50">{props.contact.email}</span>
+        </Show>
+      </span>
     </div>
   );
 }
@@ -160,7 +180,7 @@ function UserDisplay(props: { item: UserItem }) {
 
   return (
     <div class="flex items-center gap-2 flex-1 min-w-0">
-      <div class="size-5 flex items-center justify-center shrink-0">
+      <div class="size-5 mobile:scale-150 flex items-center justify-center shrink-0">
         <UserIcon id={props.item.id} size="sm" isDeleted={false} />
       </div>
       <span class="truncate">
@@ -176,7 +196,7 @@ function UserDisplay(props: { item: UserItem }) {
 function SearchDisplay(props: { item: SearchItem }) {
   return (
     <div class="flex items-center gap-2 flex-1 min-w-0">
-      <div class="size-5 flex items-center justify-center text-ink-muted shrink-0">
+      <div class="size-5 mobile:scale-150 flex items-center justify-center text-ink-muted shrink-0">
         <SearchIcon class="size-4" />
       </div>
       <span class="truncate text-ink">
@@ -189,7 +209,7 @@ function SearchDisplay(props: { item: SearchItem }) {
 function AskAiDisplay(props: { item: AskAiItem }) {
   return (
     <div class="flex items-center gap-2 flex-1 min-w-0">
-      <div class="size-5 flex items-center justify-center text-ink-muted shrink-0">
+      <div class="size-5 mobile:scale-150 flex items-center justify-center text-ink-muted shrink-0">
         <WideStar class="size-4" />
       </div>
       <span class="truncate text-ink">
@@ -199,13 +219,13 @@ function AskAiDisplay(props: { item: AskAiItem }) {
   );
 }
 
-function ItemDisplay(props: { item: CommandMenuItem }) {
+export function ItemDisplay(props: { item: CommandMenuItem }) {
   return (
     <Switch>
       <Match when={props.item.kind === 'initiative' && props.item}>
         {(item) => (
           <div class="flex items-center gap-2 flex-1 min-w-0">
-            <ProjectIcon class="size-4 text-ink-muted shrink-0" />
+            <ProjectIcon class="size-4 mobile:scale-150 text-ink-muted shrink-0" />
             <span class="truncate">{item().name}</span>
             <span class="ml-auto text-xs text-ink-muted">Project</span>
           </div>
@@ -213,7 +233,7 @@ function ItemDisplay(props: { item: CommandMenuItem }) {
       </Match>
       <Match when={props.item.kind === 'new-project'}>
         <div class="flex items-center gap-2 flex-1 min-w-0">
-          <PlusIcon class="size-4 text-ink-muted" />
+          <PlusIcon class="size-4 mobile:scale-150 text-ink-muted" />
           <span>New project</span>
         </div>
       </Match>
@@ -225,6 +245,15 @@ function ItemDisplay(props: { item: CommandMenuItem }) {
       </Match>
       <Match when={isCommandItem(props.item) && props.item}>
         {(item) => <CommandDisplay item={item()} />}
+      </Match>
+      <Match
+        when={
+          isEntityItem(props.item) &&
+          props.item.data.type === 'crm_contact' &&
+          props.item.data
+        }
+      >
+        {(contact) => <ContactDisplay contact={contact()} />}
       </Match>
       <Match when={isEntityItem(props.item) && props.item}>
         {(item) => <EntityDisplay entity={item().data} />}

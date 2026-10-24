@@ -23,6 +23,7 @@ import { useShareModal } from '@core/component/TopBar/shareModal';
 import { ENABLE_EMAIL_SHARING } from '@core/constant/featureFlags';
 import { TOKENS } from '@core/hotkey/tokens';
 import { getActiveCommandByToken, runCommand } from '@core/hotkey/utils';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { buildEntityData } from '@entity';
 import IconShared from '@icon/share.svg';
 import ArrowRightIcon from '@phosphor/arrow-right.svg';
@@ -98,7 +99,7 @@ export function useEmailThreadTools(props: EmailThreadToolsOptions) {
   const moveToFolder = () => {
     const entity = emailEntity();
     if (!entity || !moveToProjectAction.canExecute(entity)) return;
-    void moveToProjectAction.execute([entity]);
+    fireAndForget(moveToProjectAction.execute([entity]), 'email-thread-tools');
   };
 
   // A send-only thread is permanently done, so neither half of the toggle
@@ -111,7 +112,10 @@ export function useEmailThreadTools(props: EmailThreadToolsOptions) {
       return;
     }
     if (props.listNavigation) {
-      props.listNavigation.markDone(emailCtx.archiveThread);
+      fireAndForget(
+        props.listNavigation.markDone(emailCtx.archiveThread),
+        'email-thread-tools'
+      );
       return;
     }
     // Prefer the active Mark done command so it drives soup navigation and
@@ -150,7 +154,10 @@ export function useEmailThreadTools(props: EmailThreadToolsOptions) {
     } else if (soup && nextRow) {
       soup.selection.clear();
       soup.focus.set(nextRow.id);
-      openEntityInSplitFromUnifiedList(nextRow.original, {});
+      fireAndForget(
+        openEntityInSplitFromUnifiedList(nextRow.original, {}),
+        'email-thread-tools'
+      );
     }
 
     const toastId = toast.success('Moved to Trash', {
@@ -223,7 +230,14 @@ export function useEmailThreadTools(props: EmailThreadToolsOptions) {
       action: () => {
         const threadId = emailCtx.thread()?.db_id;
         if (!threadId) return;
-        openChatWithAgent({ type: 'email', id: threadId, name: props.title });
+        fireAndForget(
+          openChatWithAgent({
+            type: 'email',
+            id: threadId,
+            name: props.title,
+          }),
+          'email-thread-tools'
+        );
       },
       condition: () => !!emailCtx.thread()?.db_id,
     },
@@ -250,6 +264,7 @@ export function useEmailThreadTools(props: EmailThreadToolsOptions) {
       icon: TrashIcon,
       action: trashThread,
       condition: isOwnThread,
+      hotkeyToken: TOKENS.email.trash,
     },
     {
       group: 'sender',
@@ -274,7 +289,14 @@ export function useEmailThreadTools(props: EmailThreadToolsOptions) {
       action: () => {
         const threadId = emailCtx.thread()?.db_id;
         if (!threadId) return;
-        openChatWithAgent({ type: 'email', id: threadId, name: props.title });
+        fireAndForget(
+          openChatWithAgent({
+            type: 'email',
+            id: threadId,
+            name: props.title,
+          }),
+          'email-thread-tools'
+        );
       },
       condition: () => !!emailCtx.thread()?.db_id,
       buttonComponent: () => {
@@ -290,6 +312,7 @@ export function useEmailThreadTools(props: EmailThreadToolsOptions) {
   ];
 
   return {
+    openShare,
     isInvite,
     emailEntity,
     permissions: () => getPermissions(emailCtx.thread()?.access_level),

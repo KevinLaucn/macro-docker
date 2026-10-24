@@ -1,5 +1,11 @@
 import { openPipedreamConnectUI } from '@core/pipedream/connect-ui';
+import { pipedreamSlugsMatch } from '@core/pipedream/slugs';
+import { fireAndForget } from '@core/util/fireAndForget';
+import { isTauri } from '@core/util/platform';
 import { ThrownResultError, throwOnErr } from '@core/util/result';
+import { type Span, Telemetry } from '@macro-inc/observability';
+import { authKeys } from '@queries/auth/keys';
+import type { UserInfoData } from '@queries/auth/user-info';
 import { queryClient } from '@queries/client';
 import { queryReadyGate } from '@queries/gate';
 import {
@@ -11,6 +17,7 @@ import {
 } from '@service-cognition/client';
 import {
   type InfiniteData,
+  infiniteQueryOptions,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -27,6 +34,16 @@ const KEYS = {
 /** Stable placeholder for `neverSuspend` consumers (see below). */
 const NO_CONNECTIONS: PipedreamConnectionResponse[] = [];
 
+function fetchPipedreamConnections() {
+  return throwOnErr(
+    async () => await cognitionApiServiceClient.listPipedreamConnections()
+  );
+}
+
+export function pipedreamConnectionsQueryOptions() {
+  return { queryKey: KEYS.list, queryFn: fetchPipedreamConnections };
+}
+
 export function usePipedreamConnectionsQuery(options?: {
   /**
    * Poll for connection changes. Connecting finishes in the Connect UI
@@ -38,11 +55,7 @@ export function usePipedreamConnectionsQuery(options?: {
   neverSuspend?: boolean;
 }) {
   return useQuery(() => ({
-    queryKey: KEYS.list,
-    queryFn: async () =>
-      throwOnErr(
-        async () => await cognitionApiServiceClient.listPipedreamConnections()
-      ),
+    ...pipedreamConnectionsQueryOptions(),
     refetchOnMount: 'always' as const,
     refetchOnWindowFocus: 'always' as const,
     refetchInterval: options?.refetchInterval,
@@ -70,27 +83,35 @@ export function usePipedreamConnectedSlugs(options?: {
   const slugs = createMemo<ReadonlySet<string>>(
     () =>
       new Set(
-        (queryReadyGate(query) ? query.data : NO_CONNECTIONS).map(
-          (connection) => connection.app_slug
-        )
+        (queryReadyGate(query) ? query.data : NO_CONNECTIONS)
+          .filter((connection) => connection.enabled)
+          .map((connection) => connection.app_slug)
       )
   );
   const ready = () => !query.isPlaceholderData && queryReadyGate(query);
   return { slugs, ready };
 }
 
-/**
- * Browse or search the Pipedream app catalog, paged by cursor. Entries come
- * from Pipedream's app directory, ranked most-popular-first.
- */
-export function usePipedreamCatalogQuery(search: () => string) {
-  return useInfiniteQuery(() => ({
-    queryKey: KEYS.catalog(search().trim()),
+// Serve the previous search's results (or nothing) instead of suspending:
+// first load must not block the settings page on the directory, and
+// keystrokes must not blank the list while refetching.
+function catalogPlaceholder(
+  previous:
+    | InfiniteData<PipedreamCatalogResponse, string | undefined>
+    | undefined
+) {
+  return previous ?? { pages: [], pageParams: [] };
+}
+
+// Cached callbacks only close over the trimmed search string.
+function pipedreamCatalogQueryOptions(search: string) {
+  return infiniteQueryOptions({
+    queryKey: KEYS.catalog(search),
     queryFn: async ({ pageParam }: { pageParam: string | undefined }) =>
       throwOnErr(
         async () =>
           await cognitionApiServiceClient.browsePipedreamCatalog({
-            search: search().trim() || undefined,
+            search: search || undefined,
             cursor: pageParam,
           })
       ),
@@ -98,15 +119,16 @@ export function usePipedreamCatalogQuery(search: () => string) {
     getNextPageParam: (lastPage: PipedreamCatalogResponse) =>
       lastPage.next_cursor ?? undefined,
     staleTime: 5 * 60 * 1000,
-    // Serve the previous search's results (or nothing) instead of
-    // suspending: first load must not block the settings page on the
-    // directory, and keystrokes must not blank the list while refetching.
-    placeholderData: (
-      previous:
-        | InfiniteData<PipedreamCatalogResponse, string | undefined>
-        | undefined
-    ) => previous ?? { pages: [], pageParams: [] },
-  }));
+    placeholderData: catalogPlaceholder,
+  });
+}
+
+/**
+ * Browse or search the Pipedream app catalog, paged by cursor. Entries come
+ * from Pipedream's app directory, ranked most-popular-first.
+ */
+export function usePipedreamCatalogQuery(search: () => string) {
+  return useInfiniteQuery(() => pipedreamCatalogQueryOptions(search().trim()));
 }
 
 function invalidateConnections() {
@@ -177,7 +199,8 @@ let pipedreamUnsupported = false;
  *
  * Mints a Connect token (Pipedream owns the consent flow, credential
  * storage, and refresh), opens the hosted Connect UI in a fullscreen
- * iframe, and — once the user authorizes — registers the resulting account
+ * iframe on web or in the system browser on native, and — once the user
+ * authorizes — registers the resulting account
  * with our backend, which verifies ownership against Pipedream before
  * storing it.
  *
@@ -194,9 +217,33 @@ export async function connectPipedreamApp(args: {
   /** Where the Connect iframe mounts; see `openPipedreamConnectUI`. */
   container?: HTMLElement;
 }): Promise<PipedreamConnectOutcome> {
+  return Telemetry.span('pipedream.connect', async (span) => {
+    span.setAttr('connector.app_slug', args.appSlug);
+    span.setAttr('connector.native', isTauri());
+    try {
+      const outcome = await connectPipedreamAccount(args, span);
+      span.setAttr('connector.outcome', outcome);
+      return outcome;
+    } catch (error) {
+      // Do not copy third-party errors or Connect URLs into telemetry.
+      span.error('Pipedream connection failed');
+      throw error;
+    }
+  });
+}
+
+async function connectPipedreamAccount(
+  args: Parameters<typeof connectPipedreamApp>[0],
+  span: Span
+): Promise<PipedreamConnectOutcome> {
   if (pipedreamUnsupported) return 'unsupported';
 
-  const token = await cognitionApiServiceClient.createPipedreamToken();
+  const currentUserId = () =>
+    queryClient.getQueryData<UserInfoData>(authKeys.userInfo.queryKey)?.id;
+  const userId = currentUserId();
+  const token = await span.span('pipedream.token', async () =>
+    cognitionApiServiceClient.createPipedreamToken()
+  );
   if (token.isErr()) {
     if (token.error.some((e) => e.code === PIPEDREAM_DISABLED)) {
       pipedreamUnsupported = true;
@@ -205,44 +252,75 @@ export async function connectPipedreamApp(args: {
     throw new ThrownResultError(token.error);
   }
 
+  const openConnectUI = isTauri()
+    ? (await import('@core/pipedream/connect-native'))
+        .openNativePipedreamConnectUI
+    : openPipedreamConnectUI;
+  if (currentUserId() !== userId) return 'closed';
+  const consent = span.span('pipedream.consent');
   return await new Promise<PipedreamConnectOutcome>((resolve, reject) => {
     let settled = false;
-    const ui = openPipedreamConnectUI({
+    const ui = openConnectUI({
       token: token.value.token,
       app: args.appSlug,
       container: args.container,
       onEvent: (event) => {
         if (event.type === 'success' && !settled) {
           settled = true;
-          void (async () => {
-            try {
-              const connection = await throwOnErr(
-                async () =>
-                  await cognitionApiServiceClient.completePipedreamConnection({
-                    account_id: event.accountId,
-                    server_name: args.serverName,
-                  })
-              );
-              upsertConnection(connection);
-              await invalidateConnections();
-              resolve('connected');
-            } catch (error) {
-              reject(
-                error instanceof Error
-                  ? error
-                  : new Error('failed to register Pipedream connection')
-              );
-            } finally {
-              ui.close();
-            }
-          })();
+          consent.end();
+          fireAndForget(
+            (async () => {
+              try {
+                if (currentUserId() !== userId) {
+                  resolve('closed');
+                  return;
+                }
+                const connection = await span.span(
+                  'pipedream.register',
+                  async () =>
+                    throwOnErr(
+                      async () =>
+                        await cognitionApiServiceClient.completePipedreamConnection(
+                          {
+                            account_id: event.accountId,
+                            server_name: args.serverName,
+                          }
+                        )
+                    )
+                );
+                if (currentUserId() !== userId) {
+                  resolve('closed');
+                  return;
+                }
+                if (
+                  !pipedreamSlugsMatch(connection.app_slug, args.appSlug) ||
+                  !connection.enabled
+                ) {
+                  throw new Error('The requested connector was not enabled');
+                }
+                upsertConnection(connection);
+                await invalidateConnections();
+                resolve('connected');
+              } catch (error) {
+                reject(
+                  error instanceof Error
+                    ? error
+                    : new Error('failed to register Pipedream connection')
+                );
+              } finally {
+                ui.close();
+              }
+            })(),
+            'pipedream-connect'
+          );
         } else if (event.type === 'close' && !settled) {
           settled = true;
+          consent.end();
           resolve('closed');
         }
         // 'error' events are shown inside the Connect UI itself; the user
         // can retry there or close, so they don't settle the promise.
       },
     });
-  });
+  }).finally(() => consent.end());
 }

@@ -1,3 +1,4 @@
+import { fireAndForget } from '@core/util/fireAndForget';
 import { throwOnErr } from '@core/util/result';
 import { type MutationCallbacks, withCallbacks } from '@queries/utils';
 import {
@@ -43,7 +44,8 @@ export function useGetOrCreateDirectMessageMutation(
         onError(error) {
           console.error('failed to get or create direct message', error);
         },
-        onSettled: () => void invalidateListChannels(),
+        onSettled: () =>
+          fireAndForget(invalidateListChannels(), 'channel-list'),
       },
       callbacks
     ),
@@ -84,7 +86,8 @@ export function useGetOrCreatePrivateChannelMutation(
         onError(error) {
           console.error('failed to get or create private channel', error);
         },
-        onSettled: () => void invalidateListChannels(),
+        onSettled: () =>
+          fireAndForget(invalidateListChannels(), 'channel-list'),
       },
       callbacks
     ),

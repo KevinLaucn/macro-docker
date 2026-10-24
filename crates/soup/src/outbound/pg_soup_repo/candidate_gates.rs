@@ -48,7 +48,7 @@ fn exact_subtree_sql<T>(expr: &Expr<T>, fold: &impl Fn(&T) -> Option<String>) ->
 /// against every candidate the outer scan could produce rather than the
 /// page's `LIMIT`. For these gates that hash is the user's whole accessible
 /// set. An `OFFSET` keeps the subquery per candidate.
-const PER_CANDIDATE: &str = "OFFSET 0";
+pub(super) const PER_CANDIDATE: &str = "OFFSET 0";
 
 /// Renders the implied conjuncts of `tree` that `fold` knows how to express
 /// as ` AND ...` clauses, in tree order.
@@ -110,7 +110,7 @@ pub(super) fn document_gate(id_sql: &str, filter: Option<&EntityFilterAst>) -> S
                 {PER_CANDIDATE}
             )"#,
         access = access_semi_join("d.id", "document"),
-        doc_fold = build_document_filter(doc_filter),
+        doc_fold = build_document_filter(doc_filter, None),
         props_fold = build_properties_filter(props_filter, "d.id"),
     )
 }

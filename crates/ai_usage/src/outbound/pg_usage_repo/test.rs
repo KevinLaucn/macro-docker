@@ -122,6 +122,71 @@ async fn insert_and_query_roundtrips(pool: PgPool) {
 }
 
 #[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn gemini_3_8_flash_is_priced_like_deepseek_v4p1_flash(pool: PgPool) {
+    let repo = PgUsageRepo::new(pool);
+
+    assert_eq!(
+        repo.get_pricing("google/gemini-3.8-flash").await.unwrap(),
+        Some(ModelPricing::Tokens {
+            input: 0.3,
+            output: 1.2,
+            cache_read: Some(0.03),
+            cache_write: None,
+        })
+    );
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn set_pricing_recomputes_existing_rows_at_the_discounted_rate(pool: PgPool) {
+    let repo = PgUsageRepo::new(pool.clone());
+    repo.set_pricing(
+        "discounted-model",
+        ModelPricing::Tokens {
+            input: 2.0,
+            output: 8.0,
+            cache_read: None,
+            cache_write: None,
+        },
+    )
+    .await
+    .unwrap();
+    sqlx::query!(
+        "INSERT INTO ai_pricing_discount (model, input_discount_percent, output_discount_percent) VALUES ('discounted-model', 25, 50)"
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    repo.insert_usage(
+        &completion(
+            AiFeature::Automation,
+            "discounted-model",
+            1_000_000,
+            1_000_000,
+        ),
+        true,
+    )
+    .await
+    .unwrap();
+
+    repo.set_pricing(
+        "discounted-model",
+        ModelPricing::Tokens {
+            input: 4.0,
+            output: 8.0,
+            cache_read: None,
+            cache_write: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    let after = repo.query_usage(&UsageApiParams::default()).await.unwrap();
+    let price = after[0].cost.price.as_ref().unwrap();
+    // 1M input * $4/1M * 75% + 1M output * $8/1M * 50% = $3 + $4
+    assert!((price.total - 7.0).abs() < 1e-3);
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
 async fn set_pricing_recomputes_existing_rows(pool: PgPool) {
     let repo = PgUsageRepo::new(pool);
 
@@ -498,4 +563,30 @@ async fn repricing_bills_cache_tokens_and_unprices_them_without_a_cache_rate(poo
         rows[0].cost.price.is_none(),
         "cache writes without a write rate must stay unpriced"
     );
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn accelerated_and_long_context_prices_remain_distinct(pool: PgPool) {
+    let repo = PgUsageRepo::new(pool);
+    for (model, input, output, cache_read, cache_write) in [
+        ("gpt-6.1-sol", 2.0, 10.0, 0.1, 2.5),
+        ("gpt-6.1-sol:long", 4.0, 15.0, 0.2, 5.0),
+        ("gpt-6.1-sol:ultrafast", 12.0, 60.0, 0.6, 15.0),
+        ("gpt-6.1-sol:ultrafast:long", 24.0, 90.0, 1.2, 30.0),
+        ("gpt-6-astra:long", 20.0, 75.0, 2.0, 25.0),
+        ("gpt-6-astra:ultrafast", 60.0, 300.0, 6.0, 75.0),
+        ("gpt-6-astra:ultrafast:long", 120.0, 450.0, 12.0, 150.0),
+        ("claude-opus-5-5:fast", 8.0, 40.0, 0.4, 10.0),
+    ] {
+        assert_eq!(
+            repo.get_pricing(model).await.unwrap(),
+            Some(ModelPricing::Tokens {
+                input,
+                output,
+                cache_read: Some(cache_read),
+                cache_write: Some(cache_write),
+            }),
+            "{model}"
+        );
+    }
 }

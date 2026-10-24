@@ -11,8 +11,18 @@ pub fn cleanup_folder(job_id: &str) -> anyhow::Result<()> {
         return Ok(());
     }
     tracing::trace!(job_id=%job_id, "cleaning up job");
-    std::fs::remove_dir_all(job_id).context("unable to remove directory")?;
-    Ok(())
+    remove_job_folder(job_id)
+}
+
+/// Removes a job folder. A job that failed before creating its folder has
+/// nothing to remove.
+pub(crate) fn remove_job_folder(path: &str) -> anyhow::Result<()> {
+    match std::fs::remove_dir_all(path) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+            Err(e).context("unable to remove directory")
+        }
+        _ => Ok(()),
+    }
 }
 
 /// LibreOfficeKit filter options for a supported conversion.

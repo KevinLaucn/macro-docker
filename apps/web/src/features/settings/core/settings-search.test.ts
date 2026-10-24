@@ -4,7 +4,14 @@ import { searchSettings } from './settings-search';
 
 const search = (query: string) => searchSettings(SETTINGS_TAB_GROUPS, query);
 describe('individual settings search', () => {
-  it('routes calendar connections and scheduling controls to separate pages', () => {
+  it('finds agent tools on the unified Integrations page', () => {
+    expect(
+      search('agent apps').find(
+        (result) => result.title === 'Agent apps and tools'
+      )
+    ).toMatchObject({ tab: 'Connected' });
+  });
+  it('keeps calendar connections searchable without removed booking settings', () => {
     expect(
       search('calendar color').find(
         (result) => result.title === 'Connected calendars'
@@ -13,14 +20,8 @@ describe('individual settings search', () => {
       tab: 'Calendar',
       target: 'connected-calendars',
     });
-    expect(search('working hours')[0]).toMatchObject({
-      tab: 'Booking links',
-      target: 'availability',
-    });
-    expect(search('reschedule')[0]).toMatchObject({
-      tab: 'Booking links',
-      target: 'bookings',
-    });
+    expect(search('working hours')).toEqual([]);
+    expect(search('reschedule')).toEqual([]);
   });
   it('finds and targets a signature without knowing its page', () => {
     expect(search('signatre')[0]).toMatchObject({
@@ -65,6 +66,22 @@ describe('individual settings search', () => {
         emailSignatures: false,
       }).some((result) => result.title === 'Email signatures')
     ).toBe(false);
+  });
+  it('finds the team members page for inviting people', () => {
+    for (const query of ['invite', 'members', 'team members', 'teammates']) {
+      expect(search(query)[0]).toMatchObject({
+        tab: 'Team Members',
+        group: 'Team',
+      });
+    }
+    expect(search('pending invites')[0]).toMatchObject({
+      tab: 'Team Members',
+      target: 'pending-invites',
+    });
+  });
+  it('finds team connections apart from personal integrations', () => {
+    expect(search('slack import')[0].tab).toBe('Team Connections');
+    expect(search('team github')[0].tab).toBe('Team Connections');
   });
   it('has no results for empty or unrelated queries', () => {
     expect(search('  ')).toEqual([]);

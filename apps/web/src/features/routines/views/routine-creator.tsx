@@ -1,12 +1,15 @@
+import { fireAndForget } from '@core/util/fireAndForget';
 import ClockIcon from '@phosphor/clock.svg';
 import XIcon from '@phosphor/x.svg';
 import { Button, EntityComposer, ToggleSwitch } from '@ui';
 import { Show } from 'solid-js';
+import { RoutineRunVisibility } from '../components/routine-run-visibility';
 import type { RoutineEditorSlots } from '../context/routine-slots';
 import type {
   RoutineCreatorSource,
   RoutineDraftStorage,
 } from '../context/routine-sources';
+import { DEFAULT_RUN_VISIBILITY } from '../core/draft';
 import { validateRoutineDraft } from '../core/routine-draft';
 import { createRoutineComposer } from '../primitives/routine-composer';
 
@@ -31,7 +34,7 @@ export function RoutineCreatorView(props: {
       onKeyDown={(event) => {
         if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
           event.preventDefault();
-          void create();
+          fireAndForget(create(), 'routines');
         }
       }}
     >
@@ -84,6 +87,12 @@ export function RoutineCreatorView(props: {
                 change((draft) => ({ ...draft, triggers }))
               }
             />
+            <RoutineRunVisibility
+              value={draft().runVisibility ?? DEFAULT_RUN_VISIBILITY}
+              onChange={(runVisibility) =>
+                change((draft) => ({ ...draft, runVisibility }))
+              }
+            />
           </EntityComposer.Properties>
         </fieldset>
         <Show when={attempted() && validateRoutineDraft(draft(), true)}>
@@ -113,7 +122,7 @@ export function RoutineCreatorView(props: {
           aria-label={props.source.pending() ? 'Creating…' : 'Create routine'}
           hasContent={Boolean(draft().prompt.trim())}
           disabled={props.source.pending()}
-          onClick={() => void create()}
+          onClick={() => fireAndForget(create(), 'routines')}
         >
           {props.source.pending() ? 'Creating…' : 'Create routine'}
         </EntityComposer.Submit>

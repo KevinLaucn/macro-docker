@@ -1,6 +1,7 @@
 import { CredentialField } from '@channel/Bots/CredentialField';
 import { LoadingSpinner } from '@core/component/LoadingSpinner';
 import { toast } from '@core/component/Toast/Toast';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { formatRelativeTimestamp } from '@entity';
 import KeyIcon from '@phosphor/key.svg';
 import PlusIcon from '@phosphor/plus.svg';
@@ -201,19 +202,21 @@ function ApiKeyRow(props: {
           Created {formatRelativeTimestamp(props.keyInfo.createdAt)}
         </div>
       </div>
-      <Tooltip label="Delete key">
-        <button
-          type="button"
-          aria-label={`Delete ${props.keyInfo.name}`}
-          class="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-extra-muted outline-none hover:bg-failure/10 hover:text-failure focus-visible:border focus-visible:border-failure disabled:opacity-30"
-          disabled={props.deleting}
-          onClick={props.onDelete}
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        label={`Delete ${props.keyInfo.name}`}
+        tooltip="Delete key"
+        disabled={props.deleting}
+        onClick={props.onDelete}
+      >
+        <Show
+          when={props.deleting}
+          fallback={<TrashIcon class="size-3.5 touch:size-4" />}
         >
-          <Show when={props.deleting} fallback={<TrashIcon class="size-4" />}>
-            <SpinnerIcon class="size-4 animate-spin" />
-          </Show>
-        </button>
-      </Tooltip>
+          <SpinnerIcon class="animate-spin" />
+        </Show>
+      </Button>
     </div>
   );
 }
@@ -227,6 +230,7 @@ function CreateApiKeyDialog(props: {
   const [name, setName] = createSignal('');
   const [created, setCreated] = createSignal<CreatedUserApiKey>();
   const [nameError, setNameError] = createSignal<string>();
+  let nameInputRef: HTMLInputElement | undefined;
 
   const reset = () => {
     setName('');
@@ -257,6 +261,10 @@ function CreateApiKeyDialog(props: {
       open={props.open}
       onOpenChange={(open) => (open ? undefined : close())}
       onEscapeKeyDown={(event) => props.pending && event.preventDefault()}
+      onOpenAutoFocus={(event) => {
+        event.preventDefault();
+        nameInputRef?.focus();
+      }}
       position="center"
       class="w-105"
     >
@@ -286,7 +294,7 @@ function CreateApiKeyDialog(props: {
                 <label class="flex flex-col gap-1.5">
                   <span class="text-xs font-medium text-ink">Name</span>
                   <input
-                    autofocus
+                    ref={nameInputRef}
                     value={name()}
                     placeholder="e.g. CI, local scripts"
                     class="settings-input w-full"
@@ -296,7 +304,8 @@ function CreateApiKeyDialog(props: {
                       setNameError(undefined);
                     }}
                     onKeyDown={(event) => {
-                      if (event.key === 'Enter') void submit();
+                      if (event.key === 'Enter')
+                        fireAndForget(submit(), 'api-key-settings');
                     }}
                   />
                   <Show
@@ -320,7 +329,7 @@ function CreateApiKeyDialog(props: {
                     variant="strong"
                     size="sm"
                     disabled={props.pending}
-                    onClick={() => void submit()}
+                    onClick={() => fireAndForget(submit(), 'api-key-settings')}
                   >
                     {props.pending ? 'Creating…' : 'Create key'}
                   </Button>

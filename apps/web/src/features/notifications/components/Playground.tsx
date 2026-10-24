@@ -4,6 +4,7 @@ import { MarkdownShell } from '@core/component/LexicalMarkdown/builder/MarkdownS
 import { NotificationRenderer } from '@core/component/NotificationRenderer';
 import { formatDate } from '@core/util/date';
 import { NotificationRow } from '@entity';
+import { Telemetry } from '@macro-inc/observability';
 import { Button } from '@ui';
 import {
   type Component,
@@ -21,6 +22,7 @@ import {
 import { NOTIFICATION_LABEL_BY_TYPE } from '../notification-preview';
 import {
   DefaultDocumentNameResolver,
+  DefaultUserAvatarResolver,
   DefaultUserNameResolver,
 } from '../notification-resolvers';
 import { createNotificationSource } from '../notification-source';
@@ -150,8 +152,13 @@ function BrowserFormat(props: { notification: UnifiedNotification }) {
       toPlatformNotificationData(
         props.notification,
         DefaultUserNameResolver,
-        DefaultDocumentNameResolver
-      ).then(setBrowserNotif);
+        DefaultDocumentNameResolver,
+        DefaultUserAvatarResolver
+      )
+        .then(setBrowserNotif)
+        .catch((error) =>
+          Telemetry.error(error, { surface: 'notifications-playground' })
+        );
     } else {
       setBrowserNotif(null);
     }
@@ -589,6 +596,8 @@ function PlaygroundContent() {
           },
         } as PlatformNotificationState,
         layoutManager
+      ).catch((error) =>
+        Telemetry.error(error, { surface: 'notifications-playground' })
       );
     };
 

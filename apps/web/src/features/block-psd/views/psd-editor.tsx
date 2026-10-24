@@ -10,6 +10,8 @@ import { type Point, zoomLabel } from '@app/features/block-fig/core/camera';
 import { paletteColor } from '@app/features/block-fig/primitives/create-peer-overlays';
 import { IS_MAC } from '@core/constant/isMac';
 import type { IRect } from '@core/psd-engine/types';
+import { fireAndForget } from '@core/util/fireAndForget';
+import { Telemetry } from '@macro-inc/observability';
 import ArrowUUpLeft from '@phosphor/arrow-u-up-left.svg';
 import ArrowUUpRight from '@phosphor/arrow-u-up-right.svg';
 import CloudArrowUp from '@phosphor/cloud-arrow-up.svg';
@@ -163,7 +165,7 @@ export function PsdEditor() {
   let root!: HTMLDivElement;
 
   onMount(() => {
-    void editor.start();
+    fireAndForget(editor.start(), 'psd-editor');
     if (document.activeElement === document.body)
       root.focus({ preventScroll: true });
   });
@@ -201,13 +203,16 @@ export function PsdEditor() {
         const value = a.value === 0 ? 1 : a.value / 10;
         if (PAINT_TOOLS.has(view.tool())) view.setBrush({ opacity: value });
         else if (editor.selected().length > 0)
-          void editor.apply([
-            {
-              op: 'setLayer',
-              ids: editor.selected(),
-              opacity: Math.round(value * 255),
-            },
-          ]);
+          fireAndForget(
+            editor.apply([
+              {
+                op: 'setLayer',
+                ids: editor.selected(),
+                opacity: Math.round(value * 255),
+              },
+            ]),
+            'psd-editor'
+          );
         return true;
       })
       .with({ t: 'command' }, (a) => {
@@ -330,19 +335,28 @@ export function PsdEditor() {
       f.type.startsWith('image/')
     );
     if (files.length === 0) {
-      void commands.paste();
+      fireAndForget(commands.paste(), 'psd-editor');
       return;
     }
-    for (const file of files) void commands.paste(file);
+    for (const file of files) fireAndForget(commands.paste(file), 'psd-editor');
   };
 
   const dropFiles = async (files: File[], at: Point) => {
-    for (const file of files)
+    for (const file of files) {
+      let bytes: ArrayBuffer;
+      try {
+        bytes = await file.arrayBuffer();
+      } catch (error) {
+        Telemetry.error(error, { surface: 'psd-editor' });
+        context.notifyError(`${file.name} could not be added.`);
+        continue;
+      }
       await commands.placeImage(
-        await file.arrayBuffer(),
+        bytes,
         file.name.replace(/\.[^.]+$/, '') || 'Layer',
         at
       );
+    }
   };
 
   // ---- other people ----------------------------------------------------------
@@ -406,7 +420,10 @@ export function PsdEditor() {
     on([editor.ready, editor.editVersion], ([ready]) => {
       if (!ready) return;
       clearTimeout(fontsTimer);
-      fontsTimer = setTimeout(() => void loadFonts(), 400);
+      fontsTimer = setTimeout(
+        () => fireAndForget(loadFonts(), 'psd-editor'),
+        400
+      );
     })
   );
   onCleanup(() => clearTimeout(fontsTimer));
@@ -445,8 +462,8 @@ export function PsdEditor() {
   let previewed: string | undefined;
   const preview = (ops: Parameters<typeof editor.apply>[0] | null) => {
     previewed = ops ? JSON.stringify(ops) : undefined;
-    if (ops) void editor.preview(ops);
-    else void editor.cancelPreview();
+    if (ops) fireAndForget(editor.preview(ops), 'psd-editor');
+    else fireAndForget(editor.cancelPreview(), 'psd-editor');
   };
   /** Keeps the preview when it shows these operations, else applies them. */
   const applyPreviewed = async (ops: Parameters<typeof editor.apply>[0]) => {
@@ -484,7 +501,7 @@ export function PsdEditor() {
             tooltip={`Undo · ${IS_MAC ? '⌘Z' : 'Ctrl+Z'}`}
             disabled={!editor.canUndo()}
             data-testid="psd-undo"
-            onClick={() => void editor.undo()}
+            onClick={() => fireAndForget(editor.undo(), 'psd-editor')}
           >
             <ArrowUUpLeft />
           </Button>
@@ -495,7 +512,7 @@ export function PsdEditor() {
             tooltip={`Redo · ${IS_MAC ? '⇧⌘Z' : 'Ctrl+⇧Z'}`}
             disabled={!editor.canRedo()}
             data-testid="psd-redo"
-            onClick={() => void editor.redo()}
+            onClick={() => fireAndForget(editor.redo(), 'psd-editor')}
           >
             <ArrowUUpRight />
           </Button>
@@ -537,8 +554,12 @@ export function PsdEditor() {
         pending={pending()}
         onBrush={view.setBrush}
         onOptions={view.setToolOptions}
-        onCommit={() => void tools.commit()}
-        onCancel={() => void tools.cancel()}
+        onCommit={() => {
+          tools.commit();
+        }}
+        onCancel={() => {
+          tools.cancel();
+        }}
       >
         <Button
           variant="ghost"
@@ -584,7 +605,8 @@ export function PsdEditor() {
             onPointer={collab ? setPointer : undefined}
             onDropFiles={
               editor.enabled()
-                ? (files, at) => void dropFiles(files, at)
+                ? (files, at) =>
+                    fireAndForget(dropFiles(files, at), 'psd-editor')
                 : undefined
             }
           >
@@ -714,9 +736,12 @@ export function PsdEditor() {
             onCancel={commands.closeDialog}
             onApply={(width, height, interpolation) => {
               commands.closeDialog();
-              void editor.apply([
-                { op: 'imageSize', width, height, interpolation },
-              ]);
+              fireAndForget(
+                editor.apply([
+                  { op: 'imageSize', width, height, interpolation },
+                ]),
+                'psd-editor'
+              );
             }}
           />
         </Match>
@@ -727,7 +752,10 @@ export function PsdEditor() {
             onCancel={commands.closeDialog}
             onApply={(width, height, anchor) => {
               commands.closeDialog();
-              void editor.apply([{ op: 'canvasSize', width, height, anchor }]);
+              fireAndForget(
+                editor.apply([{ op: 'canvasSize', width, height, anchor }]),
+                'psd-editor'
+              );
             }}
           />
         </Match>
@@ -744,7 +772,10 @@ export function PsdEditor() {
               }}
               onApply={(spec) => {
                 commands.closeDialog();
-                void applyPreviewed(commands.filterOp(spec));
+                fireAndForget(
+                  applyPreviewed(commands.filterOp(spec)),
+                  'psd-editor'
+                );
               }}
             />
           )}
@@ -766,8 +797,11 @@ export function PsdEditor() {
               }}
               onApply={(adjustment) => {
                 commands.closeDialog();
-                void applyPreviewed(
-                  commands.filterOp({ type: 'adjust', adjustment })
+                fireAndForget(
+                  applyPreviewed(
+                    commands.filterOp({ type: 'adjust', adjustment })
+                  ),
+                  'psd-editor'
                 );
               }}
             />
@@ -785,7 +819,10 @@ export function PsdEditor() {
             onCancel={commands.closeDialog}
             onApply={(radius) => {
               commands.closeDialog();
-              void editor.select({ type: 'feather', radius });
+              fireAndForget(
+                editor.select({ type: 'feather', radius }),
+                'psd-editor'
+              );
             }}
           />
         </Match>
@@ -802,10 +839,13 @@ export function PsdEditor() {
               onCancel={commands.closeDialog}
               onApply={(pixels) => {
                 commands.closeDialog();
-                void editor.select({
-                  type: 'expand',
-                  pixels: Math.round(d().contract ? -pixels : pixels),
-                });
+                fireAndForget(
+                  editor.select({
+                    type: 'expand',
+                    pixels: Math.round(d().contract ? -pixels : pixels),
+                  }),
+                  'psd-editor'
+                );
               }}
             />
           )}
@@ -822,7 +862,10 @@ export function PsdEditor() {
             onCancel={commands.closeDialog}
             onApply={(ppi) => {
               commands.closeDialog();
-              void editor.apply([{ op: 'setResolution', ppi }]);
+              fireAndForget(
+                editor.apply([{ op: 'setResolution', ppi }]),
+                'psd-editor'
+              );
             }}
           />
         </Match>

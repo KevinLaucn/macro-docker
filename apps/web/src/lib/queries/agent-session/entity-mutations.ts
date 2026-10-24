@@ -1,15 +1,18 @@
+import { fireAndForget } from '@core/util/fireAndForget';
 import { throwOnErr } from '@core/util/result';
 import { agentHarnessServiceClient } from '@service-agent-harness/client';
 import { queryClient } from '../client';
+import { refreshActiveGraphqlPreviewQueries } from '../preview/active-queries';
 import { previewKeys } from '../preview/keys';
 import { invalidateAllSoup } from '../soup/cache';
 import { agentSessionKeys } from './keys';
 import { handleAgentSessionRenamed } from './session-metadata-sync';
 
 function refreshSessionEntity(id: string) {
+  fireAndForget(refreshActiveGraphqlPreviewQueries(id), 'agent-session-lists');
   invalidateAllSoup();
-  void queryClient.invalidateQueries({ queryKey: agentSessionKeys._def });
-  void queryClient.invalidateQueries({
+  queryClient.invalidateQueries({ queryKey: agentSessionKeys._def });
+  queryClient.invalidateQueries({
     queryKey: previewKeys.item(id).queryKey,
   });
 }

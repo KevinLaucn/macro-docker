@@ -34,6 +34,8 @@ export const routineTriggerSchema = z.discriminatedUnion('kind', [
           'channel.mentioned',
           'channel.message_patched',
           'channel.message_attachment_created',
+          'call.started',
+          'call.ended',
         ])
       )
       .min(1),
@@ -51,6 +53,7 @@ export const routineEventGroups = [
   'Documents',
   'Tasks',
   'Email',
+  'Calls',
 ] as const;
 export type RoutineEventGroup = (typeof routineEventGroups)[number];
 export const routineEvents: {
@@ -122,6 +125,20 @@ export const routineEvents: {
     description:
       'New mail arrives in your inbox. Excludes spam, trash, drafts and historical imports.',
   },
+  {
+    value: 'call.started',
+    label: 'Call started',
+    group: 'Calls',
+    description:
+      'A call you start begins. The routine gets the call and who has joined so far.',
+  },
+  {
+    value: 'call.ended',
+    label: 'Call ended',
+    group: 'Calls',
+    description:
+      'A call you joined ends. The routine gets the call’s participants and transcript.',
+  },
 ];
 
 // Preserve saved selectors while keeping the creation menu focused on the
@@ -138,6 +155,8 @@ export function eventScopeKind(trigger: EventTriggerDraft) {
     return 'DOCUMENT';
   if (trigger.events.every((event) => event.startsWith('email.')))
     return 'THREAD';
+  if (trigger.events.every((event) => event.startsWith('call.')))
+    return 'CALL_RECORD';
   return 'CHANNEL';
 }
 
@@ -149,13 +168,27 @@ export function conditionPlaceholder(trigger: EventTriggerDraft) {
     .with('TASK', () => 'Is this task a bug report?')
     .with('DOCUMENT', () => 'Is this document meeting notes?')
     .with('CHANNEL', () => 'Is someone asking for help?')
+    .with('CALL_RECORD', () => 'Was this a call with a customer?')
     .exhaustive();
 }
 
 export function isGlobalEvent(events: readonly RoutineEventName[]) {
   return events.every(
-    (event) => event.endsWith('.created') || event === 'email.message_received'
+    (event) =>
+      event.endsWith('.created') ||
+      event === 'email.message_received' ||
+      event === 'call.started' ||
+      event === 'call.ended'
   );
+}
+
+/** Chip label for a call trigger's global scope. */
+export function callEventScopeLabel(events: readonly RoutineEventName[]) {
+  const started = events.includes('call.started');
+  const ended = events.includes('call.ended');
+  if (started && ended) return 'Your calls';
+  if (started) return 'Calls you start';
+  return 'Calls you join';
 }
 
 export function eventTriggerLabel(trigger: EventTriggerDraft) {

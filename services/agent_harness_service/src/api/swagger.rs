@@ -5,6 +5,7 @@ use agent_changes::inbound::axum_router::{
     CaptureAttemptDto, CaptureOutcomeDto, ChangedFileDto, ChangesetDto, ChangesetSourceDto,
     FileChangeKindDto, GitRefDto,
 };
+use agent_harness::inbound::app_connections::{self, AppConnectedRequest};
 use agent_harness::inbound::capability_discovery;
 use agent_harness::inbound::model_load::{
     self, AgentModelDto, AgentModelsStatusDto, LoadAgentModelsRequest, LoadAgentModelsResponse,
@@ -19,20 +20,22 @@ use agent_harness::inbound::tool_approvals::{
 };
 use agent_runtime_protocol::domain::action::{AgentAction, AgentActionId, PromptAttachment};
 use agent_session::domain::model::{SandboxSize, SessionBot};
-use agent_session::domain::pull_request_links::{PullRequestLinkSource, SessionPullRequestLink};
+use agent_session::domain::pull_request_links::{
+    PullRequestLinkSource, PullRequestLinkedSession, PullRequestSessions, SessionPullRequestLink,
+};
 use agent_session::inbound::axum_router::pull_requests::{
-    PullRequestSessionsResponse, PullRequestUrl, SessionPullRequestsResponse,
+    PullRequestSessionsResponse, PullRequestUrl, PullRequestUrls, PullRequestsSessionsResponse,
+    SessionPullRequestsResponse,
 };
 use agent_session::inbound::axum_router::{
-    self, AgentSessionLogEntryDto, AgentSessionLogResponse, AgentSessionPreviewData,
-    AgentSessionPreviewDto, AgentSessionQueueResponse, AgentSessionResponse, ControlRequest,
-    ControlResponse, ControlStatusDto, CreateAgentSessionRequest, CreateAgentSessionResponse,
-    CreateSessionThread, EditQueuedActionRequest, LogDirectionDto, LogFrameDto,
-    PreviewAgentSessionsRequest, PreviewAgentSessionsResponse, QueuedActionDto,
-    RenameAgentSessionRequest, SandboxSizeBody, SessionStatusDto, SetAgentSessionArchivedRequest,
-    WithAgentSessionId,
+    self, AgentSessionFoldedLogResponse, AgentSessionLogEntryDto, AgentSessionLogResponse,
+    AgentSessionPreviewData, AgentSessionPreviewDto, AgentSessionQueueResponse,
+    AgentSessionResponse, CodingPreferencesBody, ControlRequest, ControlResponse, ControlStatusDto,
+    CreateAgentSessionRequest, CreateAgentSessionResponse, CreateSessionThread,
+    EditQueuedActionRequest, LogDirectionDto, LogFrameDto, PreviewAgentSessionsRequest,
+    PreviewAgentSessionsResponse, QueuedActionDto, RenameAgentSessionRequest, SandboxSizeBody,
+    SessionStatusDto, SetAgentSessionArchivedRequest, WithAgentSessionId,
 };
-use claude_cloud_agents::inbound::auth as claude_auth;
 use utoipa::{
     Modify, OpenApi,
     openapi::security::{Http, HttpAuthScheme, SecurityScheme},
@@ -56,10 +59,11 @@ impl Modify for SecurityAddon {
     modifiers(&SecurityAddon),
     info(terms_of_service = "https://macro.com/terms"),
     paths(
-        claude_auth::status,
-        claude_auth::start,
-        claude_auth::complete,
-        claude_auth::disconnect,
+        agent_code_mode::inbound::axum_router::get_code_execution,
+        agent_code_mode::inbound::axum_router::create_review,
+        agent_code_mode::inbound::axum_router::get_review,
+        agent_code_mode::inbound::axum_router::list_reviews,
+        agent_code_mode::inbound::axum_router::decide_review,
         axum_router::create_agent_session_handler,
         axum_router::warm_agent_session_handler,
         axum_router::get_agent_session_handler,
@@ -72,7 +76,9 @@ impl Modify for SecurityAddon {
         axum_router::pull_requests::link_session_pull_request,
         axum_router::pull_requests::unlink_session_pull_request,
         axum_router::pull_requests::sessions_for_pull_request,
+        axum_router::pull_requests::sessions_for_pull_requests,
         axum_router::get_agent_session_log_handler,
+        axum_router::get_agent_session_folded_log_handler,
         axum_router::control_agent_session_handler,
         axum_router::get_agent_session_queue_handler,
         axum_router::edit_queued_action_handler,
@@ -82,20 +88,22 @@ impl Modify for SecurityAddon {
         axum_router::put_agent_session_sandbox_size_handler,
         axum_router::get_agent_sandbox_size_handler,
         axum_router::put_agent_sandbox_size_handler,
+        axum_router::get_agent_coding_preferences_handler,
+        axum_router::put_agent_coding_preferences_handler,
         model_load::load_agent_models_handler,
         capability_discovery::discover_agent_capabilities_handler,
+        agent_harness::inbound::conversations::list_agent_conversations,
+        agent_harness::inbound::conversations::retry_agent_conversation_turn,
+        agent_harness::inbound::conversations::start_fresh_agent_conversation,
         repositories::list_agent_repositories_handler,
         repositories::list_agent_repository_branches_handler,
         changes_router::get_agent_session_changes_handler,
         changes_router::get_agent_session_changes_patch_handler,
         changes_router::refresh_agent_session_changes_handler,
         tool_approvals::answer_tool_approval_handler,
+        app_connections::app_connected_handler,
     ),
     components(schemas(
-        claude_auth::StatusResponse,
-        claude_auth::StartResponse,
-        claude_auth::CompleteRequest,
-        claude_auth::EmptyRequest,
         CreateAgentSessionRequest,
         CreateAgentSessionResponse,
         CreateSessionThread,
@@ -119,16 +127,22 @@ impl Modify for SecurityAddon {
         PullRequestUrl,
         SessionPullRequestsResponse,
         PullRequestSessionsResponse,
+        PullRequestUrls,
+        PullRequestsSessionsResponse,
+        PullRequestSessions,
+        PullRequestLinkedSession,
         SessionPullRequestLink,
         PullRequestLinkSource,
         SessionStatusDto,
         AgentSessionLogResponse,
+        AgentSessionFoldedLogResponse,
         AgentSessionLogEntryDto,
         SessionBot,
         LogFrameDto,
         LogDirectionDto,
         SandboxSize,
         SandboxSizeBody,
+        CodingPreferencesBody,
         LoadAgentModelsRequest,
         LoadAgentModelsResponse,
         AgentModelDto,
@@ -147,6 +161,7 @@ impl Modify for SecurityAddon {
         ChangesetSourceDto,
         FileChangeKindDto,
         AnswerToolApprovalRequest,
+        AppConnectedRequest,
         AnswerToolApprovalResponse,
         ToolApprovalAnswerDto,
         ToolApprovalStatusDto,

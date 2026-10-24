@@ -112,7 +112,6 @@ customizations:
       failure_mode: Tracking pixel 404; Suspense white screen / flicker on list query
       verification_gate: Fork Contract Gate
     paths:
-      - docs/AGENT_GUIDE/surfaces.md
       - packages/fork/read-receipts/**
       - services/email_service/src/outbound/**
       - services/email_service/src/util/gmail/**
@@ -138,7 +137,7 @@ customizations:
       - apps/web/src/features/next-soup/actions/make-delete-action.ts
       - apps/web/src/features/next-soup/utils.ts
       - apps/web/src/features/notifications/notification-platform.ts
-      - apps/web/src/lib/queries/sync/SyncProvider.tsx
+      - apps/web/src/lib/queries/sync/use-query-sync.ts
       - apps/web/src/features/entity/extractors/entity-icon.tsx
       - apps/web/src/features/email-view/queries/use-email-query.ts
       - apps/web/src/index.css
@@ -156,7 +155,7 @@ customizations:
       - apps/web/src/features/entity/extractors/entity-icon.tsx
       - apps/web/src/features/notifications/notification-platform.ts
       - apps/web/src/index.css
-      - apps/web/src/lib/queries/sync/SyncProvider.tsx
+      - apps/web/src/lib/queries/sync/use-query-sync.ts
       - apps/web/vitest.config.ts
       - crates/email_db_client/src/lib.rs
       - crates/email_db_client/src/settings.rs
@@ -170,7 +169,6 @@ customizations:
       - services/email_service/src/outbound/scheduled_delivery.rs
       - services/email_service/src/util/gmail/send.rs
       - apps/web/src/features/email-compose/primitives/prepare-email-body.test.ts
-      - docs/AGENT_GUIDE/surfaces.md
     tests:
       - conventions
       - email-rust
@@ -279,11 +277,11 @@ customizations:
       - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
       - crates/ai_projections/src/domain/ai_projection_service.rs
       - .fork/overrides/home-recommendations.yml
-      - services/document_cognition_service/src/service/chat_renamer.rs
+      - services/agent_harness_service/src/cognition/service/chat_renamer.rs
     owned_paths:
       - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
       - crates/ai_projections/src/domain/ai_projection_service.rs
-      - services/document_cognition_service/src/service/chat_renamer.rs
+      - services/agent_harness_service/src/cognition/service/chat_renamer.rs
     tests:
       - conventions
       - web
@@ -306,7 +304,6 @@ customizations:
       - apps/web/src/lib/queries/agents/capabilities.test.tsx
       - apps/web/src/lib/queries/agents/models.test.tsx
       - apps/web/src/lib/queries/agent-session/warm.ts
-      - apps/web/src/lib/queries/claude-auth/connection.ts
       - apps/web/src/features/home/home-chat-input.tsx
       - services/sync-service/wrangler.docker.toml
     owned_paths:
@@ -317,7 +314,6 @@ customizations:
       - apps/web/src/lib/queries/agents/capabilities.test.tsx
       - apps/web/src/lib/queries/agents/models.test.tsx
       - apps/web/src/lib/queries/agent-session/warm.ts
-      - apps/web/src/lib/queries/claude-auth/connection.ts
       - apps/web/src/features/home/home-chat-input.tsx
       - crates/macro_db_migrator/Cargo.toml
       - docker/docker-compose-databases.yml
@@ -340,7 +336,6 @@ customizations:
       - tooling/xtask/crates/xtask_local/src/local/fusionauth.rs
       - tooling/xtask/crates/xtask_local/src/local/instance.rs
       - tooling/xtask/crates/xtask_local/src/local/instance/test.rs
-      - tooling/xtask/crates/xtask_local/src/local/inventory/test.rs
       - tooling/xtask/crates/xtask_local/src/local/kickstart.rs
       - tooling/xtask/crates/xtask_local/src/local/kickstart/test.rs
       - tooling/xtask/crates/xtask_local/src/local/local_env/test.rs
@@ -448,8 +443,9 @@ customizations:
       - apps/web/src/features/block-email/**
       - apps/web/src/features/email-message/**
       - apps/web/src/lib/service-clients/service-email/**
-      - apps/web/src/routes/Root.tsx
+      - apps/web/src/components/app/InitialInteractiveOnboardingModal.tsx
     owned_paths:
+      - apps/web/src/components/app/InitialInteractiveOnboardingModal.tsx
       - apps/web/src/features/block-email/component/TopBar.tsx
       - apps/web/src/features/block-email/util/emailHotkeys.ts
       - apps/web/src/features/email-message/attachment-action-adapter.ts
@@ -466,7 +462,6 @@ customizations:
       - apps/web/src/lib/service-clients/service-email/client.ts
       - apps/web/src/lib/service-clients/service-email/generated/client.ts
       - crates/email/Cargo.toml
-      - crates/email/src/outbound/email_pg_repo.rs
       - crates/email_db_client/src/lib.rs
       - crates/email_db_client/src/links/get.rs
       - crates/email_db_client/src/messages/mod.rs
@@ -481,7 +476,6 @@ customizations:
       - services/email_service/src/api/email/init.rs
       - services/email_service/src/api/email/links.rs
       - services/email_service/src/api/email/links/health_check.rs
-      - services/email_service/src/api/email/links/list.rs
       - services/email_service/src/api/email/messages.rs
       - services/email_service/src/api/email/settings.rs
       - services/email_service/src/api/swagger.rs
@@ -499,7 +493,6 @@ customizations:
       - services/email_service/src/util/sync_contacts.rs
       - services/email_service/src/util/sync_contacts/test.rs
       - services/email_service/src/util/upload_attachment.rs
-      - apps/web/src/routes/Root.tsx
     tests:
       - conventions
       - email-rust
@@ -535,7 +528,6 @@ customizations:
       - crates/soup/src/outbound/pg_soup_repo/candidate_gates.rs
       - services/authentication_service/Cargo.toml
       - services/authentication_service/src/api/link/gmail.rs
-      - services/authentication_service/src/api/link/gmail/test.rs
       - services/authentication_service/src/api/login/sso.rs
       - services/authentication_service/src/api/oauth.rs
       - services/authentication_service/src/api/oauth2.rs
@@ -563,7 +555,6 @@ customizations:
       - packages/fork/i18n/**
       - apps/web/src/features/calendar/calendar-settings.tsx
       - apps/web/src/features/calendar/components/connected-calendars.tsx
-      - apps/web/src/features/scheduling/views/settings-view.tsx
       - apps/web/src/features/scheduling/components/owner-badge.tsx
       - apps/web/src/features/settings/email-settings.tsx
       - apps/web/src/features/settings/components/signature-form.tsx
@@ -571,7 +562,6 @@ customizations:
       - apps/web/src/features/settings/SignatureEditor.tsx
       - apps/web/src/features/settings/SignatureEditor.css
       - apps/web/src/features/auth/CalendarPermissionPrompt.tsx
-      - apps/web/src/features/settings/connections/ConnectionsPage.tsx
       - apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
       - apps/web/src/features/settings/connections/capability-row.ts
       - apps/web/src/features/block-agent/component/AgentMessage.tsx
@@ -611,7 +601,6 @@ customizations:
       - apps/web/src/features/next-soup/soup-view/tab-lists.ts
       - apps/web/src/features/notifications/notification-event-catalog.ts
       - apps/web/src/features/property/utils/errorHandling.ts
-      - apps/web/src/features/settings/ConnectedAccounts.tsx
       - apps/web/src/features/settings/Integrations.tsx
       - apps/web/src/features/settings/Shortcuts.tsx
       - apps/web/src/features/tasks-view/constants.ts
@@ -630,7 +619,6 @@ customizations:
       - apps/web/src/components/app/app-sidebar/sidebar.tsx
       - apps/web/src/features/calendar/calendar-settings.tsx
       - apps/web/src/features/calendar/components/connected-calendars.tsx
-      - apps/web/src/features/scheduling/views/settings-view.tsx
       - apps/web/src/features/scheduling/components/owner-badge.tsx
       - apps/web/src/features/settings/email-settings.tsx
       - apps/web/src/features/settings/components/signature-form.tsx
@@ -638,7 +626,6 @@ customizations:
       - apps/web/src/features/settings/SignatureEditor.tsx
       - apps/web/src/features/settings/SignatureEditor.css
       - apps/web/src/features/auth/CalendarPermissionPrompt.tsx
-      - apps/web/src/features/settings/connections/ConnectionsPage.tsx
       - apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
       - apps/web/src/features/settings/connections/capability-row.ts
       - apps/web/src/features/block-agent/component/AgentMessage.tsx
@@ -668,7 +655,6 @@ customizations:
       - apps/web/src/features/next-soup/soup-view/tab-lists.ts
       - apps/web/src/features/notifications/notification-event-catalog.ts
       - apps/web/src/features/property/utils/errorHandling.ts
-      - apps/web/src/features/settings/ConnectedAccounts.tsx
       - apps/web/src/features/settings/Integrations.tsx
       - apps/web/src/features/settings/Shortcuts.tsx
       - apps/web/src/features/tasks-view/constants.ts

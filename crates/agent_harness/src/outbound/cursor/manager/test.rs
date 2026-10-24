@@ -7,6 +7,7 @@ use agent_runtime_protocol::domain::ports::{Transport as _, TransportSender as _
 use agent_runtime_protocol::domain::schema::v0::{
     AcpMessage, SystemEvent, ToRuntimeMessage, ToServerMessage,
 };
+use agent_session::domain::coding_preferences::CodingPreferences;
 use agent_session::domain::error::Result as SessionResult;
 use agent_session::domain::model::{
     AgentSession, CreateAgentSessionParams, DEFAULT_AGENT_SESSION_NAME, SandboxSize, SessionBot,
@@ -99,6 +100,7 @@ impl AgentSessionRepo for StubSessions {
                 .as_ref()
                 .map(|_| "https://github.com/macro-inc/macro".into()),
             pull_request_url: None,
+            task_id: None,
             workspace: "/workspace".to_owned(),
             name: DEFAULT_AGENT_SESSION_NAME.to_owned(),
             is_archived: false,
@@ -115,6 +117,8 @@ impl AgentSessionRepo for StubSessions {
             status: SessionStatus::NoMessages,
             created_at: chrono::Utc::now(),
             modified_at: chrono::Utc::now(),
+            source: agent_session::domain::model::SessionSource::User,
+            visibility: agent_session::domain::model::SessionVisibility::Listed,
         })
     }
 
@@ -155,6 +159,15 @@ impl AgentSessionRepo for StubSessions {
 
     async fn set_model(&self, _id: AgentSessionId, _model: &str) -> SessionResult<()> {
         unimplemented!("the manager never sets models")
+    }
+
+    async fn set_origin(
+        &self,
+        _id: AgentSessionId,
+        _source: agent_session::domain::model::SessionSource,
+        _visibility: agent_session::domain::model::SessionVisibility,
+    ) -> SessionResult<()> {
+        unimplemented!("the manager never records origins")
     }
 
     async fn set_egress_token_hash(&self, _id: AgentSessionId, _hash: &str) -> SessionResult<()> {
@@ -200,6 +213,10 @@ impl AgentSessionRepo for StubSessions {
         unimplemented!("archiving sessions is the harness service's job")
     }
 
+    async fn is_current_conversation_session(&self, _id: AgentSessionId) -> SessionResult<bool> {
+        unimplemented!("archiving sessions is the harness service's job")
+    }
+
     async fn set_name_if_default(&self, _id: AgentSessionId, _name: &str) -> SessionResult<bool> {
         unimplemented!("naming sessions is the session actor's job")
     }
@@ -221,6 +238,21 @@ impl AgentSessionRepo for StubSessions {
         _size: SandboxSize,
     ) -> SessionResult<()> {
         unimplemented!("resizing is the harness service's job")
+    }
+
+    async fn user_coding_preferences(
+        &self,
+        _owner: &MacroUserIdStr<'static>,
+    ) -> SessionResult<CodingPreferences> {
+        unimplemented!("coding preferences are read when a session opens")
+    }
+
+    async fn set_user_coding_preferences(
+        &self,
+        _owner: &MacroUserIdStr<'static>,
+        _preferences: CodingPreferences,
+    ) -> SessionResult<()> {
+        unimplemented!("coding preferences are read when a session opens")
     }
 
     async fn list_queued_actions(

@@ -1,5 +1,5 @@
 import { TasksControls } from '@app/features/tasks-view/components/TasksControls';
-import { TaskList } from '@app/features/tasks-view/components/task-list/TaskList';
+import { TasksContent } from '@app/features/tasks-view/tasks-content';
 import {
   TasksViewProvider,
   type TasksViewProviderProps,
@@ -15,6 +15,7 @@ import { createProjectTasksDataSource } from '../queries/project-tasks';
 export type ProjectTasksProviderProps = ParentProps<{
   projectId: string;
   onOpenTask: NonNullable<TasksViewProviderProps['onOpenTask']>;
+  onCreateTask?: TasksViewProviderProps['onCreateTask'];
 }>;
 
 export type ProjectTasksListProps = Omit<
@@ -22,11 +23,10 @@ export type ProjectTasksListProps = Omit<
   'children'
 > & {
   projectName: string;
-  onCreateTask?: () => void;
   addTasksAction?: JSX.Element;
 };
 
-/** Embeds the actual Tasks list, including its controllers, menus and row editors. */
+/** Embeds Tasks layouts with project-scoped data, controllers, menus and editors. */
 export function ProjectTasksProvider(props: ProjectTasksProviderProps) {
   const context = useProjectsContext();
   return (
@@ -36,7 +36,9 @@ export function ProjectTasksProvider(props: ProjectTasksProviderProps) {
           initialState={{ tab: 'team-tasks', groupBy: 'status', facets: {} }}
           restoreEntryState
           scopeKey={`initiative:${projectId}:tasks`}
+          searchNamespace="projectTasks"
           onOpenTask={props.onOpenTask}
+          onCreateTask={props.onCreateTask}
           onCloseTask={() => {}}
           sourceFactory={(state, options) =>
             createProjectTasksDataSource(
@@ -59,6 +61,7 @@ export function ProjectTasksList(props: ProjectTasksListProps) {
     <ProjectTasksProvider
       projectId={props.projectId}
       onOpenTask={props.onOpenTask}
+      onCreateTask={props.onCreateTask}
     >
       <ProjectTasksListBody {...props} />
     </ProjectTasksProvider>
@@ -79,7 +82,7 @@ function ProjectTasksListBody(props: ProjectTasksListProps) {
           <TasksControls />
           {props.addTasksAction}
           <Show when={props.onCreateTask}>
-            <Button variant="outline" onClick={props.onCreateTask}>
+            <Button variant="outline" onClick={() => props.onCreateTask?.()}>
               <PlusIcon class="size-4" />
               New task
             </Button>
@@ -97,7 +100,7 @@ function ProjectTasksListBody(props: ProjectTasksListProps) {
           </Button>
         </div>
       </Show>
-      <TaskList />
+      <TasksContent />
     </div>
   );
 }

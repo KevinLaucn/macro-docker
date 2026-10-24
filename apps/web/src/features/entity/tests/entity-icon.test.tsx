@@ -36,6 +36,16 @@ vi.mock('@core/constant/allBlocks', () => ({
   itemToBlockName: vi.fn(),
 }));
 vi.mock('@core/context/user', () => ({ useUserId: () => () => 'user' }));
+vi.mock('@core/context/channels', () => ({
+  useChannelsContext: () => ({ channelsById: () => ({}) }),
+}));
+vi.mock('@app/features/agent-dms/components/persona-avatar', () => ({
+  PersonaAvatar: (props: { botId: string; name: string }) => (
+    <span data-testid="agent-avatar" data-bot-id={props.botId}>
+      {props.name}
+    </span>
+  ),
+}));
 vi.mock('@core/component/UserIcon', () => ({
   UserIcon: (props: { id: string }) => (
     <span data-testid="user-avatar" data-user-id={props.id} />
@@ -59,7 +69,8 @@ const foreignBase = {
 } as const;
 
 function pullRequest(
-  status: GithubPullRequestEntity['metadata']['status']
+  status: GithubPullRequestEntity['metadata']['status'],
+  draft = false
 ): GithubPullRequestEntity {
   return {
     ...foreignBase,
@@ -71,6 +82,7 @@ function pullRequest(
       repo: 'macro',
       url: 'https://github.com/macro-inc/macro/pull/42',
       status,
+      draft,
       additions: 1,
       deletions: 1,
       comments: [],
@@ -153,6 +165,23 @@ describe('Entity.Icon', () => {
     ).toBe('other-user');
   });
 
+  it('gives persona DMs an agent avatar without a person tooltip or profile action', () => {
+    const { container } = render(() => (
+      <EntityIcon
+        entity={{
+          ...channel,
+          channelType: 'direct_message',
+          name: 'Researcher',
+          participantIds: ['user', 'bot|researcher'],
+        }}
+      />
+    ));
+    expect(container.querySelector('[data-testid="user-avatar"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="agent-avatar"]')?.textContent
+    ).toBe('Researcher');
+  });
+
   it.each(['user', 'other-user'])(
     'keeps DM message rows on their DM glyph without fetching channel pictures (sender %s)',
     (senderId) => {
@@ -176,7 +205,7 @@ describe('Entity.Icon', () => {
 
   it.each([
     [false, false, EnvelopeIcon, 'text-email'],
-    [true, false, EnvelopeOpenIcon, 'text-default'],
+    [true, false, EnvelopeOpenIcon, 'text-ink-extra-muted'],
     [false, true, CalendarIcon, 'text-calendar'],
     [true, true, CalendarIcon, 'text-calendar'],
   ] as const)(
@@ -209,6 +238,16 @@ describe('Entity.Icon', () => {
     ));
     expectGlyph(container, Glyph);
     expect(container.firstElementChild?.classList.contains(color)).toBe(true);
+  });
+
+  it('renders draft pull request with muted color', () => {
+    const { container } = render(() => (
+      <EntityIcon entity={pullRequest('open', true)} />
+    ));
+    expectGlyph(container, GitPullRequestIcon);
+    expect(
+      container.firstElementChild?.classList.contains('text-ink-muted')
+    ).toBe(true);
   });
 
   it('uses a generic file for unknown foreign sources even with PR-like metadata', () => {

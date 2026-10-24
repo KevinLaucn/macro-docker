@@ -1,5 +1,6 @@
 /** App-facing composition for the agent session and its controllers. */
 
+import { createInteractionController } from '@app/features/agent-interactions/primitives/create-interaction-controller';
 import { AgentSession } from '@core/agent-session/AgentSession';
 import { toast } from '@core/component/Toast/Toast';
 import { isCodexBotId } from '@core/constant/codexAgent';
@@ -29,7 +30,6 @@ import {
 import { resolveSessionId } from './context/resolve-session-id';
 import { createSendNext } from './context/send-next';
 import { createSteer } from './context/steer';
-import { createInteractionController } from './primitives/create-interaction-controller';
 import { createToolApprovalController } from './primitives/create-tool-approval-controller';
 import type { QuoteInsert } from './ui';
 
@@ -81,6 +81,9 @@ export function AgentSessionProvider(
         parts: [{ kind: 'text', text: prompt }],
         stop: null,
         pending: true,
+        segments: [],
+        phase: null,
+        postedAt: null,
       },
     ];
   };
@@ -177,7 +180,10 @@ export function AgentSessionProvider(
           // is the same dead end for the reader as a load that failed.
           loadFailed: () => live.loadFailed() || failed(),
           accessDenied: live.accessDenied,
-          // Retrying a 401 gets the same 401.
+          // Retrying a refusal in earnest gets the same refusal. A refusal of
+          // a session this tab just created is not one of those, and never
+          // reaches here as denied access: `AgentSession` waits it out, and
+          // reports a load that can be tried again if it never clears.
           loadRetryable: () => live.loadFailed() && !live.accessDenied(),
           retryLoad: live.retry,
           turn,
@@ -214,9 +220,7 @@ function CloudExternalUrlPoll(props: {
     const id = props.sessionId();
     const session = props.session();
     if (!id || !session || session.external?.url) return undefined;
-    return isCursorBotId(session.botId) ||
-      isCodexBotId(session.botId) ||
-      session.harness === 'claude-cloud'
+    return isCursorBotId(session.botId) || isCodexBotId(session.botId)
       ? id
       : undefined;
   });

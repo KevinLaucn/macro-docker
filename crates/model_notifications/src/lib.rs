@@ -12,18 +12,19 @@ pub use device::DeviceType;
 pub use metadata::{
     AgentSessionMentionedMetadata, AgentSessionNotificationRef, AgentSessionOriginParent,
     AgentSessionSettledMetadata, AgentSessionWaitingForInputMetadata, AiResponseMetadata,
-    CalendarEventReminderMetadata, CallStartedMetadata, ChannelInviteMetadata,
-    ChannelMentionMetadata, ChannelMessageReactionMetadata, ChannelMessageSendMetadata,
-    ChannelReplyMetadata, ChannelType, ColleagueJoinedMacro, CommentedOnDocumentMetadata,
-    CommonChannelMetadata, CrmDiscussionMetadata, CrmDiscussionReason, DocumentMentionMetadata,
+    CalendarEventJoinRequestMetadata, CalendarEventReminderMetadata, CallStartedMetadata,
+    ChannelInviteMetadata, ChannelMentionMetadata, ChannelMessageReactionMetadata,
+    ChannelMessageSendMetadata, ChannelReplyMetadata, ChannelType, ColleagueJoinedMacro,
+    CommentedOnDocumentMetadata, CommonChannelMetadata, CrmDiscussionMetadata, CrmDiscussionReason,
+    DocumentMentionMetadata, EntityAccessGrantedMetadata, EntityAccessRequestedMetadata,
     GithubPrCheckRun, GithubPrCheckRunState, GithubPrComment, GithubPrCommentKind,
     GithubPrEventAction, GithubPrEventStatus, GithubPrMention, GithubPrMentionLocation,
     GithubPrNotificationCommon, GithubPrReview, GithubPrReviewState, GithubPrStatusChanged,
     GithubReviewRequested, InboxReauthRequiredMetadata, InitiativeDiscussionMetadata,
-    InitiativeDiscussionReason, InviteToTeamMetadata, ItemSharedMetadata,
+    InitiativeDiscussionReason, InviteToTeamMetadata, InviteePlan, ItemSharedMetadata,
     MentionedInDocumentCommentMetadata, NewEmailMetadata, NotificationDocumentSubType,
     NotificationTitle, ReminderMetadata, RepliedToDocumentCommentThreadMetadata,
-    TaskAssignedMetadata,
+    RequestedAccessLevel, TaskAssignedMetadata,
 };
 pub use unsubscribe::UserUnsubscribe;
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -189,6 +190,11 @@ define_notif_event!(
         /// Someone commented on a document the user owns.
         CommentedOnDocument(CommentedOnDocumentMetadata),
 
+        /// Someone requested more access to a shared entity.
+        EntityAccessRequested(EntityAccessRequestedMetadata),
+        /// An owner granted requested access.
+        EntityAccessGranted(EntityAccessGrantedMetadata),
+
         /// Someone commented, replied, or mentioned the recipient on a project.
         InitiativeDiscussion(InitiativeDiscussionMetadata),
 
@@ -265,6 +271,10 @@ define_notif_event!(
 
         /// Someone reacted to one of the user's channel messages.
         ChannelMessageReaction(ChannelMessageReactionMetadata),
+
+        /// A channel member asked to be added as a guest of an event the
+        /// user shared with the channel.
+        CalendarEventJoinRequest(CalendarEventJoinRequestMetadata),
     }
 );
 
@@ -285,6 +295,8 @@ impl NotificationTitle for NotifEvent {
             }
             NotifEvent::RepliedToDocumentCommentThread(m) => m.format_title(sender_id),
             NotifEvent::CommentedOnDocument(m) => m.format_title(sender_id),
+            NotifEvent::EntityAccessRequested(m) => m.format_title(sender_id),
+            NotifEvent::EntityAccessGranted(m) => m.format_title(sender_id),
             NotifEvent::InitiativeDiscussion(m) => m.format_title(sender_id),
             NotifEvent::CrmDiscussion(m) => m.format_title(sender_id),
             NotifEvent::ChannelInvite(m) => m.format_title(sender_id),
@@ -292,6 +304,7 @@ impl NotificationTitle for NotifEvent {
                 channel_message_send_metadata.format_title(sender_id)
             }
             NotifEvent::ChannelMessageReaction(m) => m.format_title(sender_id),
+            NotifEvent::CalendarEventJoinRequest(m) => m.format_title(sender_id),
             NotifEvent::ChannelMessageReply(channel_reply_metadata) => {
                 channel_reply_metadata.format_title(sender_id)
             }
@@ -351,6 +364,8 @@ impl NotificationTitle for NotifEvent {
             }
             NotifEvent::RepliedToDocumentCommentThread(m) => m.format_body(sender_id),
             NotifEvent::CommentedOnDocument(m) => m.format_body(sender_id),
+            NotifEvent::EntityAccessRequested(m) => m.format_body(sender_id),
+            NotifEvent::EntityAccessGranted(m) => m.format_body(sender_id),
             NotifEvent::InitiativeDiscussion(m) => m.format_body(sender_id),
             NotifEvent::CrmDiscussion(m) => m.format_body(sender_id),
             NotifEvent::ChannelInvite(m) => m.format_body(sender_id),
@@ -358,6 +373,7 @@ impl NotificationTitle for NotifEvent {
                 channel_message_send_metadata.format_body(sender_id)
             }
             NotifEvent::ChannelMessageReaction(m) => m.format_body(sender_id),
+            NotifEvent::CalendarEventJoinRequest(m) => m.format_body(sender_id),
             NotifEvent::ChannelMessageReply(channel_reply_metadata) => {
                 channel_reply_metadata.format_body(sender_id)
             }

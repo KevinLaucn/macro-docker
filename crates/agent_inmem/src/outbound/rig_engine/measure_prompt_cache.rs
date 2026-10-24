@@ -95,7 +95,13 @@ async fn turn(
         name: format!("Macro {run}"),
         handle: "macro".to_owned(),
     };
-    let system_prompt = system_prompt(&native.prompt, Some(&identity), Some(instructions), None);
+    let system_prompt = system_prompt(
+        &native.prompt,
+        agent_session::domain::model::AgentSessionId::new(),
+        Some(&identity),
+        Some(instructions),
+        None,
+    );
     let user = MacroUserIdStr::try_from_email("cache-measure@macro.com").unwrap();
     let usage = UsageContext::new(AiFeature::AgentSession, user);
     let recorded = Arc::new(RecordedUsage::default());

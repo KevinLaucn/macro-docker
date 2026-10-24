@@ -18,6 +18,7 @@ pub(crate) mod context;
 pub(crate) mod gmail;
 mod internal;
 mod middleware;
+mod outlook;
 pub(crate) mod swagger;
 
 #[cfg(test)]
@@ -76,5 +77,6 @@ fn api_router(state: ApiContext) -> Router<ApiContext> {
         .nest("/gmail", gmail::router())
         // PRIVATE-HOOK: read_receipts:public_router
         .nest("/t", features::read_receipts::public_router())
+        .nest("/outlook", outlook::router())
         .nest("/internal", internal::router())
 }

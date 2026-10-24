@@ -187,6 +187,20 @@ pub(crate) type DssCrmStageService = crm::domain::stages::CrmStageServiceImpl<
     crm::outbound::stage_definitions::PropertiesStageDefinitionStore<PropertiesService>,
 >;
 
+pub(crate) type DssPipelineService = crm::domain::pipelines::PipelineServiceImpl<
+    crm::outbound::pipelines::PgPipelineRepo<
+        databases::outbound::pg_cell_store::PgCellStore<PropertiesPgRepo>,
+    >,
+    DatabasesServiceType,
+    EntityAccessService,
+    crm::outbound::stage_definitions::PropertiesStageDefinitionStore<PropertiesService>,
+>;
+pub(crate) type DssPipelineState = crm::inbound::pipelines::PipelineRouterState<
+    DssPipelineService,
+    EntityAccessService,
+    AuthorizationService,
+>;
+
 pub(crate) type DssCrmState = crm::inbound::axum_router::CrmRouterState<
     DssCrmService,
     DssCrmStageService,
@@ -278,6 +292,22 @@ pub(crate) type DssCalendarService = CalendarService<PgCalendarRepository>;
 /// Calendar occurrence router state.
 pub(crate) type DssCalendarState = CalendarRouterState<DssCalendarService, AuthorizationService>;
 
+/// Service for asking to join calendar events shared with a channel.
+pub(crate) type DssCalendarJoinRequestService =
+    calendar_events::domain::join_requests::CalendarJoinRequestServiceImpl<
+        PgCalendarRepository,
+        calendar_events::outbound::notification_notifier::NotificationCalendarJoinRequestNotifier<
+            NotificationIngressType,
+        >,
+    >;
+
+/// Calendar join-request router state.
+pub(crate) type DssCalendarJoinRequestState =
+    calendar_events::inbound::join_request_router::CalendarJoinRequestRouterState<
+        DssCalendarJoinRequestService,
+        AuthorizationService,
+    >;
+
 /// Adapter implementing [`TaskPropertiesPort`] for the system properties service.
 pub(crate) struct TaskPropertiesAdapter {
     pub system_properties: Arc<SystemPropertiesService>,
@@ -362,6 +392,14 @@ pub(crate) type DssDocumentPurger = DocumentPurger<
 
 /// Type alias for the authorization service.
 pub(crate) type AuthorizationService = MacroAuthorizationServiceImpl<MacroAuthJwtValidator>;
+
+pub(crate) type AccessRequestsState =
+    access_requests::inbound::axum_router::AccessRequestsRouterState<
+        access_requests::outbound::postgres::PgRequestRepository,
+        EntityAccessService,
+        access_requests::domain::ports::SystemClock,
+        AuthorizationService,
+    >;
 
 /// Type alias for the documents router state.
 pub(crate) type DocumentsState =
@@ -555,9 +593,33 @@ pub(crate) type DssUserApiKeyState =
 pub(crate) type DatabasesServiceType =
     PgDatabasesService<GatewayTableEventPublisher, DssEventBroker, EntityAccessService>;
 
+/// HTTP SQL queries over the same database, access and Soup services.
+pub(crate) type DssSqlState = databases_sql::inbound::axum_router::SqlRouterState<
+    DatabasesServiceType,
+    EntityAccessService,
+    DssSoupService,
+    contacts::domain::service::ContactsDomainService<
+        contacts::outbound::repository::DbContactsRepository,
+        Option<contacts::outbound::gateway::ConnectionGatewayNotifier>,
+    >,
+    AuthorizationService,
+>;
+
 /// Type alias for the databases router state.
 pub(crate) type DssDatabasesState =
     DatabasesRouterState<DatabasesServiceType, EntityAccessService, AuthorizationService>;
+
+/// Webhooks insert rows through the databases domain service, so they keep its validation and events.
+pub(crate) type DatabaseWebhooksServiceType =
+    database_webhooks::wiring::PgDatabaseWebhooksService<DatabasesServiceType, EntityAccessService>;
+
+/// Webhooks use the same authentication and entity-access services as databases.
+pub(crate) type DssDatabaseWebhooksState =
+    database_webhooks::inbound::axum_router::DatabaseWebhooksRouterState<
+        DatabaseWebhooksServiceType,
+        EntityAccessService,
+        AuthorizationService,
+    >;
 
 /// Forms compose the databases domain service, so row writes retain its validation and events.
 pub(crate) type FormsServiceType = forms::wiring::PgFormsService<
@@ -811,14 +873,22 @@ pub(crate) struct ApiContext {
     pub channel_labels_state: DssChannelLabelsState,
     pub user_api_key_state: DssUserApiKeyState,
     pub reminders_state: DssRemindersState,
+    pub access_requests_state: AccessRequestsState,
     pub slack_state: DssSlackState,
     pub initiative_state: DssInitiativeState,
+    pub graphql_crm_context: graphql_crm::CrmGraphqlContext,
     pub graphql_initiative_context: graphql_initiative::InitiativeGraphqlContext,
     pub graphql_scheduled_action_context: graphql_scheduled_action::ScheduledActionGraphqlContext,
     pub graphql_calendar_context: graphql_calendar::CalendarGraphqlContext,
+    pub graphql_calendar_mutation_context: graphql_calendar::CalendarGraphqlMutationContext,
+    pub graphql_work_feed_context: complete_graph::WorkFeedGraphqlContext,
     pub graphql_initiative_entity_loader: graphql_initiative::InitiativeEntityLoader,
     pub graphql_agent_session_entity_loader: graphql_soup::AgentSessionEntityLoader,
+    pub graphql_primary_soup_item_loader: graphql_soup::PrimarySoupItemLoader,
+    pub graphql_soup_item_loader: graphql_soup::SoupItemDataLoader,
     pub databases_state: DssDatabasesState,
+    pub sql_state: DssSqlState,
+    pub database_webhooks_state: DssDatabaseWebhooksState,
     pub forms_state: DssFormsState,
     pub database_starter_state: DssDatabaseStarterState,
     pub collab_surface_state: DssCollabSurfaceState,
@@ -843,10 +913,12 @@ pub(crate) struct ApiContext {
     pub channel_list_state: DssChannelListState,
     pub entity_access_service: Arc<EntityAccessService>,
     pub calendar_state: DssCalendarState,
+    pub calendar_join_request_state: DssCalendarJoinRequestState,
     pub documents_state: DocumentsState,
     pub projects_state: ProjectsState,
     pub channels_state: DssChannelsState,
     pub messages_state: DssMessagesState,
+    pub guest_chat_service: Arc<dyn messages::domain::service::guest_chat::GuestChatApi>,
     pub annotation_service: Arc<DssAnnotationService>,
     /// Shared channel service, for calling channel domain operations outside
     /// the channels router (starter-doc seeding records mention backlinks).
@@ -864,6 +936,7 @@ pub(crate) struct ApiContext {
     pub entity_access_management_service: EntityAccessManagementService,
     pub crm_state: DssCrmState,
     pub owned_purge_state: DssOwnedPurgeState,
+    pub pipeline_state: DssPipelineState,
 }
 
 env_var! {

@@ -8,7 +8,7 @@
 use crate::identity::IdentityBinding;
 use crate::link_patch::{OptimisticLinkPatch, QueryRevalidation};
 use crate::normalize::RecordUpdates;
-use crate::value::canonical_json;
+use crate::value::{EntityKey, canonical_json};
 use predicate_index::OptimisticProjectionMutation;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as Json;
@@ -50,11 +50,23 @@ pub struct StoredMutation {
     pub lease_expires_at_ms: Option<i64>,
     /// Last retryable network error, for diagnostics.
     pub last_error: Option<String>,
-    /// Wall-clock enqueue time, for diagnostics.
+    /// Wall-clock time the write was first enqueued, for diagnostics. A row
+    /// replacing an unsent row for the same UUID keeps the earlier time.
     pub created_at_ms: i64,
 }
 
+/// Largest integer a JavaScript number represents exactly.
+const MAX_SAFE_JS_INTEGER: i64 = (1 << 53) - 1;
+
 impl StoredMutation {
+    /// Enqueue time for JavaScript callers, or `None` when a number cannot
+    /// carry it exactly.
+    pub fn enqueued_at_ms(&self) -> Option<i64> {
+        (0..=MAX_SAFE_JS_INTEGER)
+            .contains(&self.created_at_ms)
+            .then_some(self.created_at_ms)
+    }
+
     /// Creates an unclaimed queue row for `request`.
     pub fn new(request: MutationRequest, created_at_ms: i64) -> Self {
         Self {
@@ -98,6 +110,10 @@ pub struct OptimisticSource {
     /// Ordered generic projection changes composed with this optimistic layer.
     #[serde(default)]
     pub projection_mutations: Vec<OptimisticProjectionMutation>,
+    /// Calendar events whose occurrence set this layer cannot predict, such
+    /// as a recurrence edit. Range reads report them until the layer settles.
+    #[serde(default)]
+    pub uncertain_calendar_event_keys: Vec<EntityKey<'static>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -114,6 +130,8 @@ struct OptimisticSourceEnvelope {
     #[serde(default)]
     revalidations: Vec<QueryRevalidation>,
     projection_mutations: Vec<OptimisticProjectionMutation>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    uncertain_calendar_event_keys: Vec<EntityKey<'static>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -138,6 +156,7 @@ pub fn encode_optimistic_source(source: &OptimisticSource) -> String {
             link_patches: source.link_patches.clone(),
             revalidations: source.revalidations.clone(),
             projection_mutations: source.projection_mutations.clone(),
+            uncertain_calendar_event_keys: source.uncertain_calendar_event_keys.clone(),
         })
         .expect("optimistic source serializes"),
     );
@@ -155,6 +174,7 @@ pub fn decode_optimistic_source(value: &str) -> Result<OptimisticSource, String>
             link_patches: Vec::new(),
             revalidations: Vec::new(),
             projection_mutations: Vec::new(),
+            uncertain_calendar_event_keys: Vec::new(),
         });
     };
     let value: Json = serde_json::from_str(envelope).map_err(|error| error.to_string())?;
@@ -174,6 +194,7 @@ pub fn decode_optimistic_source(value: &str) -> Result<OptimisticSource, String>
                 link_patches: envelope.link_patches,
                 revalidations: envelope.revalidations,
                 projection_mutations: Vec::new(),
+                uncertain_calendar_event_keys: Vec::new(),
             })
         }
         version if version == u64::from(OPTIMISTIC_SOURCE_VERSION) => {
@@ -186,6 +207,7 @@ pub fn decode_optimistic_source(value: &str) -> Result<OptimisticSource, String>
                 link_patches: envelope.link_patches,
                 revalidations: envelope.revalidations,
                 projection_mutations: envelope.projection_mutations,
+                uncertain_calendar_event_keys: envelope.uncertain_calendar_event_keys,
             })
         }
         version => Err(format!("unsupported optimistic source version {version}")),
@@ -323,6 +345,9 @@ pub struct MutationInspection {
     pub client_metadata: Option<Json>,
     /// Original optimistic response for migrating durable local intent.
     pub optimistic_data: Json,
+    /// Wall-clock first-enqueue time in epoch milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enqueued_at_ms: Option<i64>,
 }
 
 impl TryFrom<QueuedMutation> for MutationInspection {
@@ -330,6 +355,7 @@ impl TryFrom<QueuedMutation> for MutationInspection {
 
     fn try_from(queued: QueuedMutation) -> Result<Self, Self::Error> {
         let source = decode_optimistic_source(&queued.optimistic.optimistic_data_json)?;
+        let enqueued_at_ms = queued.mutation.enqueued_at_ms();
         let request = queued.mutation.request;
         Ok(Self {
             transaction_id: queued.id.to_string(),
@@ -341,6 +367,7 @@ impl TryFrom<QueuedMutation> for MutationInspection {
                 .map_err(|error| error.to_string())?,
             client_metadata: source.client_metadata,
             optimistic_data: source.mutation_data,
+            enqueued_at_ms,
         })
     }
 }
