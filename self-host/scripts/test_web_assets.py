@@ -25,6 +25,11 @@ class WebAssetsTests(unittest.TestCase):
         self.write("app-old.js", 'import "./missing.js";')
         self.assertEqual(verify_web_assets(self.root), [])
 
+    def test_allows_app_route_shell_lazy_chunk(self):
+        self.write("app-main.js", 'import("./PropertyEditor.js"); import("./app-route-shell-g4VLzK8s.js");')
+        self.write("app-route-shell-g4VLzK8s.js", 'import {client} from "./app-main.js";')
+        self.assertEqual(verify_web_assets(self.root), [])
+
     def test_renamed_entry_reproduces_production_failure(self):
         self.write("index.html", '<script type="module" src="/app/app-main-img.js"></script>')
         self.write("app-main-img.js", 'import("./PropertyEditor.js");')

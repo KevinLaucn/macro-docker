@@ -24,7 +24,7 @@ def verify_web_assets(root: Path) -> list[str]:
         return [f"Frontend index missing: {index}"]
     parser = ModuleScripts()
     parser.feed(index.read_text())
-    entries = [src for src in parser.sources if re.search(r"/app-[\w-]+\.js$", src)]
+    entries = [src for src in parser.sources if re.search(r"/app-(?!route-)[\w-]+\.js$", src)]
     if len(entries) != 1:
         return ["Frontend HTML must load exactly one app entry module"]
     entry = Path(entries[0]).name
@@ -50,7 +50,7 @@ def verify_web_assets(root: Path) -> list[str]:
                 target = root / specifier.removeprefix("/app/")
             else:
                 continue
-            if re.fullmatch(r"app-[\w-]+\.js", target.name) and target.name != entry:
+            if re.fullmatch(r"app-(?!route-)[\w-]+\.js", target.name) and target.name != entry:
                 errors.append(f"Duplicate app context: HTML loads {entry}, {file.name} imports {target.name}")
             pending.append(target)
     return errors
