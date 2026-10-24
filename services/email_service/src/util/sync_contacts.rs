@@ -46,6 +46,7 @@ pub async fn sync_contacts<B: MacroEventBroker, I: ContactsIngress>(
 
     // 3. If we received any new/updated contacts, process and store them.
     if !new_contacts.is_empty() {
+        let new_contacts = merge_contacts_by_source(new_contacts);
         // Connect the user to their address book before storing it, so a failed
         // enqueue leaves the sync tokens untouched and the next sync retries.
         connect_address_book(contacts_ingress, link, &new_contacts).await?;
@@ -54,7 +55,7 @@ pub async fn sync_contacts<B: MacroEventBroker, I: ContactsIngress>(
             sqs_client,
             macro_event_broker,
             link,
-            merge_contacts_by_source(new_contacts),
+            new_contacts,
         ))
         .await?;
     }

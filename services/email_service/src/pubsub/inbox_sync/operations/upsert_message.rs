@@ -711,7 +711,7 @@ async fn send_notifications(
         return Ok(());
     }
 
-    let Some(tier) = new_email_tier(ctx, link, message.thread_db_id).await? else {
+    let Some(_tier) = new_email_tier(ctx, link, message.thread_db_id).await? else {
         return Ok(());
     };
 
@@ -793,6 +793,7 @@ enum NewEmailTier {
 }
 
 impl NewEmailTier {
+    #[allow(dead_code)]
     fn notification_request<'a>(
         self,
         builder: SendNotificationRequestBuilder<'a, NewEmailMetadata>,

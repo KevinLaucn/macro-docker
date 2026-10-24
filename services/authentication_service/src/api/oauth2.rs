@@ -11,11 +11,9 @@ use tower_cookies::CookieManagerLayer;
 use url::Url;
 
 mod account_link;
-#[cfg(feature = "full-saas")]
 mod github;
 mod google;
 mod login;
-#[cfg(feature = "full-saas")]
 mod microsoft;
 
 #[cfg(test)]

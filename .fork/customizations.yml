@@ -529,8 +529,6 @@ customizations:
       - services/authentication_service/Cargo.toml
       - services/authentication_service/src/api/link/gmail.rs
       - services/authentication_service/src/api/login/sso.rs
-      - services/authentication_service/src/api/oauth.rs
-      - services/authentication_service/src/api/oauth2.rs
       - services/authentication_service/src/api/utils.rs
       - apps/web/src/routes/Root.tsx
     tests:

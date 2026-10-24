@@ -847,16 +847,6 @@ diffs:
   - AUTH-SELFHOST-001
   hooks: []
   override: false
-- file: services/authentication_service/src/api/oauth.rs
-  owners:
-  - AUTH-SELFHOST-001
-  hooks: []
-  override: false
-- file: services/authentication_service/src/api/oauth2.rs
-  owners:
-  - AUTH-SELFHOST-001
-  hooks: []
-  override: false
 - file: services/authentication_service/src/api/utils.rs
   owners:
   - AUTH-SELFHOST-001
