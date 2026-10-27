@@ -28,7 +28,9 @@ RELEASE_ROOT=${MACRO_RELEASE_ROOT:-/opt/macro}
 SHARED_ENV_FILE=${MACRO_SHARED_ENV_FILE:-/etc/macro/macro.env}
 # A checked-out release may still use its local .env for development. An
 # installed release uses one shared env file so secrets never drift per SHA.
-if [[ "$RELEASE_DIR" == "$RELEASE_ROOT/"* ]] || [ -f "$SHARED_ENV_FILE" ]; then
+if [ -n "${ENV_FILE:-}" ]; then
+  : # caller specified ENV_FILE explicitly
+elif [[ "$RELEASE_DIR" == "$RELEASE_ROOT/"* ]] || [ -f "$SHARED_ENV_FILE" ]; then
   ENV_FILE="$SHARED_ENV_FILE"
 else
   ENV_FILE=.env
@@ -88,6 +90,19 @@ rand_rsa() {
   fi
 }
 
+rand_ssh_ed25519() {
+  if command -v ssh-keygen >/dev/null 2>&1; then
+    local tmp_dir key_file
+    tmp_dir=$(mktemp -d)
+    key_file="$tmp_dir/key"
+    ssh-keygen -q -t ed25519 -N "" -C "macro-selfhost-preview" -f "$key_file" >/dev/null 2>&1
+    preview_ssh_key=$(awk '{printf "%s\\n", $0}' "$key_file")
+    rm -rf "$tmp_dir"
+  else
+    die "ssh-keygen is required to generate Ed25519 host key for PREVIEW_SSH_HOST_KEY"
+  fi
+}
+
 cmd_generate_secrets() {
   local domain="" acme="" smtp_host="" smtp_port="587" smtp_user="" smtp_pass="" admin="" macro_version=""
   while [ "$#" -gt 0 ]; do
@@ -105,9 +120,26 @@ cmd_generate_secrets() {
     esac
   done
 
-  if [ -f "$ENV_FILE" ] && [ "${FORCE:-0}" != "1" ]; then
-    die "$ENV_FILE already exists. Re-generating rotates every secret and will
-       sign out every user and orphan encrypted data. Pass --force if you mean it."
+  local is_backfill=0
+  if [ -f "$ENV_FILE" ]; then
+    if [ "${FORCE:-0}" = "1" ]; then
+      bold "Re-generating $ENV_FILE (--force specified). Rotating all credentials..."
+    else
+      is_backfill=1
+      bold "$ENV_FILE already exists. Running in backfill mode (preserving existing credentials and filling missing/placeholder keys)..."
+    fi
+  fi
+
+  if [ "$is_backfill" = "1" ]; then
+    # In backfill mode, extract existing domain, admin email and credentials from ENV_FILE if not provided
+    [ -n "$domain" ] || domain=$(grep -E '^[[:space:]]*MACRO_DOMAIN=' "$ENV_FILE" | cut -d= -f2- | tr -d "\"'" || true)
+    [ -n "$acme" ] || acme=$(grep -E '^[[:space:]]*ACME_EMAIL=' "$ENV_FILE" | cut -d= -f2- | tr -d "\"'" || true)
+    [ -n "$smtp_host" ] || smtp_host=$(grep -E '^[[:space:]]*SMTP_HOST=' "$ENV_FILE" | cut -d= -f2- | tr -d "\"'" || true)
+    [ -n "$smtp_port" ] || smtp_port=$(grep -E '^[[:space:]]*SMTP_PORT=' "$ENV_FILE" | cut -d= -f2- | tr -d "\"'" || true)
+    [ -n "$smtp_user" ] || smtp_user=$(grep -E '^[[:space:]]*SMTP_USERNAME=' "$ENV_FILE" | cut -d= -f2- | tr -d "\"'" || true)
+    [ -n "$smtp_pass" ] || smtp_pass=$(grep -E '^[[:space:]]*SMTP_PASSWORD=' "$ENV_FILE" | cut -d= -f2- | tr -d "\"'" || true)
+    [ -n "$admin" ] || admin=$(grep -E '^[[:space:]]*ADMIN_EMAIL=' "$ENV_FILE" | cut -d= -f2- | tr -d "\"'" || true)
+    [ -n "$macro_version" ] || macro_version=$(grep -E '^[[:space:]]*MACRO_VERSION=' "$ENV_FILE" | cut -d= -f2- | tr -d "\"'" || true)
   fi
 
   [ -n "$domain" ] || read -r -p "Domain for this deployment (e.g. macro.acme.io): " domain
@@ -131,7 +163,7 @@ cmd_generate_secrets() {
   local pg_pw fa_db_pw internal dss doc_perm internal_call url_signing jwt
   local fa_api fa_client_secret os_pw aws_secret admin_pw mcp_key account_link
   local app_id tenant_id key_id template_id
-  local priv_rsa pub_rsa
+  local priv_rsa pub_rsa preview_ssh_key
   pg_pw=$(rand_hex 24);        fa_db_pw=$(rand_hex 24)
   internal=$(rand_b64 32);     dss=$(rand_b64 32)
   doc_perm=$(rand_b64 32);     internal_call=$(rand_b64 32)
@@ -142,10 +174,15 @@ cmd_generate_secrets() {
   account_link=$(rand_b64 32)
   app_id=$(uuid4); tenant_id=$(uuid4); key_id=$(uuid4); template_id=$(uuid4)
   rand_rsa
+  rand_ssh_ed25519
 
   local s3_domain="s3.${domain}" fa_domain="auth.${domain}"
 
   mkdir -p "$(dirname "$ENV_FILE")"
+  local tmp_env
+  tmp_env=$(mktemp)
+
+  EXISTING_ENV_FILE="$ENV_FILE" IS_BACKFILL="$is_backfill" \
   MACRO_DOMAIN="$domain" S3_DOMAIN="$s3_domain" FUSIONAUTH_DOMAIN="$fa_domain" \
   ACME_EMAIL="$acme" SMTP_HOST="$smtp_host" SMTP_PORT="$smtp_port" \
   SMTP_USERNAME="$smtp_user" SMTP_PASSWORD="$smtp_pass" ADMIN_EMAIL="$admin" \
@@ -156,10 +193,29 @@ cmd_generate_secrets() {
   ACCOUNT_LINK="$account_link" \
   APP_ID="$app_id" TENANT_ID="$tenant_id" KEY_ID="$key_id" TEMPLATE_ID="$template_id" \
   PRIV_RSA="\"${priv_rsa}\"" PUB_RSA="\"${pub_rsa}\"" \
+  PREVIEW_SSH_KEY="\"${preview_ssh_key}\"" \
   MACRO_VERSION="$macro_version" \
   awk '
     function env(n) { return ENVIRON[n] }
     BEGIN {
+      is_backfill = (env("IS_BACKFILL") == "1")
+      existing_file = env("EXISTING_ENV_FILE")
+      if (is_backfill && existing_file != "") {
+        while ((getline line < existing_file) > 0) {
+          if (line ~ /^[[:space:]]*#/ || line ~ /^[[:space:]]*$/) continue
+          eq_idx = index(line, "=")
+          if (eq_idx > 1) {
+            k = substr(line, 1, eq_idx - 1)
+            val = substr(line, eq_idx + 1)
+            # Only keep non-empty, non-placeholder values
+            if (val !~ /REPLACE_ME/) {
+              existing[k] = val
+            }
+          }
+        }
+        close(existing_file)
+      }
+
       # env key -> generated value
       v["POSTGRES_PASSWORD"]                    = env("PG_PW")
       v["FUSIONAUTH_DB_PASSWORD"]               = env("FA_DB_PW")
@@ -202,6 +258,7 @@ cmd_generate_secrets() {
       v["MACRO_API_TOKEN_ISSUER"]               = env("MACRO_DOMAIN")
       v["MACRO_API_TOKEN_PUBLIC_KEY"]           = env("PUB_RSA")
       v["MACRO_API_TOKEN_PRIVATE_SECRET_KEY"]   = env("PRIV_RSA")
+      v["PREVIEW_SSH_HOST_KEY"]                 = env("PREVIEW_SSH_KEY")
       v["SENDER_BASE_ADDRESS"]                  = env("MACRO_DOMAIN")
       v["MACRO_VERSION"]                        = env("MACRO_VERSION")
     }
@@ -211,6 +268,15 @@ cmd_generate_secrets() {
       eq = index($0, "=")
       key = substr($0, 1, eq - 1)
       val = substr($0, eq + 1)
+
+      # In backfill mode, preserve existing valid key without rewriting
+      if (is_backfill && (key in existing)) {
+        print key "=" existing[key]
+        processed[key] = 1
+        next
+      }
+
+      processed[key] = 1
       # Operator-supplied values can contain $ or #, and macroctl sources this
       # file for backup and restore. Single-quote them so the shell takes them
       # literally; compose strips the quotes the same way.
@@ -234,10 +300,20 @@ cmd_generate_secrets() {
       print key "=" val
       next
     }
-    { print }
-  ' .env.example > "$ENV_FILE"
+    END {
+      # In backfill mode, also append any custom existing keys that were not in .env.example
+      if (is_backfill) {
+        for (k in existing) {
+          if (!processed[k]) {
+            print k "=" existing[k]
+          }
+        }
+      }
+    }
+  ' .env.example > "$tmp_env"
 
-  chmod 600 "$ENV_FILE"
+  chmod 600 "$tmp_env"
+  mv "$tmp_env" "$ENV_FILE"
 
   # Nothing may be left unfilled: a stray placeholder is a broken deployment
   # that only fails later, at the point the value is first used.

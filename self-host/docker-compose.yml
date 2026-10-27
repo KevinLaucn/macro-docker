@@ -39,7 +39,7 @@ x-service: &service
     OVERRIDE_AI_EDITING_WORKER_URL: ${OVERRIDE_AI_EDITING_WORKER_URL:-http://ai-editing-worker:8933}
     OVERRIDE_DOCUMENT_COGNITION_SERVICE_URL: ${OVERRIDE_DOCUMENT_COGNITION_SERVICE_URL:-http://agent-harness-service:8080/cognition}
     OVERRIDE_SCHEDULED_ACTION_SERVICE_URL: ${OVERRIDE_SCHEDULED_ACTION_SERVICE_URL:-http://agent-harness-service:8080/scheduled-action}
-    OVERRIDE_PREVIEW_GATEWAY_URL: ${OVERRIDE_PREVIEW_GATEWAY_URL:-http://agent-harness-service:8080}
+    OVERRIDE_PREVIEW_GATEWAY_URL: ${OVERRIDE_PREVIEW_GATEWAY_URL:-http://agent-harness-service:8080/preview}
     OVERRIDE_MCP_SERVICE_URL: ${OVERRIDE_MCP_SERVICE_URL:-http://agent-harness-service:8080}
     OVERRIDE_AGENT_HARNESS_SERVICE_URL: ${OVERRIDE_AGENT_HARNESS_SERVICE_URL:-http://agent-harness-service:8080}
     OVERRIDE_AGENT_HARNESS_EGRESS_URL: ${OVERRIDE_AGENT_HARNESS_EGRESS_URL:-http://agent-harness-service:8102}
@@ -720,7 +720,7 @@ services:
       - "sh"
       - "-c"
       - |
-        export PREVIEW_SSH_HOST_KEY="$$(printf '%b' "$${PREVIEW_SSH_HOST_KEY:------BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACBnhZzmnBKEMSJpZ/XmnEg7KHm/VBQtrjM0fyLfQ3w7qAAAAKDZI7Ly2SOy\n8gAAAAtzc2gtZWQyNTUxOQAAACBnhZzmnBKEMSJpZ/XmnEg7KHm/VBQtrjM0fyLfQ3w7qA\nAAAECmqzDiyqxK4s8rjYb06T39XdSAawyJWAI5PnZKGyMb42eFnOacEoQxImln9eacSDso\neb9UFC2uMzR/It9DfDuoAAAAFm1hY3JvLXNlbGZob3N0LXByZXZpZXcBAgMEBQYH\n-----END OPENSSH PRIVATE KEY-----\n}")"
+        export PREVIEW_SSH_HOST_KEY="$$(printf '%b' "$${PREVIEW_SSH_HOST_KEY:?PREVIEW_SSH_HOST_KEY must be set in .env}")"
         exec /app/out/agent_harness_service
     environment:
       PORT: 8080
@@ -732,7 +732,7 @@ services:
       OVERRIDE_CONNECTION_GATEWAY_URL: http://connection-gateway:8080
       OVERRIDE_DOCUMENT_COGNITION_SERVICE_URL: http://agent-harness-service:8080/cognition
       OVERRIDE_SCHEDULED_ACTION_SERVICE_URL: http://agent-harness-service:8080/scheduled-action
-      OVERRIDE_PREVIEW_GATEWAY_URL: http://agent-harness-service:8080
+      OVERRIDE_PREVIEW_GATEWAY_URL: http://agent-harness-service:8080/preview
       OVERRIDE_MCP_SERVICE_URL: http://agent-harness-service:8080
       OVERRIDE_AGENT_HARNESS_SERVICE_URL: http://agent-harness-service:8080
       OVERRIDE_AGENT_HARNESS_EGRESS_URL: http://agent-harness-service:8102
