@@ -152,7 +152,7 @@ hooks:
     customization: READ-RECEIPTS-001
     file: services/email_service/src/outbound/scheduled_delivery.rs
     marker: "// PRIVATE-HOOK: read_receipts:schedule-call"
-    expected: "attach_open_tracking_pixel(&self.db, &mut message).await;"
+    expected: "attach_open_tracking_pixel(&self.db, &mut outgoing).await;"
     context:
       - "Read receipts are attached at the last possible moment"
   - id: email_read_receipts_public_router

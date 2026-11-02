@@ -390,7 +390,7 @@ impl ScheduledDeliveryAdapter {
         // Read receipts are attached at the last possible moment before the MIME
         // payload is handed to Gmail. Failure is best-effort and never blocks send.
         // PRIVATE-HOOK: read_receipts:schedule-call
-        attach_open_tracking_pixel(&self.db, &mut message).await;
+        attach_open_tracking_pixel(&self.db, &mut outgoing).await;
 
         let request = SendRequest {
             message: outgoing,

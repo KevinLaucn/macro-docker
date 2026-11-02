@@ -2,9 +2,6 @@
 # Source: tooling/xtask/crates/xtask_workflows/src/workflows/release.rs
 name: Release
 'on':
-  push:
-    branches:
-    - main
   workflow_dispatch: {}
 permissions:
   contents: write

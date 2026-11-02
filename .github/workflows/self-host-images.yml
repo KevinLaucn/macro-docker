@@ -11,9 +11,6 @@ name: Self-host images
 
 on:
   push:
-    branches:
-      - main
-      - test/nix-s3-auth-poc
     tags:
       - 'v*'
   workflow_dispatch:
