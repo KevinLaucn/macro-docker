@@ -1,6 +1,6 @@
 ---
 version: 2
-upstream_sha: 0b0ccc3e0980c8223e12b7aad615058afe41d77d
+upstream_sha: 4c5ba447f66c3ed8dcc202c3244689101126d608
 diffs:
 - file: ".github/actions/setup-nix/action.yml"
   owners:
@@ -46,16 +46,6 @@ diffs:
   - self_host_health_prompt
   - self_host_health_prompt_import
   override: false
-- file: apps/web/src/components/app/app-sidebar/sidebar.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/components/app/mobile/MobilePageCreateButton.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/components/app/split-layout/components/SplitPanel.tsx
   owners:
   - BROWSER-RUNTIME-COMPAT-001
@@ -95,21 +85,6 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
-- file: apps/web/src/features/block-md/component/ComposeTask.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/block-project/component/ProjectCreateMenu.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/block-spreadsheet/components/SpreadsheetToolbarMenus.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/block-spreadsheet/core/toolbar-types.ts
   owners:
   - I18N-ZH-CN-001
@@ -126,42 +101,12 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
-- file: apps/web/src/features/calendar/components/connected-calendars.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/calendar/utils/calendar-label.ts
   owners:
   - I18N-ZH-CN-001
   hooks: []
   override: false
 - file: apps/web/src/features/channel/Channel/channel-tabs.ts
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/channels-view/components/ChannelsMobileView.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/channels-view/components/rail/ExpandedChannelsRail.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/command/Launcher.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/crm/core/navigation.ts
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/crm/views/company-contacts-section.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -191,11 +136,6 @@ diffs:
   - READ-RECEIPTS-001
   hooks:
   - email_read_receipts_strip_own_pixels
-  override: false
-- file: apps/web/src/features/email-compose/views/reply-envelope.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
   override: false
 - file: apps/web/src/features/email-message/attachment-action-adapter.ts
   owners:
@@ -240,11 +180,6 @@ diffs:
   - EMAIL-SELFHOST-001
   hooks:
   - email_identity_tooltip_photo
-  override: false
-- file: apps/web/src/features/email-message/components/message-actions.tsx
-  owners:
-  - EMAIL-SELFHOST-001
-  hooks: []
   override: false
 - file: apps/web/src/features/email-message/core/email-message.ts
   owners:
@@ -294,23 +229,11 @@ diffs:
   hooks:
   - email_translation_email_list_toolbar
   override: false
-- file: apps/web/src/features/email-view/components/EmailHeader.tsx
-  owners:
-  - EMAIL-TRANSLATION-001
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/email-view/components/EmailList.tsx
   owners:
   - EMAIL-TRANSLATION-001
   hooks:
   - email_translation_email_list_keyboard
-  override: false
-- file: apps/web/src/features/email-view/components/EmailSidebar.tsx
-  owners:
-  - EMAIL-TRANSLATION-001
-  - I18N-ZH-CN-001
-  hooks: []
   override: false
 - file: apps/web/src/features/email-view/email-view.tsx
   owners:
@@ -330,11 +253,6 @@ diffs:
   hooks:
   - email_translation_list_row
   - email_translation_list_row_auto
-  override: false
-- file: apps/web/src/features/entity/composed/list-entity/foreign.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
   override: false
 - file: apps/web/src/features/entity/extractors/entity-email-participants.tsx
   owners:
@@ -369,36 +287,6 @@ diffs:
   hooks:
   - selfhost_runtime_home_composer_gate
   override: false
-- file: apps/web/src/features/next-soup/soup-view/empty-states.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/next-soup/soup-view/filters-bar/search/search-facets.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/next-soup/soup-view/group-options.ts
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/next-soup/soup-view/soup-view-create-button.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/next-soup/soup-view/tab-lists.ts
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
   owners:
   - EMAIL-TRANSLATION-001
@@ -426,17 +314,7 @@ diffs:
   - EMAIL-REALTIME-001
   hooks: []
   override: false
-- file: apps/web/src/features/property/component/PropertyValuePill.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/property/utils/errorHandling.ts
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/property/utils/formatting.test.ts
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -446,17 +324,7 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
-- file: apps/web/src/features/scheduling/components/owner-badge.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/settings/Email.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/settings/Integrations.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -483,11 +351,6 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
-- file: apps/web/src/features/settings/components/signature-form.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
   owners:
   - I18N-ZH-CN-001
@@ -499,11 +362,6 @@ diffs:
   hooks: []
   override: false
 - file: apps/web/src/features/settings/email-settings.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/tasks-view/constants.ts
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -524,11 +382,6 @@ diffs:
   hooks: []
   override: false
 - file: apps/web/src/lib/core/component/AI/component/tool/email/DraftComposer.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/lib/core/component/TopBar/ShareButton.tsx
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -827,7 +680,6 @@ diffs:
   - AUTH-SELFHOST-001
   - SELFHOST-HEALTH-001
   hooks:
-  - self_host_health_auth_models_email_dep
   - self_host_health_auth_sqs_gmail_feature
   override: false
 - file: services/authentication_service/src/api.rs
@@ -1008,11 +860,6 @@ diffs:
   hooks: []
   override: false
 - file: services/email_service/src/pubsub/mod.rs
-  owners:
-  - EMAIL-SELFHOST-001
-  hooks: []
-  override: false
-- file: services/email_service/src/pubsub/util.rs
   owners:
   - EMAIL-SELFHOST-001
   hooks: []
