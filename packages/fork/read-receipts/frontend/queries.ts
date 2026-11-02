@@ -481,7 +481,13 @@ export function handleReadReceiptSentMessage(
   message: { db_id?: string | null; thread_db_id?: string | null },
   queryClient: QueryClient
 ): void {
-  if (!message.db_id) return;
+  if (
+    !message.db_id ||
+    typeof queryClient?.getQueryData !== 'function' ||
+    typeof queryClient?.setQueryData !== 'function'
+  ) {
+    return;
+  }
   // An open event can arrive before the send response. Never erase it.
   const status = queryClient.getQueryData<ReadReceiptStatusData>([
     'email',

@@ -1,3 +1,5 @@
+import type { CreditPurchaseSnapshot } from './generated/schemas/creditPurchaseSnapshot';
+import type { CreditPurchaseStatus } from './generated/schemas/creditPurchaseStatus';
 /**
  * Hand-written mirrors of the auth service's AI billing OpenAPI types
  * (`crates/ai_billing`). Replace with the orval-generated schemas on the next
@@ -31,6 +33,12 @@ export interface AiAutoReloadSnapshot {
   target_balance_cents: number;
   /** Most reloaded per UTC calendar month; `null` when there is no limit. */
   monthly_spend_limit_cents: number | null;
+  /** Authoritative UTC-month cap commitments; absent on older backends. */
+  monthly_budget?: {
+    committed_cents: number;
+    resets_at: string;
+    limit_reached: boolean;
+  } | null;
   /** Reloads are paused after a failed reload charge. */
   suspended: boolean;
   /** Overage is on and reloads are not suspended. */
@@ -49,6 +57,8 @@ export interface AiUsageSnapshot {
   used_cents: number;
   credits_consumed_cents: number;
   credit_balance_cents: number;
+  /** Team billing scope, independent of seat count; absent on older backends. */
+  credits_shared_with_team?: boolean;
   overage_enabled: boolean;
   overage_limit_cents: number;
   overage_charged_cents: number;
@@ -58,6 +68,17 @@ export interface AiUsageSnapshot {
   uncovered_cents: number;
   remaining_cents: number;
   blocked_reason?: AiDenyReason;
+  /** The monthly credit limit on this user's one-time purchases; present for
+   * paid, metered users. */
+  credit_purchase?: CreditPurchaseSnapshot;
+}
+
+/** Outcome of `POST /ai-billing/credits/purchase`. */
+export interface AiCreditPurchaseResult {
+  status: CreditPurchaseStatus;
+  amountCents: number;
+  /** Absent when the server could not read it after the purchase. */
+  snapshot?: AiUsageSnapshot;
 }
 
 export interface AiPlanCatalogEntry {
@@ -65,6 +86,9 @@ export interface AiPlanCatalogEntry {
   monthly_price_cents: number;
   included_ai_cents_per_seat: number;
   purchasable: boolean;
+  /** Monthly Auto-Reload limit a payer on this plan starts from; absent for
+   * plans that cannot reload. */
+  auto_reload_default_monthly_limit_cents?: number | null;
 }
 
 /** Thresholds automatic reload starts from before the payer sets their own. */
@@ -85,6 +109,9 @@ export interface AiPlanCatalog {
 }
 
 export type PaidPlan = 'premium' | 'max';
+
+/** Authoritative renewal and pending change from GET /user/stripe/plan. */
+export type { SubscriptionStatus } from './generated/schemas/subscriptionStatus';
 
 /**
  * A team member with the plan their seat is billed at. Mirrors the auth

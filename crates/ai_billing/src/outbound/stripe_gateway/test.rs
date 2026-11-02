@@ -16,7 +16,7 @@ const INVOICE_ID: &str = "in_overage";
 const TEAM_ID: Uuid = Uuid::from_u128(7);
 
 #[tokio::test]
-async fn open_overage_invoice_keeps_create_stable_and_updates_current_routing() {
+async fn open_credit_reload_invoice_keeps_create_stable_and_updates_current_routing() {
     let invoice = stripe_response(&draft_invoice());
     let invoice_item = stripe_response(&draft_invoice_item());
     let server = MockServer::start().await;
@@ -60,15 +60,16 @@ async fn open_overage_invoice_keeps_create_stable_and_updates_current_routing() 
         .await;
 
     gateway(&server)
-        .open_overage_invoice(OverageChargeRequest {
+        .open_credit_reload_invoice(CreditReloadRequest {
             customer_id: CUSTOMER_ID.to_string(),
-            charge_id: Uuid::from_u128(1),
+            reload_id: Uuid::from_u128(1),
+            payer: payer(),
             amount_cents: 2_500,
-            description: "Macro AI usage beyond plan".to_string(),
+            description: "Macro AI credits, automatic reload".to_string(),
             scope: SubscriptionScope::Personal,
         })
         .await
-        .expect("open overage invoice");
+        .expect("open reload invoice");
 
     let requests = server.received_requests().await.expect("recorded requests");
 
@@ -86,15 +87,15 @@ async fn open_overage_invoice_keeps_create_stable_and_updates_current_routing() 
     );
     assert_eq!(
         form_value(create_body, &format!("metadata[{PURPOSE_METADATA_KEY}]")),
-        Some(PURPOSE_AI_OVERAGE)
+        Some(PURPOSE_AI_CREDIT_RELOAD)
     );
     assert_eq!(
-        form_value(create_body, &format!("metadata[{CHARGE_METADATA_KEY}]")),
+        form_value(create_body, &format!("metadata[{RELOAD_METADATA_KEY}]")),
         Some("00000000-0000-0000-0000-000000000001")
     );
     assert_eq!(
         idempotency_key(create),
-        Some("ai_overage:00000000-0000-0000-0000-000000000001:invoice")
+        Some("ai_credit_reload:00000000-0000-0000-0000-000000000001:invoice")
     );
 
     let update = post_request(&requests, &format!("/v1/invoices/{INVOICE_ID}"));
@@ -125,15 +126,15 @@ async fn open_overage_invoice_keeps_create_stable_and_updates_current_routing() 
     assert_eq!(form_value(item_body, "subscription"), None);
     assert_eq!(
         form_value(item_body, &format!("metadata[{PURPOSE_METADATA_KEY}]")),
-        Some(PURPOSE_AI_OVERAGE)
+        Some(PURPOSE_AI_CREDIT_RELOAD)
     );
     assert_eq!(
-        form_value(item_body, &format!("metadata[{CHARGE_METADATA_KEY}]")),
+        form_value(item_body, &format!("metadata[{RELOAD_METADATA_KEY}]")),
         Some("00000000-0000-0000-0000-000000000001")
     );
     assert_eq!(
         idempotency_key(item),
-        Some("ai_overage:00000000-0000-0000-0000-000000000001:item")
+        Some("ai_credit_reload:00000000-0000-0000-0000-000000000001:item")
     );
 
     let create_at = request_position(&requests, "POST", "/v1/invoices");
@@ -181,7 +182,7 @@ async fn pay_overage_invoice_updates_a_stale_open_invoice_before_paying() {
         )
         .await
         .expect("pay overage invoice");
-    assert!(paid_now);
+    assert_eq!(paid_now, InvoicePayment::Paid);
 
     let requests = server.received_requests().await.expect("recorded requests");
     let update_at = request_position(&requests, "POST", &format!("/v1/invoices/{INVOICE_ID}"));
@@ -209,7 +210,7 @@ async fn pay_overage_invoice_updates_a_stale_open_invoice_before_paying() {
 }
 
 #[tokio::test]
-async fn open_overage_invoice_rejects_distinct_subscription_methods_without_posting() {
+async fn open_credit_reload_invoice_rejects_distinct_subscription_methods_without_posting() {
     let server = MockServer::start().await;
     mount_customer(&server).await;
     Mock::given(method("GET"))
@@ -244,11 +245,12 @@ async fn open_overage_invoice_rejects_distinct_subscription_methods_without_post
         .await;
 
     let error = gateway(&server)
-        .open_overage_invoice(OverageChargeRequest {
+        .open_credit_reload_invoice(CreditReloadRequest {
             customer_id: CUSTOMER_ID.to_string(),
-            charge_id: Uuid::from_u128(2),
+            reload_id: Uuid::from_u128(2),
+            payer: payer(),
             amount_cents: 2_500,
-            description: "Macro AI usage beyond plan".to_string(),
+            description: "Macro AI credits, automatic reload".to_string(),
             scope: SubscriptionScope::Personal,
         })
         .await
@@ -307,7 +309,7 @@ async fn pay_overage_invoice_skips_the_update_when_the_open_invoice_already_matc
         .pay_overage_invoice(Uuid::from_u128(3), INVOICE_ID, SubscriptionScope::Personal)
         .await
         .expect("pay overage invoice");
-    assert!(paid_now);
+    assert_eq!(paid_now, InvoicePayment::Paid);
 
     let requests = server.received_requests().await.expect("recorded requests");
     assert!(requests.iter().all(|request| {
@@ -324,7 +326,7 @@ async fn pay_overage_invoice_skips_the_update_when_the_open_invoice_already_matc
 }
 
 #[tokio::test]
-async fn open_overage_invoice_selects_the_subscription_for_the_requested_scope() {
+async fn open_credit_reload_invoice_selects_the_subscription_for_the_requested_scope() {
     let invoice = stripe_response(&draft_invoice());
     let invoice_item = stripe_response(&draft_invoice_item());
     let server = MockServer::start().await;
@@ -357,13 +359,13 @@ async fn open_overage_invoice_selects_the_subscription_for_the_requested_scope()
 
     let gateway = gateway(&server);
     gateway
-        .open_overage_invoice(charge(SubscriptionScope::Personal, 4))
+        .open_credit_reload_invoice(reload(SubscriptionScope::Personal, 4))
         .await
-        .expect("personal overage invoice");
+        .expect("personal reload invoice");
     gateway
-        .open_overage_invoice(charge(SubscriptionScope::Team { team_id: TEAM_ID }, 5))
+        .open_credit_reload_invoice(reload(SubscriptionScope::Team { team_id: TEAM_ID }, 5))
         .await
-        .expect("team overage invoice");
+        .expect("team reload invoice");
 
     let requests = server.received_requests().await.expect("recorded requests");
     let creates: Vec<_> = requests
@@ -415,7 +417,7 @@ async fn open_overage_invoice_selects_the_subscription_for_the_requested_scope()
 }
 
 #[tokio::test]
-async fn open_overage_invoice_replay_uses_the_retrieved_scope_and_stored_method() {
+async fn open_credit_reload_invoice_replay_uses_the_retrieved_scope_and_stored_method() {
     let cached_invoice = stripe_response(&draft_invoice());
     let mut current_invoice = draft_invoice();
     current_invoice.default_payment_method = Some(stripe::Expandable::Id(
@@ -458,7 +460,7 @@ async fn open_overage_invoice_replay_uses_the_retrieved_scope_and_stored_method(
         .await;
 
     gateway(&server)
-        .open_overage_invoice(charge(SubscriptionScope::Team { team_id: TEAM_ID }, 7))
+        .open_credit_reload_invoice(reload(SubscriptionScope::Team { team_id: TEAM_ID }, 7))
         .await
         .expect("replay overage invoice");
 
@@ -488,7 +490,7 @@ async fn open_overage_invoice_replay_uses_the_retrieved_scope_and_stored_method(
 }
 
 #[tokio::test]
-async fn open_overage_invoice_replay_returns_an_already_paid_invoice() {
+async fn open_credit_reload_invoice_replay_returns_an_already_paid_invoice() {
     let cached_invoice = stripe_response(&draft_invoice());
     let paid_invoice = stripe_response(&paid_invoice(
         CURRENT_PAYMENT_METHOD,
@@ -520,7 +522,7 @@ async fn open_overage_invoice_replay_returns_an_already_paid_invoice() {
         .await;
 
     let invoice_id = gateway(&server)
-        .open_overage_invoice(charge(SubscriptionScope::Personal, 12))
+        .open_credit_reload_invoice(reload(SubscriptionScope::Personal, 12))
         .await
         .expect("already paid invoice");
     assert_eq!(invoice_id, INVOICE_ID);
@@ -542,7 +544,7 @@ async fn open_overage_invoice_replay_returns_an_already_paid_invoice() {
 }
 
 #[tokio::test]
-async fn open_overage_invoice_leaves_a_safe_draft_when_scope_has_no_match() {
+async fn open_credit_reload_invoice_leaves_a_safe_draft_when_scope_has_no_match() {
     let invoice = stripe_response(&draft_invoice());
     let server = MockServer::start().await;
     mount_customer_and_subscriptions(&server, team_subscription()).await;
@@ -558,7 +560,7 @@ async fn open_overage_invoice_leaves_a_safe_draft_when_scope_has_no_match() {
         .await;
 
     let error = gateway(&server)
-        .open_overage_invoice(charge(SubscriptionScope::Personal, 9))
+        .open_credit_reload_invoice(reload(SubscriptionScope::Personal, 9))
         .await
         .expect_err("missing personal subscription");
     assert!(matches!(error, BillingError::Payment(_)));
@@ -576,7 +578,7 @@ async fn open_overage_invoice_leaves_a_safe_draft_when_scope_has_no_match() {
     );
     assert_eq!(
         idempotency_key(create),
-        Some("ai_overage:00000000-0000-0000-0000-000000000009:invoice")
+        Some("ai_credit_reload:00000000-0000-0000-0000-000000000009:invoice")
     );
     assert_eq!(
         requests
@@ -638,7 +640,7 @@ async fn pay_overage_invoice_keeps_a_stamped_scope_when_the_live_scope_differs()
         )
         .await
         .expect("pay stamped invoice");
-    assert!(paid_now);
+    assert_eq!(paid_now, InvoicePayment::Paid);
 
     let requests = server.received_requests().await.expect("recorded requests");
     let update = post_request(&requests, &format!("/v1/invoices/{INVOICE_ID}"));
@@ -693,7 +695,7 @@ async fn pay_overage_invoice_preserves_a_stamped_personal_method_after_team_conv
         )
         .await
         .expect("pay converted personal invoice");
-    assert!(paid_now);
+    assert_eq!(paid_now, InvoicePayment::Paid);
 
     let requests = server.received_requests().await.expect("recorded requests");
     assert!(requests.iter().all(|request| {
@@ -748,7 +750,7 @@ async fn pay_overage_invoice_returns_when_the_invoice_is_already_paid() {
         .pay_overage_invoice(Uuid::from_u128(8), INVOICE_ID, SubscriptionScope::Personal)
         .await
         .expect("already paid invoice");
-    assert!(paid_now);
+    assert_eq!(paid_now, InvoicePayment::Paid);
 
     let requests = server.received_requests().await.expect("recorded requests");
     assert!(requests.iter().all(|request| {
@@ -971,21 +973,6 @@ fn credit_reload_metadata_stamps_purpose_reload_and_payer() {
     assert!(!metadata.contains_key(CHARGE_METADATA_KEY));
 }
 
-#[test]
-fn overage_metadata_stamps_purpose_and_charge_only() {
-    let metadata = overage_metadata(Uuid::from_u128(1));
-
-    assert_eq!(metadata.len(), 2);
-    assert_eq!(
-        metadata.get(PURPOSE_METADATA_KEY).map(String::as_str),
-        Some(PURPOSE_AI_OVERAGE)
-    );
-    assert_eq!(
-        metadata.get(CHARGE_METADATA_KEY).map(String::as_str),
-        Some("00000000-0000-0000-0000-000000000001")
-    );
-}
-
 #[tokio::test]
 async fn subscription_period_reports_provider_errors() {
     let server = MockServer::start().await;
@@ -1178,12 +1165,13 @@ fn team_subscription() -> Value {
     )
 }
 
-fn charge(scope: SubscriptionScope, charge_id: u128) -> OverageChargeRequest {
-    OverageChargeRequest {
+fn reload(scope: SubscriptionScope, reload_id: u128) -> CreditReloadRequest {
+    CreditReloadRequest {
         customer_id: CUSTOMER_ID.to_string(),
-        charge_id: Uuid::from_u128(charge_id),
+        reload_id: Uuid::from_u128(reload_id),
+        payer: payer(),
         amount_cents: 2_500,
-        description: "Macro AI usage beyond plan".to_string(),
+        description: "Macro AI credits, automatic reload".to_string(),
         scope,
     }
 }
@@ -1267,4 +1255,140 @@ fn fill_missing_field(value: &mut Value, field: &str) {
         }
         Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) => {}
     }
+}
+
+#[tokio::test]
+async fn direct_usage_invoices_are_disabled_without_contacting_stripe() {
+    let server = MockServer::start().await;
+    let result = gateway(&server)
+        .open_overage_invoice(OverageChargeRequest {
+            customer_id: CUSTOMER_ID.to_string(),
+            charge_id: Uuid::from_u128(1),
+            amount_cents: 2_500,
+            description: "Retired usage charge".to_string(),
+            scope: SubscriptionScope::Personal,
+        })
+        .await;
+    assert!(matches!(
+        result,
+        Err(BillingError::DirectUsageBillingDisabled)
+    ));
+    assert!(server.received_requests().await.unwrap().is_empty());
+}
+
+fn payer() -> MacroUserIdStr<'static> {
+    MacroUserIdStr::try_from("macro|payer@example.com".to_string()).unwrap()
+}
+
+#[tokio::test]
+async fn historical_direct_usage_invoices_are_never_paid_by_the_gateway() {
+    let server = MockServer::start().await;
+    let mut invoice = open_invoice(Some(CURRENT_PAYMENT_METHOD), Some(PERSONAL_SCOPE_STAMP));
+    invoice.metadata.as_mut().unwrap().insert(
+        PURPOSE_METADATA_KEY.to_string(),
+        PURPOSE_AI_OVERAGE.to_string(),
+    );
+    Mock::given(method("GET"))
+        .and(path(format!("/v1/invoices/{INVOICE_ID}")))
+        .respond_with(ResponseTemplate::new(200).set_body_json(stripe_response(&invoice)))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let result = gateway(&server)
+        .pay_overage_invoice(Uuid::from_u128(1), INVOICE_ID, SubscriptionScope::Personal)
+        .await;
+    assert!(matches!(
+        result,
+        Err(BillingError::DirectUsageBillingDisabled)
+    ));
+    assert_eq!(server.received_requests().await.unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn void_credit_invoice_voids_an_open_invoice() {
+    let server = MockServer::start().await;
+    let open = open_invoice(Some(CURRENT_PAYMENT_METHOD), Some(PERSONAL_SCOPE_STAMP));
+    Mock::given(method("GET"))
+        .and(path(format!("/v1/invoices/{INVOICE_ID}")))
+        .respond_with(ResponseTemplate::new(200).set_body_json(stripe_response(&open)))
+        .mount(&server)
+        .await;
+    let mut voided = open.clone();
+    voided.status = Some(InvoiceStatus::Void);
+    Mock::given(method("POST"))
+        .and(path(format!("/v1/invoices/{INVOICE_ID}/void")))
+        .respond_with(ResponseTemplate::new(200).set_body_json(stripe_response(&voided)))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let outcome = gateway(&server)
+        .void_credit_invoice(INVOICE_ID)
+        .await
+        .unwrap();
+
+    assert_eq!(outcome, InvoiceVoid::Voided);
+}
+
+#[tokio::test]
+async fn void_credit_invoice_reports_an_invoice_stripe_already_collected() {
+    let server = MockServer::start().await;
+    let paid = stripe_response(&paid_invoice(CURRENT_PAYMENT_METHOD, None));
+    Mock::given(method("GET"))
+        .and(path(format!("/v1/invoices/{INVOICE_ID}")))
+        .respond_with(ResponseTemplate::new(200).set_body_json(&paid))
+        .mount(&server)
+        .await;
+
+    let outcome = gateway(&server)
+        .void_credit_invoice(INVOICE_ID)
+        .await
+        .unwrap();
+
+    assert_eq!(outcome, InvoiceVoid::Paid);
+    let requests = server.received_requests().await.unwrap();
+    assert!(
+        requests
+            .iter()
+            .all(|request| request.method.as_str() != "POST")
+    );
+}
+
+#[test]
+fn a_payment_that_stopped_for_3d_secure_needs_authentication() {
+    let with_intent = |intent: stripe::PaymentIntent| {
+        let mut invoice = open_invoice(Some(CURRENT_PAYMENT_METHOD), None);
+        invoice.payment_intent = Some(Expandable::Object(Box::new(intent)));
+        invoice
+    };
+    let requires_action = stripe::PaymentIntent {
+        status: PaymentIntentStatus::RequiresAction,
+        ..Default::default()
+    };
+    let declined_for_authentication = stripe::PaymentIntent {
+        status: PaymentIntentStatus::RequiresPaymentMethod,
+        last_payment_error: Some(Box::new(stripe::ApiErrors {
+            decline_code: Some("authentication_required".to_string()),
+            ..Default::default()
+        })),
+        ..Default::default()
+    };
+    let declined = stripe::PaymentIntent {
+        status: PaymentIntentStatus::RequiresPaymentMethod,
+        last_payment_error: Some(Box::new(stripe::ApiErrors {
+            decline_code: Some("insufficient_funds".to_string()),
+            ..Default::default()
+        })),
+        ..Default::default()
+    };
+
+    assert!(needs_authentication(&with_intent(requires_action)));
+    assert!(needs_authentication(&with_intent(
+        declined_for_authentication
+    )));
+    assert!(!needs_authentication(&with_intent(declined)));
+    assert!(!needs_authentication(&open_invoice(
+        Some(CURRENT_PAYMENT_METHOD),
+        None
+    )));
 }

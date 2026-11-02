@@ -47,6 +47,14 @@ pub(crate) fn disabled_admission() -> std::sync::Arc<dyn AiAdmissionService> {
 struct UnavailableBilling;
 
 impl ai_billing::domain::BillingService for UnavailableBilling {
+    async fn change_plan(
+        &self,
+        _: &MacroUserIdStr<'_>,
+        _: ai_billing::domain::plan_change::PlanChange,
+    ) -> ai_billing::domain::Result<()> {
+        panic!("this use case must not change plans")
+    }
+
     async fn check_allowance(
         &self,
         _: &MacroUserIdStr<'_>,
@@ -83,6 +91,14 @@ impl ai_billing::domain::BillingService for UnavailableBilling {
         panic!("admission must not change settings")
     }
 
+    async fn purchase_credits(
+        &self,
+        _: &MacroUserIdStr<'_>,
+        _: i64,
+    ) -> ai_billing::domain::Result<ai_billing::domain::CreditPurchase> {
+        panic!("admission must not purchase credits")
+    }
+
     async fn create_credit_checkout(
         &self,
         _: &MacroUserIdStr<'_>,
@@ -116,7 +132,12 @@ impl ai_billing::domain::BillingService for UnavailableBilling {
         panic!("admission must not handle invoices")
     }
 
-    async fn mark_credit_reload_invoice(&self, _: &str, _: bool) -> ai_billing::domain::Result<()> {
+    async fn mark_credit_reload_invoice(
+        &self,
+        _: &str,
+        _: Option<macro_uuid::Uuid>,
+        _: bool,
+    ) -> ai_billing::domain::Result<()> {
         panic!("admission must not handle invoices")
     }
 }
@@ -138,10 +159,13 @@ pub(crate) struct ScriptedEngine {
 /// What one turn asked of the engine, as far as tests care.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct RecordedTurn {
+    pub(crate) purpose: crate::domain::engine::TurnPurpose,
     /// Model the turn was to run on.
     pub(crate) model: String,
     /// Reasoning effort the turn was to use.
     pub(crate) reasoning_effort: agent::ReasoningEffort,
+    /// Provider speed selected for this turn.
+    pub(crate) speed: agent::ModelSpeed,
     /// The conversation, flattened to text per message.
     pub(crate) messages: Vec<String>,
     /// Every image URL attached across the conversation, in order.
@@ -150,6 +174,8 @@ pub(crate) struct RecordedTurn {
     pub(crate) instructions: Option<String>,
     /// Who the agent is, as handed to the engine.
     pub(crate) identity: Option<AgentIdentity>,
+    /// The agent whose own key the turn ran on, if any.
+    pub(crate) agent_key: Option<macro_uuid::Uuid>,
 }
 
 impl ScriptedEngine {
@@ -175,8 +201,10 @@ impl TurnEngine for ScriptedEngine {
             .lock()
             .expect("requests lock")
             .push(RecordedTurn {
+                purpose: request.purpose,
                 model: request.model.clone(),
                 reasoning_effort: request.reasoning_effort,
+                speed: request.speed,
                 messages: request
                     .messages
                     .iter()
@@ -198,6 +226,7 @@ impl TurnEngine for ScriptedEngine {
                     .collect(),
                 instructions: request.instructions.clone(),
                 identity: request.identity.clone(),
+                agent_key: request.agent_key.as_ref().map(|key| key.bot_id),
             });
         let (parts, receiver) = mpsc::channel(64);
         let script = self.script.clone();

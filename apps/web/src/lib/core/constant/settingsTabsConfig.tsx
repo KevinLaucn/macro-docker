@@ -1,29 +1,31 @@
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
-import { t } from '@macro/i18n';
-import BellIcon from '@phosphor/bell-simple.svg';
-import BugIcon from '@phosphor/bug.svg';
-import BuildingsIcon from '@phosphor/buildings.svg';
-import CalendarIcon from '@phosphor/calendar-blank.svg';
-import CpuIcon from '@phosphor/cpu.svg';
-import CreditCardIcon from '@phosphor/credit-card.svg';
-import DesktopIcon from '@phosphor/desktop.svg';
-import DeviceMobileIcon from '@phosphor/device-mobile-speaker.svg';
-import EmailIcon from '@phosphor/envelope-simple.svg';
-import GaugeIcon from '@phosphor/gauge.svg';
-import HardDrivesIcon from '@phosphor/hard-drives.svg';
+import { t } from '@app/lib/i18n';
+import { t as tFork } from '@macro/i18n';
+import settingsNavMessages from '@app/lib/i18n/locales/en/settings-nav';
+import BellIcon from '@icon/system/regular/bell-simple.svg';
+import BugIcon from '@icon/system/regular/bug.svg';
+import BuildingsIcon from '@icon/system/regular/buildings.svg';
+import CalendarIcon from '@icon/system/regular/calendar-blank.svg';
+import RoutineIcon from '@icon/system/regular/clock-clockwise.svg';
+import CpuIcon from '@icon/system/regular/cpu.svg';
+import CreditCardIcon from '@icon/system/regular/credit-card.svg';
+import DesktopIcon from '@icon/system/regular/desktop.svg';
+import DeviceMobileIcon from '@icon/system/regular/device-mobile-speaker.svg';
+import EmailIcon from '@icon/system/regular/envelope-simple.svg';
+import GaugeIcon from '@icon/system/regular/gauge.svg';
+import HardDrivesIcon from '@icon/system/regular/hard-drives.svg';
 // PRIVATE-HOOK: self_host_health:settings_icon
 import HeartbeatIcon from '@phosphor/heartbeat.svg';
-import KeyIcon from '@phosphor/key.svg';
-import KeyboardIcon from '@phosphor/keyboard.svg';
-import LinkIcon from '@phosphor/link.svg';
-import PlugIcon from '@phosphor/plug.svg';
-import PlugsConnectedIcon from '@phosphor/plugs-connected.svg';
-import BotIcon from '@phosphor/robot.svg';
-import AgentIcon from '@phosphor/sparkle.svg';
-import SwatchesIcon from '@phosphor/swatches.svg';
-import TagIcon from '@phosphor/tag-simple.svg';
-import UserIconPhosphor from '@phosphor/user.svg';
-import UsersThreeIcon from '@phosphor/users-three.svg';
+import KeyIcon from '@icon/system/regular/key.svg';
+import KeyboardIcon from '@icon/system/regular/keyboard.svg';
+import PlugIcon from '@icon/system/regular/plug.svg';
+import BotIcon from '@icon/system/regular/robot.svg';
+import AgentIcon from '@icon/system/regular/sparkle.svg';
+import SwatchesIcon from '@icon/system/regular/swatches.svg';
+import TagIcon from '@icon/system/regular/tag-simple.svg';
+import UserIconPhosphor from '@icon/system/regular/user.svg';
+import UsersIcon from '@icon/system/regular/users.svg';
+import UsersThreeIcon from '@icon/system/regular/users-three.svg';
 import { type Component, createMemo } from 'solid-js';
 import { useHasPermission } from '../context/user';
 import { isMobile } from '../mobile/isMobile';
@@ -39,14 +41,19 @@ import {
   enableCalendarScheduling,
   enableChatV3Agents,
   enableCrm,
-  enableNotificationSettings,
 } from './featureFlags';
 import { PERMISSION_IDS } from './permissions';
 import type { SettingsTab } from './SettingsState';
 
 export type SettingsTabItem = {
   tab: SettingsTab;
+  /** Shown in the interface language. */
   label: string;
+  /**
+   * The label in English. Search matches it as well as `label`, so English
+   * terms find a tab whatever the interface language.
+   */
+  englishLabel: string;
   icon: Component<{ class?: string; triggerAnimation?: boolean }>;
   /**
    * Extra search terms for this tab. The label is always searched too.
@@ -57,10 +64,43 @@ export type SettingsTabItem = {
   searchOnly?: boolean;
 };
 
+/**
+ * Whether `group` is the team group, whose nav label gets the team's name
+ * (`Team · Macro`). Matched by its General tab, since the label is translated.
+ */
+export function isTeamSettingsGroup(group: SettingsTabGroup): boolean {
+  return group.items.some((item) => item.tab === 'Team');
+}
+
 export type SettingsTabGroup = {
+  /** Shown in the interface language. */
   label: string;
   items: SettingsTabItem[];
 };
+
+/** A settings nav message that is plain text, not a plural. */
+type SettingsNavMessage = {
+  [K in keyof typeof settingsNavMessages]: (typeof settingsNavMessages)[K] extends string
+    ? K
+    : never;
+}[keyof typeof settingsNavMessages];
+
+/**
+ * A nav item whose label reads `t` on every access, so it follows the
+ * interface language. Copy items by reference, never by spreading.
+ */
+function tabItem(
+  labelKey: SettingsNavMessage,
+  item: Omit<SettingsTabItem, 'label' | 'englishLabel'>
+): SettingsTabItem {
+  return {
+    ...item,
+    englishLabel: settingsNavMessages[labelKey],
+    get label() {
+      return t(`settingsNav.${labelKey}`);
+    },
+  };
+}
 
 /**
  * Single source of truth for the settings categories: ordering, labels, icons
@@ -74,159 +114,174 @@ export type SettingsTabGroup = {
  */
 export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
   {
-    label: t('Blocks'),
+    get label() {
+      return t('settingsNav.groupTeam');
+    },
     items: [
-      {
+      tabItem('tabTeamGeneral', {
+        tab: 'Team',
+        icon: UsersThreeIcon,
+        keywords: ['team', 'workspace', 'organization', 'name', 'slug'],
+      }),
+      tabItem('tabTeamMembers', {
+        tab: 'Team Members',
+        icon: UsersIcon,
+        keywords: [
+          'team',
+          'invite',
+          'people',
+          'users',
+          'teammates',
+          'roles',
+          'seats',
+        ],
+      }),
+    ],
+  },
+  {
+    get label() {
+      return t('settingsNav.groupBlocks');
+    },
+    items: [
+      tabItem('tabEmail', {
         tab: 'Email',
-        label: t('Email'),
         icon: EmailIcon,
         keywords: ['gmail', 'inbox', 'signature', 'sync'],
-      },
-      {
+      }),
+      tabItem('tabCalendar', {
         tab: 'Calendar',
-        label: t('Calendar'),
         icon: CalendarIcon,
         keywords: ['google', 'accounts', 'visibility', 'colors'],
-      },
-      {
-        tab: 'Booking links',
-        label: t('Booking links'),
-        icon: LinkIcon,
-        keywords: ['scheduling', 'bookings', 'availability', 'meetings'],
-      },
-      {
+      }),
+      tabItem('tabAgents', {
         tab: 'Agents',
-        label: t('Agents'),
         icon: AgentIcon,
         keywords: ['ai', 'assistant', 'bot'],
-      },
-      {
+      }),
+      tabItem('tabRoutines', {
+        tab: 'Routines',
+        icon: RoutineIcon,
+        keywords: ['automation', 'schedule', 'scheduled', 'recurring'],
+      }),
+      tabItem('tabCrm', {
         tab: 'CRM',
-        label: t('CRM'),
         icon: BuildingsIcon,
         keywords: ['contacts', 'customers', 'deals'],
-      },
+      }),
     ],
   },
   {
-    label: t('Personal'),
+    get label() {
+      return t('settingsNav.groupPersonal');
+    },
     items: [
-      {
+      tabItem('tabAccount', {
         tab: 'Account',
-        label: t('Account'),
         icon: UserIconPhosphor,
         keywords: ['profile', 'user', 'email', 'name'],
-      },
-      {
+      }),
+      tabItem('tabAppearance', {
         tab: 'Appearance',
-        label: t('Appearance'),
         icon: SwatchesIcon,
         keywords: ['theme', 'dark', 'light', 'color'],
-      },
-      {
+      }),
+      tabItem('tabNotifications', {
         tab: 'Notifications',
-        label: t('Notifications'),
         icon: BellIcon,
         keywords: ['alerts', 'email', 'sound'],
-      },
-      {
+      }),
+      tabItem('tabShortcuts', {
         tab: 'Shortcuts',
-        label: t('Keyboard shortcuts'),
         icon: KeyboardIcon,
         keywords: ['keyboard', 'hotkey', 'keybinding'],
-      },
-      {
+      }),
+      tabItem('tabUsage', {
         tab: 'Usage',
-        label: t('Usage'),
         icon: GaugeIcon,
         keywords: ['ai', 'limit', 'credits', 'reload', 'usage'],
-      },
-      {
+      }),
+      tabItem('tabBilling', {
         tab: 'Billing',
-        label: t('Billing'),
         icon: CreditCardIcon,
         keywords: ['payment', 'subscription', 'invoice', 'plan'],
-      },
-      {
+      }),
+      tabItem('tabDesktopApp', {
         tab: 'Desktop App',
-        label: t('Desktop App'),
         icon: DesktopIcon,
         keywords: ['download', 'mac', 'macos', 'linux', 'version', 'update'],
-      },
-      {
+      }),
+      tabItem('tabMobileApp', {
         tab: 'Mobile App',
-        label: t('Mobile App'),
         icon: DeviceMobileIcon,
         keywords: ['phone', 'ios', 'android'],
-      },
+      }),
     ],
   },
   {
-    label: t('Workspace'),
+    get label() {
+      return t('settingsNav.groupWorkspace');
+    },
     items: [
-      {
-        tab: 'Team',
-        label: t('Team'),
-        icon: UsersThreeIcon,
-        keywords: ['members', 'users', 'workspace'],
-      },
-      {
+      tabItem('tabTags', {
         tab: 'Tags',
-        label: t('Tags'),
         icon: TagIcon,
         keywords: ['label', 'category'],
-      },
-      {
+      }),
+      tabItem('tabIntegrations', {
         tab: 'Connected',
-        label: t('Integrations'),
         icon: CpuIcon,
-        keywords: ['integrations', 'apps', 'connections'],
-      },
+        keywords: [
+          'integrations',
+          'apps',
+          'connections',
+          'agent',
+          'tools',
+          'mcp',
+          'slack',
+          'github',
+          'import',
+        ],
+      }),
     ],
   },
   {
-    label: t('Developer'),
+    get label() {
+      return t('settingsNav.groupDeveloper');
+    },
     items: [
-      {
-        tab: 'Connections',
-        label: t('Agent connections'),
-        icon: PlugsConnectedIcon,
-        keywords: ['agent', 'tools', 'apps', 'mcp'],
-      },
-      {
+      tabItem('tabRuntimes', {
         tab: 'Harness',
-        label: t('Runtimes'),
         icon: HardDrivesIcon,
         keywords: ['cursor', 'harness', 'runtime', 'credential', 'api key'],
-      },
-      {
+      }),
+      tabItem('tabMcpServer', {
         tab: 'Agent',
-        label: t('MCP server'),
         icon: PlugIcon,
         keywords: ['mcp', 'server', 'protocol'],
-      },
-      {
+      }),
+      tabItem('tabApiKeys', {
         tab: 'API Keys',
-        label: t('API Keys'),
         icon: KeyIcon,
         keywords: ['api', 'key', 'token', 'authentication'],
-      },
-      {
+      }),
+      tabItem('tabBots', {
         tab: 'Bots',
-        label: t('Bots'),
         icon: BotIcon,
         keywords: ['routine', 'bot'],
-      },
+      }),
     ],
   },
   {
-    label: t('Admin'),
+    get label() {
+      return t('settingsNav.groupAdmin');
+    },
     items: [
-      { tab: 'Admin', label: t('Debug'), icon: BugIcon, keywords: [] },
+      tabItem('tabDebug', { tab: 'Admin', icon: BugIcon, keywords: [] }),
       // PRIVATE-HOOK: self_host_health:settings_item
       {
         tab: 'SelfHostHealth',
-        label: t('Health Check'),
+        label: tFork('Health Check'),
+        englishLabel: 'Health Check',
         icon: HeartbeatIcon,
         keywords: ['health', 'self-host'],
       },
@@ -257,16 +312,15 @@ const SETTINGS_TAB_SLUGS: Record<SettingsTab, string> = {
   'Desktop App': 'desktop-app',
   Agent: 'mcp-server',
   Agents: 'agents',
+  Routines: 'routines',
   Harness: 'runtimes',
   Bots: 'bots',
   Team: 'team',
+  'Team Members': 'team-members',
   Calendar: 'calendar',
-  'Booking links': 'booking-links',
   Tags: 'tags',
   CRM: 'crm',
   Connected: 'connections',
-  // `connections` predates this tab and stays on Integrations for old links.
-  Connections: 'agent-connections',
   Email: 'email',
   GitHub: 'github',
   Admin: 'admin',
@@ -283,6 +337,10 @@ const SETTINGS_SLUG_TO_TAB = new Map<string, SettingsTab>(
 
 // Preserve daemon pairing links and bookmarks from before the rename.
 SETTINGS_SLUG_TO_TAB.set('harness', 'Harness');
+SETTINGS_SLUG_TO_TAB.set('connections', 'Connected');
+SETTINGS_SLUG_TO_TAB.set('agent-connections', 'Connected');
+// Team connections (Slack export, GitHub App) moved into Integrations.
+SETTINGS_SLUG_TO_TAB.set('team-connections', 'Connected');
 
 /** The URL slug for a settings tab (e.g. `Connected` → `connections`). */
 export const settingsTabToSlug = (tab: SettingsTab): string =>
@@ -306,29 +364,26 @@ export const useSettingsTabAvailable = () => {
   const chatV3AgentsFlag = useFeatureFlag(enableChatV3Agents);
   const crmFlag = useFeatureFlag(enableCrm);
   const desktopAppFlag = useFeatureFlag(desktopApp);
-  const notificationSettingsFlag = useFeatureFlag(enableNotificationSettings);
   const hasAdminPanel = useHasPermission(PERMISSION_IDS.WRITE_ADMIN_PANEL);
 
   return (tab: SettingsTab): boolean => {
     switch (tab) {
       case 'Appearance':
       case 'Account':
+      case 'Notifications':
       case 'Usage':
       case 'Billing':
-      case 'Extensions':
         return true;
       case 'Email':
         return ENABLE_EMAIL;
       case 'Calendar':
-      case 'Booking links':
         return calendarSchedulingFlag().enabled;
       // Issuing and copying a key is desk work, and the mobile sheet has no
       // good place for a one-time secret.
       case 'API Keys':
         return !isMobile();
-      case 'Notifications':
-        return notificationSettingsFlag().enabled;
       case 'Team':
+      case 'Team Members':
       case 'Tags':
         return true;
       // CRM is still rolling out (Macro-internal only); keep the settings tab
@@ -337,12 +392,11 @@ export const useSettingsTabAvailable = () => {
       case 'CRM':
         return crmFlag().enabled;
       case 'Connected':
-      case 'Connections':
         return true;
       case 'Shortcuts':
         return !isTouchDevice();
       case 'Mobile App':
-        return ENABLE_APP_STORE_QR_CODE && !isNativeMobilePlatform();
+        return isNativeMobilePlatform() || ENABLE_APP_STORE_QR_CODE;
       case 'Desktop App':
         return (
           isPlatform('desktop') ||
@@ -356,6 +410,10 @@ export const useSettingsTabAvailable = () => {
       case 'Harness':
       case 'Agents':
         return chatV3AgentsFlag().enabled;
+      // Touch hides the Agents sidebar that lists Routines on desktop, so
+      // phones and tablets reach the list here, beside Agents.
+      case 'Routines':
+        return chatV3AgentsFlag().enabled && isTouchDevice();
       case 'Bots':
         return botManagementFlag().enabled;
       case 'Mobile':
@@ -377,9 +435,13 @@ export const useSettingsTabAvailable = () => {
 export const useSettingsTabs = () => {
   const isAvailable = useSettingsTabAvailable();
 
+  // Labels are getters that follow the interface language; keep them live
+  // rather than copying the current text into the filtered groups.
   const searchGroups = createMemo<SettingsTabGroup[]>(() =>
     SETTINGS_TAB_GROUPS.map((group) => ({
-      label: group.label,
+      get label() {
+        return group.label;
+      },
       items: group.items.filter((item) => isAvailable(item.tab)),
     })).filter((group) => group.items.length > 0)
   );
@@ -387,7 +449,9 @@ export const useSettingsTabs = () => {
   const groups = createMemo<SettingsTabGroup[]>(() =>
     searchGroups()
       .map((group) => ({
-        ...group,
+        get label() {
+          return group.label;
+        },
         items: group.items.filter((item) => !item.searchOnly),
       }))
       .filter((group) => group.items.length > 0)

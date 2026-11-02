@@ -8,6 +8,7 @@ import {
   RedirectSplit,
   withAuth,
 } from '@components/app/split-layout/split-router/app-route-shell';
+import { useViewRestoration } from '@components/app/split-layout/view-restoration';
 import { Show } from 'solid-js';
 import {
   homeCalendarLegacyTarget,
@@ -15,7 +16,7 @@ import {
   homePreviewLegacyTarget,
 } from './home-route';
 import type { HomePreviewRouteParams } from './home-route-schema';
-import { HomeView } from './home-view';
+import { HomePendingView, HomeView } from './home-view';
 
 type HomeDetailParams = Partial<HomePreviewRouteParams> & {
   channelId?: string;
@@ -48,6 +49,7 @@ function HomeLegacyRouteView() {
 }
 
 export const HomeRouteView = withAuth(() => {
+  useViewRestoration();
   const params = useParams<HomeDetailParams>();
   const detailRequested = () =>
     homeDetailParamsFromRoute(params) !== undefined ||
@@ -63,4 +65,4 @@ export const HomeRouteView = withAuth(() => {
       <HomeView />
     </AppView>
   );
-});
+}, HomePendingView);

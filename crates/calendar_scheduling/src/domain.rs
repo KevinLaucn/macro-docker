@@ -8,3 +8,8 @@ mod recovery;
 
 pub mod booking_link_models;
 pub mod booking_links;
+
+pub mod insights;
+pub mod management;
+
+pub mod administration;

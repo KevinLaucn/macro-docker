@@ -14,16 +14,27 @@ import { idToDisplayName } from '@core/user/util';
 import { messageSendMotion } from '@core/util/message-send-motion';
 import { openExternalUrl } from '@core/util/url';
 import { t } from '@macro/i18n';
+import { stripAgentContext } from '@macro-inc/lexical-core/utils/parsers';
 import type {
   FoldedMessage,
   MessagePart,
 } from '@service-agent-fold/generated/types';
 import { UserMessageBubble } from '@ui';
-import { For, Index, type JSX, Match, Show, Switch } from 'solid-js';
+import {
+  createMemo,
+  For,
+  Index,
+  type JSX,
+  Match,
+  Show,
+  Switch,
+} from 'solid-js';
 import { match } from 'ts-pattern';
 import { useOptionalAgentSession } from '../context/AgentSessionContext';
+import { useOpenPromptOrigin } from '../open-prompt-origin';
 import { isControlMessage } from '../state/control-message';
 import { isNotificationMessage } from '../state/notification-message';
+import { agentContextText, promptOrigin } from '../state/prompt-origin';
 import { thoughtIsStreaming } from '../state/thought-streaming';
 import { segmentParts } from '../state/tool-groups';
 import {
@@ -34,12 +45,14 @@ import {
   WorkingLine,
 } from '../ui';
 import { LiveToolGroup } from '../views/LiveToolGroup';
+import { PromptFooter } from './PromptFooter';
 import { AttachmentPart } from './parts/AttachmentPart';
 import { ControlPart } from './parts/ControlPart';
 import { ElicitationPart } from './parts/ElicitationPart';
 import { PermissionPart } from './parts/PermissionPart';
 import { PlanPart } from './parts/PlanPart';
 import { type ToolUsePart, toolUsedAfter } from './parts/shared';
+import { TaskNotificationPart } from './parts/TaskNotificationPart';
 import { TextPart } from './parts/TextPart';
 import { ToolApprovalPart } from './parts/ToolApprovalPart';
 import { ToolCallPart } from './parts/ToolCallPart';
@@ -68,8 +81,14 @@ function AgentMessagePart(props: {
       <Match when={props.part.kind === 'text' && props.part}>
         {(part) => (
           <TextPart
-            text={part().text}
+            text={
+              props.message.author.kind === 'user'
+                ? stripAgentContext(part().text)
+                : part().text
+            }
             inFlight={props.inFlight}
+            hideIncompleteXml={props.message.author.kind === 'agent'}
+            accentMentions={props.message.author.kind === 'agent'}
             observeRender={
               props.message.author.kind === 'agent'
                 ? (element) =>
@@ -124,6 +143,9 @@ function AgentMessagePart(props: {
       </Match>
       <Match when={props.part.kind === 'control' && props.part}>
         {(part) => <ControlPart part={part()} />}
+      </Match>
+      <Match when={props.part.kind === 'task_notification' && props.part}>
+        {(part) => <TaskNotificationPart part={part()} />}
       </Match>
       <Match when={props.part.kind === 'elicitation' && props.part}>
         {(part) => <ElicitationPart part={part()} turn={props.message.turn} />}
@@ -252,18 +274,26 @@ function promptAuthorName(
  * A prompt, in the chat block's user-bubble treatment
  * (`@core/component/AI/component/message/UserMessage.tsx`): right-aligned,
  * rounded, filled surface shared with production chat. A prompt another
- * participant sent carries their name above the bubble.
+ * participant sent carries their name above the bubble; under it, when it was
+ * posted and, when the harness delivered it from elsewhere, where from.
  */
 function UserMessage(props: { message: FoldedMessage }) {
   const userId = useUserId();
   const authorName = () => promptAuthorName(props.message.author, userId());
+  const openOrigin = useOpenPromptOrigin();
+  // Memoized: reading the origin parses the context's XML.
+  const origin = createMemo(() => {
+    const first = props.message.parts.find((part) => part.kind === 'text');
+    const context =
+      first?.kind === 'text' ? agentContextText(first.text) : undefined;
+    return context === undefined ? undefined : promptOrigin(context);
+  });
 
   return (
     <div
-      class="flex w-full flex-col items-end gap-0.5 transition-opacity"
+      class="flex w-full flex-col items-end gap-0.5"
       // Still on the wire: the fold shows the prompt before the log confirms
-      // it, and the confirmation clears this in place.
-      classList={{ 'opacity-60': props.message.pending }}
+      // it. It reads as sent at once - dimming it made the wait feel longer.
       aria-busy={props.message.pending || undefined}
       ref={(el) =>
         messageSendMotion(el, () =>
@@ -292,6 +322,20 @@ function UserMessage(props: { message: FoldedMessage }) {
           )}
         </For>
       </UserMessageBubble>
+      <Show when={origin() || props.message.postedAt}>
+        <PromptFooter
+          origin={origin()}
+          postedAt={props.message.postedAt ?? undefined}
+          onOpen={
+            origin()?.destination
+              ? (options) => {
+                  const destination = origin()?.destination;
+                  if (destination) openOrigin(destination, options);
+                }
+              : undefined
+          }
+        />
+      </Show>
     </div>
   );
 }

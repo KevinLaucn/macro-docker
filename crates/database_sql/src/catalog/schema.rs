@@ -9,7 +9,7 @@ mod test;
 use models_databases::EntityKind as OpEntityKind;
 use models_databases::property::stored_cast_kind;
 pub use models_databases::property::{DataType, OptionValue};
-use models_databases::{ColumnId, DatabaseId, OptionId, TableId};
+use models_databases::{ColumnId, DatabaseId, Formula, OptionId, TableId};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use uuid::Uuid;
@@ -69,6 +69,11 @@ pub struct ColumnSchema {
     pub property: PropertyType,
     /// The definition's options, in any order.
     pub options: Vec<OptionSchema>,
+    /// For a derived column, its formula; its definition says what the
+    /// formula yields.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[specta(optional)]
+    pub formula: Option<Formula>,
 }
 
 /// A column's type as the properties system stores it.
@@ -137,10 +142,11 @@ impl ColumnSchema {
     }
 }
 
-/// The catalog a statement run from `scope` names tables in. A table of
-/// another database whose database and table names both match one of the
-/// scoped database's, case-insensitively as the engine matches, is left out:
-/// the scoped table wins instead of the statement being ambiguous.
+/// The catalog a statement run from `scope` names tables in. Scoped tables
+/// take precedence for unqualified names. A table of another database whose
+/// database and table names both match one of the scoped database's,
+/// case-insensitively as the engine matches, is left out: the scoped table
+/// also wins when the statement qualifies that name.
 pub fn build(schema: &Schema, scope: Option<DatabaseId>) -> Catalog {
     let qualified = |database: &str, table: &str| (database.to_lowercase(), table.to_lowercase());
     let scoped: Vec<(String, String)> = schema
@@ -174,6 +180,7 @@ pub fn build(schema: &Schema, scope: Option<DatabaseId>) -> Catalog {
                     placement: column.id,
                     name: column.name.clone(),
                     kind: column.kind(),
+                    formula: column.formula.clone(),
                 })
                 .collect(),
             source: TableSource::Database,
@@ -188,5 +195,5 @@ pub fn build(schema: &Schema, scope: Option<DatabaseId>) -> Catalog {
             })
             .filter(|table| !scoped.contains(&qualified(&table.database, &table.name))),
     );
-    Catalog { tables }
+    Catalog { tables, scope }
 }

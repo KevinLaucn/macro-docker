@@ -14,7 +14,7 @@ import {
 import type { CombinedError } from '@urql/core';
 import { err, errAsync, ok, type Result, ResultAsync } from 'neverthrow';
 import { match } from 'ts-pattern';
-import type { DatabaseEntityFailure } from '../core/write-failure';
+import type { DatabaseEntityFailure } from '../../database/core/write-failure';
 
 /** The slice of the GraphQL client a database rename sends through. */
 export type RenameDatabaseClient = {
@@ -80,7 +80,7 @@ export function renameDatabase(
               database: { ...previous.database, name: displayName },
             }
         );
-        void queryClient.invalidateQueries({
+        queryClient.invalidateQueries({
           queryKey: databasesKeys.list.queryKey,
         });
         // Qualified SQL names include the database name; open reads rerun
@@ -103,7 +103,7 @@ export function renameDatabase(
         );
         return ok(undefined);
       })
-      .exhaustive();
+      .exhaustive(async () => err({ kind: 'unreachable' }));
   };
   return new ResultAsync(renamed());
 }

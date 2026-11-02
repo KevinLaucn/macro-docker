@@ -3,7 +3,8 @@ import type {
   FieldFilters,
   QueryState,
 } from '@app/features/next-soup/filters/filter-store/types';
-import type { EmailEntity } from '@entity';
+import { fireAndForget } from '@core/util/fireAndForget';
+import { Telemetry } from '@macro-inc/observability';
 import {
   type Accessor,
   createEffect,
@@ -14,6 +15,8 @@ import {
 import { authKeys } from '../auth/keys';
 import { queryClient } from '../client';
 import { listLocalDrafts, localDraftStore } from './local-drafts';
+
+export { localDraftEntities } from './local-draft-entities';
 
 /** Account-scoped local data source; notifications are invalidations, never the truth. */
 export function createLocalDraftSource(enabled: Accessor<boolean>) {
@@ -28,22 +31,30 @@ export function createLocalDraftSource(enabled: Accessor<boolean>) {
       setReady(true);
       return;
     }
+    const span = Telemetry.span('email.drafts.discover');
     try {
       const entries = await listLocalDrafts();
+      span.setAttr('email.draft_count', entries.length);
       if (!disposed && request === generation)
         setDrafts(entries.sort((a, b) => b.updatedAt - a.updatedAt));
     } catch {
+      span.error('Unable to read local email drafts');
       if (!disposed && request === generation) setDrafts([]);
     } finally {
+      span.end();
       if (!disposed && request === generation) setReady(true);
     }
   };
-  const unsubscribe = localDraftStore.subscribe(() => {
-    void refresh();
-  });
+  // Notifications can arrive mid-disposal (an observer removed by navigation),
+  // where reading `enabled` re-runs the disposing owner's stale memos.
+  const scheduleRefresh = () =>
+    queueMicrotask(() => {
+      if (!disposed) fireAndForget(refresh(), 'email-local-drafts');
+    });
+  const unsubscribe = localDraftStore.subscribe(scheduleRefresh);
   const auth = queryClient.getQueryCache().subscribe((event) => {
     if (event.query.queryHash === JSON.stringify(authKeys.userInfo.queryKey))
-      void refresh();
+      scheduleRefresh();
   });
   onCleanup(() => {
     disposed = true;
@@ -52,54 +63,10 @@ export function createLocalDraftSource(enabled: Accessor<boolean>) {
   });
   createEffect(
     on(enabled, () => {
-      void refresh();
+      fireAndForget(refresh(), 'email-local-drafts');
     })
   );
   return { drafts: () => (enabled() ? drafts() : []), ready };
-}
-
-/** One conversation row, even when several local reply drafts share it. */
-export function localDraftEntities(
-  drafts: readonly LocalDraft[]
-): EmailEntity[] {
-  const rows = new Map<string, EmailEntity>();
-  for (const draft of drafts) {
-    if (
-      draft.status === 'synced' ||
-      (draft.status === 'deleting' &&
-        draft.queuedAttemptId &&
-        draft.queuedAttemptId === draft.latestAttemptId)
-    )
-      continue;
-    const id = draft.serverThreadId ?? draft.threadId ?? draft.key;
-    if (rows.has(id)) continue;
-    rows.set(id, {
-      type: 'email',
-      id,
-      name: draft.content.subject || 'Draft email',
-      ownerId: draft.accountId,
-      isRead: true,
-      isDraft: true,
-      isImportant: false,
-      isSignal: true,
-      done: false,
-      linkId: draft.inboxId,
-      senderEmail: draft.senderEmail,
-      participants: (draft.content.to ?? []).map((contact) => ({
-        email: contact.email,
-        name: contact.name ?? undefined,
-      })),
-      createdAt: new Date(draft.updatedAt),
-      updatedAt: new Date(draft.updatedAt),
-      snippet:
-        draft.status === 'failed' ||
-        draft.status === 'unconfirmed' ||
-        draft.status === 'delete-failed'
-          ? 'Saved on this device · Not synced'
-          : 'Saved on this device',
-    });
-  }
-  return [...rows.values()];
 }
 
 /** Server email filters also apply to recovery rows, which never visit that server. */

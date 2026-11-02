@@ -53,6 +53,14 @@ struct FakeBilling {
 }
 
 impl BillingService for FakeBilling {
+    async fn change_plan(
+        &self,
+        _: &MacroUserIdStr<'_>,
+        _: crate::domain::plan_change::PlanChange,
+    ) -> Result<()> {
+        panic!("this use case must not change plans")
+    }
+
     async fn snapshot(&self, _user: &MacroUserIdStr<'_>) -> Result<UsageSnapshot> {
         self.snapshots.fetch_add(1, Ordering::SeqCst);
         Ok(self.snapshot.clone())
@@ -81,6 +89,14 @@ impl BillingService for FakeBilling {
         _enabled: bool,
         _thresholds: AutoReloadThresholds,
     ) -> Result<UsageSnapshot> {
+        unreachable!()
+    }
+
+    async fn purchase_credits(
+        &self,
+        _user: &MacroUserIdStr<'_>,
+        _amount_cents: i64,
+    ) -> Result<crate::domain::CreditPurchase> {
         unreachable!()
     }
 
@@ -120,6 +136,7 @@ impl BillingService for FakeBilling {
     async fn mark_credit_reload_invoice(
         &self,
         _stripe_invoice_id: &str,
+        _reload_id: Option<macro_uuid::Uuid>,
         _paid: bool,
     ) -> Result<()> {
         unreachable!()
@@ -216,6 +233,52 @@ async fn record_with_policy(
 
 fn user() -> MacroUserIdStr<'static> {
     MacroUserIdStr::try_from("macro|payer@example.com".to_string()).unwrap()
+}
+
+#[tokio::test]
+async fn background_usage_recording_keeps_the_callers_trace() {
+    use tracing_subscriber::{Layer, layer::SubscriberExt};
+
+    struct Capture(Arc<AtomicBool>);
+    impl<S> Layer<S> for Capture
+    where
+        S: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+    {
+        fn on_new_span(
+            &self,
+            attrs: &tracing::span::Attributes<'_>,
+            id: &tracing::span::Id,
+            ctx: tracing_subscriber::layer::Context<'_, S>,
+        ) {
+            if attrs.metadata().name() == "ai_usage.record" {
+                let connected = ctx
+                    .span(id)
+                    .unwrap()
+                    .scope()
+                    .any(|span| span.name() == "origin");
+                if connected {
+                    self.0.store(true, Ordering::SeqCst);
+                }
+            }
+        }
+    }
+    let connected = Arc::new(AtomicBool::new(false));
+    let subscriber = tracing_subscriber::registry().with(Capture(connected.clone()));
+    tracing::subscriber::set_global_default(subscriber).expect("test subscriber installs once");
+    record(
+        AiUsageBilling::Disabled,
+        user(),
+        PlanTier::Free,
+        false,
+        0,
+        false,
+    )
+    .instrument(tracing::info_span!("origin"))
+    .await;
+    assert!(
+        connected.load(Ordering::SeqCst),
+        "background priced usage must remain in the initiating trace"
+    );
 }
 
 #[tokio::test]

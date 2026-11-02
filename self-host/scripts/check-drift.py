@@ -87,9 +87,10 @@ if "context.internal_api_key" in probes:
 compose_bins = set(re.findall(r'/app/out/([a-zA-Z0-9_-]+)', compose))
 
 # Default Email runtime binaries. The image additionally carries the migration,
-# LocalStack provisioning, and optional cognition binaries verified below.
+# LocalStack provisioning, and consolidated agent_harness_service binaries verified below.
 email_required_bins = [
     "authentication_service",
+    "calendar_service",
     "connection_gateway_service",
     "contacts_service",
     "document_storage_service",
@@ -102,14 +103,11 @@ email_required_bins = [
     "search_processing_service",
     "document_upload_finalizer_local_worker",
     "search_upload_local_worker",
-    "document_cognition_service",
+    "agent_harness_service",
 ]
 
-# Binaries used only in optional Compose profiles ("full", "agents")
-optional_profile_bins = {
-    "service",
-    "agent_harness_service",
-}
+# Binaries used only in optional Compose profiles ("full")
+optional_profile_bins: set[str] = set()
 
 for req_bin in email_required_bins:
     if req_bin not in compose_bins:
@@ -251,14 +249,15 @@ if "ghcr.io/kevinlaucn/macro-services-email" not in compose:
 if "ghcr.io/kevinlaucn/macro-init-email" not in compose:
     fail("docker-compose.yml does not default to the Email production init image")
 for service in (
-    "document_cognition_service",
-    "scheduled_action_service",
+    "agent_harness_service",
     "ai_editing_worker",
 ):
     match = re.search(rf"^  {service}:\n(.*?)(?=^  \w|^volumes:)", compose, re.M | re.S)
-    if service in ("document_cognition_service", "scheduled_action_service"):
-        if match and 'profiles: ["full"]' in match.group(1):
-            fail(f"{service} must be available in the default Email profile")
+    if service == "agent_harness_service":
+        if not match or "profiles:" in match.group(1):
+            fail(f"{service} must be available in the default Email profile without profile restrictions")
+        elif "docker.sock" in match.group(1) or "user: root" in match.group(1):
+            fail("agent_harness_service must not mount docker.sock or run as root in self-host docker-compose.yml")
     elif not match or 'profiles: ["full"]' not in match.group(1):
         fail(f"{service} must stay behind the full Compose profile")
 

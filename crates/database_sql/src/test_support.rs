@@ -38,6 +38,7 @@ pub const LOW: OptionId = OptionId::from_uuid(Uuid::from_u128(0x42));
 /// assigned and a deal linked, and the platform `macro.people`.
 pub fn catalog() -> Catalog {
     Catalog {
+        scope: None,
         tables: vec![
             Table {
                 id: DEALS,
@@ -50,12 +51,14 @@ pub fn catalog() -> Catalog {
                         placement: ColumnId::from_uuid(NAME),
                         name: "name".into(),
                         kind: ColumnKind::Text,
+                        formula: None,
                     },
                     Column {
                         id: AMOUNT,
                         placement: ColumnId::from_uuid(AMOUNT),
                         name: "amount".into(),
                         kind: ColumnKind::Number,
+                        formula: None,
                     },
                     Column {
                         id: STAGE,
@@ -74,12 +77,14 @@ pub fn catalog() -> Catalog {
                                 },
                             ],
                         },
+                        formula: None,
                     },
                     Column {
                         id: CLOSED_AT,
                         placement: ColumnId::from_uuid(CLOSED_AT),
                         name: "closed at".into(),
                         kind: ColumnKind::Date,
+                        formula: None,
                     },
                     Column {
                         id: OWNER,
@@ -89,6 +94,7 @@ pub fn catalog() -> Catalog {
                             multi: false,
                             target: EntityKind::User,
                         },
+                        formula: None,
                     },
                     Column {
                         id: TAGS,
@@ -101,18 +107,21 @@ pub fn catalog() -> Catalog {
                                 label: "vip".into(),
                             }],
                         },
+                        formula: None,
                     },
                     Column {
                         id: DONE,
                         placement: ColumnId::from_uuid(DONE),
                         name: "done".into(),
                         kind: ColumnKind::Boolean,
+                        formula: None,
                     },
                     Column {
                         id: WEBSITE,
                         placement: ColumnId::from_uuid(WEBSITE),
                         name: "website".into(),
                         kind: ColumnKind::Link,
+                        formula: None,
                     },
                 ],
                 source: TableSource::Database,
@@ -127,6 +136,7 @@ pub fn catalog() -> Catalog {
                     placement: ColumnId::from_uuid(NAME),
                     name: "name".into(),
                     kind: ColumnKind::Text,
+                    formula: None,
                 }],
                 source: TableSource::Database,
             },
@@ -149,6 +159,7 @@ pub fn catalog() -> Catalog {
                         placement: ColumnId::from_uuid(TITLE),
                         name: "title".into(),
                         kind: ColumnKind::Text,
+                        formula: None,
                     },
                     Column {
                         id: PRIORITY,
@@ -167,6 +178,7 @@ pub fn catalog() -> Catalog {
                                 },
                             ],
                         },
+                        formula: None,
                     },
                     Column {
                         id: ASSIGNEES,
@@ -176,6 +188,7 @@ pub fn catalog() -> Catalog {
                             multi: true,
                             target: EntityKind::User,
                         },
+                        formula: None,
                     },
                     Column {
                         id: DEAL,
@@ -185,6 +198,7 @@ pub fn catalog() -> Catalog {
                             multi: false,
                             target: EntityKind::Row,
                         },
+                        formula: None,
                     },
                 ],
                 source: TableSource::Database,
@@ -227,6 +241,7 @@ pub const FEATURE: OptionId = OptionId::from_uuid(Uuid::from_u128(0x75));
 /// and a query (which names definitions) can be told apart.
 pub fn issues_catalog() -> Catalog {
     Catalog {
+        scope: None,
         tables: vec![Table {
             id: ISSUES,
             database_id: WORK,
@@ -238,12 +253,14 @@ pub fn issues_catalog() -> Catalog {
                     placement: SUMMARY_PLACEMENT,
                     name: "summary".into(),
                     kind: ColumnKind::Text,
+                    formula: None,
                 },
                 Column {
                     id: POINTS,
                     placement: POINTS_PLACEMENT,
                     name: "points".into(),
                     kind: ColumnKind::Number,
+                    formula: None,
                 },
                 Column {
                     id: STATUS,
@@ -266,18 +283,21 @@ pub fn issues_catalog() -> Catalog {
                             },
                         ],
                     },
+                    formula: None,
                 },
                 Column {
                     id: DUE,
                     placement: DUE_PLACEMENT,
                     name: "due date".into(),
                     kind: ColumnKind::Date,
+                    formula: None,
                 },
                 Column {
                     id: BLOCKED,
                     placement: BLOCKED_PLACEMENT,
                     name: "blocked".into(),
                     kind: ColumnKind::Boolean,
+                    formula: None,
                 },
                 Column {
                     id: LABELS,
@@ -296,6 +316,7 @@ pub fn issues_catalog() -> Catalog {
                             },
                         ],
                     },
+                    formula: None,
                 },
                 Column {
                     id: ASSIGNEE,
@@ -305,6 +326,7 @@ pub fn issues_catalog() -> Catalog {
                         multi: false,
                         target: EntityKind::User,
                     },
+                    formula: None,
                 },
                 Column {
                     id: REVIEWERS,
@@ -314,12 +336,14 @@ pub fn issues_catalog() -> Catalog {
                         multi: true,
                         target: EntityKind::User,
                     },
+                    formula: None,
                 },
                 Column {
                     id: SPEC,
                     placement: SPEC_PLACEMENT,
                     name: "\"spec\" link".into(),
                     kind: ColumnKind::Link,
+                    formula: None,
                 },
                 Column {
                     id: PARENT,
@@ -329,6 +353,7 @@ pub fn issues_catalog() -> Catalog {
                         multi: false,
                         target: EntityKind::Row,
                     },
+                    formula: None,
                 },
             ],
             source: TableSource::Database,

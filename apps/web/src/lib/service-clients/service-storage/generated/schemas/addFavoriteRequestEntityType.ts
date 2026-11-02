@@ -23,6 +23,7 @@ export type AddFavoriteRequestEntityType =
   | 'static_file'
   | 'crm_company'
   | 'crm_contact'
+  | 'crm_pipeline'
   | 'reminder'
   | 'skill'
   | 'agent_session'
@@ -30,4 +31,5 @@ export type AddFavoriteRequestEntityType =
   | 'initiative'
   | 'database'
   | 'database_row'
-  | 'form';
+  | 'form'
+  | 'external_chat';

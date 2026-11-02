@@ -4,6 +4,7 @@ use anyhow::Context;
 use chrono::Utc;
 use document_sub_type::DocumentSubType;
 use lexical_client::types::MarkdownParseResult;
+use macro_db_client::document::get_document_version_id;
 use model::document::{DocumentMetadata, FileType};
 use model_owner::Owner;
 use models_properties::EntityType;
@@ -218,11 +219,12 @@ async fn read_design_text(file_type: FileType, content: Vec<u8>) -> anyhow::Resu
         .unwrap_or_else(|e| Err(anyhow::anyhow!("the design engine failed: {e}")))
 }
 
-/// Indexes a design the engines cannot read (an old or damaged file, or one
-/// too large to decode here) by name only, dropping the text an earlier
-/// version left, so it stays findable. Reading it again would fail the same
-/// way, so this is not an error to retry.
-async fn update_search_with_unreadable_design(
+/// Indexes a file its parser cannot read (a password-protected or damaged
+/// PDF, or a design that is old, damaged, or too large to decode here) by
+/// name only, dropping the text an earlier version left, so it stays
+/// findable. Reading it again would fail the same way, so this is not an
+/// error to retry.
+async fn update_search_with_unreadable_file(
     opensearch_client: &OpensearchClient,
     db: &sqlx::Pool<sqlx::Postgres>,
     search_extractor_message: &SearchExtractorMessage,
@@ -235,6 +237,58 @@ async fn update_search_with_unreadable_design(
         .await
         .context("unable to delete existing search results")?;
     update_search_with_parent_only_document(opensearch_client, db, search_extractor_message).await
+}
+
+/// The version whose stored content search indexes. A PDF is served from its
+/// first version, and a save adds a version without rewriting that file, so
+/// text read from any other version (a message delivered out of order, or the
+/// bytes of an API save) is not what the document shows. A DOCX is indexed
+/// from its converted PDF, which each conversion overwrites in place. Every
+/// other file is indexed at its latest version.
+async fn indexed_version_id(
+    db: &sqlx::Pool<sqlx::Postgres>,
+    search_extractor_message: &SearchExtractorMessage,
+    latest_version_id: i64,
+) -> anyhow::Result<String> {
+    if !matches!(
+        search_extractor_message.file_type,
+        FileType::Pdf | FileType::Docx
+    ) {
+        return Ok(latest_version_id.to_string());
+    }
+    let message_version_id = search_extractor_message
+        .document_version_id
+        .as_deref()
+        .context("expected document version id to be provided for pdf/docx")?;
+    if message_version_id == CONVERTED_DOCUMENT_FILE_NAME {
+        return Ok(CONVERTED_DOCUMENT_FILE_NAME.to_string());
+    }
+    let (served_version_id, _) = get_document_version_id(db, &search_extractor_message.document_id)
+        .await
+        .context("failed to get the served document version")?;
+    Ok(served_version_id.to_string())
+}
+
+/// The S3 key of the content to index, or `None` when the message names a
+/// version other than the indexed one. Content is stored under the
+/// document's owner; sync messages carry no `user_id`.
+fn raw_document_key(
+    owner: &Owner,
+    search_extractor_message: &SearchExtractorMessage,
+    document_version_id: &str,
+) -> Option<String> {
+    let document_id = &search_extractor_message.document_id;
+    if document_version_id == CONVERTED_DOCUMENT_FILE_NAME {
+        return Some(build_docx_to_pdf_converted_document_key(owner, document_id));
+    }
+    match search_extractor_message.document_version_id.as_deref() {
+        Some(msg_version_id) if msg_version_id != document_version_id => None,
+        _ => Some(build_cloud_storage_bucket_document_key(
+            owner,
+            document_id,
+            document_version_id,
+        )),
+    }
 }
 
 /// Processes a message for a standard document and reads the updated contents from s3 and updates
@@ -285,17 +339,12 @@ pub async fn update_search_with_raw_document(
 
     // TODO: this is hacky, update the search event message to use the correctly serialized
     // document key parts from the s3_key crate
-    let document_version_id = match search_extractor_message.file_type {
-        // For static/converted files, we want to use the version from the search extractor message since
-        // that is what is in s3 and document saves don't change the actual file in s3.
-        FileType::Pdf | FileType::Docx => search_extractor_message
-            .document_version_id
-            .clone()
-            .context("expected document version id to be provided for pdf/docx")?,
-        // For all other files we want to ensure we are only updating search if this message
-        // contains the latest document version id
-        _ => document_info.document_version_id.to_string(),
-    };
+    let document_version_id = indexed_version_id(
+        db,
+        search_extractor_message,
+        document_info.document_version_id,
+    )
+    .await?;
 
     if document_info.file_type.is_none() {
         tracing::debug!("file type is none");
@@ -309,25 +358,17 @@ pub async fn update_search_with_raw_document(
             .as_str(),
     )?;
 
-    let key_owner = Owner::from_principal_str(&search_extractor_message.user_id)
-        .context("search extractor message user_id is not an owner principal")?;
-    let key = if document_version_id == CONVERTED_DOCUMENT_FILE_NAME {
-        build_docx_to_pdf_converted_document_key(&key_owner, &search_extractor_message.document_id)
-    } else if let Some(msg_version_id) = search_extractor_message.document_version_id.as_ref()
-        && msg_version_id != &document_version_id
-    {
+    let Some(key) = raw_document_key(
+        &document_info.owner,
+        search_extractor_message,
+        &document_version_id,
+    ) else {
         tracing::debug!(
-            msg_version_id,
+            msg_version_id = ?search_extractor_message.document_version_id,
             document_version_id,
-            "document version is not latest, skipping"
+            "message names a version search does not index, skipping"
         );
         return Ok(());
-    } else {
-        build_cloud_storage_bucket_document_key(
-            &key_owner,
-            &search_extractor_message.document_id,
-            &document_version_id,
-        )
     };
 
     let content = s3_client
@@ -350,7 +391,16 @@ pub async fn update_search_with_raw_document(
         FileType::Pdf | FileType::Docx => {
             #[cfg(feature = "pdf")]
             {
-                let pages_content = parse_pdf_pages(content).context("unable to parse pdf")?;
+                let Some(pages_content) =
+                    parse_pdf_pages(content).context("unable to parse pdf")?
+                else {
+                    return update_search_with_unreadable_file(
+                        opensearch_client,
+                        db,
+                        search_extractor_message,
+                    )
+                    .await;
+                };
                 pages_content
                     .iter()
                     .enumerate()
@@ -416,7 +466,7 @@ pub async fn update_search_with_raw_document(
                     if let Err(error) = &read {
                         tracing::warn!(error = ?error, "indexing an unreadable design by name only");
                     }
-                    return update_search_with_unreadable_design(
+                    return update_search_with_unreadable_file(
                         opensearch_client,
                         db,
                         search_extractor_message,

@@ -3,11 +3,13 @@
 //! Doppler config check all link this library, so the service compiles once
 //! and caches as one rlib.
 
+mod account_link_state;
 mod api;
 mod config;
 // PRIVATE-HOOK: self_host_health:features
 #[path = "../../../packages/fork/self-host-health/backend/mod.rs"]
 mod features;
+pub mod domain;
 mod generate_password;
 mod microsoft_token_cipher;
 pub mod outbound;

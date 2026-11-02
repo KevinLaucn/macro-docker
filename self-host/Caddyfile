@@ -55,8 +55,13 @@
 	handle_path /contacts/* {
 		reverse_proxy contacts-service:8080
 	}
-	handle_path /cognition/* {
-		reverse_proxy document-cognition-service:8080 {
+	handle_path /calendar/* {
+		reverse_proxy calendar-service:8080
+	}
+	@cognition path /cognition /cognition/*
+	handle @cognition {
+		reverse_proxy agent-harness-service:8080 {
+			flush_interval -1
 			lb_try_duration 4s
 			lb_try_interval 250ms
 		}
@@ -90,8 +95,19 @@
 	handle_path /notification/* {
 		reverse_proxy notification-service:8080
 	}
-	handle_path /scheduled-action/* {
-		reverse_proxy scheduled-action-service:8080
+	@scheduled_action path /scheduled-action /scheduled-action/*
+	handle @scheduled_action {
+		reverse_proxy agent-harness-service:8080
+	}
+	@preview path /preview /preview/*
+	handle @preview {
+		reverse_proxy agent-harness-service:8080
+	}
+	@mcp path /mcp /mcp/*
+	handle @mcp {
+		reverse_proxy agent-harness-service:8080 {
+			flush_interval -1
+		}
 	}
 	handle_path /unfurl/* {
 		reverse_proxy unfurl-service:8080

@@ -1,3 +1,5 @@
+import { fireAndForget } from '@core/util/fireAndForget';
+import { ToggleSwitch } from '@ui';
 import { createMemo, Match, Show, Switch } from 'solid-js';
 import { ContinueButton, SkipButton } from '../components/controls';
 import {
@@ -67,7 +69,7 @@ export function TeamStep(props: {
             <InvitesPanel
               invites={invites()}
               joining={team.joining() || props.finishing}
-              onJoin={(id) => void team.join(id)}
+              onJoin={(id) => fireAndForget(team.join(id), 'onboarding')}
               onSkip={props.onSkip}
             />
           )}
@@ -125,7 +127,24 @@ function TeamForm(props: {
         onEmailChange={form.setSlot}
         onRemoveEmail={form.removeSlot}
         onAddEmail={form.addSlot}
-      />
+      >
+        <Show when={form.domain}>
+          {(domain) => (
+            <ToggleSwitch
+              size="md"
+              class="w-full gap-3 border-t border-edge-muted pt-6"
+              controlClass="shrink-0"
+              checked={form.allowDomainJoin()}
+              onChange={form.setAllowDomainJoin}
+              label={
+                <span class="text-sm text-ink">
+                  Allow @{domain()} emails to join
+                </span>
+              }
+            />
+          )}
+        </Show>
+      </TeamSetupFields>
       <ContinueButton
         label={
           props.finishing
@@ -137,12 +156,15 @@ function TeamForm(props: {
                 : 'Create team'
         }
         disabled={!form.canCreate() || props.finishing}
-        onClick={() => void form.create()}
+        onClick={() => fireAndForget(form.create(), 'onboarding')}
       />
-      <SkipButton
-        disabled={form.pending() || props.finishing}
-        onClick={props.onSkip}
-      />
+      {/* A work domain always gets a team; only personal addresses may skip. */}
+      <Show when={!form.domain}>
+        <SkipButton
+          disabled={form.pending() || props.finishing}
+          onClick={props.onSkip}
+        />
+      </Show>
     </div>
   );
 }

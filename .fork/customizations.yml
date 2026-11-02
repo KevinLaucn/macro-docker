@@ -112,7 +112,6 @@ customizations:
       failure_mode: Tracking pixel 404; Suspense white screen / flicker on list query
       verification_gate: Fork Contract Gate
     paths:
-      - docs/AGENT_GUIDE/surfaces.md
       - packages/fork/read-receipts/**
       - services/email_service/src/outbound/**
       - services/email_service/src/util/gmail/**
@@ -138,7 +137,7 @@ customizations:
       - apps/web/src/features/next-soup/actions/make-delete-action.ts
       - apps/web/src/features/next-soup/utils.ts
       - apps/web/src/features/notifications/notification-platform.ts
-      - apps/web/src/lib/queries/sync/SyncProvider.tsx
+      - apps/web/src/lib/queries/sync/use-query-sync.ts
       - apps/web/src/features/entity/extractors/entity-icon.tsx
       - apps/web/src/features/email-view/queries/use-email-query.ts
       - apps/web/src/index.css
@@ -156,7 +155,7 @@ customizations:
       - apps/web/src/features/entity/extractors/entity-icon.tsx
       - apps/web/src/features/notifications/notification-platform.ts
       - apps/web/src/index.css
-      - apps/web/src/lib/queries/sync/SyncProvider.tsx
+      - apps/web/src/lib/queries/sync/use-query-sync.ts
       - apps/web/vitest.config.ts
       - crates/email_db_client/src/lib.rs
       - crates/email_db_client/src/settings.rs
@@ -170,7 +169,6 @@ customizations:
       - services/email_service/src/outbound/scheduled_delivery.rs
       - services/email_service/src/util/gmail/send.rs
       - apps/web/src/features/email-compose/primitives/prepare-email-body.test.ts
-      - docs/AGENT_GUIDE/surfaces.md
     tests:
       - conventions
       - email-rust
@@ -279,11 +277,11 @@ customizations:
       - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
       - crates/ai_projections/src/domain/ai_projection_service.rs
       - .fork/overrides/home-recommendations.yml
-      - services/document_cognition_service/src/service/chat_renamer.rs
+      - services/agent_harness_service/src/cognition/service/chat_renamer.rs
     owned_paths:
       - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
       - crates/ai_projections/src/domain/ai_projection_service.rs
-      - services/document_cognition_service/src/service/chat_renamer.rs
+      - services/agent_harness_service/src/cognition/service/chat_renamer.rs
     tests:
       - conventions
       - web
@@ -306,7 +304,6 @@ customizations:
       - apps/web/src/lib/queries/agents/capabilities.test.tsx
       - apps/web/src/lib/queries/agents/models.test.tsx
       - apps/web/src/lib/queries/agent-session/warm.ts
-      - apps/web/src/lib/queries/claude-auth/connection.ts
       - apps/web/src/features/home/home-chat-input.tsx
       - services/sync-service/wrangler.docker.toml
     owned_paths:
@@ -317,7 +314,6 @@ customizations:
       - apps/web/src/lib/queries/agents/capabilities.test.tsx
       - apps/web/src/lib/queries/agents/models.test.tsx
       - apps/web/src/lib/queries/agent-session/warm.ts
-      - apps/web/src/lib/queries/claude-auth/connection.ts
       - apps/web/src/features/home/home-chat-input.tsx
       - crates/macro_db_migrator/Cargo.toml
       - docker/docker-compose-databases.yml
@@ -340,7 +336,6 @@ customizations:
       - tooling/xtask/crates/xtask_local/src/local/fusionauth.rs
       - tooling/xtask/crates/xtask_local/src/local/instance.rs
       - tooling/xtask/crates/xtask_local/src/local/instance/test.rs
-      - tooling/xtask/crates/xtask_local/src/local/inventory/test.rs
       - tooling/xtask/crates/xtask_local/src/local/kickstart.rs
       - tooling/xtask/crates/xtask_local/src/local/kickstart/test.rs
       - tooling/xtask/crates/xtask_local/src/local/local_env/test.rs
@@ -448,8 +443,9 @@ customizations:
       - apps/web/src/features/block-email/**
       - apps/web/src/features/email-message/**
       - apps/web/src/lib/service-clients/service-email/**
-      - apps/web/src/routes/Root.tsx
+      - apps/web/src/components/app/InitialInteractiveOnboardingModal.tsx
     owned_paths:
+      - apps/web/src/components/app/InitialInteractiveOnboardingModal.tsx
       - apps/web/src/features/block-email/component/TopBar.tsx
       - apps/web/src/features/block-email/util/emailHotkeys.ts
       - apps/web/src/features/email-message/attachment-action-adapter.ts
@@ -457,7 +453,6 @@ customizations:
       - apps/web/src/features/email-message/components/collapsed-message.tsx
       - apps/web/src/features/email-message/components/email-message-top-bar.tsx
       - apps/web/src/features/email-message/components/email-user-tooltip.tsx
-      - apps/web/src/features/email-message/components/message-actions.tsx
       - apps/web/src/features/email-message/core/email-message.ts
       - apps/web/src/features/email-message/core/format-email-date.ts
       - apps/web/src/features/email-message/primitives/email-message-body.ts
@@ -466,7 +461,6 @@ customizations:
       - apps/web/src/lib/service-clients/service-email/client.ts
       - apps/web/src/lib/service-clients/service-email/generated/client.ts
       - crates/email/Cargo.toml
-      - crates/email/src/outbound/email_pg_repo.rs
       - crates/email_db_client/src/lib.rs
       - crates/email_db_client/src/links/get.rs
       - crates/email_db_client/src/messages/mod.rs
@@ -481,7 +475,6 @@ customizations:
       - services/email_service/src/api/email/init.rs
       - services/email_service/src/api/email/links.rs
       - services/email_service/src/api/email/links/health_check.rs
-      - services/email_service/src/api/email/links/list.rs
       - services/email_service/src/api/email/messages.rs
       - services/email_service/src/api/email/settings.rs
       - services/email_service/src/api/swagger.rs
@@ -495,11 +488,9 @@ customizations:
       - services/email_service/src/pubsub/inbox_sync/operations/upsert_message.rs
       - services/email_service/src/pubsub/inbox_sync/operations/upsert_message/test.rs
       - services/email_service/src/pubsub/mod.rs
-      - services/email_service/src/pubsub/util.rs
       - services/email_service/src/util/sync_contacts.rs
       - services/email_service/src/util/sync_contacts/test.rs
       - services/email_service/src/util/upload_attachment.rs
-      - apps/web/src/routes/Root.tsx
     tests:
       - conventions
       - email-rust
@@ -535,10 +526,7 @@ customizations:
       - crates/soup/src/outbound/pg_soup_repo/candidate_gates.rs
       - services/authentication_service/Cargo.toml
       - services/authentication_service/src/api/link/gmail.rs
-      - services/authentication_service/src/api/link/gmail/test.rs
       - services/authentication_service/src/api/login/sso.rs
-      - services/authentication_service/src/api/oauth.rs
-      - services/authentication_service/src/api/oauth2.rs
       - services/authentication_service/src/api/utils.rs
       - apps/web/src/routes/Root.tsx
     tests:
@@ -550,134 +538,74 @@ customizations:
     rationale: Preserve the fork's explicit i18n runtime, extraction rules, and zh-CN coverage.
     risk: medium
     paths:
-      - apps/web/src/features/email-compose/views/reply-envelope.tsx
       - apps/web/src/features/email-compose/primitives/email-send-schedule-i18n.test.ts
-      - apps/web/src/features/property/utils/formatting.test.ts
       - apps/web/src/features/email-compose/primitives/email-send-schedule.ts
       - apps/web/src/lib/core/component/AI/component/tool/email/DraftComposer.tsx
-      - apps/web/src/lib/core/component/TopBar/ShareButton.tsx
-      - apps/web/src/features/block-md/component/ComposeTask.tsx
-      - apps/web/src/features/property/component/PropertyValuePill.tsx
       - apps/web/src/features/property/utils/formatting.ts
       - apps/web/src/features/crm/**
       - packages/fork/i18n/**
       - apps/web/src/features/calendar/calendar-settings.tsx
-      - apps/web/src/features/calendar/components/connected-calendars.tsx
-      - apps/web/src/features/scheduling/views/settings-view.tsx
-      - apps/web/src/features/scheduling/components/owner-badge.tsx
       - apps/web/src/features/settings/email-settings.tsx
-      - apps/web/src/features/settings/components/signature-form.tsx
       - apps/web/src/features/settings/Email.tsx
       - apps/web/src/features/settings/SignatureEditor.tsx
       - apps/web/src/features/settings/SignatureEditor.css
       - apps/web/src/features/auth/CalendarPermissionPrompt.tsx
-      - apps/web/src/features/settings/connections/ConnectionsPage.tsx
       - apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
       - apps/web/src/features/settings/connections/capability-row.ts
       - apps/web/src/features/block-agent/component/AgentMessage.tsx
       - rules/ast-grep/**
       - sgconfig.yml
-      - apps/web/src/components/app/app-sidebar/sidebar.tsx
-      - apps/web/src/components/app/mobile/MobilePageCreateButton.tsx
       - apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
       - apps/web/src/features/auth/GmailReauthenticationPrompt.tsx
       - apps/web/src/features/block-email/component/TopBar.tsx
       - apps/web/src/features/block-email/util/emailHotkeys.ts
-      - apps/web/src/features/block-project/component/ProjectCreateMenu.tsx
-      - apps/web/src/features/block-spreadsheet/components/SpreadsheetToolbarMenus.tsx
       - apps/web/src/features/block-spreadsheet/core/toolbar-types.ts
       - apps/web/src/features/calendar/utils/calendar-label.ts
       - apps/web/src/features/channel/Channel/channel-tabs.ts
       - apps/web/src/features/channel/CreateChannelModal.tsx
-      - apps/web/src/features/channels-view/components/ChannelsMobileView.tsx
-      - apps/web/src/features/channels-view/components/rail/ExpandedChannelsRail.tsx
       - apps/web/src/features/command/CommandMenu.tsx
-      - apps/web/src/features/command/Launcher.tsx
       - apps/web/src/features/companies/Company/Company.tsx
       - apps/web/src/features/companies/Company/CompanyContactsSection.tsx
       - apps/web/src/features/companies/core/crm-navigation.ts
       - apps/web/src/features/contacts/Contact/**
       - apps/web/src/features/drive-view/core/types.ts
-      - apps/web/src/features/email-view/components/EmailHeader.tsx
-      - apps/web/src/features/email-view/components/EmailSidebar.tsx
       - apps/web/src/features/email-view/constants.ts
-      - apps/web/src/features/entity/composed/list-entity/foreign.tsx
       - apps/web/src/features/home/components/HomeTabs.tsx
-      - apps/web/src/features/next-soup/soup-view/empty-states.tsx
-      - apps/web/src/features/next-soup/soup-view/filters-bar/search/search-facets.tsx
-      - apps/web/src/features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx
-      - apps/web/src/features/next-soup/soup-view/group-options.ts
-      - apps/web/src/features/next-soup/soup-view/soup-view-create-button.tsx
-      - apps/web/src/features/next-soup/soup-view/tab-lists.ts
       - apps/web/src/features/notifications/notification-event-catalog.ts
       - apps/web/src/features/property/utils/errorHandling.ts
-      - apps/web/src/features/settings/ConnectedAccounts.tsx
-      - apps/web/src/features/settings/Integrations.tsx
       - apps/web/src/features/settings/Shortcuts.tsx
-      - apps/web/src/features/tasks-view/constants.ts
       - apps/web/src/lib/core/component/TopBar/linkShare.ts
       - apps/web/src/lib/core/constant/PaywallState.tsx
       - apps/web/vite.base.ts
     owned_paths:
-      - apps/web/src/features/email-compose/views/reply-envelope.tsx
-      - apps/web/src/features/property/utils/formatting.test.ts
       - apps/web/src/features/email-compose/primitives/email-send-schedule.ts
       - apps/web/src/lib/core/component/AI/component/tool/email/DraftComposer.tsx
-      - apps/web/src/lib/core/component/TopBar/ShareButton.tsx
-      - apps/web/src/features/block-md/component/ComposeTask.tsx
-      - apps/web/src/features/property/component/PropertyValuePill.tsx
       - apps/web/src/features/property/utils/formatting.ts
-      - apps/web/src/components/app/app-sidebar/sidebar.tsx
       - apps/web/src/features/calendar/calendar-settings.tsx
-      - apps/web/src/features/calendar/components/connected-calendars.tsx
-      - apps/web/src/features/scheduling/views/settings-view.tsx
-      - apps/web/src/features/scheduling/components/owner-badge.tsx
       - apps/web/src/features/settings/email-settings.tsx
-      - apps/web/src/features/settings/components/signature-form.tsx
       - apps/web/src/features/settings/Email.tsx
       - apps/web/src/features/settings/SignatureEditor.tsx
       - apps/web/src/features/settings/SignatureEditor.css
       - apps/web/src/features/auth/CalendarPermissionPrompt.tsx
-      - apps/web/src/features/settings/connections/ConnectionsPage.tsx
       - apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
       - apps/web/src/features/settings/connections/capability-row.ts
       - apps/web/src/features/block-agent/component/AgentMessage.tsx
-      - apps/web/src/components/app/mobile/MobilePageCreateButton.tsx
       - apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
       - apps/web/src/features/auth/GmailReauthenticationPrompt.tsx
       - apps/web/src/features/block-email/component/TopBar.tsx
       - apps/web/src/features/block-email/util/emailHotkeys.ts
-      - apps/web/src/features/block-project/component/ProjectCreateMenu.tsx
-      - apps/web/src/features/block-spreadsheet/components/SpreadsheetToolbarMenus.tsx
       - apps/web/src/features/block-spreadsheet/core/toolbar-types.ts
       - apps/web/src/features/calendar/utils/calendar-label.ts
       - apps/web/src/features/channel/Channel/channel-tabs.ts
-      - apps/web/src/features/channels-view/components/ChannelsMobileView.tsx
-      - apps/web/src/features/channels-view/components/rail/ExpandedChannelsRail.tsx
-      - apps/web/src/features/command/Launcher.tsx
       - apps/web/src/features/drive-view/core/types.ts
-      - apps/web/src/features/email-view/components/EmailHeader.tsx
-      - apps/web/src/features/email-view/components/EmailSidebar.tsx
-      - apps/web/src/features/entity/composed/list-entity/foreign.tsx
       - apps/web/src/features/home/components/HomeTabs.tsx
-      - apps/web/src/features/next-soup/soup-view/empty-states.tsx
-      - apps/web/src/features/next-soup/soup-view/filters-bar/search/search-facets.tsx
-      - apps/web/src/features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx
-      - apps/web/src/features/next-soup/soup-view/group-options.ts
-      - apps/web/src/features/next-soup/soup-view/soup-view-create-button.tsx
-      - apps/web/src/features/next-soup/soup-view/tab-lists.ts
       - apps/web/src/features/notifications/notification-event-catalog.ts
       - apps/web/src/features/property/utils/errorHandling.ts
-      - apps/web/src/features/settings/ConnectedAccounts.tsx
-      - apps/web/src/features/settings/Integrations.tsx
       - apps/web/src/features/settings/Shortcuts.tsx
-      - apps/web/src/features/tasks-view/constants.ts
       - apps/web/src/lib/core/component/TopBar/linkShare.ts
       - apps/web/src/lib/core/constant/PaywallState.tsx
       - apps/web/vite.base.ts
       - sgconfig.yml
-      - apps/web/src/features/crm/core/navigation.ts
-      - apps/web/src/features/crm/views/company-contacts-section.tsx
       - apps/web/src/features/crm/views/contact-sharing-section.tsx
     tests:
       - conventions
@@ -699,8 +627,6 @@ customizations:
       - apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
       - apps/web/src/features/email-view/components/EmailControls.tsx
       - apps/web/src/features/email-view/components/EmailList.tsx
-      - apps/web/src/features/email-view/components/EmailHeader.tsx
-      - apps/web/src/features/email-view/components/EmailSidebar.tsx
       - apps/web/src/features/email-view/email-list-translation-context.tsx
       - apps/web/src/features/email-view/email-view.tsx
       - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
@@ -712,9 +638,7 @@ customizations:
       - apps/web/src/features/email-message/views/email-message-body.tsx
       - apps/web/src/features/email-thread/primitives/thread-navigation.ts
       - apps/web/src/features/email-view/components/EmailControls.tsx
-      - apps/web/src/features/email-view/components/EmailHeader.tsx
       - apps/web/src/features/email-view/components/EmailList.tsx
-      - apps/web/src/features/email-view/components/EmailSidebar.tsx
       - apps/web/src/features/email-view/email-view.tsx
       - apps/web/src/features/entity/composed/list-entity/email.tsx
       - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts

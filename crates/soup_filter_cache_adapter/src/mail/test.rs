@@ -11,7 +11,10 @@ use soup_filter_projection::{
 
 mod drafts;
 mod optimistic;
+mod reconciliation;
 mod reminders;
+mod retention;
+mod through;
 
 const VIEWER: &str = "macro|mail@example.com";
 const QUERY: &str = r#"query MailSeed { user { id emailLinks { id } soup(input: {initial:{limit:100,emailView:ALL}}) { items { __typename id cacheProjection ... on GraphqlSoupEmailThread { linkId ownerId inboxVisible isRead isSignal latestInboundMessageTs reminderReturnedAt mailAllPreview { id } mailDraftPreview { id } mailSentPreview { id } updatedAt } } } } }"#;
@@ -72,9 +75,16 @@ fn seed() -> Value {
 }
 async fn write<S: Storage>(engine: &mut Engine<S>, query: &str, data: &Value) {
     let vars = Map::new();
-    let projections = projection_updates(engine.storage(), query, None, &vars, data)
-        .await
-        .unwrap();
+    let projections = projection_updates(
+        cache_core::meta::bundled_schema_ref(),
+        engine.storage(),
+        query,
+        None,
+        &vars,
+        data,
+    )
+    .await
+    .unwrap();
     engine
         .write_query_with_registration_and_projections(
             None,
@@ -107,6 +117,7 @@ async fn read<S: PredicateIndexStorage>(
         PageRequest {
             view: view.into(),
             cursor,
+            through: None,
         },
     )
     .await
@@ -266,7 +277,8 @@ async fn lifecycle<S: PredicateIndexStorage>(storage: S) {
             10,
             PageRequest {
                 view: "INBOX".into(),
-                cursor: Some(cursor.clone())
+                cursor: Some(cursor.clone()),
+                through: None,
             }
         )
         .await
@@ -294,9 +306,16 @@ async fn lifecycle<S: PredicateIndexStorage>(storage: S) {
     let data = json!({"user":{"id":VIEWER,"soup":{"items":[{"__typename":"GraphqlSoupEmailThread","id":id(1),"isRead":true}]}}});
     let vars = Map::new();
     let mutations = optimistic_updates(
-        projection_updates(engine.storage(), PARTIAL, None, &vars, &data)
-            .await
-            .unwrap(),
+        projection_updates(
+            cache_core::meta::bundled_schema_ref(),
+            engine.storage(),
+            PARTIAL,
+            None,
+            &vars,
+            &data,
+        )
+        .await
+        .unwrap(),
     );
     let [OptimisticProjectionMutation::Patch { exact, .. }] = mutations.as_slice() else {
         panic!()
@@ -326,10 +345,17 @@ async fn lifecycle<S: PredicateIndexStorage>(storage: S) {
         .await
         .unwrap()
         .0;
-    assert!(matches!(
-        read(&mut engine, filters(), "INBOX", Some(cursor)).await,
-        PageResult::StaleCursor { .. }
-    ));
+    let PageResult::MailPage { keys, .. } =
+        read(&mut engine, filters(), "INBOX", Some(cursor)).await
+    else {
+        panic!("a write keeps the cursor's position")
+    };
+    assert_eq!(
+        keys,
+        all_keys(&mut engine, filters(), "INBOX").await[10..10 + keys.len()],
+        "the page after a write continues after the same row"
+    );
+    assert!(!keys.is_empty());
     let mut f = filters();
     f["emailFilter"] = json!({"tree":{"literal":{"read":true}}});
     let PageResult::MailPage { keys, .. } = read(&mut engine, f.clone(), "ALL", None).await else {
@@ -388,10 +414,17 @@ fn identity_switch_does_not_read_old_mail_bases_but_keeps_incoming_snapshots() {
         let vars = Map::new();
         let mut partial = json!({"user":{"id":"new-viewer","soup":{"items":[{"__typename":"GraphqlSoupEmailThread","id":id(1),"isRead":true}]}}});
         let reads = engine.storage().record_get_count();
-        let projections =
-            projection_updates_for_write(engine.storage(), PARTIAL, None, &vars, &partial, false)
-                .await
-                .unwrap();
+        let projections = projection_updates_for_write(
+            cache_core::meta::bundled_schema_ref(),
+            engine.storage(),
+            PARTIAL,
+            None,
+            &vars,
+            &partial,
+            false,
+        )
+        .await
+        .unwrap();
         assert_eq!(
             engine.storage().record_get_count(),
             reads,
@@ -407,10 +440,17 @@ fn identity_switch_does_not_read_old_mail_bases_but_keeps_incoming_snapshots() {
 
         // Same-identity incremental writes still resolve against the existing base.
         partial["user"]["id"] = json!(VIEWER);
-        let projections =
-            projection_updates_for_write(engine.storage(), PARTIAL, None, &vars, &partial, true)
-                .await
-                .unwrap();
+        let projections = projection_updates_for_write(
+            cache_core::meta::bundled_schema_ref(),
+            engine.storage(),
+            PARTIAL,
+            None,
+            &vars,
+            &partial,
+            true,
+        )
+        .await
+        .unwrap();
         assert!(matches!(
             projections.as_slice(),
             [ProjectionMutation::Patch { .. }]
@@ -424,10 +464,17 @@ fn identity_switch_does_not_read_old_mail_bases_but_keeps_incoming_snapshots() {
             .truncate(1);
         incoming["user"]["soup"]["items"][0]["isRead"] = json!(true);
         let reads = engine.storage().record_get_count();
-        let projections =
-            projection_updates_for_write(engine.storage(), QUERY, None, &vars, &incoming, false)
-                .await
-                .unwrap();
+        let projections = projection_updates_for_write(
+            cache_core::meta::bundled_schema_ref(),
+            engine.storage(),
+            QUERY,
+            None,
+            &vars,
+            &incoming,
+            false,
+        )
+        .await
+        .unwrap();
         assert_eq!(engine.storage().record_get_count(), reads);
         assert!(
             matches!(projections.as_slice(), [ProjectionMutation::Replace(_)]),
@@ -463,9 +510,16 @@ fn oversized_normalized_keys_are_skipped_without_losing_valid_rows() {
         let mut invalid = row(1);
         invalid["id"] = json!("x".repeat(predicate_index::MAX_EXACT_VALUE_BYTES + 1));
         let data = json!({"user":{"id":VIEWER,"soup":{"items":[invalid, row(4)]}}});
-        let updates = projection_updates(&InMemoryStorage::new(), QUERY, None, &Map::new(), &data)
-            .await
-            .unwrap();
+        let updates = projection_updates(
+            cache_core::meta::bundled_schema_ref(),
+            &InMemoryStorage::new(),
+            QUERY,
+            None,
+            &Map::new(),
+            &data,
+        )
+        .await
+        .unwrap();
         let [ProjectionMutation::Replace(document)] = updates.as_slice() else {
             panic!("only the valid row should be projected")
         };
@@ -494,6 +548,7 @@ fn page_limit_bounds_match_the_index_limit() {
                 PageRequest {
                     view: "ALL".into(),
                     cursor: None,
+                    through: None,
                 },
             )
             .await;
@@ -531,9 +586,16 @@ async fn cleared_inbox_timestamp<S: PredicateIndexStorage>(storage: S) {
         "__typename":TYPE,"id":id(4),"cacheProjection":capsule(4, false),
         "reminderReturnedAt":null,"latestInboundMessageTs":null
     }]}}});
-    let updates = projection_updates(engine.storage(), QUERY, None, &Map::new(), &partial)
-        .await
-        .unwrap();
+    let updates = projection_updates(
+        cache_core::meta::bundled_schema_ref(),
+        engine.storage(),
+        QUERY,
+        None,
+        &Map::new(),
+        &partial,
+    )
+    .await
+    .unwrap();
     assert!(matches!(
         updates.as_slice(),
         [ProjectionMutation::MarkIncomplete { .. }]
@@ -662,4 +724,59 @@ fn missing_proof_is_not_a_false_fact() {
             Some(ProjectionState::Incomplete { .. })
         ));
     })
+}
+
+#[test]
+fn spam_only_threads_stay_out_of_all_without_hiding_other_tabs() {
+    pollster::block_on(async {
+        let mut engine = Engine::new(InMemoryStorage::new());
+        let mut data = seed();
+        // Canonical All Mail previews exclude junk, even if a sent message or a
+        // provider draft still qualifies for its own tab.
+        for n in [3, 8] {
+            data["user"]["soup"]["items"][n - 1]["mailAllPreview"] = Value::Null;
+        }
+        write(&mut engine, QUERY, &data).await;
+        let all = all_keys(&mut engine, filters(), "ALL").await;
+        assert!(!all.contains(&format!("{TYPE}:{}", id(3))));
+        assert!(!all.contains(&format!("{TYPE}:{}", id(8))));
+        assert!(
+            all_keys(&mut engine, filters(), "DRAFTS")
+                .await
+                .contains(&format!("{TYPE}:{}", id(3)))
+        );
+        assert!(
+            all_keys(&mut engine, filters(), "SENT")
+                .await
+                .contains(&format!("{TYPE}:{}", id(8)))
+        );
+    });
+}
+
+#[test]
+fn legacy_mail_capsule_cannot_restore_spam_membership() {
+    pollster::block_on(async {
+        let mut engine = Engine::new(InMemoryStorage::new());
+        let mut data = seed();
+        let mut legacy = row(1);
+        legacy["cacheProjection"] = json!(
+            "Awxzb3VwLW1haWwtdjI7R3JhcGhxbFNvdXBFbWFpbFRocmVhZDowMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEFZW1haWwBgIDZ276wlQYAAAE"
+        );
+        data["user"]["soup"]["items"] = json!([legacy]);
+        write(&mut engine, QUERY, &data).await;
+        let key = RecordKey::new(format!("{TYPE}:{}", id(1))).unwrap();
+        assert!(matches!(
+            engine
+                .storage()
+                .load_projection_states(&[key])
+                .await
+                .unwrap()[0],
+            Some(ProjectionState::Incomplete { .. })
+        ));
+        assert!(all_keys(&mut engine, filters(), "ALL").await.is_empty());
+        data["user"]["soup"]["items"][0] = row(1);
+        data["user"]["soup"]["items"][0]["mailAllPreview"] = Value::Null;
+        write(&mut engine, QUERY, &data).await;
+        assert!(all_keys(&mut engine, filters(), "ALL").await.is_empty());
+    });
 }

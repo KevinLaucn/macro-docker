@@ -1,0 +1,339 @@
+import { createProjectIdentityQuery } from '@app/features/projects/queries/project-identity';
+import type { FacetSelection, SortSelection } from '@app/features/soup';
+import { soupPropertyToProperty } from '@entity/extractors-property/property-helpers';
+import type { TaskEntityWithProperties } from '@entity/types/entity';
+import { Telemetry } from '@macro-inc/observability';
+import { SYSTEM_PROPERTY_IDS } from '@property/identifiers';
+import type { Property, PropertyApiValues } from '@property/types';
+import { toPropertyDefinitionDomain } from '@property/utils/transforms';
+import { useListPropertiesQuery } from '@queries/properties/definitions';
+import { useBulkSaveEntityPropertiesMutation } from '@queries/properties/entity';
+import { getGraphqlSoupClient } from '@service-storage/graphql-soup';
+import { type Accessor, createMemo, createSignal, mapArray } from 'solid-js';
+import { sortTasks } from '../constants';
+import type { TaskBoardActions } from '../context/task-board';
+import type {
+  TaskBoardColumn,
+  TaskBoardGrouping,
+  TaskBoardTask,
+} from '../core/task-board';
+import {
+  type DateBucketBoundaries,
+  isTaskDueDateBucket,
+  type TaskDatePredicate,
+  taskDueDateBucket,
+} from '../core/task-due-date';
+import type { TaskSortId } from '../types';
+import {
+  filterTaskBoardColumns,
+  taskBoardColumns,
+  taskBoardMoveValue,
+  taskBoardPropertyId,
+  toBoardTask,
+} from './task-board';
+import type { TasksDataSourceItem } from './use-tasks-query';
+
+/** Adapts shared query caches to the board's narrow read/write capabilities. */
+export function createTaskBoardQueries(options: {
+  rows: Accessor<readonly TasksDataSourceItem[]>;
+  grouping: Accessor<TaskBoardGrouping>;
+  searching: Accessor<boolean>;
+  userId: Accessor<string | undefined>;
+  projectsEnabled: Accessor<boolean>;
+  facets?: Accessor<FacetSelection>;
+  sort?: Accessor<SortSelection<TaskSortId>[]>;
+  calendar?: Accessor<DateBucketBoundaries>;
+  dueDate?: Accessor<TaskDatePredicate | undefined>;
+}) {
+  const [propertySaving, setPropertySaving] = createSignal<string[]>([]);
+
+  const entities = createMemo(() => {
+    const result = new Map<string, TaskEntityWithProperties>();
+
+    for (const row of options.rows()) {
+      if (row.kind !== 'entity') {
+        continue;
+      }
+
+      result.set(row.entity.id, row.entity);
+    }
+
+    return result;
+  });
+
+  const definitions = useListPropertiesQuery(() => ({
+    scope: 'system',
+    includeOptions: true,
+  }));
+  const properties = createMemo(() => {
+    const available = definitions.isSuccess ? definitions.data : [];
+
+    return new Map(
+      available.map((item) => {
+        const definition = 'definition' in item ? item.definition : item;
+        const propertyOptions =
+          'property_options' in item ? item.property_options : [];
+        const property = toPropertyDefinitionDomain(
+          definition,
+          propertyOptions
+        );
+
+        return [definition.id, property];
+      })
+    );
+  });
+
+  const ranks = createMemo(() => {
+    const values = [...entities().values()];
+    const ordered = options.searching()
+      ? values
+      : sortTasks(
+          values,
+          options.sort?.() ?? [{ id: 'updated_at' }],
+          properties()
+        );
+    return new Map(ordered.map((entity, index) => [entity.id, index]));
+  });
+
+  const allColumns = createMemo(() =>
+    taskBoardColumns(
+      options.rows(),
+      options.grouping(),
+      options.searching(),
+      options.calendar?.()
+    )
+  );
+  const rawColumns = createMemo(() =>
+    filterTaskBoardColumns(
+      allColumns(),
+      options.grouping(),
+      options.facets?.() ?? {},
+      options.dueDate?.(),
+      options.calendar?.()
+    )
+  );
+
+  const projectIds = createMemo(() => {
+    if (options.grouping() !== 'project' || !options.projectsEnabled()) {
+      return [];
+    }
+
+    // A column the server already named needs no identity read.
+    return rawColumns().flatMap((column) =>
+      column.id && column.label === column.id ? [column.id] : []
+    );
+  });
+
+  const projects = mapArray(projectIds, (id) =>
+    createProjectIdentityQuery(getGraphqlSoupClient, options.userId, () => id)
+  );
+
+  const projectMap = createMemo(() => {
+    const entries = projects().flatMap((query) => {
+      const project = query.isSuccess ? query.data : undefined;
+
+      return project ? [[project.id, project] as const] : [];
+    });
+
+    return new Map(entries);
+  });
+
+  const columnLabel = (column: TaskBoardColumn) => {
+    if (!column.id) {
+      return column.label;
+    }
+
+    if (options.grouping() === 'project') {
+      if (column.label !== column.id) return column.label;
+      return projectMap().get(column.id)?.name ?? 'Project unavailable';
+    }
+
+    return column.label;
+  };
+
+  const columns = createMemo(() => {
+    const labeled = rawColumns().map((column) => ({
+      ...column,
+      label: columnLabel(column),
+    }));
+    if (options.grouping() !== 'project') return labeled;
+    // Search results arrive in result order; projects follow the list:
+    // by name, No Project last.
+    return labeled.sort((a, b) => {
+      if (!a.id || !b.id) return a.id ? -1 : b.id ? 1 : 0;
+      return a.label.localeCompare(b.label);
+    });
+  });
+
+  const save = useBulkSaveEntityPropertiesMutation();
+
+  const actions: TaskBoardActions = {
+    canEditTask(id) {
+      return entities().has(id) && !propertySaving().includes(id);
+    },
+    canMoveTo(grouping, id) {
+      const property = properties().get(taskBoardPropertyId(grouping));
+
+      if (!property) {
+        return false;
+      }
+
+      if (grouping === 'status') {
+        return !!id && !!property.options?.some((option) => option.id === id);
+      }
+
+      if (grouping === 'priority') {
+        return !id || !!property.options?.some((option) => option.id === id);
+      }
+
+      if (grouping === 'due_date') return isTaskDueDateBucket(id);
+      return grouping !== 'project' || options.projectsEnabled();
+    },
+    async save(move, grouping) {
+      const entity = entities().get(move.id);
+      const property = properties().get(taskBoardPropertyId(grouping));
+
+      if (!entity || !property) {
+        throw new Error('Task or destination is no longer editable');
+      }
+
+      const canEdit = actions.canEditTask(move.id);
+      const canMove = canEdit && actions.canMoveTo(grouping, move.toLane);
+
+      if (!canMove) {
+        throw new Error('Task or destination is no longer editable');
+      }
+      if (grouping === 'due_date') {
+        const calendar = options.calendar?.();
+        if (
+          !calendar ||
+          move.dueDate === undefined ||
+          taskDueDateBucket(move.dueDate ?? undefined, calendar) !== move.toLane
+        )
+          throw new Error('Date is outside the destination bucket');
+      }
+
+      await Telemetry.span('task.board.move', async (span) => {
+        span.setAttr('task.id', entity.id);
+        span.setAttr('task.grouping', grouping);
+        span.setAttr('task.destination', move.toLane);
+        await save.mutateAsync({
+          properties: [
+            {
+              entityId: entity.id,
+              entityType: 'TASK',
+              property,
+              apiValues: taskBoardMoveValue(entity, grouping, move),
+            },
+          ],
+        });
+      });
+    },
+  };
+
+  const property = (id: string, definitionId: string): Property | undefined => {
+    const entity = entities().get(id);
+
+    if (!entity) {
+      return undefined;
+    }
+
+    const definition = properties().get(definitionId);
+    const existing = entity.properties?.find(
+      (item) => item.definition.id === definitionId
+    );
+
+    if (existing) {
+      const value = soupPropertyToProperty(existing);
+
+      return { ...value, options: definition?.options ?? value.options };
+    }
+
+    if (!definition || definition.valueType === 'TAG') {
+      return undefined;
+    }
+
+    return {
+      propertyId: `${id}:${definitionId}`,
+      propertyDefinitionId: definitionId,
+      displayName: definition.displayName,
+      isMultiSelect: definition.isMultiSelect,
+      isMetadata: definition.isMetadata,
+      isSystemProperty: definition.isSystem,
+      isRequired: definitionId === SYSTEM_PROPERTY_IDS.STATUS,
+      owner: definition.owner,
+      specificEntityType: definition.specificEntityType,
+      createdAt: definition.createdAt,
+      updatedAt: definition.updatedAt,
+      options: definition.options,
+      valueType: definition.valueType,
+      value: null,
+    };
+  };
+
+  const saveProperty = async (
+    id: string,
+    value: Property,
+    apiValues: PropertyApiValues
+  ) => {
+    const definition = properties().get(value.propertyDefinitionId);
+
+    if (!actions.canEditTask(id) || !definition || definition.isMetadata) {
+      throw new Error('Task is no longer editable');
+    }
+
+    setPropertySaving((ids) => [...ids, id]);
+
+    try {
+      if (definition.id === SYSTEM_PROPERTY_IDS.PROJECT) {
+        if (!options.projectsEnabled() || apiValues.valueType !== 'ENTITY') {
+          throw new Error('Project editing is unavailable');
+        }
+      }
+
+      if (!entities().has(id)) {
+        throw new Error('Task is no longer editable');
+      }
+
+      await save.mutateAsync({
+        properties: [
+          { entityId: id, entityType: 'TASK', property: definition, apiValues },
+        ],
+      });
+    } finally {
+      setPropertySaving((ids) => ids.filter((pendingId) => pendingId !== id));
+    }
+  };
+
+  return {
+    actions,
+    columns,
+    compareTasks: (left: TaskBoardTask, right: TaskBoardTask) => {
+      return (
+        (ranks().get(left.id) ?? Infinity) - (ranks().get(right.id) ?? Infinity)
+      );
+    },
+    hiddenColumnCount: () => allColumns().length - rawColumns().length,
+    task: (id: string) => {
+      const entity = entities().get(id);
+
+      return entity ? toBoardTask(entity, options.calendar?.()) : undefined;
+    },
+    entity: (id: string) => entities().get(id),
+    property,
+    saveProperty,
+    canEditProperty: (id: string, definitionId: string) => {
+      const definition = properties().get(definitionId);
+
+      if (!actions.canEditTask(id) || !definition) {
+        return false;
+      }
+
+      return !definition.isMetadata;
+    },
+    definitionError: () => definitions.isError,
+    retryDefinitions: async () => {
+      await definitions.refetch();
+    },
+  };
+}

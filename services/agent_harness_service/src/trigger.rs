@@ -1,6 +1,7 @@
 //! Committed-post consumer that emits agent-session trigger events.
 
 use agent_session::outbound::postgres::PgAgentSessionRepo;
+use agent_trigger::domain::context::{DiscussionReader, PeopleDirectory};
 use agent_trigger::domain::processing::process_message_event;
 use agent_trigger::domain::project_assignment::ProjectAssignmentService;
 use agent_trigger::domain::service::AgentTriggerService;
@@ -9,8 +10,9 @@ use agent_trigger::domain::task_assignment::{
     ProjectTaskAssignmentContext, TaskAssignmentContext, process_task_assignment,
 };
 use agent_trigger::outbound::{
-    BotRepoAgentLookup, ChannelRepoTypeLookup, DssTaskAssignmentContext, FastModelTriggerJudge,
-    LexicalExplicitReplyExtractor, MessageThreadHistory, VisionImageCaptioner,
+    BotRepoAgentLookup, ChannelRepoTypeLookup, DssTaskAssignmentContext, JevTriggerJudge,
+    LexicalExplicitReplyExtractor, MessageDiscussionReader, MessageThreadHistory, ParentNameReader,
+    PgPeopleDirectory, VisionImageCaptioner,
 };
 use bots::outbound::pg_bots_repo::PgBotsRepo;
 use channels::outbound::pg_channels_repo::PgChannelsRepo;
@@ -57,7 +59,7 @@ type Trigger = AgentTriggerService<
     BotRepoAgentLookup<PgBotsRepo>,
     BotRepoAgentLookup<PgBotsRepo>,
     LexicalExplicitReplyExtractor,
-    FastModelTriggerJudge,
+    Option<JevTriggerJudge<TriggerClassifier>>,
     MessageThreadHistory<
         entity_access::domain::service::EntityAccessServiceImpl<
             entity_access::outbound::PgAccessRepository,
@@ -94,11 +96,18 @@ fn commit_message<M: MacroEventCollection + 'static>(
         .map_err(|error| anyhow::anyhow!("failed to commit trigger event offset: {error:?}"))
 }
 
+/// The Jev classifier behind implicit trigger judgement.
+pub type TriggerClassifier = jev::domain::JevClassifier<jev::outbound::SystemOneJev>;
+
 /// Shared domain services retained across trigger-consumer restarts.
 #[derive(Clone)]
 pub struct TriggerServices {
     /// Recorder configured with the host's quota policy.
     pub recorder: Arc<dyn ai_usage::UsageRecorder>,
+    /// Classifier judging which live agent an unmentioned thread reply is
+    /// for; `None` when `TYPESAFE_API_KEY` is unset, so only mentions and
+    /// explicit replies reach agents.
+    pub classifier: Option<Arc<TriggerClassifier>>,
     /// Admission gate for Macro-funded inference.
     pub admission: Arc<dyn ai_billing::AiAdmissionService>,
     /// Message service used to announce task assignments.
@@ -138,24 +147,62 @@ async fn run(
 ) -> anyhow::Result<()> {
     let TriggerServices {
         recorder,
+        classifier,
         admission,
         messages,
     } = services;
     let lexical = LexicalClient::new(internal_api_key, LexicalServiceUrl::new()?.to_string());
+    let documents = DocumentStorageServiceClient::new(
+        document_storage_service_auth_key,
+        DocumentStorageServiceUrl::new()?.to_string(),
+    );
     let task_context = ProjectTaskAssignmentContext::new(
         DssTaskAssignmentContext::new(
-            DocumentStorageServiceClient::new(
-                document_storage_service_auth_key,
-                DocumentStorageServiceUrl::new()?.to_string(),
-            ),
+            documents.clone(),
             lexical.clone(),
+            PropertiesServiceImpl::new(
+                PropertiesPgRepo::new(pool.clone()),
+                Some(PermissionServiceImpl::new(
+                    pool.clone(),
+                    Arc::new(EntityAccessServiceImpl::new(PgAccessRepository::new(
+                        pool.clone(),
+                    ))),
+                )),
+                None::<SilentAssignmentNotifications>,
+            ),
         ),
         SystemPropertiesServiceImpl::new(PgSystemPropertiesRepository::new(pool.clone())),
         EntityAccessServiceImpl::new(PgAccessRepository::new(pool.clone())),
+        initiative::domain::lookup::InitiativeLookup::new(
+            initiative::outbound::PgInitiativeRepo::new(pool.clone()),
+        ),
+    );
+    let message_reader = Arc::new(messages::domain::service::MessageService::new(
+        PgMessageRepository::new(pool.clone())
+            .with_initiatives(initiative::domain::lookup::InitiativeLookup::new(
+                initiative::outbound::PgInitiativeRepo::new(pool.clone()),
+            ))
+            .with_crm(crm::outbound::lookup::PgCrmParentReader::new(pool.clone())),
+        messages::domain::ports::NoMessageEventPublisher,
+    ));
+    let people = PgPeopleDirectory::new(pool.clone(), PgBotsRepo::new(pool.clone()));
+    let discussions = MessageDiscussionReader::new(
+        message_reader.clone(),
+        PgPeopleDirectory::new(pool.clone(), PgBotsRepo::new(pool.clone())),
+        ParentNameReader::new(
+            PgChannelsRepo::new(pool.clone()),
+            documents,
+            initiative::domain::lookup::InitiativeLookup::new(
+                initiative::outbound::PgInitiativeRepo::new(pool.clone()),
+            ),
+            crm::outbound::lookup::PgCrmParentReader::new(pool.clone()),
+            call::outbound::pg_call_repo::PgCallRepo::new(pool.clone()),
+        ),
+        lexical.clone(),
     );
     let images = VisionImageCaptioner::new(
         static_file::outbound::CdnStaticFileRepo::new(StaticFileServiceUrl::new()?.to_string()),
-        recorder.clone(),
+        recorder,
     );
     let trigger = AgentTriggerService::new(
         PgAgentSessionRepo::new(
@@ -166,21 +213,27 @@ async fn run(
         BotRepoAgentLookup::new(PgBotsRepo::new(pool.clone())),
         BotRepoAgentLookup::new(PgBotsRepo::new(pool.clone())),
         LexicalExplicitReplyExtractor::new(lexical),
-        FastModelTriggerJudge::new(recorder, images),
+        classifier.map(|classifier| JevTriggerJudge::new(classifier, images)),
         MessageThreadHistory::new(
-            std::sync::Arc::new(messages::domain::service::MessageService::new(
-                PgMessageRepository::new(pool.clone())
-                    .with_initiatives(initiative::domain::lookup::InitiativeLookup::new(
-                        initiative::outbound::PgInitiativeRepo::new(pool.clone()),
-                    ))
-                    .with_crm(crm::outbound::lookup::PgCrmParentReader::new(pool.clone())),
-                messages::domain::ports::NoMessageEventPublisher,
-            )),
+            message_reader,
             entity_access::domain::service::EntityAccessServiceImpl::new(
                 entity_access::outbound::PgAccessRepository::new(pool.clone()),
             ),
         ),
     )
+    .with_conversations(std::sync::Arc::new(
+        agent_trigger::domain::conversations::ConversationRouter::new(
+            PgChannelsRepo::new(pool.clone()),
+            bots::domain::service::BotServiceImpl::new(
+                PgBotsRepo::new(pool.clone()),
+                macro_event_broker::NoopMacroEventBroker,
+            ),
+            PgAgentSessionRepo::new(
+                pool.clone(),
+                OwnedEntityRegistrar::new(OwnerGrantPolicy::new(PgBotsRepo::new(pool.clone()))),
+            ),
+        ),
+    ))
     .with_admission(admission);
     let channel_types = ChannelRepoTypeLookup::new(PgChannelsRepo::new(pool.clone()));
     let publisher = MacroEventBrokerService::new(
@@ -208,7 +261,11 @@ async fn run(
         consumer,
         &trigger,
         &publisher,
-        &channel_types,
+        &ContextReaders {
+            channel_types,
+            discussions,
+            people,
+        },
         messages.as_ref(),
         &task_context,
         &project_assignments,
@@ -216,12 +273,19 @@ async fn run(
     .await
 }
 
+/// What the trigger reads beside the post to describe the agents it calls.
+struct ContextReaders<Discussions, People> {
+    channel_types: ChannelTypes,
+    discussions: Discussions,
+    people: People,
+}
+
 /// Read the trigger topic until it fails, evaluating every committed post.
 async fn consume<Events: TriggerEvents>(
     consumer: KafkaConsumerAdapter<AgentTriggerConsumerGroup, ()>,
     trigger: &Trigger,
     publisher: &Publisher,
-    channel_types: &ChannelTypes,
+    readers: &ContextReaders<impl DiscussionReader, impl PeopleDirectory>,
     messages: &dyn MessageServiceApi,
     task_context: &impl TaskAssignmentContext,
     project_assignments: &ProjectAssignmentService<
@@ -272,11 +336,25 @@ async fn consume<Events: TriggerEvents>(
             tracing::Span::current().record("macro.event.type", decoded.event_type);
 
             if let Some(posted) = &decoded.posted {
-                process_message_event(trigger, publisher, channel_types, posted).await?;
+                process_message_event(
+                    trigger,
+                    publisher,
+                    &readers.channel_types,
+                    &readers.discussions,
+                    posted,
+                )
+                .await?;
             }
             if let Some(assignment) = &decoded.assignment {
-                process_task_assignment(trigger, publisher, messages, task_context, assignment)
-                    .await?;
+                process_task_assignment(
+                    trigger,
+                    publisher,
+                    messages,
+                    task_context,
+                    &readers.people,
+                    assignment,
+                )
+                .await?;
             }
             if let Some(added) = &decoded.project_task {
                 project_assignments.process(added).await?;

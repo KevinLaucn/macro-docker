@@ -1,6 +1,7 @@
 import { parseAgentsRoute } from '@app/features/agents-view/core/route';
 import { useSpreadsheetAccess } from '@app/features/block-spreadsheet/primitives/use-spreadsheet-access';
 import type { EventEditorInitialValues } from '@app/features/calendar/components/composer/event-form-model';
+import type { CreatedCalendarEvent } from '@app/features/calendar/hooks/use-event-editor';
 import type { CalendarEvent } from '@app/features/calendar/types';
 import { HomeRouteView } from '@app/features/home/route-views';
 import { parseProjectRoute } from '@app/features/projects/core/route';
@@ -45,6 +46,10 @@ const CalendarRouteView = lazyNamed(
   () => import('@app/features/calendar-view/route-views'),
   'CalendarRouteView'
 );
+const BookingLinksRouteView = lazyNamed(
+  () => import('@app/features/scheduling/route-views'),
+  'BookingLinksRouteView'
+);
 const ChannelsRouteView = lazyNamed(
   () => import('@app/features/channels-view/route-views'),
   'ChannelsRouteView'
@@ -81,6 +86,10 @@ const SearchRouteView = lazyNamed(
   () => import('@app/features/next-soup/route-views'),
   'SearchRouteView'
 );
+const FolderComposeView = lazyNamed(
+  () => import('@app/features/drive-view/folder-compose-view'),
+  'FolderComposeView'
+);
 const CreateProjectView = lazyNamed(
   () => import('@app/features/projects/project-view'),
   'CreateProjectView'
@@ -92,6 +101,10 @@ const ProjectsListView = lazyNamed(
 const ProjectView = lazyNamed(
   () => import('@app/features/projects/project-view'),
   'ProjectView'
+);
+const ExternalRouteView = lazyNamed(
+  () => import('@app/features/external-view/route-views'),
+  'ExternalRouteView'
 );
 const ReviewsRouteView = lazyNamed(
   () => import('@app/features/reviews-view/route-views'),
@@ -122,7 +135,7 @@ const ComposeSkill = lazyNamed(
   'ComposeSkill'
 );
 const ComposeTask = lazyNamed(
-  () => import('@block-md/component/ComposeTask'),
+  () => import('@app/features/task-composer/compose-task'),
   'ComposeTask'
 );
 const ComposeDocument = lazyNamed(
@@ -264,6 +277,9 @@ const GatedCreateProjectView = (
 registerComponent('new-project', withAuth(GatedCreateProjectView), {
   splitPanelLayout: 'composable',
 });
+registerComponent('folder-compose', withAuth(FolderComposeView), {
+  splitPanelLayout: 'composable',
+});
 registerComponent('project-compose', withAuth(GatedCreateProjectView), {
   splitPanelLayout: 'composable',
 });
@@ -327,7 +343,11 @@ registerComponent(
   () => <DriveRouteView />,
   () => composableLayout(true)
 );
-registerComponent('reviews', () => <ReviewsRouteView />);
+registerComponent(
+  'reviews',
+  () => <ReviewsRouteView />,
+  () => composableLayout(true)
+);
 registerComponent(
   'tasks',
   () => <TasksRouteView />,
@@ -345,15 +365,15 @@ registerComponent(
   () => <ChannelsRouteView />,
   () => composableLayout()
 );
-registerComponent('calls', () => <CallsRouteView />);
 registerComponent(
-  'companies',
-  () => <CompaniesRouteView />,
-  () => ({
-    ownsCollectionState: true,
-    ...(isTouchDevice() ? {} : { splitPanelLayout: 'composable' as const }),
-  })
+  'calls',
+  () => <CallsRouteView />,
+  () => composableLayout()
 );
+registerComponent('companies', () => <CompaniesRouteView />, {
+  ownsCollectionState: true,
+  splitPanelLayout: 'composable',
+});
 registerComponent('folders', () => <FoldersRouteView />);
 registerComponent('search', () => <SearchRouteView />);
 registerComponent('firehose', () => (
@@ -389,11 +409,27 @@ registerComponent('email-compose', (params) => {
     typeof params.initialInboxId === 'string'
       ? params.initialInboxId
       : undefined;
+  const initialSubject =
+    typeof params.initialSubject === 'string'
+      ? params.initialSubject
+      : undefined;
+  const initialBodyText =
+    typeof params.initialBodyText === 'string'
+      ? params.initialBodyText
+      : undefined;
+  const initialAttachments = Array.isArray(params.initialAttachments)
+    ? params.initialAttachments.filter(
+        (value): value is File => value instanceof File
+      )
+    : undefined;
   return (
     <EmailCompose
       draftId={draftID}
       initialTo={initialTo}
       initialInboxId={initialInboxId}
+      initialSubject={initialSubject}
+      initialBodyText={initialBodyText}
+      initialAttachments={initialAttachments}
     />
   );
 });
@@ -436,6 +472,11 @@ registerComponent('calendar-event-compose', (params) => {
         params?.onDirtyChange as ((dirty: boolean) => void) | undefined
       }
       onSaveSuccess={params?.onSaveSuccess as (() => void) | undefined}
+      onCreated={
+        params?.onCreated as
+          | ((created: CreatedCalendarEvent) => void)
+          | undefined
+      }
     />
   );
 });
@@ -451,6 +492,16 @@ registerComponent(
 registerComponent(
   'settings',
   () => <SettingsRouteView />,
+  () => composableLayout()
+);
+registerComponent(
+  'booking-links',
+  () => <BookingLinksRouteView />,
+  () => composableLayout()
+);
+registerComponent(
+  'external',
+  () => <ExternalRouteView />,
   () => composableLayout()
 );
 
@@ -556,6 +607,11 @@ if (LOCAL_ONLY) {
   );
 
   registerComponent(
+    'agent-progress',
+    lazy(() => import('@app/features/agent-activity/debug/ProgressPlayground'))
+  );
+
+  registerComponent(
     'agent-changes-ui',
     lazy(() => import('@app/features/changes/debug/Gallery'))
   );
@@ -638,4 +694,9 @@ registerComponent(
 registerComponent(
   'ui',
   lazy(() => import('@app/features/ui-gallery/UiGallery'))
+);
+
+registerComponent(
+  'create-menu-demo',
+  lazy(() => import('@app/features/command/debug/CreateMenuDemo'))
 );

@@ -9,7 +9,9 @@ import { createSpreadsheetDocument } from '@app/features/block-spreadsheet/queri
 import { isSpreadsheetEnabledForCurrentUser } from '@app/features/block-spreadsheet/queries/spreadsheet-access';
 import { EMAIL_COMPOSE_TO_INPUT_ID } from '@app/features/email-compose/core/constants';
 import { useQuickCallsFlag } from '@app/features/meetings/use-quick-calls-flag';
+import { raiseKeyboardForNewTaskTitle } from '@app/features/task-composer/new-task-title-focus';
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
+import { t } from '@app/lib/i18n';
 import {
   endTrackedDocumentSpan,
   registerDocumentSpan,
@@ -23,6 +25,7 @@ import { getIconConfig } from '@core/component/EntityIcon';
 import { toast } from '@core/component/Toast/Toast';
 import {
   enableAiEditor,
+  enableCarouselCreateMenu,
   enableChatV3Agents,
   enableDatabases,
   enableFigViewer,
@@ -43,28 +46,25 @@ import { TOKENS } from '@core/hotkey/tokens';
 import type { ValidHotkey } from '@core/hotkey/types';
 import { isMobile } from '@core/mobile/isMobile';
 import {
-  createCanvasFileFromJsonString,
+  createCanvasFile,
   createChat,
   createCodeFileFromText,
   createMarkdownFile,
   createSnippet,
 } from '@core/util/create';
 import { createControlledOpenSignal } from '@core/util/createControlledOpenSignal';
+import { fireAndForget } from '@core/util/fireAndForget';
+import ChatIcon from '@icon/system/regular/chat.svg';
+import MagnifyingGlassIcon from '@icon/system/regular/magnifying-glass.svg';
+import PlusIcon from '@icon/system/regular/plus.svg';
 import { Dialog } from '@kobalte/core/dialog';
-import { t } from '@macro/i18n';
 import { getMarkdownGoldenBytes } from '@macro-inc/lexical-core/markdown-golden';
-import type { Span } from '@macro-inc/observability';
-import ChatIcon from '@phosphor/chat.svg';
-import MagnifyingGlassIcon from '@phosphor/magnifying-glass.svg';
-import PlusIcon from '@phosphor/plus.svg';
+import { type Span, Telemetry } from '@macro-inc/observability';
 import { createDatabase } from '@queries/storage/databases';
 import { createForm } from '@queries/storage/forms';
-import { createProject } from '@queries/storage/projects';
 import { makePersisted } from '@solid-primitives/storage';
 import { useNavigate } from '@solidjs/router';
 import {
-  CommandMenuHotkeyHint,
-  CommandMenuList,
   CommandMenuSearchInput,
   CommandMenuShell,
   cn,
@@ -75,23 +75,34 @@ import {
 import { getNormalizedKeyString } from '@ui/components/Hotkey';
 import {
   type Accessor,
-  createEffect,
   createMemo,
   createSignal,
+  type JSX,
+  lazy,
   onCleanup,
   onMount,
   Show,
+  Suspense,
 } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { Dynamic } from 'solid-js/web';
+import {
+  type PaneCreateContext,
+  useCreateContext,
+} from './context/create-context';
+import { creatableDescription, creatableId } from './core/creatable';
+import type { CreateMenuSection } from './core/create-menu-details';
+import {
+  launcherItemKey,
+  recentLauncherBlocks,
+  sortLauncherBlocks,
+} from './core/launcher-history';
 import { createCallCommand } from './create-call-command';
 import { MobileCreateSheet } from './mobile/MobileCreateSheet';
-import type { CreatableBlock, CreatableName } from './types';
+import type { CreatableBlock, CreatableName, OpenCreatedItem } from './types';
 
 const LAUNCHER_FRECENCY_STORE = 'launcher-frecency-v1';
 const LAUNCHER_SEARCH_MODE_STORE = 'launcher-search-mode-v1';
-const FRECENCY_COUNT_WEIGHT = 10;
-const FRECENCY_HALF_LIFE_DAYS = 14;
 
 type LauncherFrecencyEntry = {
   count: number;
@@ -105,35 +116,12 @@ const [launcherFrecencyStore, setLauncherFrecencyStore] = makePersisted(
   { name: LAUNCHER_FRECENCY_STORE }
 );
 const [launcherSearchMode, setLauncherSearchModePreference] = makePersisted(
-  createSignal(false),
+  createSignal(true),
   { name: LAUNCHER_SEARCH_MODE_STORE }
 );
 
-function launcherItemKey(item: CreatableBlock) {
-  return String(item.hotkeyToken ?? `${item.label}:${item.hotkey}`);
-}
-
-function launcherFrecencyScore(item: CreatableBlock, now = Date.now()) {
-  const entry = launcherFrecencyStore[launcherItemKey(item)];
-  if (!entry) return 0;
-
-  const ageMs = Math.max(now - entry.lastUsedAt, 0);
-  const halfLifeMs = FRECENCY_HALF_LIFE_DAYS * 24 * 60 * 60 * 1000;
-  const recency = Math.pow(0.5, ageMs / halfLifeMs);
-
-  return entry.count * FRECENCY_COUNT_WEIGHT + recency;
-}
-
-function sortLauncherBlocks(items: CreatableBlock[]) {
-  const now = Date.now();
-  return items
-    .map((item, index) => ({
-      item,
-      index,
-      score: launcherFrecencyScore(item, now),
-    }))
-    .sort((a, b) => b.score - a.score || a.index - b.index)
-    .map(({ item }) => item);
+export function useRecentCreateMenuBlocks(items: Accessor<CreatableBlock[]>) {
+  return createMemo(() => recentLauncherBlocks(items(), launcherFrecencyStore));
 }
 
 function trackLauncherItemUsage(item: CreatableBlock) {
@@ -151,9 +139,12 @@ function matchesLauncherSearch(item: CreatableBlock, query: string) {
 
   if (terms.length === 0) return true;
 
+  // Translated text plus the English id and keywords, so English terms keep
+  // matching in every interface language.
   const searchableText = [
     item.label,
-    item.description,
+    creatableId(item),
+    creatableDescription(item),
     item.launcherHint,
     item.blockName,
     ...(item.keywords ?? []),
@@ -170,17 +161,19 @@ const createBlock = async (spec: {
   createFn: () => Promise<string | undefined>;
   loading?: boolean;
   shouldInsert?: boolean;
+  openCreated?: OpenCreatedItem;
   /** Active creation span; registered by document id after creation. */
   span?: Span;
 }) => {
   const { openWithSplit } = useSplitLayout();
-  const { blockName, createFn, loading, span } = spec;
+  const { blockName, createFn, loading, openCreated, span } = spec;
 
   setCreateMenuOpen(false, false);
 
   // On mobile, navigate directly after creation instead of showing an
-  // intermediate loading pane during the swipe transition.
-  const showLoadingFirst = loading && !isMobile();
+  // intermediate loading pane during the swipe transition. The loading pane
+  // would also unmount a surface that opens the document itself.
+  const showLoadingFirst = loading && !isMobile() && !openCreated;
 
   const split = showLoadingFirst
     ? openWithSplit(
@@ -199,6 +192,11 @@ const createBlock = async (spec: {
 
   span?.setAttr('document.id', id);
   if (span) registerDocumentSpan(id, span);
+
+  if (openCreated?.({ blockName, id })) {
+    span?.event('doc.navigated');
+    return;
+  }
 
   // If we are creating a new markdown document "from scratch" then we can let
   // them instantly start editing
@@ -234,7 +232,9 @@ const createBlock = async (spec: {
   span?.event('doc.navigated');
 };
 
-const createComponent = async (spec: {
+const reportCreateBlockError = (error: unknown) =>
+  Telemetry.error(error, { surface: 'launcher' });
+const createComponent = (spec: {
   componentId: string;
   shouldInsert?: boolean;
   asPopover?: boolean;
@@ -267,9 +267,19 @@ const createComponent = async (spec: {
 
 export function runCreateAction(
   blockName: CreatableName,
-  options: { shouldInsert?: boolean; source?: string; projectId?: string } = {}
+  options: {
+    shouldInsert?: boolean;
+    source?: string;
+    projectId?: string;
+    destination?: string;
+    /** Creatables that open a composer instead ignore it. */
+    openCreated?: OpenCreatedItem;
+    /** Plain defaults supplied by the caller, never resolved from global state. */
+    context?: PaneCreateContext;
+  } = {}
 ) {
   const shouldInsert = options.shouldInsert ?? false;
+  const openCreated = options.openCreated;
   // Creation analytics fire at the data-layer chokepoints (create.ts /
   // projects.ts); `source` just attributes which surface initiated it.
   const source = options.source ?? 'create_menu';
@@ -279,7 +289,7 @@ export function runCreateAction(
       const span = startDocumentSpan('doc.create');
       span.setAttr('doc.type', 'md');
       span.setAttr('doc.source', source);
-      void span
+      span
         .run(() =>
           createBlock({
             blockName: 'md',
@@ -293,27 +303,32 @@ export function runCreateAction(
                 source,
               }),
             shouldInsert,
+            openCreated,
           })
         )
         .catch((error) => {
           span.error(error);
           endTrackedDocumentSpan(span);
-          throw error;
+          reportCreateBlockError(error);
         });
       return;
     }
     case 'spreadsheet':
       if (!isSpreadsheetEnabledForCurrentUser()) return;
-      void createBlock({
-        blockName: 'spreadsheet',
-        loading: true,
-        createFn: () =>
-          createSpreadsheetDocument({
-            projectId: options.projectId,
-            source,
-          }),
-        shouldInsert,
-      });
+      fireAndForget(
+        createBlock({
+          blockName: 'spreadsheet',
+          loading: true,
+          createFn: () =>
+            createSpreadsheetDocument({
+              projectId: options.projectId,
+              source,
+            }),
+          shouldInsert,
+          openCreated,
+        }),
+        'launcher'
+      );
       return;
     case 'psd':
       if (!isFeatureEnabled(enablePsdEditor)) return;
@@ -323,7 +338,8 @@ export function runCreateAction(
         createFn: () =>
           createPsdDocument({ projectId: options.projectId, source }),
         shouldInsert,
-      });
+        openCreated,
+      }).catch(reportCreateBlockError);
       return;
     case 'fig':
       if (!isFeatureEnabled(enableFigViewer)) return;
@@ -333,7 +349,8 @@ export function runCreateAction(
         createFn: () =>
           createFigDocument({ projectId: options.projectId, source }),
         shouldInsert,
-      });
+        openCreated,
+      }).catch(reportCreateBlockError);
       return;
     case 'ai':
       if (!isFeatureEnabled(enableAiEditor)) return;
@@ -343,15 +360,15 @@ export function runCreateAction(
         createFn: () =>
           createAiDocument({ projectId: options.projectId, source }),
         shouldInsert,
-      });
+        openCreated,
+      }).catch(reportCreateBlockError);
       return;
     case 'canvas':
       createBlock({
         blockName: 'canvas',
         loading: true,
         createFn: async () => {
-          const result = await createCanvasFileFromJsonString({
-            json: JSON.stringify({ nodes: [], edges: [] }),
+          const result = await createCanvasFile({
             title: 'New Canvas',
             projectId: options.projectId,
             source,
@@ -360,12 +377,16 @@ export function runCreateAction(
           return result.documentId ?? undefined;
         },
         shouldInsert,
-      });
+        openCreated,
+      }).catch(reportCreateBlockError);
       return;
     case 'task':
+      // Raise the keyboard within this gesture; the composer mounts later.
+      raiseKeyboardForNewTaskTitle();
       createComponent({
         componentId: 'task-compose',
         asPopover: true,
+        params: { composerContext: options.context?.task ?? undefined },
       });
       return;
     case 'initiative':
@@ -387,7 +408,8 @@ export function runCreateAction(
             source,
           }),
         shouldInsert,
-      });
+        openCreated,
+      }).catch(reportCreateBlockError);
       return;
     case 'email':
       // Focus the "To" field within this gesture so the iOS keyboard opens;
@@ -432,18 +454,18 @@ export function runCreateAction(
           return result.chatId;
         },
         shouldInsert,
-      });
+        openCreated,
+      }).catch(reportCreateBlockError);
       return;
     case 'project':
-      createBlock({
-        blockName: 'project',
-        createFn: () =>
-          createProject({
-            name: 'New Folder',
-            source,
-            parentId: options.projectId,
-          }),
-        shouldInsert,
+      createComponent({
+        componentId: 'folder-compose',
+        asPopover: true,
+        params: {
+          parentId: options.projectId,
+          destination: options.destination,
+          source,
+        },
       });
       return;
     case 'database':
@@ -457,13 +479,14 @@ export function runCreateAction(
             source,
           });
           if (created.isErr()) {
-            toast.failure('Could not create the database');
+            toast.failure(t('create.couldNotCreateDatabase'));
             return;
           }
           return created.value;
         },
         shouldInsert,
-      });
+        openCreated,
+      }).catch(reportCreateBlockError);
       return;
     case 'form':
       if (!isFeatureEnabled(enableForms)) return;
@@ -476,13 +499,14 @@ export function runCreateAction(
             source
           );
           if (created.isErr()) {
-            toast.failure('Could not create the form');
+            toast.failure(t('create.couldNotCreateForm'));
             return;
           }
           return created.value.form.id;
         },
         shouldInsert,
-      });
+        openCreated,
+      }).catch(reportCreateBlockError);
       return;
     case 'code':
       createBlock({
@@ -500,7 +524,8 @@ export function runCreateAction(
           return result.value.documentId ?? undefined;
         },
         shouldInsert,
-      });
+        openCreated,
+      }).catch(reportCreateBlockError);
       return;
     case 'routine':
       createComponent({ componentId: 'routine-compose', asPopover: true });
@@ -547,20 +572,36 @@ export function runCreateAction(
   }
 }
 
+/** Capture the provider during setup; snapshot only when the action runs. */
+export function useCreateAction(): typeof runCreateAction {
+  const context = useCreateContext();
+  return (name, options = {}) =>
+    runCreateAction(name, {
+      ...options,
+      context:
+        options.context ??
+        (name === 'task' ? { task: context.snapshot('task') } : undefined),
+    });
+}
 export type { CreatableBlock, CreatableName } from './types';
 
-export const CREATABLE_BLOCKS: CreatableBlock[] = [
+const createBlocks = (
+  createAction: typeof runCreateAction
+): CreatableBlock[] => [
   {
-    label: t('Email'),
+    id: 'Email',
+    get label() {
+      return t('create.emailLabel');
+    },
     icon: getIconConfig('email').icon,
-    description: t('Create email'),
+    description: () => t('create.emailDescription'),
     keywords: ['new', 'make', 'add', 'compose'],
     blockName: 'email',
     hotkeyToken: TOKENS.create.email,
     altHotkeyToken: TOKENS.create.emailNewSplit,
     hotkey: 'e',
     keyDownHandler: () => {
-      runCreateAction('email', { shouldInsert: pressedKeys().has('shift') });
+      createAction('email', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
@@ -568,10 +609,15 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     // The pre-agent-session chat, kept on `a` for anyone the new agent flag
     // has not reached. Mutually exclusive with the Agent entry below:
     // both bind `a`, and exactly one is ever enabled.
-    label: t('Agent'),
+    id: 'Agent',
+    get label() {
+      return t('create.agentLabel');
+    },
     icon: getIconConfig('chat').icon,
-    description: t('Create agent chat'),
-    launcherHint: t('New agent session'),
+    description: () => t('create.chatDescription'),
+    get launcherHint() {
+      return t('create.chatHint');
+    },
     keywords: ['new', 'make', 'add', 'agent'],
     blockName: 'chat',
     hotkeyToken: TOKENS.create.chat,
@@ -583,29 +629,39 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     registrationType: 'add',
     enabled: () => !isFeatureEnabled(enableChatV3Agents),
     keyDownHandler: () => {
-      runCreateAction('chat', { shouldInsert: pressedKeys().has('shift') });
+      createAction('chat', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
   {
-    label: 'Routine',
+    id: 'Routine',
+    get label() {
+      return t('create.routineLabel');
+    },
     icon: getIconConfig('routine').icon,
-    description: 'Run a model or agent on a schedule or Macro activity',
-    launcherHint: 'Schedules and activity triggers',
+    description: () => t('create.routineDescription'),
+    get launcherHint() {
+      return t('create.routineHint');
+    },
     keywords: ['new', 'make', 'add', 'schedule', 'agent', 'event', 'trigger'],
     blockName: 'routine',
     hotkeyToken: TOKENS.create.routine,
     hotkey: 'u',
     keyDownHandler: () => {
-      runCreateAction('routine');
+      createAction('routine');
       return true;
     },
   },
   {
-    label: t('Agent'),
+    id: 'Agent',
+    get label() {
+      return t('create.agentLabel');
+    },
     icon: getIconConfig('agent').icon,
-    description: t('Create agent session'),
-    launcherHint: t('Dedicated Agent Session'),
+    description: () => t('create.agentDescription'),
+    get launcherHint() {
+      return t('create.agentHint');
+    },
     keywords: ['new', 'make', 'add', 'agent', 'code', 'coder', 'session'],
     blockName: 'agent',
     hotkeyToken: TOKENS.create.agent,
@@ -614,15 +670,20 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     registrationType: 'add',
     enabled: () => isFeatureEnabled(enableChatV3Agents),
     keyDownHandler: () => {
-      runCreateAction('agent', { shouldInsert: pressedKeys().has('shift') });
+      createAction('agent', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
   {
-    label: 'Database',
+    id: 'Database',
+    get label() {
+      return t('create.databaseLabel');
+    },
     icon: getIconConfig('database').icon,
-    description: 'Create database',
-    launcherHint: 'Tables and boards',
+    description: () => t('create.databaseDescription'),
+    get launcherHint() {
+      return t('create.databaseHint');
+    },
     keywords: ['new', 'make', 'add', 'database', 'table', 'db'],
     blockName: 'database',
     enabled: () => isFeatureEnabled(enableDatabases),
@@ -630,15 +691,20 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     altHotkeyToken: TOKENS.create.databaseNewSplit,
     hotkey: 'l',
     keyDownHandler: () => {
-      runCreateAction('database', { shouldInsert: pressedKeys().has('shift') });
+      createAction('database', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
   {
-    label: 'Form',
+    id: 'Form',
+    get label() {
+      return t('create.formLabel');
+    },
     icon: getIconConfig('form').icon,
-    description: 'Create form',
-    launcherHint: 'Questions answered into a database',
+    description: () => t('create.formDescription'),
+    get launcherHint() {
+      return t('create.formHint');
+    },
     keywords: ['new', 'make', 'add', 'form', 'survey', 'questionnaire', 'poll'],
     blockName: 'form',
     enabled: () => isFeatureEnabled(enableForms),
@@ -646,101 +712,130 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     altHotkeyToken: TOKENS.create.formNewSplit,
     hotkey: 'q',
     keyDownHandler: () => {
-      runCreateAction('form', { shouldInsert: pressedKeys().has('shift') });
+      createAction('form', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
   {
-    label: t('Skill'),
+    id: 'Skill',
+    get label() {
+      return t('create.skillLabel');
+    },
     icon: getIconConfig('skill').icon,
-    description: t('Create skill'),
-    launcherHint: t('Custom agent skill'),
+    description: () => t('create.skillDescription'),
+    get launcherHint() {
+      return t('create.skillHint');
+    },
     keywords: ['new', 'make', 'add', 'instruction', 'prompt'],
     blockName: 'skill',
     hotkeyToken: TOKENS.create.skill,
     hotkey: 'k',
     keyDownHandler: () => {
-      runCreateAction('skill');
+      createAction('skill');
       return true;
     },
   },
   {
-    label: t('Document'),
+    id: 'Document',
+    get label() {
+      return t('create.documentLabel');
+    },
     icon: getIconConfig('md').icon,
-    description: t('Create doc'),
+    description: () => t('create.documentDescription'),
     keywords: ['new', 'make', 'add', 'document', 'note'],
     blockName: 'md',
     hotkeyToken: TOKENS.create.note,
     altHotkeyToken: TOKENS.create.noteNewSplit,
     hotkey: 'd',
     keyDownHandler: () => {
-      runCreateAction('md', { shouldInsert: pressedKeys().has('shift') });
+      createAction('md', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
   {
-    label: t('Task'),
+    id: 'Task',
+    get label() {
+      return t('create.taskLabel');
+    },
     icon: getIconConfig('task').icon,
-    description: t('Create task'),
+    description: () => t('create.taskDescription'),
     keywords: ['new', 'make', 'add', 'todo'],
     blockName: 'task',
     hotkeyToken: TOKENS.create.task,
     altHotkeyToken: TOKENS.create.taskNewSplit,
     hotkey: 't' as const,
     keyDownHandler: () => {
-      runCreateAction('task');
+      createAction('task');
       return true;
     },
   },
   {
-    label: 'Project',
+    id: 'Project',
+    get label() {
+      return t('create.projectLabel');
+    },
     icon: getIconConfig('initiative').icon,
-    description: 'Create project',
+    description: () => t('create.projectDescription'),
     keywords: ['new', 'make', 'add', 'project'],
     blockName: 'initiative',
     enabled: () => isFeatureEnabled(enableProjects),
     hotkeyToken: TOKENS.create.initiative,
     hotkey: 'p',
     keyDownHandler: () => {
-      runCreateAction('initiative');
+      createAction('initiative');
       return true;
     },
   },
   {
-    label: t('Snippet'),
+    id: 'Snippet',
+    get label() {
+      return t('create.snippetLabel');
+    },
     icon: getIconConfig('snippet').icon,
-    description: t('Create snippet'),
-    launcherHint: t('Reusable document template'),
+    description: () => t('create.snippetDescription'),
+    get launcherHint() {
+      return t('create.snippetHint');
+    },
     keywords: ['new', 'make', 'add'],
     blockName: 'snippet',
     hotkeyToken: TOKENS.create.snippet,
     altHotkeyToken: TOKENS.create.snippetNewSplit,
     hotkey: 's' as const,
     keyDownHandler: () => {
-      runCreateAction('snippet', { shouldInsert: pressedKeys().has('shift') });
+      createAction('snippet', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
   {
-    label: t('Message'),
+    id: 'Message',
+    get label() {
+      return t('create.messageLabel');
+    },
     icon: ChatIcon,
-    description: t('Create message'),
-    launcherHint: t('Quick send message'),
+    description: () => t('create.messageDescription'),
+    get launcherHint() {
+      return t('create.messageHint');
+    },
     keywords: ['new', 'make', 'add', 'channel'],
     blockName: 'channel',
     hotkeyToken: TOKENS.create.message,
     altHotkeyToken: TOKENS.create.messageNewSplit,
     hotkey: 'm',
     keyDownHandler: () => {
-      runCreateAction('channel', { shouldInsert: pressedKeys().has('shift') });
+      createAction('channel', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
   {
-    label: t('Channel'),
+    id: 'Channel',
+    get label() {
+      return t('create.channelLabel');
+    },
     icon: getIconConfig('channel').icon,
-    description: t('Create channel'),
-    launcherHint: t('Team-wide or group chat'),
+    description: () => t('create.channelDescription'),
+    get launcherHint() {
+      return t('create.channelHint');
+    },
     keywords: ['new', 'make', 'add', 'channel', 'group', 'conversation'],
     blockName: 'channel',
     hotkeyToken: TOKENS.create.channel,
@@ -752,59 +847,77 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     },
   },
   {
-    label: t('Canvas'),
+    id: 'Canvas',
+    get label() {
+      return t('create.canvasLabel');
+    },
     icon: getIconConfig('canvas').icon,
-    description: t('Create canvas'),
+    description: () => t('create.canvasDescription'),
     keywords: ['new', 'make', 'add', 'diagram'],
     blockName: 'canvas',
     hotkeyToken: TOKENS.create.canvas,
     altHotkeyToken: TOKENS.create.canvasNewSplit,
     hotkey: 'n',
     keyDownHandler: () => {
-      runCreateAction('canvas', {
+      createAction('canvas', {
         shouldInsert: pressedKeys().has('shift'),
       });
       return true;
     },
   },
   {
-    label: 'Photoshop file',
+    id: 'Photoshop file',
+    get label() {
+      return t('create.photoshopLabel');
+    },
     enabled: () => isFeatureEnabled(enablePsdEditor),
     icon: getIconConfig('psd').icon,
-    description: 'New Photoshop file',
-    launcherHint: 'Layered image editing, saved as .psd',
+    description: () => t('create.photoshopDescription'),
+    get launcherHint() {
+      return t('create.photoshopHint');
+    },
     keywords: ['new', 'make', 'add', 'photoshop', 'psd', 'image', 'photo'],
     blockName: 'psd',
     hotkeyToken: TOKENS.create.photoshop,
     altHotkeyToken: TOKENS.create.photoshopNewSplit,
     hotkey: 'h',
     keyDownHandler: () => {
-      runCreateAction('psd', { shouldInsert: pressedKeys().has('shift') });
+      createAction('psd', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
   {
-    label: 'Design',
+    id: 'Design',
+    get label() {
+      return t('create.designLabel');
+    },
     enabled: () => isFeatureEnabled(enableFigViewer),
     icon: getIconConfig('fig').icon,
-    description: 'Create design',
-    launcherHint: 'Figma-compatible canvas for UI and graphics',
+    description: () => t('create.designDescription'),
+    get launcherHint() {
+      return t('create.designHint');
+    },
     keywords: ['new', 'make', 'add', 'design', 'figma', 'mockup', 'ui'],
     blockName: 'fig',
     hotkeyToken: TOKENS.create.design,
     altHotkeyToken: TOKENS.create.designNewSplit,
     hotkey: 'i',
     keyDownHandler: () => {
-      runCreateAction('fig', { shouldInsert: pressedKeys().has('shift') });
+      createAction('fig', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
   {
-    label: 'Illustrator file',
+    id: 'Illustrator file',
+    get label() {
+      return t('create.illustratorLabel');
+    },
     enabled: () => isFeatureEnabled(enableAiEditor),
     icon: getIconConfig('ai').icon,
-    description: 'Create Illustrator file',
-    launcherHint: 'Vector artwork on artboards, saved as .ai',
+    description: () => t('create.illustratorDescription'),
+    get launcherHint() {
+      return t('create.illustratorHint');
+    },
     keywords: [
       'new',
       'make',
@@ -819,64 +932,77 @@ export const CREATABLE_BLOCKS: CreatableBlock[] = [
     altHotkeyToken: TOKENS.create.illustrationNewSplit,
     hotkey: 'v',
     keyDownHandler: () => {
-      runCreateAction('ai', { shouldInsert: pressedKeys().has('shift') });
+      createAction('ai', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
   {
-    label: t('Spreadsheet'),
+    id: 'Spreadsheet',
+    get label() {
+      return t('create.spreadsheetLabel');
+    },
     enabled: isSpreadsheetEnabledForCurrentUser,
     icon: getIconConfig('spreadsheet').icon,
-    description: t('Create spreadsheet'),
-    launcherHint: t('Tables, formulas, and shared calculations'),
+    description: () => t('create.spreadsheetDescription'),
+    get launcherHint() {
+      return t('create.spreadsheetHint');
+    },
     keywords: ['new', 'make', 'add', 'sheet', 'table', 'formula'],
     blockName: 'spreadsheet',
     hotkeyToken: TOKENS.create.spreadsheet,
     altHotkeyToken: TOKENS.create.spreadsheetNewSplit,
     hotkey: 'b',
     keyDownHandler: () => {
-      runCreateAction('spreadsheet', {
+      createAction('spreadsheet', {
         shouldInsert: pressedKeys().has('shift'),
       });
       return true;
     },
   },
   {
-    label: t('Folder'),
+    id: 'Folder',
+    get label() {
+      return t('create.folderLabel');
+    },
     icon: getIconConfig('project').icon,
-    description: t('Create folder'),
+    description: () => t('create.folderDescription'),
     keywords: ['new', 'make', 'add', 'project'],
     blockName: 'project',
     hotkeyToken: TOKENS.create.project,
     altHotkeyToken: TOKENS.create.projectNewSplit,
     hotkey: 'f',
     keyDownHandler: () => {
-      runCreateAction('project', { shouldInsert: pressedKeys().has('shift') });
+      createAction('project', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
   {
-    label: t('Code'),
+    id: 'Code',
+    get label() {
+      return t('create.codeLabel');
+    },
     icon: getIconConfig('code').icon,
-    description: t('Create code file'),
+    description: () => t('create.codeDescription'),
     keywords: ['new', 'make', 'add'],
     blockName: 'code',
     hotkeyToken: TOKENS.create.code,
     altHotkeyToken: TOKENS.create.codeNewSplit,
     hotkey: 'o',
     keyDownHandler: () => {
-      runCreateAction('code', { shouldInsert: pressedKeys().has('shift') });
+      createAction('code', { shouldInsert: pressedKeys().has('shift') });
       return true;
     },
   },
 ];
+
+export const CREATABLE_BLOCKS = createBlocks(runCreateAction);
 
 /** Router-backed commands are bound once in each host's component owner. */
 export function useCreateCommands(): CreatableBlock[] {
   const navigate = useNavigate();
   const quickCalls = useQuickCallsFlag();
   return [
-    ...CREATABLE_BLOCKS,
+    ...createBlocks(useCreateAction()),
     createCallCommand({
       navigate,
       close: () => setCreateMenuOpen(false, false),
@@ -954,9 +1080,7 @@ type LauncherMenuItemProps = {
   showHotkey?: boolean;
 };
 
-const LauncherMenuItem = (props: LauncherMenuItemProps) => {
-  const selectedIconColor = () =>
-    getIconConfig(props.creatableBlock.blockName).foreground;
+export const LauncherMenuItem = (props: LauncherMenuItemProps) => {
   const launcherHint = () => props.creatableBlock.launcherHint;
 
   return (
@@ -964,7 +1088,7 @@ const LauncherMenuItem = (props: LauncherMenuItemProps) => {
       <div
         class={cn(
           'size-4 shrink-0 text-ink-extra-muted transition-colors',
-          props.selected && selectedIconColor()
+          props.selected && 'text-ink'
         )}
       >
         <Dynamic component={props.creatableBlock.icon} />
@@ -984,7 +1108,7 @@ const LauncherMenuItem = (props: LauncherMenuItemProps) => {
       </div>
 
       <Show when={props.showHotkey}>
-        <div class="flex border border-edge-muted text-xxs rounded-md items-center px-1.5 py-px font-normal text-ink-muted">
+        <div class="flex border border-ink/12 text-xxs rounded-md items-center px-1.5 py-px font-normal text-ink-muted">
           <Hotkey token={props.creatableBlock.hotkeyToken} />
         </div>
       </Show>
@@ -992,26 +1116,66 @@ const LauncherMenuItem = (props: LauncherMenuItemProps) => {
   );
 };
 
-type LauncherInnerProps = {
+export type LauncherInnerProps = {
   onClose: (shouldReturnFocus?: boolean) => void;
   blocks?: CreatableBlock[];
 };
 
-export const LauncherInner = (props: LauncherInnerProps) => {
+type LauncherBodyState = {
+  sections: Accessor<CreateMenuSection[]>;
+  blocks: Accessor<CreatableBlock[]>;
+  selectedIndex: Accessor<number>;
+  searchMode: Accessor<boolean>;
+  shiftHeld: Accessor<boolean>;
+  itemId: (item: CreatableBlock) => string;
+  select: (index: number) => void;
+  step: (direction: number) => void;
+  choose: (item: CreatableBlock) => void;
+  scrollSelectedIntoView: Accessor<boolean>;
+};
+
+/** Shared launcher behavior and chrome; each layout supplies its own body. */
+export const LauncherShell = (
+  props: LauncherInnerProps & {
+    children: (state: LauncherBodyState) => JSX.Element;
+    footerAction?: (state: LauncherBodyState) => JSX.Element;
+    class?: string;
+    horizontalNavigation?: boolean;
+    groupItems?: (
+      items: CreatableBlock[],
+      recentItems: CreatableBlock[]
+    ) => CreateMenuSection[];
+  }
+) => {
   const hkGroup = createHotkeyGroup();
   const commands = useCreateCommands();
   const candidates = () => props.blocks ?? commands;
   const availableBlocks = useCreateMenuBlocks(candidates);
-  const sortedBlocks = createMemo(() => sortLauncherBlocks(availableBlocks()));
+  const sortedBlocks = createMemo(() =>
+    sortLauncherBlocks(availableBlocks(), launcherFrecencyStore)
+  );
   const [searchQuery, setSearchQuery] = createSignal('');
   const searchMode = launcherSearchMode;
-  const blocks = createMemo(() => {
+  const recentBlocks = useRecentCreateMenuBlocks(availableBlocks);
+  const filteredBlocks = createMemo(() => {
     if (!searchMode()) return sortedBlocks();
 
     return sortedBlocks().filter((item) =>
       matchesLauncherSearch(item, searchQuery())
     );
   });
+  const sections = createMemo<CreateMenuSection[]>(
+    () =>
+      props.groupItems?.(filteredBlocks(), recentBlocks()) ?? [
+        {
+          group: { id: 'other', label: t('create.results'), tagline: '' },
+          items: filteredBlocks(),
+        },
+      ]
+  );
+  const blocks = createMemo(() =>
+    sections().flatMap((section) => section.items)
+  );
   const [attachHotkeys, launcherScope] = useHotkeyDOMScope('create-menu', true);
 
   let ref!: HTMLDivElement;
@@ -1041,11 +1205,15 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   };
 
   const setLauncherSearchMode = (next: boolean) => {
+    const selectedItem = blocks()[focusedIndex()];
     setLauncherSearchModePreference(next);
 
     if (!next) {
       setSearchQuery('');
     }
+    setFocusedIndex(
+      selectedItem ? Math.max(0, blocks().indexOf(selectedItem)) : 0
+    );
 
     queueMicrotask(() => {
       if (next) {
@@ -1056,20 +1224,13 @@ export const LauncherInner = (props: LauncherInnerProps) => {
     });
   };
 
-  createEffect(() => {
-    searchMode();
-    searchQuery();
-    blocks().length;
-    setFocusedIndex(0);
-  });
-
   candidates().forEach((item) => {
     registerHotkey({
       hotkeyToken: item.hotkeyToken,
       hotkey: item.hotkey,
       scopeId: launcherScope,
       description: item.description,
-      condition: () => availableBlocks().includes(item),
+      condition: () => !searchMode() && availableBlocks().includes(item),
       registrationType: item.registrationType,
       runWithInputFocused: item.runWithInputFocused,
       keyDownHandler: () => {
@@ -1082,8 +1243,11 @@ export const LauncherInner = (props: LauncherInnerProps) => {
         hotkeyToken: item.altHotkeyToken,
         hotkey: `shift+${item.hotkey}` as ValidHotkey,
         scopeId: launcherScope,
-        description: `${item.description} in new split`,
-        condition: () => availableBlocks().includes(item),
+        description: () =>
+          t('create.descriptionInNewSplit', {
+            description: creatableDescription(item),
+          }),
+        condition: () => !searchMode() && availableBlocks().includes(item),
         registrationType: item.registrationType,
         runWithInputFocused: item.runWithInputFocused,
         keyDownHandler: () => {
@@ -1096,9 +1260,10 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   registerHotkey({
     hotkey: 'c',
     scopeId: launcherScope,
-    description: 'Close Launcher',
+    description: () => t('create.closeLauncher'),
     condition: () =>
       createMenuOpen() &&
+      !searchMode() &&
       !availableBlocks().some((item) => item.hotkey === 'c'),
     registrationType: 'add',
     keyDownHandler: () => {
@@ -1108,10 +1273,17 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   }).withGroup(hkGroup);
 
   const navUpHotkey = registerHotkey({
-    hotkey: ['arrowup', 'ctrl+k', 'shift+tab'],
+    hotkey: props.horizontalNavigation
+      ? ['arrowleft', 'arrowup', 'ctrl+k', 'shift+tab']
+      : ['arrowup', 'ctrl+k', 'shift+tab'],
     scopeId: launcherScope,
-    description: 'Navigate up',
+    description: () => t('create.navigateUp'),
     keyDownHandler: (event) => {
+      if (
+        event?.key === 'ArrowLeft' &&
+        event.target instanceof HTMLInputElement
+      )
+        return false;
       event?.preventDefault();
       return listController.selectPrevious();
     },
@@ -1119,10 +1291,17 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   }).withGroup(hkGroup);
 
   const navDownHotkey = registerHotkey({
-    hotkey: ['arrowdown', 'ctrl+j', 'tab'],
+    hotkey: props.horizontalNavigation
+      ? ['arrowright', 'arrowdown', 'ctrl+j', 'tab']
+      : ['arrowdown', 'ctrl+j', 'tab'],
     scopeId: launcherScope,
-    description: 'Navigate down',
+    description: () => t('create.navigateDown'),
     keyDownHandler: (event) => {
+      if (
+        event?.key === 'ArrowRight' &&
+        event.target instanceof HTMLInputElement
+      )
+        return false;
       event?.preventDefault();
       return listController.selectNext();
     },
@@ -1132,7 +1311,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   const searchModeHotkey = registerHotkey({
     hotkey: '/',
     scopeId: launcherScope,
-    description: 'Toggle search mode',
+    description: () => t('create.toggleSearchMode'),
     keyDownHandler: () => {
       setLauncherSearchMode(!searchMode());
       return true;
@@ -1144,7 +1323,8 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   registerHotkey({
     hotkey: 'escape',
     scopeId: launcherScope,
-    description: 'Exit',
+    description: () => t('create.exit'),
+    runWithInputFocused: true,
     keyDownHandler: () => {
       props.onClose();
       return true;
@@ -1154,7 +1334,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   registerHotkey({
     hotkey: 'shift+enter',
     scopeId: launcherScope,
-    description: 'Open in new split',
+    description: () => t('create.openInNewSplit'),
     keyDownHandler: () => {
       return runLauncherItem(blocks()[focusedIndex()]);
     },
@@ -1165,7 +1345,7 @@ export const LauncherInner = (props: LauncherInnerProps) => {
   const confirmHotkey = registerHotkey({
     hotkey: 'enter' as ValidHotkey,
     scopeId: launcherScope,
-    description: 'Open in current split',
+    description: () => t('create.openInCurrentSplit'),
     keyDownHandler: () => {
       return runLauncherItem(blocks()[focusedIndex()]);
     },
@@ -1199,10 +1379,34 @@ export const LauncherInner = (props: LauncherInnerProps) => {
 
   onCleanup(hkGroup.dispose);
 
+  const bodyState: LauncherBodyState = {
+    sections,
+    blocks,
+    selectedIndex: focusedIndex,
+    searchMode,
+    shiftHeld,
+    itemId: (item) => `create-menu-${launcherItemKey(item)}`,
+    select: listController.setSelectedIndexFromPointer,
+    step: (direction) => {
+      const count = blocks().length;
+      if (count)
+        listController.setSelectedIndex(
+          (((focusedIndex() + direction) % count) + count) % count
+        );
+    },
+    choose: runLauncherItem,
+    scrollSelectedIntoView: listController.shouldScrollSelectedIntoView,
+  };
+
   return (
     // The shared shell stopped painting its own pane (cmd+k gets one from the
     // app Dialog wrapper); this raw-Kobalte dialog carries it here.
-    <div class="elevated-surface create-menu-pane w-200 max-w-[calc(100vw-16px)] touch:mobile-sheet touch:overflow-hidden touch:pb-[var(--mobile-sheet-safe-padding,0px)]">
+    <div
+      class={cn(
+        'elevated-surface create-menu-pane w-200 max-w-[calc(100vw-16px)] touch:mobile-sheet touch:overflow-hidden touch:pb-[var(--mobile-sheet-safe-padding,0px)]',
+        props.class
+      )}
+    >
       <div
         aria-hidden="true"
         class="hidden touch:flex h-5 shrink-0 items-center justify-center"
@@ -1216,24 +1420,29 @@ export const LauncherInner = (props: LauncherInnerProps) => {
         ref={ref}
         tabindex={-1}
       >
-        <CommandMenuShell.Header class="border-b-0">
+        <CommandMenuShell.Header>
           <Show
             when={searchMode()}
             fallback={
-              <div class="min-w-0 flex flex-1 items-center gap-2 text-ink-muted">
+              <div class="min-w-0 flex h-7 flex-1 items-center gap-2 text-ink-muted">
                 <PlusIcon class="size-4 shrink-0 text-ink-extra-muted" />
-                <h1 class="truncate text-base font-normal">Create New</h1>
+                <h1 class="truncate text-base font-normal">
+                  {t('create.createNew')}
+                </h1>
               </div>
             }
           >
-            <div class="min-w-0 flex flex-1 items-center gap-2">
+            <div class="min-w-0 flex h-7 flex-1 items-center gap-2">
               <MagnifyingGlassIcon class="size-4 shrink-0 text-ink-extra-muted" />
               <CommandMenuSearchInput
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search create options"
+                placeholder={t('create.searchCreateOptions')}
                 value={searchQuery()}
-                onInput={(event) => setSearchQuery(event.currentTarget.value)}
+                onInput={(event) => {
+                  setSearchQuery(event.currentTarget.value);
+                  setFocusedIndex(0);
+                }}
               />
             </div>
           </Show>
@@ -1243,11 +1452,11 @@ export const LauncherInner = (props: LauncherInnerProps) => {
             size="xs"
             label={
               <span class="flex items-center gap-1 text-[11px] font-medium leading-none text-ink-extra-muted/70">
-                Search mode{' '}
+                {t('create.searchMode')}{' '}
                 <Hotkey
                   shortcut={searchModeHotkey.hotkey()}
                   theme="subtle"
-                  class="px-2 py-0.5"
+                  class="border-ink/12 px-2 py-0.5"
                 />
               </span>
             }
@@ -1257,27 +1466,14 @@ export const LauncherInner = (props: LauncherInnerProps) => {
           />
         </CommandMenuShell.Header>
         <CommandMenuShell.Body class="touch:flex touch:flex-col">
-          <CommandMenuList
-            items={blocks()}
-            selectedIndex={focusedIndex()}
-            scrollSelectedIntoView={listController.shouldScrollSelectedIntoView()}
-            class="max-h-[min(60vh,26rem)] touch:min-h-0"
-            itemId={(item) => `create-menu-${launcherItemKey(item)}`}
-            onSelect={(item) => runLauncherItem(item)}
-            onItemMouseMove={(index) =>
-              listController.setSelectedIndexFromPointer(index)
-            }
-          >
-            {(item, index) => (
-              <LauncherMenuItem
-                creatableBlock={item}
-                selected={focusedIndex() === index()}
-                showHotkey={!searchMode()}
-              />
-            )}
-          </CommandMenuList>
+          {props.children(bodyState)}
         </CommandMenuShell.Body>
-        <CommandMenuShell.Footer class="touch:px-6 touch:py-4">
+        <CommandMenuShell.Footer
+          class={cn(
+            'relative touch:px-6 touch:py-4',
+            props.footerAction && 'min-h-12 gap-3 border-t border-edge-divider'
+          )}
+        >
           <style>{`
               @keyframes shift-ripple {
                 0%   { transform: scale(1); opacity: 0.6; }
@@ -1287,44 +1483,76 @@ export const LauncherInner = (props: LauncherInnerProps) => {
                 animation: shift-ripple 0.35s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
               }
             `}</style>
-          <span class="flex items-center gap-1">
-            <div class="flex gap-1">
-              <div class="flex border border-edge-muted text-xxs rounded-md items-center px-1.5 py-px font-normal">
-                <Hotkey shortcut={navUpHotkey.hotkey()} class="space-x-1" />
-              </div>
-              <div class="flex border border-edge-muted text-xxs rounded-md items-center px-1.5 py-px font-normal">
-                <Hotkey shortcut={navDownHotkey.hotkey()} class="space-x-1" />
-              </div>
-            </div>
-            Navigate
+          <span
+            class={cn(
+              'flex items-center gap-1.5',
+              props.footerAction && 'hidden sm:flex'
+            )}
+          >
+            <span class="flex gap-0.5">
+              <Hotkey
+                shortcut={searchMode() ? 'arrowup' : navUpHotkey.hotkey()}
+                class="min-w-3 justify-center"
+              />
+              <Hotkey
+                shortcut={searchMode() ? 'arrowdown' : navDownHotkey.hotkey()}
+                class="min-w-3 justify-center"
+              />
+            </span>
+            {t('create.navigate')}
           </span>
-          <CommandMenuHotkeyHint
-            hotkey={<Hotkey shortcut={confirmHotkey.hotkey()} />}
-            label="Create"
-          />
-          <span class="hidden touch:hidden md:flex items-center gap-1">
-            Hold
+          <Show when={!props.footerAction}>
+            <span class="flex items-center gap-1.5">
+              <Hotkey
+                shortcut={confirmHotkey.hotkey()}
+                class="min-w-3 justify-center"
+              />
+              {t('create.create')}
+            </span>
+          </Show>
+          <span class="hidden touch:hidden md:flex items-center gap-1.5">
+            {t('create.hold')}
             <span class="relative inline-flex place-items-center">
               <span
                 ref={shiftRippleRef}
-                class="shift-ripple absolute inset-0 rounded-sm border border-accent pointer-events-none opacity-0"
+                class="shift-ripple absolute inset-0 rounded-sm bg-ink/10 pointer-events-none opacity-0"
               />
               <span
                 class={cn(
-                  'border text-xxs px-1.5 py-px rounded-md transition-colors duration-150',
-                  shiftHeld()
-                    ? 'border-accent text-accent bg-accent/10'
-                    : 'border-edge-muted'
+                  'min-w-3 text-xxs px-0.5 py-px rounded-sm text-center transition-colors duration-150',
+                  shiftHeld() ? 'bg-ink/10 text-ink' : 'text-ink-extra-muted'
                 )}
               >
                 {getNormalizedKeyString({ shortcut: 'shift' })}
               </span>
             </span>
-            New split
+            {t('create.newSplit')}
           </span>
+          <Show when={props.footerAction}>
+            {(action) => (
+              <div class="absolute right-2 bottom-2">{action()(bodyState)}</div>
+            )}
+          </Show>
         </CommandMenuShell.Footer>
       </CommandMenuShell>
     </div>
+  );
+};
+
+const DetailsLauncher = lazy(() => import('./DetailsLauncher'));
+const CarouselLauncher = lazy(() => import('./CarouselLauncher'));
+
+export const LauncherInner = (props: LauncherInnerProps) => {
+  const carouselFlag = useFeatureFlag(enableCarouselCreateMenu);
+  return (
+    <Suspense>
+      <Show
+        when={carouselFlag().enabled}
+        fallback={<DetailsLauncher {...props} />}
+      >
+        <CarouselLauncher {...props} />
+      </Show>
+    </Suspense>
   );
 };
 
@@ -1335,7 +1563,9 @@ type LauncherProps = {
 
 function MobileLauncher(props: LauncherProps) {
   const availableBlocks = useCreateMenuBlocks();
-  const items = createMemo(() => sortLauncherBlocks(availableBlocks()));
+  const items = createMemo(() =>
+    sortLauncherBlocks(availableBlocks(), launcherFrecencyStore)
+  );
   return (
     <MobileCreateSheet
       open={props.open}
@@ -1362,7 +1592,7 @@ const DesktopLauncher = (props: LauncherProps) => {
       <Dialog.Portal>
         <Dialog.Overlay class="fixed inset-0 z-modal scrim-glass dialog-overlay-open-animation" />
         <Dialog.Content
-          aria-label="Create New"
+          aria-label={t('create.createNew')}
           class="fixed inset-x-0 top-0 bottom-(--virtual-keyboard-height,0) z-modal flex items-start justify-center px-2 pt-[10vh] outline-none [--color-surface:var(--color-dialog)]"
           onClick={(e) => {
             if (e.target === e.currentTarget) {

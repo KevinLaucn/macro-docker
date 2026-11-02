@@ -11,9 +11,6 @@ name: Self-host images
 
 on:
   push:
-    branches:
-      - main
-      - test/nix-s3-auth-poc
     tags:
       - 'v*'
   workflow_dispatch:
@@ -69,7 +66,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       run_services: ${{ steps.filter.outputs.run_services }}
-      run_scheduled_action: ${{ steps.filter.outputs.run_scheduled_action }}
       run_init: ${{ steps.filter.outputs.run_init }}
       run_web: ${{ steps.filter.outputs.run_web }}
       run_caddy: ${{ steps.filter.outputs.run_caddy }}
@@ -116,7 +112,6 @@ jobs:
           matches() { grep -Eq "$1" <<<"$changed"; }
 
           run_services=false
-          run_scheduled_action=false
           run_init=false
           run_web=false
           run_caddy=false
@@ -129,7 +124,7 @@ jobs:
               run_init=true
               run_web=true
             else
-              run_services=true; run_scheduled_action=true; run_init=true
+              run_services=true; run_init=true
               run_web=true; run_caddy=true; run_workers=true
               run_bundle=true
             fi
@@ -137,21 +132,19 @@ jobs:
             if matches '^(services/|crates/|packages/fork/.*/backend/|Cargo\.toml$|Cargo\.lock$|flake\.nix$|nix/|\.cargo/|\.config/|\.github/(workspace-dep-closures\.json|workflows/self-host-images\.yml))'; then
               run_services=true
               run_workers=true
-              run_scheduled_action=true
               run_init=true
             fi
             # Every workspace package may be imported by apps/web. Keep this
             # broad so a shared-package change cannot publish a stale Web image.
             matches '^(apps/web/|packages/|packages/fork/|bun\.lock$|package\.json$)' && run_web=true
             matches '^(self-host/init/|self-host/images/Dockerfile\.init)' && run_init=true
-            matches '^(self-host/images/Dockerfile\.(scheduled-action|workers)|docker/(sync-service|websocket-service)\.Dockerfile|services/(sync|websocket))' && run_workers=true
-            matches '^(services/agent_schedule|self-host/images/Dockerfile\.scheduled-action)' && run_scheduled_action=true
+            matches '^(self-host/images/Dockerfile\.workers|docker/(sync-service|websocket-service)\.Dockerfile|services/(sync|websocket))' && run_workers=true
             matches '^(self-host/(Caddyfile|images/Dockerfile\.caddy|docker-compose\.yml|scripts/))' && run_caddy=true
 
             # A release bundle must contain images built by this run. Do not
             # combine a targeted image with stale registry tags, and do not
             # create a bundle for the manual core validation scope.
-            if [[ "$run_services" == "true" && "$run_scheduled_action" == "true" && \
+            if [[ "$run_services" == "true" && \
                   "$run_init" == "true" && "$run_web" == "true" && \
                   "$run_caddy" == "true" && "$run_workers" == "true" ]]; then
               run_bundle=true
@@ -160,10 +153,9 @@ jobs:
 
           echo "Changed paths:"
           printf '%s\n' "$changed"
-          echo "Build targets: services=$run_services scheduled_action=$run_scheduled_action init=$run_init web=$run_web caddy=$run_caddy workers=$run_workers"
+          echo "Build targets: services=$run_services init=$run_init web=$run_web caddy=$run_caddy workers=$run_workers"
           {
             echo "run_services=$run_services"
-            echo "run_scheduled_action=$run_scheduled_action"
             echo "run_init=$run_init"
             echo "run_web=$run_web"
             echo "run_caddy=$run_caddy"
@@ -293,10 +285,11 @@ jobs:
               'self-host-email-cognition-deps',
               'self-host-email-deps',
               'authentication-service',
+              'calendar-service',
               'connection-gateway',
               'contacts-service',
               'document-storage-service',
-              'document-cognition-service',
+              'agent-harness-service',
               'email-service',
               'image-proxy-service',
               'notification-service',
@@ -806,10 +799,11 @@ jobs:
               'self-host-email-cognition-deps',
               'self-host-email-deps',
               'authentication-service',
+              'calendar-service',
               'connection-gateway',
               'contacts-service',
               'document-storage-service',
-              'document-cognition-service',
+              'agent-harness-service',
               'email-service',
               'image-proxy-service',
               'notification-service',
@@ -993,10 +987,11 @@ jobs:
           set -euo pipefail
           expected=(
             authentication_service
+            calendar_service
             connection_gateway_service
             contacts_service
             document_storage_service
-            document_cognition_service
+            agent_harness_service
             email_service
             pubsub_workers
             image_proxy_service
@@ -1016,7 +1011,6 @@ jobs:
 
           forbidden=(
             seed_cli
-            agent_harness_service
             agent_trigger_service
             convert_service
             mcp_server
@@ -1358,67 +1352,6 @@ jobs:
             fi
           done
 
-  scheduled-action:
-    name: macro-scheduled-action
-    needs: check-drift
-    if: needs.check-drift.outputs.run_scheduled_action == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          persist-credentials: 'false'
-      - name: Setup Nix
-        id: setup_nix
-        uses: './.github/actions/setup-nix'
-        with:
-          nix-cache-url: ${{ vars.NIX_CACHE_URL }}
-          nix-cache-public-key: ${{ vars.NIX_CACHE_PUBLIC_KEY }}
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-
-      - name: Build scheduled-action service binary with Nix
-        run: |
-          set -euo pipefail
-          BUILD_START=$(date -u +%s)
-          nix build --print-build-logs ".#deploy-service-binaries-agent-schedule-service" --out-link result-scheduled-action
-          mkdir -p self-host/build-scheduled-action/bin
-          cp -L result-scheduled-action/bin/service self-host/build-scheduled-action/bin/service
-          test -x self-host/build-scheduled-action/bin/service
-          BUILD_END=$(date -u +%s)
-          echo "BUILD_DURATION=$(( BUILD_END - BUILD_START ))" >> "$GITHUB_ENV"
-
-      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push scheduled-action image
-        run: |
-          set -euo pipefail
-          v="${{ inputs.version || (github.ref_type == 'branch' && 'latest') || github.ref_name }}"
-          ns="$(echo "$NAMESPACE" | tr '[:upper:]' '[:lower:]')"
-          img="$REGISTRY/$ns/macro-scheduled-action:$v"
-          docker build -f self-host/images/Dockerfile.scheduled-action \
-            --build-arg BIN_DIR=build-scheduled-action/bin \
-            --build-arg MACRO_VERSION="$v" \
-            --build-arg GIT_SHA="${{ github.sha }}" \
-            -t "$img" self-host
-          for attempt in 1 2 3; do
-            echo "Pushing $img (attempt $attempt/3)..."
-            if docker push "$img"; then
-              break
-            fi
-            if [ "$attempt" -lt 3 ]; then
-              echo "docker push failed; retrying in 5s..."
-              sleep 5
-            else
-              echo "docker push failed after 3 attempts"
-              exit 1
-            fi
-          done
-
   caddy:
     name: macro-caddy
     needs: check-drift
@@ -1459,7 +1392,7 @@ jobs:
 
   bundle:
     name: macro-deployment-bundle
-    needs: [check-drift, services, scheduled-action, init, web, caddy, workers]
+    needs: [check-drift, services, init, web, caddy, workers]
     if: always() && needs.check-drift.outputs.run_bundle == 'true' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     steps:
@@ -1495,7 +1428,6 @@ jobs:
           }
 
           services_img="$REGISTRY/$ns/macro-services-email:$v"
-          scheduled_img="$REGISTRY/$ns/macro-scheduled-action:$v"
           init_img="$REGISTRY/$ns/macro-init-email:$v"
           web_img="$REGISTRY/$ns/macro-web:$v"
           caddy_img="$REGISTRY/$ns/macro-caddy:$v"
@@ -1512,10 +1444,6 @@ jobs:
               "macro-services-email": {
                 "image": "$services_img",
                 "digest": "$(get_digest "$services_img")"
-              },
-              "macro-scheduled-action": {
-                "image": "$scheduled_img",
-                "digest": "$(get_digest "$scheduled_img")"
               },
               "macro-init-email": {
                 "image": "$init_img",

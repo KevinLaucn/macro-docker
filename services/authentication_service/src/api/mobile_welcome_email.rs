@@ -8,9 +8,12 @@ use axum::{
 use model::response::ErrorResponse;
 use thiserror::Error;
 use tower::ServiceBuilder;
+use tracing::Level;
 use utoipa::ToSchema;
 
-use crate::api::{context::ApiContext, middleware};
+use crate::api::{context::ApiContext, middleware, utils::default_redirect_url};
+
+const DESKTOP_EMAIL_SUBJECT: &str = "Continue onboarding on desktop";
 
 #[derive(Debug, Error)]
 pub enum SendMobileWelcomeEmailError {
@@ -20,6 +23,9 @@ pub enum SendMobileWelcomeEmailError {
     #[error("Email is blocked")]
     EmailBlocked,
 
+    #[error("Please use your work email or Gmail")]
+    PersonalEmail,
+
     #[error("Internal error")]
     InternalError(#[from] anyhow::Error),
 }
@@ -28,8 +34,12 @@ impl IntoResponse for SendMobileWelcomeEmailError {
     fn into_response(self) -> Response {
         let status_code = match &self {
             SendMobileWelcomeEmailError::InvalidEmail
-            | SendMobileWelcomeEmailError::EmailBlocked => StatusCode::BAD_REQUEST,
-            SendMobileWelcomeEmailError::InternalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            | SendMobileWelcomeEmailError::EmailBlocked
+            | SendMobileWelcomeEmailError::PersonalEmail => StatusCode::BAD_REQUEST,
+            SendMobileWelcomeEmailError::InternalError(error) => {
+                tracing::error!(error = ?error, "mobile welcome email failed");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         };
 
         (
@@ -42,10 +52,44 @@ impl IntoResponse for SendMobileWelcomeEmailError {
     }
 }
 
+/// Ad parameters from the page that captured the email.
+///
+/// Only these keys are copied onto the desktop link. Anything else in the
+/// JSON is ignored, and values that are empty, too long, or not safe to put
+/// in a URL are dropped.
+#[derive(Debug, Default, Clone, serde::Deserialize, serde::Serialize)]
+pub struct MobileWelcomeAttribution {
+    #[serde(default)]
+    pub utm_source: Option<String>,
+    #[serde(default)]
+    pub utm_medium: Option<String>,
+    #[serde(default)]
+    pub utm_campaign: Option<String>,
+    #[serde(default)]
+    pub utm_term: Option<String>,
+    #[serde(default)]
+    pub utm_content: Option<String>,
+    #[serde(default)]
+    pub fbclid: Option<String>,
+    #[serde(default)]
+    pub gclid: Option<String>,
+    #[serde(default)]
+    pub twclid: Option<String>,
+    #[serde(default)]
+    pub rdt_cid: Option<String>,
+}
+
 #[derive(Debug, serde::Deserialize, serde::Serialize, ToSchema)]
 pub struct SendMobileWelcomeEmailRequest {
     /// The email address to send the welcome email to
     pub email: String,
+    /// Ad parameters from the capture page. Omitted when the visit had none.
+    ///
+    /// Left out of the generated schema: the web and marketing clients send
+    /// the object directly, and the public SDK skips this endpoint.
+    #[serde(default)]
+    #[schema(ignore)]
+    pub attribution: MobileWelcomeAttribution,
 }
 
 #[derive(Debug, serde::Serialize, ToSchema)]
@@ -66,9 +110,9 @@ pub fn router(state: ApiContext) -> Router<ApiContext> {
     )
 }
 
-/// Enrolls a mobile lead in the Loops nurture sequence, which sends the welcome
-/// email inviting them to register on desktop. No-ops if the address was already
-/// enrolled, and rejects blocked addresses.
+/// Emails a mobile lead a link to continue onboarding on desktop and enrolls
+/// them in the Loops welcome sequence. No-ops if the address was already
+/// captured, and rejects blocked addresses.
 #[utoipa::path(
     post,
     path = "/mobile-welcome-email",
@@ -80,13 +124,17 @@ pub fn router(state: ApiContext) -> Router<ApiContext> {
         (status = 500, body = ErrorResponse),
     )
 )]
-#[tracing::instrument(skip(ctx), fields(email=%req.email), err)]
+#[tracing::instrument(skip(ctx), fields(email=%req.email), err(level = Level::INFO))]
 pub async fn handler(
     State(ctx): State<ApiContext>,
     extract::Json(req): extract::Json<SendMobileWelcomeEmailRequest>,
 ) -> Result<Json<SendMobileWelcomeEmailResponse>, SendMobileWelcomeEmailError> {
     if !email_validator::is_valid_email(&req.email) {
         return Err(SendMobileWelcomeEmailError::InvalidEmail);
+    }
+
+    if is_personal_email(&req.email) {
+        return Err(SendMobileWelcomeEmailError::PersonalEmail);
     }
 
     let lowercase_email = loops_client::normalize_email(&req.email);
@@ -111,11 +159,39 @@ pub async fn handler(
         return Ok(Json(SendMobileWelcomeEmailResponse { sent: false }));
     }
 
-    // Enrolls the lead in the Loops nurture sequence, which owns the welcome
-    // email from here. Awaited rather than fire-and-forget: `sent: true` tells
-    // the caller mail is on the way, so it must not report success on a
-    // Loops failure. The key is namespaced by event so it can't collide with
-    // the `user_registered` event sent when the lead converts.
+    // The "continue on desktop" link the phone confirmation screen promises.
+    // The capture page's ad parameters ride along so the laptop session,
+    // which is a different browser, still has them for PostHog.
+    let url = desktop_signup_url(&default_redirect_url(), &req.attribution);
+    if let Err(e) = ctx
+        .ses_client
+        .send_email(
+            "auth@macro.com",
+            req.email.trim(),
+            DESKTOP_EMAIL_SUBJECT,
+            &desktop_email_html(&url),
+        )
+        .await
+    {
+        tracing::error!(error=?e, "failed to send mobile desktop-link email");
+        // Release the claim so a retry sends the email instead of no-oping.
+        if let Err(release_err) =
+            mobile_welcome_email_db_client::mobile_welcome_email::delete_mobile_welcome_email(
+                &ctx.db,
+                &lowercase_email,
+            )
+            .await
+        {
+            tracing::error!(error=?release_err, "failed to release mobile welcome email claim");
+        }
+        return Err(SendMobileWelcomeEmailError::InternalError(e));
+    }
+
+    // Enrolls the lead in the Loops welcome drip. Awaited rather than
+    // fire-and-forget: `sent: true` tells the caller mail is on the way, so it
+    // must not report success on a Loops failure. The key is namespaced by
+    // event so it can't collide with the `user_registered` event sent when the
+    // lead converts.
     ctx.loops_client
         .send_event(
             &lowercase_email,
@@ -134,4 +210,257 @@ pub async fn handler(
         .map_err(|e| SendMobileWelcomeEmailError::InternalError(e.into()))?;
 
     Ok(Json(SendMobileWelcomeEmailResponse { sent: true }))
+}
+
+/// Gmail domains accepted despite being generic: Macro connects Gmail inboxes,
+/// so a Gmail lead can finish signing up on desktop.
+const ALLOWED_PERSONAL_DOMAINS: &[&str] = &["gmail.com", "googlemail.com"];
+
+fn is_personal_email(email: &str) -> bool {
+    email.trim().rsplit_once('@').is_some_and(|(_, domain)| {
+        generic_email_domains::is_generic_email_domain(domain)
+            && !ALLOWED_PERSONAL_DOMAINS
+                .iter()
+                .any(|allowed| domain.eq_ignore_ascii_case(allowed))
+    })
+}
+
+/// Marks a signup that started from the mobile email capture, as opposed to
+/// someone who opened the ad on a computer and signed up directly.
+const SIGNUP_FLOW_PARAM: &str = "signup_flow";
+const SIGNUP_FLOW_MOBILE_EMAIL: &str = "mobile_email";
+
+/// Campaign names and click ids are short. Longer values are not attribution.
+const MAX_ATTRIBUTION_VALUE_CHARS: usize = 512;
+
+/// Desktop signup page. The local frontend origin has no `/app` prefix.
+///
+/// Copies the allowlisted ad parameters and always sets
+/// `signup_flow=mobile_email`. The flow parameter is not taken from the
+/// request, so a caller cannot relabel the link.
+fn desktop_signup_url(base: &url::Url, attribution: &MobileWelcomeAttribution) -> String {
+    let mut url = base.clone();
+    let path = url.path().trim_end_matches('/').to_string();
+    url.set_path(&format!("{path}/signup"));
+    url.set_query(None);
+    {
+        let mut pairs = url.query_pairs_mut();
+        for (key, value) in [
+            ("utm_source", attribution.utm_source.as_deref()),
+            ("utm_medium", attribution.utm_medium.as_deref()),
+            ("utm_campaign", attribution.utm_campaign.as_deref()),
+            ("utm_term", attribution.utm_term.as_deref()),
+            ("utm_content", attribution.utm_content.as_deref()),
+            ("fbclid", attribution.fbclid.as_deref()),
+            ("gclid", attribution.gclid.as_deref()),
+            ("twclid", attribution.twclid.as_deref()),
+            ("rdt_cid", attribution.rdt_cid.as_deref()),
+        ] {
+            let Some(value) = value.and_then(accepted_attribution_value) else {
+                continue;
+            };
+            pairs.append_pair(key, value);
+        }
+        pairs.append_pair(SIGNUP_FLOW_PARAM, SIGNUP_FLOW_MOBILE_EMAIL);
+    }
+    url.to_string()
+}
+
+/// Keeps values that can sit in a query string and an HTML attribute.
+fn accepted_attribution_value(value: &str) -> Option<&str> {
+    let value = value.trim();
+    if value.is_empty() || value.chars().count() > MAX_ATTRIBUTION_VALUE_CHARS {
+        return None;
+    }
+    if value
+        .chars()
+        .any(|c| c.is_control() || matches!(c, '<' | '>' | '"' | '\'' | '`' | '\\'))
+    {
+        return None;
+    }
+    Some(value)
+}
+
+fn escape_html_attr(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('"', "&quot;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+fn desktop_email_html(url: &str) -> String {
+    let url = escape_html_attr(url);
+    format!(
+        r##"<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>{DESKTOP_EMAIL_SUBJECT}</title>
+  </head>
+  <body style="margin:0;padding:0;width:100%;background-color:#f5f5f4;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">
+      Open this link on desktop to finish signing up for Macro.
+    </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f5f5f4" style="font-family:Arial,Helvetica,sans-serif;color:#222222;">
+      <tr>
+        <td align="center" style="padding:48px 20px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+            <tr>
+              <td bgcolor="#ffffff" style="padding:36px 40px 40px;border:1px solid #e7e7e5;border-radius:12px;">
+                <a href="https://macro.com" style="text-decoration:none;">
+                  <img src="https://macro.com/app/macro-email-icon.png" width="48" height="48" alt="Macro" style="display:block;border:0;" />
+                </a>
+                <h1 style="margin:36px 0 16px;font-size:28px;line-height:36px;font-weight:600;letter-spacing:-0.5px;color:#222222;">{DESKTOP_EMAIL_SUBJECT}</h1>
+                <p style="margin:0 0 20px;font-size:16px;line-height:26px;color:#525252;">Macro is a better experience on desktop. Open this link to finish signing up — it only takes a minute.</p>
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 8px;">
+                  <tr>
+                    <td bgcolor="#222222" style="border-radius:6px;text-align:center;">
+                      <a href="{url}" style="display:inline-block;padding:14px 24px;border:1px solid #222222;border-radius:6px;color:#ffffff;background-color:#222222;font-size:15px;line-height:20px;font-weight:600;text-decoration:none;">Continue on desktop</a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:28px 0 0;font-size:14px;line-height:22px;color:#737373;">If you didn't request this, you can safely ignore this email.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 16px 0;text-align:center;font-size:12px;line-height:20px;color:#737373;">
+                Need a hand? <a href="mailto:support@macro.com" style="color:#525252;text-decoration:underline;">Contact support</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>"##
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn query(url: &str) -> Vec<(String, String)> {
+        url::Url::parse(url)
+            .unwrap()
+            .query_pairs()
+            .map(|(key, value)| (key.into_owned(), value.into_owned()))
+            .collect()
+    }
+
+    #[test]
+    fn desktop_link_points_at_signup() {
+        let prod = url::Url::parse("https://macro.com/app").unwrap();
+        assert_eq!(
+            desktop_signup_url(&prod, &MobileWelcomeAttribution::default()),
+            "https://macro.com/app/signup?signup_flow=mobile_email"
+        );
+        let local = url::Url::parse("http://localhost:3000").unwrap();
+        assert_eq!(
+            desktop_signup_url(&local, &MobileWelcomeAttribution::default()),
+            "http://localhost:3000/signup?signup_flow=mobile_email"
+        );
+    }
+
+    #[test]
+    fn desktop_link_keeps_ad_parameters_from_the_capture_page() {
+        let prod = url::Url::parse("https://macro.com/app").unwrap();
+        let url = desktop_signup_url(
+            &prod,
+            &MobileWelcomeAttribution {
+                utm_source: Some("  facebook  ".into()),
+                utm_medium: Some("paid".into()),
+                utm_campaign: Some("spring & summer".into()),
+                utm_term: Some("lookalike".into()),
+                utm_content: Some("video a".into()),
+                fbclid: Some("IwAR123".into()),
+                gclid: None,
+                twclid: None,
+                rdt_cid: None,
+            },
+        );
+        assert_eq!(
+            query(&url),
+            vec![
+                ("utm_source".into(), "facebook".into()),
+                ("utm_medium".into(), "paid".into()),
+                ("utm_campaign".into(), "spring & summer".into()),
+                ("utm_term".into(), "lookalike".into()),
+                ("utm_content".into(), "video a".into()),
+                ("fbclid".into(), "IwAR123".into()),
+                ("signup_flow".into(), "mobile_email".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn desktop_link_drops_values_that_cannot_be_a_query_parameter() {
+        let prod = url::Url::parse("https://macro.com/app").unwrap();
+        let url = desktop_signup_url(
+            &prod,
+            &MobileWelcomeAttribution {
+                utm_source: Some("facebook".into()),
+                utm_campaign: Some("<script>alert(1)</script>".into()),
+                utm_content: Some(" ".into()),
+                utm_term: Some("x".repeat(513)),
+                ..MobileWelcomeAttribution::default()
+            },
+        );
+        assert_eq!(
+            query(&url),
+            vec![
+                ("utm_source".into(), "facebook".into()),
+                ("signup_flow".into(), "mobile_email".into()),
+            ]
+        );
+        let html = desktop_email_html(&url);
+        assert!(html.contains("&amp;"));
+        assert!(!html.contains("<script"));
+        assert!(html.contains(DESKTOP_EMAIL_SUBJECT));
+    }
+
+    #[test]
+    fn attribution_json_uses_the_query_parameter_names() {
+        let parsed: SendMobileWelcomeEmailRequest = serde_json::from_str(
+            r#"{"email":"lead","attribution":{"utm_source":"facebook","fbclid":"x","signup_flow":"nope"}}"#,
+        )
+        .unwrap();
+        assert_eq!(parsed.attribution.utm_source.as_deref(), Some("facebook"));
+        assert_eq!(parsed.attribution.fbclid.as_deref(), Some("x"));
+        let url = desktop_signup_url(
+            &url::Url::parse("https://macro.com/app").unwrap(),
+            &parsed.attribution,
+        );
+        let has_mobile_email_flow = query(&url)
+            .iter()
+            .any(|(key, value)| key == "signup_flow" && value == "mobile_email");
+        assert!(has_mobile_email_flow);
+
+        let bare: SendMobileWelcomeEmailRequest =
+            serde_json::from_str(r#"{"email":"lead"}"#).unwrap();
+        assert!(bare.attribution.utm_source.is_none());
+    }
+
+    #[test]
+    fn desktop_email_links_to_signup() {
+        let html = desktop_email_html("https://macro.com/app/signup");
+        assert!(html.contains(r#"href="https://macro.com/app/signup""#));
+        assert!(html.contains(DESKTOP_EMAIL_SUBJECT));
+    }
+
+    #[test]
+    fn personal_email_providers_other_than_gmail_are_rejected() {
+        assert!(!is_personal_email("someone@gmail.com"));
+        assert!(!is_personal_email(" Someone@GMAIL.com "));
+        assert!(!is_personal_email("someone@googlemail.com"));
+        assert!(is_personal_email("someone@icloud.com"));
+        assert!(is_personal_email(" Someone@Yahoo.com "));
+        assert!(!is_personal_email("someone@macro.com"));
+        assert!(!is_personal_email("someone@acme.co"));
+    }
 }

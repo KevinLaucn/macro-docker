@@ -1,11 +1,22 @@
 import type { EmailMessage } from '@app/features/email-message/core/email-message';
+import {
+  normalizeContentId,
+  staticFileIdsByContentId,
+} from '@app/features/email-message/core/inline-images';
+import { readReceiptPixelPrefixes } from '@app/features/email-message/core/read-receipt';
+import { convertBookingLinkMentionsToLinks } from '@core/component/LexicalMarkdown/utils/convertBookingLinkMentionsToLinks';
 import { convertDocumentMentionsToLinks } from '@core/component/LexicalMarkdown/utils/convertDocumentMentionsToLinks';
+import {
+  EMAIL_SERVICE_EMBEDDED_HOSTS,
+  staticFileReferenceEndpoint,
+} from '@core/constant/servers';
+import { encodeBase64UrlUtf8 } from '@core/util/base64';
 import { formatEmailDate } from '@core/util/date';
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
-import { $createQuoteNode } from '@lexical/rich-text';
+import { $createQuoteNode, $isQuoteNode } from '@lexical/rich-text';
 import { $dfsIterator } from '@lexical/utils';
 import { stripOwnTrackingPixelsFromHtml } from '@macro/fork-read-receipts';
-import { sanitizeEmailHtml } from '@macro-inc/email-renderer';
+import { type ImagePolicy, sanitizeEmailHtml } from '@macro-inc/email-renderer';
 import type { DocumentMentionInfo } from '@macro-inc/lexical-core';
 import {
   $createClassedBlockNode,
@@ -26,11 +37,18 @@ import {
   type LexicalEditor,
   type LexicalNode,
 } from 'lexical';
-import type { ReplyType } from '../core/reply-type';
+import { FORWARDED_MESSAGE_HEADER, type ReplyType } from '../core/reply-type';
 import { TOGGLE_APPEND_EMAIL_THREAD_COMMAND } from './email-editor-commands';
 import { flattenConsecutiveParagraphs } from './flatten-consecutive-paragraphs';
 
 export { TOGGLE_APPEND_EMAIL_THREAD_COMMAND } from './email-editor-commands';
+
+// Quotes always drop Macro pixels: the composer would count an open, and a
+// reply or forward must not carry the original's pixel to new recipients.
+const QUOTED_IMAGES: ImagePolicy = {
+  remote: 'allow',
+  hiddenUrlPrefixes: readReceiptPixelPrefixes(EMAIL_SERVICE_EMBEDDED_HOSTS),
+};
 
 export function clearEmailBody(editor: LexicalEditor | undefined) {
   if (!editor) return;
@@ -58,7 +76,7 @@ function buildHeaderDescriptor(
 
   if (replyType === 'forward') {
     const lines: string[] = [];
-    lines.push('---------- Forwarded message ----------');
+    lines.push(FORWARDED_MESSAGE_HEADER);
     const fromName = replyingTo.from?.name ?? replyingTo.from?.email ?? '';
     const fromEmail = replyingTo.from?.email ?? '';
     lines.push(`From: ${fromName} <${fromEmail}>`);
@@ -158,6 +176,19 @@ function getComposerQuotedBodyHtml(
   return replyingTo.is_sent ? stripOwnTrackingPixelsFromHtml(html) : html;
 }
 
+/**
+ * The quoted message's inline parts are not sent along, so a cid: image would
+ * reach the recipient broken. Point it at the image's public static-file copy.
+ */
+function linkInlineImages(root: ParentNode, replyingTo: EmailMessage) {
+  const fileIds = staticFileIdsByContentId(replyingTo.attachments);
+  for (const img of root.querySelectorAll('img[src^="cid:"]')) {
+    const src = img.getAttribute('src') ?? '';
+    const fileId = fileIds.get(normalizeContentId(src.slice(4)));
+    if (fileId) img.setAttribute('src', staticFileReferenceEndpoint(fileId));
+  }
+}
+
 const $appendPreviousEmail = (
   editor: LexicalEditor,
   replyingTo: EmailMessage | undefined,
@@ -188,9 +219,10 @@ const $appendPreviousEmail = (
   } else {
     const parser = new DOMParser();
     const dom = parser.parseFromString(
-      sanitizeEmailHtml(replyingToBodyHTML),
+      sanitizeEmailHtml(replyingToBodyHTML, QUOTED_IMAGES),
       'text/html'
     );
+    linkInlineImages(dom, replyingTo);
     // Forwards always embed the original as a non-editable HTML Render Node so
     // the recipient gets the exact original markup. For replies, a table is a
     // good indicator of content we can't convert into editable nodes correctly.
@@ -255,6 +287,25 @@ function removeAppendedThread(
     },
     { discrete: true }
   );
+}
+
+/** Whether the appended thread forwards or quotes, read from its header. */
+export function appendedThreadKind(
+  editor: LexicalEditor,
+  replyingToId: string
+): 'forward' | 'reply' | undefined {
+  return editor.read(() => {
+    for (const node of $findPreviousEmailNode(replyingToId)) {
+      if (!node) continue;
+      const header = node
+        .getChildren()
+        .filter((child) => !$isQuoteNode(child))
+        .map((child) => child.getTextContent())
+        .join('');
+      return header.includes(FORWARDED_MESSAGE_HEADER) ? 'forward' : 'reply';
+    }
+    return undefined;
+  });
 }
 
 export function registerToggleAppendedThread(editor: LexicalEditor) {
@@ -343,10 +394,14 @@ async function _appendItemsAsMacroMentions(
 
 function getAppendedReplyElement(
   replyingTo: EmailMessage,
-  replyType: ReplyType | undefined
+  replyType: ReplyType | undefined,
+  reopenable = false
 ) {
   const wrapper = document.createElement('div');
   wrapper.classList.add('macro_quote', 'gmail_quote');
+  // The editor imports only marked blocks as its appended thread; unmarked, a
+  // reopened draft would append the thread a second time.
+  if (reopenable) wrapper.setAttribute('data-classed-block', 'true');
   const spacing = document.createElement('p');
   spacing.textContent = '\n';
   wrapper.appendChild(spacing);
@@ -371,9 +426,10 @@ function getAppendedReplyElement(
     quote.textContent = replyingTo.body_text ?? '';
   } else {
     const innerDom = new DOMParser().parseFromString(
-      sanitizeEmailHtml(replyingToBodyHTML),
+      sanitizeEmailHtml(replyingToBodyHTML, QUOTED_IMAGES),
       'text/html'
     );
+    linkInlineImages(innerDom, replyingTo);
     // Extract style tags from head to preserve email styling for weirdo emails with initial style tags.
     const styleTags = innerDom.head?.querySelectorAll('style');
     styleTags?.forEach((style) => {
@@ -437,13 +493,17 @@ function applyMediaScale(container: Element) {
   });
 }
 
+type AppendedReply = {
+  replyType: ReplyType | undefined;
+  replyingTo: EmailMessage;
+  /** For a saved draft: mark the thread so reopening it recognises it. */
+  reopenable?: boolean;
+};
+
 export function prepareEmailBody(
   editor: LexicalEditor | undefined,
   // if this argument is provided, we append the message being replied to the html email body
-  appendReply?: {
-    replyType: ReplyType | undefined;
-    replyingTo: EmailMessage;
-  }
+  appendReply?: AppendedReply
 ): {
   bodyHtml: string;
   bodyText: string;
@@ -464,10 +524,7 @@ export function prepareEmailBody(
  */
 export function prepareEmailBodyFromHtml(
   generatedHtml: string,
-  appendReply?: {
-    replyType: ReplyType | undefined;
-    replyingTo: EmailMessage;
-  }
+  appendReply?: AppendedReply
 ): {
   bodyHtml: string;
   bodyText: string;
@@ -483,8 +540,9 @@ export function prepareEmailBodyFromHtml(
   // Apply image scale to width/height attributes so the recipient sees the resized dimensions
   applyMediaScale(parsed.body);
 
-  // Convert Macro document mentions to HTML links in the parsed DOM
+  // Convert Macro mentions to HTML links in the parsed DOM
   const mentions = convertDocumentMentionsToLinks(parsed.body);
+  convertBookingLinkMentionsToLinks(parsed.body);
 
   // HtmlRenderNode exports as declarative shadow DOM; email clients and the
   // backend sanitizer drop template content, so inline it
@@ -498,15 +556,13 @@ export function prepareEmailBodyFromHtml(
   if (appendReply && !parsed.body.querySelector('.macro_quote')) {
     const appendedReplyElement = getAppendedReplyElement(
       appendReply.replyingTo,
-      appendReply.replyType
+      appendReply.replyType,
+      appendReply.reopenable
     );
     parsed.body.appendChild(appendedReplyElement);
   }
 
-  const html = btoa(unescape(encodeURIComponent(parsed.body.outerHTML)))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/={1,}$/, '');
+  const html = encodeBase64UrlUtf8(parsed.body.outerHTML);
   const bodyHtml = html;
   const bodyText = parsed.body.firstChild?.textContent ?? '';
 

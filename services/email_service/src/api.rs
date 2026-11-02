@@ -1,4 +1,6 @@
+mod calendar_event_forward;
 mod calendar_invitations;
+pub(crate) mod read_receipts;
 use anyhow::Context;
 use axum::Router;
 use context::ApiContext;
@@ -18,6 +20,7 @@ pub(crate) mod context;
 pub(crate) mod gmail;
 mod internal;
 mod middleware;
+mod outlook;
 pub(crate) mod swagger;
 
 #[cfg(test)]
@@ -72,9 +75,24 @@ fn api_router(state: ApiContext) -> Router<ApiContext> {
             "/email/threads/{thread_id}/calendar-invitations",
             axum::routing::get(calendar_invitations::handler),
         )
+        .route(
+            "/email/threads/{thread_id}/messages/{message_id}/calendar-invitations/{invitation_id}/copy",
+            axum::routing::post(calendar_invitations::copy_handler),
+        )
+        .route(
+            "/email/calendar-events/{event_id}/forward",
+            axum::routing::post(calendar_event_forward::handler),
+        )
+        .route(
+            "/email/threads/{thread_id}/read-receipts",
+            axum::routing::get(read_receipts::thread),
+        )
+        // Fetched by recipients' mail clients, so it takes no credentials.
+        .route("/opens/{token}", axum::routing::get(read_receipts::pixel))
         .nest("/email", email::router(state))
         .nest("/gmail", gmail::router())
         // PRIVATE-HOOK: read_receipts:public_router
         .nest("/t", features::read_receipts::public_router())
+        .nest("/outlook", outlook::router())
         .nest("/internal", internal::router())
 }

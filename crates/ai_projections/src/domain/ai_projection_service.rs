@@ -25,7 +25,12 @@ pub const READ_PROFESSIONAL_FEATURES: &str = "read:professional_features";
 /// features. Everything else — including an absent model, which resolves to
 /// the server default (the smart tier) — requires the permission.
 // PRIVATE-HOOK: ai_model_policy:free-tier-models
-pub const FREE_TIER_MODELS: &[&str] = &["anthropic/claude-haiku-4-5", "openai/gpt-5-mini"];
+pub const FREE_TIER_MODELS: &[&str] = &[
+    "anthropic/claude-haiku-4-5",
+    "openai/gpt-5-mini",
+    "openai/gpt-5.6-mini",
+    "google/gemini-3.8-flash",
+];
 
 /// Whether a requested projection model requires the
 /// [`READ_PROFESSIONAL_FEATURES`] permission.

@@ -95,12 +95,17 @@ export type ScalarFieldFilters = {
   chatDone?: boolean;
   folderSeen?: boolean;
   folderDone?: boolean;
+  initiativeSeen?: boolean;
+  initiativeDone?: boolean;
   foreignEntitySeen?: boolean;
   foreignEntityDone?: boolean;
   foreignEntityIncludesMe?: boolean;
   callStatus?: CallStatus;
   callAttended?: boolean;
   crmCompanyHidden?: boolean;
+  crmContactHidden?: boolean;
+  /** Literal text matched against a CRM contact's name or email. */
+  crmContactSearch?: string;
   calendarEventSeen?: boolean;
   calendarEventDone?: boolean;
   includeAgentSessions?: boolean;

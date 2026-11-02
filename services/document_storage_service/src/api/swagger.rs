@@ -58,17 +58,18 @@ use crate::{
     },
 };
 use channel_labels::domain::models::{
-    ChannelLabel, ChannelLabelRule, ChannelLabelsList, SmartTagChannelMatch, SmartTagPreview,
+    ChannelLabel, ChannelLabelRule, ChannelLabelScopeSelection, ChannelLabelsList,
+    SmartTagChannelMatch, SmartTagPreview,
 };
 use channel_labels::inbound::axum_router::{
     CreateChannelLabelRequest, RenameChannelLabelRequest, SetChannelLabelRequest,
 };
 use channels::inbound::axum_router::{
-    ApiActivity, ApiAttachmentChannelReference, ApiAttachmentEntityReference,
-    ApiAttachmentGenericReference, ApiChannelAttachment, ApiChannelAttachmentsPage,
-    ApiChannelDetail, ApiChannelParticipant, ApiParticipantRole, CreateEntityMentionRequest,
-    CreateEntityMentionResponse, DeleteEntityMentionResponse, GetAttachmentReferencesResponse,
-    PostActivityRequest,
+    ApiActivity, ApiAttachmentChannelReference, ApiAttachmentCommentReference,
+    ApiAttachmentEntityReference, ApiAttachmentGenericReference, ApiChannelAttachment,
+    ApiChannelAttachmentsPage, ApiChannelDetail, ApiChannelParticipant, ApiParticipantRole,
+    CreateEntityMentionRequest, CreateEntityMentionResponse, DeleteEntityMentionResponse,
+    GetAttachmentReferencesResponse, PostActivityRequest,
 };
 use collab_surface::domain::models::SurfaceState;
 use collab_surface::inbound::axum_router::{
@@ -199,8 +200,8 @@ use soup::domain::models::{SoupItemWithProperties, SoupPropertiesField};
 use soup::inbound::axum_router::{
     ApiGroupByField, ApiGroupMeta, GroupedSoupGroupPage, GroupedSoupInitialPage, GroupedSoupPage,
     PostGroupedSoupAstGroupPageRequest, PostGroupedSoupAstInitialRequest,
-    PostGroupedSoupAstRequest, PostSoupAstRequest, PostSoupRequest, SoupApiItem, SoupApiSort,
-    SoupPage,
+    PostGroupedSoupAstRequest, PostSoupAstRequest, PostSoupRequest, PropertyBucketing,
+    PropertyDateRange, PropertyDateRanges, SoupApiItem, SoupApiSort, SoupPage,
 };
 use user_api_key::domain::models::{CreatedUserApiKey, UserApiKeyInfo};
 use user_api_key::inbound::axum_router::{CreateUserApiKeyRequest, UserApiKeysList};
@@ -217,7 +218,11 @@ use utoipa::OpenApi;
         health::health_handler,
         calendar_events::inbound::axum_router::list_occurrences,
         calendar_events::inbound::axum_router::mention_previews,
+        calendar_events::inbound::axum_router::event_ics,
+        calendar_events::inbound::join_request_router::request_to_join,
+        calendar_events::inbound::join_request_router::list_join_requests,
         calendar_events::inbound::axum_router::list_team_out_of_office,
+        calendar_events::inbound::team_router::list_team_calendar,
 
         // annotations
         annotations::get::get_document_anchors_handler,
@@ -232,6 +237,7 @@ use utoipa::OpenApi;
         documents_hex::inbound::axum_router::get_document_by_team_slug::get_document_by_team_slug_handler,
         documents::get_document_version::handler,
         documents_hex::inbound::axum_router::create_document::create_document_handler,
+        documents_hex::inbound::axum_router::create_canvas::create_canvas_handler,
         documents_hex::inbound::axum_router::create_markdown::create_markdown_handler,
         documents_hex::inbound::axum_router::copy_document::copy_document_handler,
         documents::save_document::save_document_handler,
@@ -244,8 +250,10 @@ use utoipa::OpenApi;
         documents::get_document_views::get_document_views_handler,
         documents::location::get_location_handler,
         documents_hex::inbound::axum_router::get_location::get_location_v3_handler,
+        documents_hex::inbound::axum_router::get_text::get_text_handler,
         documents_hex::inbound::axum_router::get_branch_name::get_branch_name_handler,
         documents_hex::inbound::axum_router::get_github_pull_requests::get_github_pull_requests_handler,
+        documents_hex::inbound::axum_router::get_github_pull_request_tasks::get_github_pull_request_tasks_handler,
         documents_hex::inbound::axum_router::get_short_id::get_short_id_handler,
         documents::simple_save::handler,
         documents::initialize_user_documents::handler,
@@ -255,6 +263,7 @@ use utoipa::OpenApi;
         documents::revert_delete_document::handler,
         documents::export_document::handler,
         documents_hex::inbound::axum_router::create_task::create_task_handler,
+        documents_hex::inbound::axum_router::task_duplicates::task_similarity_search_handler,
         documents_hex::inbound::axum_router::create_snippet::create_snippet_handler,
         documents_hex::inbound::axum_router::create_skill::create_skill_handler,
         documents_hex::inbound::axum_router::system_skills::get_system_skills_handler,
@@ -290,6 +299,9 @@ use utoipa::OpenApi;
 
         // messages (channels and documents)
         messages::inbound::axum_router::timeline,
+        messages::inbound::guest_chat::read,
+        messages::inbound::guest_chat::post,
+        messages::inbound::axum_router::timeline_entries,
         messages::inbound::axum_router::create,
         messages::inbound::axum_router::get_message,
         messages::inbound::axum_router::edit,
@@ -369,6 +381,7 @@ use utoipa::OpenApi;
         call::inbound::axum_router::check_active_call_handler,
         call::inbound::axum_router::get_active_calls_handler,
         call::inbound::axum_router::leave_or_end_call_handler,
+        call::inbound::axum_router::decline_call_handler,
         call::inbound::axum_router::get_call_record_handler,
         call::inbound::axum_router::edit_call_record_handler,
         call::inbound::axum_router::edit_call_transcript_handler,
@@ -384,6 +397,7 @@ use utoipa::OpenApi;
         webhook::inbound::axum_router::validate_webhook,
         webhook::inbound::stream_router::stream_events,
         call::inbound::axum_router::ring_status_handler,
+        call::inbound::axum_router::decline_ring_handler,
         call::inbound::axum_router::transcript_handler,
 
         // pins
@@ -437,6 +451,41 @@ use utoipa::OpenApi;
         slack_integration::inbound::axum_router::jobs::finalize,
         slack_integration::inbound::axum_router::jobs::cancel,
 
+        // External chats (any provider)
+        external_chat::inbound::router::list,
+        external_chat::inbound::router::add,
+        external_chat::inbound::router::chat,
+        external_chat::inbound::router::remove,
+        external_chat::inbound::router::messages,
+        external_chat::inbound::router::message,
+        external_chat::inbound::router::message_attachments,
+        external_chat::inbound::router::mark_read,
+        external_chat::inbound::router::permissions,
+        external_chat::inbound::router::update_permissions,
+        external_chat::inbound::router::open_sends,
+        external_chat::inbound::router::send,
+        external_chat::inbound::router::upload,
+        external_chat::inbound::router::delivery,
+
+        // Personal WhatsApp linked as a device
+        whatsapp_linked::inbound::router::account,
+        whatsapp_linked::inbound::router::connect,
+        whatsapp_linked::inbound::router::pairing,
+        whatsapp_linked::inbound::router::cancel,
+        whatsapp_linked::inbound::router::passkey,
+        whatsapp_linked::inbound::router::disconnect,
+        whatsapp_linked::inbound::router::chats,
+        whatsapp_linked::inbound::router::start_lookup,
+        whatsapp_linked::inbound::router::lookup,
+        whatsapp_linked::inbound::router::import_history,
+
+        access_requests::inbound::axum_router::state_handler,
+        access_requests::inbound::axum_router::submit_handler,
+        access_requests::inbound::axum_router::cancel_handler,
+        access_requests::inbound::axum_router::resolve_handler,
+        access_requests::inbound::axum_router::direct_handler,
+        access_requests::inbound::axum_router::set_direct_handler,
+        access_requests::inbound::axum_router::remove_direct_handler,
         // reminders
         reminders::inbound::axum_router::get_email_followup_handler,
         reminders::inbound::axum_router::set_email_followup_handler,
@@ -448,6 +497,7 @@ use utoipa::OpenApi;
         initiative::inbound::axum_router::update::update_initiative_handler,
         initiative::inbound::axum_router::delete::delete_initiative_handler,
         // databases
+        databases_sql::inbound::axum_router::query_databases_handler,
         databases::inbound::axum_router::list_databases_handler,
         databases::inbound::starter_router::ensure_starter_handler,
         databases::inbound::axum_router::create_database_handler,
@@ -500,6 +550,18 @@ use utoipa::OpenApi;
         sync_service_hex::inbound::axum_router::bulk_wakeup_handler,
 
         // /crm
+        crm::inbound::pipelines::create,
+        crm::inbound::pipelines::list,
+        crm::inbound::pipelines::read,
+        crm::inbound::pipelines::table,
+        crm::inbound::pipelines::rows,
+        crm::inbound::pipelines::query_rows,
+        crm::inbound::pipelines::apply_ops,
+        crm::inbound::pipelines::rename,
+        crm::inbound::pipelines::share,
+        crm::inbound::pipelines::permissions,
+        crm::inbound::pipelines::update_permissions,
+        crm::inbound::pipelines::trash,
         crm::inbound::axum_router::set_email_sync::handler,
         crm::inbound::axum_router::set_company_hidden::handler,
         crm::inbound::axum_router::set_company_name::handler,
@@ -519,6 +581,7 @@ use utoipa::OpenApi;
     ),
     components(
         schemas(
+            access_requests::domain::models::ShareEntity,
             DocumentStorageServiceApiVersion,
             GenericResponse,
             GenericErrorResponse,
@@ -538,10 +601,15 @@ use utoipa::OpenApi;
             CreateDocumentRequest,
             CreateDocumentResponse,
             CreateDocumentResponseData, // Create document
+            documents_hex::domain::models::CreateCanvasDocumentRequest,
+            documents_hex::domain::models::CreateCanvasDocumentResponse,
             documents_hex::domain::models::CreateMarkdownDocumentRequest,
             documents_hex::domain::models::CreateMarkdownDocumentResponse,
             documents_hex::domain::models::CreateTaskRequest,
             documents_hex::domain::models::CreateTaskResponse,
+            documents_hex::inbound::axum_router::task_duplicates::TaskSimilaritySearchRequest,
+            documents_hex::inbound::axum_router::task_duplicates::TaskSimilaritySearchResponse,
+            task_dedup::TaskSimilarityResult,
             documents_hex::domain::models::CreateSnippetRequest,
             documents_hex::domain::models::CreateSnippetResponse,
             documents_hex::domain::models::CreateSkillRequest,
@@ -602,7 +670,19 @@ use utoipa::OpenApi;
             calendar_events::inbound::axum_router::CalendarMentionPreviewKind,
             calendar_events::inbound::axum_router::TeamOutOfOfficeItem,
             calendar_events::inbound::axum_router::TeamOutOfOfficeResponse,
+            calendar_events::domain::team::TeamCalendarPage,
+            calendar_events::domain::team::TeamCalendarItem,
+            calendar_events::domain::team::TeamCalendarContent,
+            calendar_events::domain::team::TeamCalendarDetails,
+            calendar_events::domain::team::TeamCalendarMember,
+            calendar_events::domain::team::TeamCalendarSharing,
+            calendar_events::domain::team::TeamCalendarCoverage,
             calendar_events::domain::models::CalendarMentionEvent,
+            calendar_events::domain::join_requests::CalendarJoinRequest,
+            calendar_events::domain::join_requests::CalendarJoinRequestStatus,
+            calendar_events::inbound::join_request_router::CalendarJoinRequestsResponse,
+            calendar_events::inbound::join_request_router::CalendarJoinRequestApiError,
+            calendar_events::inbound::join_request_router::CalendarJoinRequestErrorCode,
             calendar_events::domain::models::CalendarSyncStatus,
             SoupItemWithProperties,
             SoupApiItem,
@@ -636,6 +716,7 @@ use utoipa::OpenApi;
             ChannelLabel,
             ChannelLabelsList,
             ChannelLabelRule,
+            ChannelLabelScopeSelection,
             SmartTagChannelMatch,
             SmartTagPreview,
             CreateChannelLabelRequest,
@@ -744,6 +825,9 @@ use utoipa::OpenApi;
             PostGroupedSoupAstInitialRequest,
             PostGroupedSoupAstGroupPageRequest,
             PostGroupedSoupAstRequest,
+            PropertyBucketing,
+            PropertyDateRange,
+            PropertyDateRanges,
             ApiGroupByField,
             ApiGroupMeta,
             GroupedSoupInitialPage,
@@ -779,6 +863,8 @@ use utoipa::OpenApi;
             messages::domain::ports::MessageDirection,
             messages::domain::ports::MessageTimelineQuery,
             messages::domain::ports::MessagePage,
+            messages::domain::ports::MessageTimelinePage,
+            messages::domain::ports::MessageTimelineEntry,
             messages::domain::ports::MessagePatch,
             messages::domain::ports::AttachmentChange,
             messages::domain::ports::MessageEvent,
@@ -795,6 +881,7 @@ use utoipa::OpenApi;
             GetAttachmentReferencesResponse,
             ApiAttachmentEntityReference,
             ApiAttachmentChannelReference,
+            ApiAttachmentCommentReference,
             ApiAttachmentGenericReference,
             channels::domain::models::ChannelType,
             channels::domain::models::GetOrCreateAction,
@@ -948,6 +1035,9 @@ use utoipa::OpenApi;
             documents_hex::domain::models::GithubPullRequestCheckRun,
             documents_hex::domain::models::GithubPullRequestComment,
             documents_hex::domain::models::GithubPullRequestsResponse,
+            documents_hex::domain::models::GithubPullRequestTasksRequest,
+            documents_hex::domain::models::GithubPullRequestTasks,
+            documents_hex::domain::models::GithubPullRequestTasksResponse,
 
             // Sync service
             sync_service_hex::domain::models::BulkWakeupRequest,
@@ -984,6 +1074,7 @@ struct FormsApiAddon;
 impl utoipa::Modify for FormsApiAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
         openapi.merge(forms::inbound::axum_router::FormsApi::openapi());
+        openapi.merge(database_webhooks::inbound::axum_router::DatabaseWebhooksApi::openapi());
     }
 }
 

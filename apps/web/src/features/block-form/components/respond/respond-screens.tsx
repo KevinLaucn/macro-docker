@@ -1,6 +1,8 @@
-import CheckCircle from '@phosphor/check-circle.svg';
-import Lock from '@phosphor/lock.svg';
-import Prohibit from '@phosphor/prohibit.svg';
+import { timeRangeFromInstants } from '@app/features/database/core/cell-date-range';
+import CheckCircle from '@icon/system/regular/check-circle.svg';
+import Lock from '@icon/system/regular/lock.svg';
+import Prohibit from '@icon/system/regular/prohibit.svg';
+import { formatTimeRange } from '@property/utils/formatting';
 import { Button, cn } from '@ui';
 import { For, type JSX, Match, Show, Switch } from 'solid-js';
 import { match } from 'ts-pattern';
@@ -47,8 +49,14 @@ export function RespondTitleCard(props: {
   compact: boolean;
 }) {
   return (
-    <div class="overflow-hidden rounded-xl border border-edge bg-surface">
-      <div class={cn('flex flex-col gap-1.5', props.compact ? 'p-3' : 'p-5')}>
+    <div
+      class={
+        props.compact
+          ? 'overflow-hidden rounded-xl border border-edge bg-surface'
+          : undefined
+      }
+    >
+      <div class={cn('flex flex-col', props.compact ? 'gap-1.5 p-3' : 'gap-6')}>
         <h1
           class={cn(
             'font-semibold text-ink wrap-anywhere',
@@ -58,7 +66,12 @@ export function RespondTitleCard(props: {
           {props.name}
         </h1>
         <Show when={props.description}>
-          <p class="text-sm whitespace-pre-wrap text-ink-muted wrap-anywhere">
+          <p
+            class={cn(
+              'whitespace-pre-wrap text-ink-muted wrap-anywhere',
+              props.compact ? 'text-sm' : 'text-base leading-relaxed'
+            )}
+          >
             {props.description}
           </p>
         </Show>
@@ -113,7 +126,7 @@ export function StopScreen(props: {
           : 'Nothing you entered was submitted.'}
       </p>
       <div class="flex flex-wrap gap-2 pt-1">
-        <Button variant="strong" size="sm" onClick={props.onCheckAnswers}>
+        <Button variant="secondary" size="sm" onClick={props.onCheckAnswers}>
           Check my answers
         </Button>
         <Show when={props.onMessageOwner}>
@@ -173,6 +186,16 @@ export function AnswerValue(props: {
       .with({ type: 'date' }, (date) => (
         <span>{displayDate(date.value, props.widget !== 'date')}</span>
       ))
+      .with({ type: 'date_range' }, (answer) => {
+        const range = timeRangeFromInstants(answer.value);
+        return (
+          <span>
+            {range
+              ? formatTimeRange(range)
+              : `${answer.value.start} – ${answer.value.end}`}
+          </span>
+        );
+      })
       .with({ type: 'link' }, (link) => (
         <span class="flex flex-col">
           <For each={link.value}>
@@ -204,7 +227,7 @@ export function AnswerValue(props: {
           {rows.value.length === 1 ? '1 row' : `${rows.value.length} rows`}
         </span>
       ))
-      .exhaustive();
+      .exhaustive(() => null);
   };
   return <>{shown()}</>;
 }
@@ -250,7 +273,7 @@ export function Confirmation(props: {
         </Show>
         {props.notice}
         <Show when={props.canEdit}>
-          <Button variant="strong" size="sm" onClick={props.onEdit}>
+          <Button variant="secondary" size="sm" onClick={props.onEdit}>
             Edit my response
           </Button>
         </Show>

@@ -1,6 +1,7 @@
 import { useKeyedPersistentToasts } from '@core/component/Toast/useKeyedPersistentToasts';
 import { useAddInboxFlow } from '@core/email-link';
 import { reconnectScopes } from '@core/email-link/consent';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { t } from '@macro/i18n';
 import {
   useEmailLinksQuery,
@@ -24,13 +25,15 @@ export function GmailReauthenticationPrompt() {
 
   useKeyedPersistentToasts({
     items: () =>
-      (linksQuery.data?.links ?? []).filter((link) => link?.needs_reauth),
-    key: (link) => link?.id ?? '',
+      (linksQuery.isSuccess ? linksQuery.data.links : []).filter(
+        (link) => link.needs_reauth
+      ),
+    key: (link) => link.id,
     toast: (link, dismiss) => ({
       title:
         reconnectScopes(link) === 'gmail_and_calendar'
-          ? 'Reconnect email and calendar'
-          : 'Reconnect Gmail',
+          ? t('Reconnect email and calendar')
+          : t('Reconnect inbox'),
       content(): string {
         return `Sync stopped for ${link.email_address}. Reconnect to restore ${reconnectScopes(link) === 'gmail_and_calendar' ? 'email and calendar' : 'email'} sync.`;
       },
@@ -41,10 +44,15 @@ export function GmailReauthenticationPrompt() {
             // Suppress re-prompting until the inbox recovers; on native the page
             // stays mounted while the OAuth flow runs.
             dismiss();
-            void startAddInbox({
-              scopes: reconnectScopes(link),
-              emailAddress: link.email_address,
-            });
+            fireAndForget(
+              startAddInbox({
+                scopes: reconnectScopes(link),
+                provider: link.provider,
+                reconnectLinkId: link.id,
+                emailAddress: link.email_address,
+              }),
+              'add-inbox'
+            );
           },
         },
       ],

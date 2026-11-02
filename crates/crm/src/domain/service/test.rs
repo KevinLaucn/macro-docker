@@ -18,6 +18,8 @@ use std::sync::{Arc, Mutex};
 #[derive(Clone, Default)]
 struct StubRepo {
     contact_calls: Arc<Mutex<Vec<ContactListCall>>>,
+    association_calls: Arc<Mutex<Vec<Option<(uuid::Uuid, bool)>>>>,
+    association: Option<crate::domain::association::CrmRecordAssociation>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -52,6 +54,30 @@ impl CompaniesRepository for StubRepo {
         Ok(vec![])
     }
 
+    async fn resolve_activity(
+        &self,
+        scope: CrmContactListScope<'_>,
+    ) -> Result<crate::domain::association::CrmRecordAssociation, CrmError> {
+        self.resolve_association(scope, crate::domain::association::CrmAssociation::Activity)
+            .await
+            .map(Option::unwrap_or_default)
+    }
+
+    async fn resolve_association(
+        &self,
+        scope: CrmContactListScope<'_>,
+        _record: crate::domain::association::CrmAssociation,
+    ) -> Result<Option<crate::domain::association::CrmRecordAssociation>, CrmError> {
+        self.association_calls.lock().unwrap().push(match scope {
+            CrmContactListScope::Viewer(_) => None,
+            CrmContactListScope::Team {
+                team_id,
+                include_hidden,
+            } => Some((team_id, include_hidden)),
+        });
+        Ok(self.association.clone())
+    }
+
     async fn populate_contact(
         &self,
         _team_id: &uuid::Uuid,
@@ -69,7 +95,7 @@ impl CompaniesRepository for StubRepo {
     async fn create_company_for_team(
         &self,
         _team_id: &uuid::Uuid,
-        _domain: &str,
+        _domain: Option<&str>,
         _name: &str,
         _now: DateTime<Utc>,
     ) -> Result<CrmCompanyWithContacts, CrmError> {
@@ -103,6 +129,19 @@ impl CompaniesRepository for StubRepo {
         unimplemented!()
     }
 
+    async fn insert_pending_domain(&self, _domain: &str) -> Result<(), CrmError> {
+        unimplemented!()
+    }
+
+    async fn claim_pending_domains(
+        &self,
+        _limit: i64,
+        _max_attempts: i16,
+        _attempted_before: DateTime<Utc>,
+    ) -> Result<Vec<String>, CrmError> {
+        unimplemented!()
+    }
+
     async fn depopulate_contact(
         &self,
         _team_id: &uuid::Uuid,
@@ -110,6 +149,15 @@ impl CompaniesRepository for StubRepo {
         _domain: &str,
         _email: &str,
     ) -> Result<DepopulateContactOutcome, CrmError> {
+        unimplemented!()
+    }
+
+    async fn has_depopulate_target(
+        &self,
+        _team_id: &uuid::Uuid,
+        _domain: &str,
+        _email: &str,
+    ) -> Result<bool, CrmError> {
         unimplemented!()
     }
 
@@ -460,6 +508,64 @@ async fn contact_listing_requires_a_user_bot_to_match_its_acting_user() {
 }
 
 #[tokio::test]
+async fn association_uses_the_viewer_scope_and_reports_invisible_records() {
+    use crate::domain::association::{CrmAssociation, CrmRecordAssociation};
+    let company = uuid::Uuid::from_u128(7);
+    let contact = uuid::Uuid::from_u128(8);
+    let viewer = "macro|user@example.com";
+    let resolved = CrmRecordAssociation::company(company, vec![contact]);
+    let found = CrmServiceImpl::new(
+        StubRepo {
+            association: Some(resolved.clone()),
+            ..StubRepo::default()
+        },
+        NoOpCompanyMetadataResolver,
+    );
+    assert_eq!(
+        found
+            .resolve_association(viewer, None, CrmAssociation::Company(company))
+            .await
+            .unwrap(),
+        resolved
+    );
+    let team_id = uuid::Uuid::from_u128(42);
+    let bot = bot_receipt(team_id, BotReceiptScope::Team { team_id }, TeamRole::Member);
+    found
+        .resolve_association("bot-viewer", Some(&bot), CrmAssociation::Company(company))
+        .await
+        .unwrap();
+    assert_eq!(
+        *found.companies_repository.association_calls.lock().unwrap(),
+        vec![None, Some((team_id, false))]
+    );
+    let member = receipt_with_role(TeamRole::Member);
+    assert!(matches!(
+        found
+            .resolve_association(
+                "macro|other@example.com",
+                Some(&member),
+                CrmAssociation::Company(company)
+            )
+            .await,
+        Err(CrmError::InvalidRequest(_))
+    ));
+
+    let missing = service();
+    assert!(matches!(
+        missing
+            .resolve_association(viewer, None, CrmAssociation::Company(company))
+            .await,
+        Err(CrmError::CompanyNotFoundForTeam)
+    ));
+    assert!(matches!(
+        missing
+            .resolve_association(viewer, None, CrmAssociation::Contact(contact))
+            .await,
+        Err(CrmError::ContactNotFoundForTeam)
+    ));
+}
+
+#[tokio::test]
 async fn member_can_update_team_views_and_default() {
     let access = receipt_with_role(TeamRole::Member);
     let patch = CrmTeamSettingsPatch {
@@ -539,7 +645,7 @@ async fn create_company_rejects_blank_name() {
     let access = receipt_with_role(TeamRole::Member);
     for name in ["", "   ", "\t\n"] {
         let err = service()
-            .create_company(&access, name, "acme.com")
+            .create_company(&access, name, Some("acme.com"))
             .await
             .unwrap_err();
         assert!(matches!(err, CrmError::InvalidRequest(_)), "name {name:?}");
@@ -551,7 +657,7 @@ async fn create_company_rejects_overlong_name() {
     let access = receipt_with_role(TeamRole::Member);
     let name = "x".repeat(201);
     let err = service()
-        .create_company(&access, &name, "acme.com")
+        .create_company(&access, &name, Some("acme.com"))
         .await
         .unwrap_err();
     assert!(matches!(err, CrmError::InvalidRequest(_)));
@@ -573,7 +679,7 @@ async fn create_company_rejects_malformed_domains() {
         "acme .com",
     ] {
         let err = service()
-            .create_company(&access, "Acme", domain)
+            .create_company(&access, "Acme", Some(domain))
             .await
             .unwrap_err();
         assert!(
@@ -588,7 +694,7 @@ async fn create_company_rejects_generic_email_domains() {
     let access = receipt_with_role(TeamRole::Member);
     for domain in ["gmail.com", "Yahoo.com", "outlook.com"] {
         let err = service()
-            .create_company(&access, "Acme", domain)
+            .create_company(&access, "Acme", Some(domain))
             .await
             .unwrap_err();
         assert!(
@@ -729,6 +835,25 @@ async fn set_company_hidden_requires_admin_role() {
             .set_company_hidden(&company_edit_receipt_with_role(role), true)
             .await
             .unwrap();
+    }
+}
+
+#[tokio::test]
+async fn malformed_emails_have_no_depopulate_target() {
+    let team_id = uuid::Uuid::now_v7();
+    for email in [
+        "",
+        "jane",
+        "jane@",
+        "@acme.test",
+        "jane@@acme.test",
+        "a@b@c.test",
+    ] {
+        let has_target = service()
+            .has_depopulate_target(&team_id, email)
+            .await
+            .unwrap();
+        assert!(!has_target, "email {email:?}");
     }
 }
 

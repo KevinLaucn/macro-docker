@@ -5,11 +5,11 @@ version: 1
 overrides:
   - id: home_recommendations_fast_model_import
     file: apps/web/src/lib/queries/ai/createHomeRecommendations.ts
-    search: "import { PERMISSION_IDS } from '@core/constant/permissions';\nimport { useHasPermission } from '@core/context/user';"
-    replace: "import { Model } from '@core/component/AI/constant/model';\nimport { useHasPermission } from '@core/context/user';\nimport { PERMISSION_IDS } from '@core/constant/permissions';"
+    search: "import { FREE_DEFAULT_MODEL } from '@core/component/AI/constant';"
+    replace: "import { Model } from '@core/component/AI/constant/model';"
     expected_count: 1
   - id: home_recommendations_fast_model
     file: apps/web/src/lib/queries/ai/createHomeRecommendations.ts
-    search: "const FAST_MODEL = 'anthropic/claude-haiku-4-5';"
-    replace: "const FAST_MODEL = Model.gpt56Mini;"
+    search: "model: FREE_DEFAULT_MODEL,"
+    replace: "model: Model.gpt56Mini,"
     expected_count: 1

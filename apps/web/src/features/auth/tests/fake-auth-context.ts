@@ -16,6 +16,13 @@ export type FakeAuthWorld = {
   accounts: Record<string, { tutorialComplete: boolean }>;
   /** The code the fake mailer "sends". */
   code: string;
+  /**
+   * Code checks allowed per address before verification is rate-limited, as
+   * on the auth service. Its window is a minute; here it lasts until a test
+   * clears `codeAttempts`.
+   */
+  codeAttemptLimit: number;
+  codeAttempts: Record<string, number>;
   /** Addresses that sign in with a password instead of a code. */
   passwordAccounts: Record<string, string>;
   /** Addresses whose organization signs in through its own identity provider. */
@@ -37,6 +44,8 @@ export function defaultFakeAuthWorld(): FakeAuthWorld {
     user: null,
     accounts: { 'returning@acme.com': { tutorialComplete: true } },
     code: '424242',
+    codeAttemptLimit: 5,
+    codeAttempts: {},
     passwordAccounts: {},
     ssoDomains: [],
     autoCode: false,
@@ -73,6 +82,8 @@ export function createFakeAuth(
     ) => Promise<void>;
     /** Report the session as loading this long, like a cold page load. */
     sessionLatencyMs?: number;
+    /** Answer code checks this late, like a round trip to the auth service. */
+    verifyLatencyMs?: number;
   } = {}
 ) {
   const [world, setWorld] = createStore<FakeAuthWorld>({
@@ -82,6 +93,9 @@ export function createFakeAuth(
   const [events, setEvents] = createSignal<FakeAuthEvent[]>([]);
   const [notifications, setNotifications] = createSignal<string[]>([]);
   const [calls, setCalls] = createSignal<string[]>([]);
+  const [identifiedUsers, setIdentifiedUsers] = createSignal<
+    Parameters<AuthContext['identify']>[0][]
+  >([]);
   const call = (name: string) => setCalls((list) => [...list, name]);
 
   const update = (change: (draft: FakeAuthWorld) => void) => {
@@ -141,7 +155,16 @@ export function createFakeAuth(
     },
     verifyEmailCode: async ({ email, code }) => {
       call(`verify:${email}:${code}`);
+      if (options.verifyLatencyMs)
+        await new Promise((resolve) =>
+          setTimeout(resolve, options.verifyLatencyMs)
+        );
       if (world.failures.verify !== undefined) return { t: 'failed' };
+      const attempts = world.codeAttempts[email] ?? 0;
+      if (attempts >= world.codeAttemptLimit) return { t: 'rate-limited' };
+      update((draft) => {
+        draft.codeAttempts[email] = attempts + 1;
+      });
       if (code !== world.code) return { t: 'invalid-code' };
       signIn(email);
       return { t: 'verified' };
@@ -163,12 +186,23 @@ export function createFakeAuth(
         ? { t: 'sent', alreadySent: false }
         : { t: outcome };
     },
-    identify: (user) => call(`identify:${user.id}`),
+    identify: (user) => {
+      call(`identify:${user.id}`);
+      setIdentifiedUsers((list) => [...list, user]);
+    },
     trackMobileSignupLead: (email) => call(`lead:${email}`),
     pageView: (name) => call(`pageView:${name}`),
     track: (event, data) => setEvents((list) => [...list, { event, data }]),
     notifyFailure: (message) => setNotifications((list) => [...list, message]),
   };
 
-  return { context, world, update, events, notifications, calls };
+  return {
+    context,
+    world,
+    update,
+    events,
+    notifications,
+    calls,
+    identifiedUsers,
+  };
 }

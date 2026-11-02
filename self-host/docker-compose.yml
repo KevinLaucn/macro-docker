@@ -20,6 +20,52 @@ x-service: &service
   environment:
     LOCAL_AWS_PUBLIC_URL: ${LOCAL_AWS_PUBLIC_URL:-${S3_ENDPOINT_URL:-https://${S3_DOMAIN}}}
     EMAIL_SERVICE_PUBLIC_URL: ${EMAIL_SERVICE_PUBLIC_URL:-https://${MACRO_DOMAIN}}
+    OVERRIDE_APP_SERVICE_URL: ${OVERRIDE_APP_SERVICE_URL:-https://${MACRO_DOMAIN}}
+    OVERRIDE_STATIC_FILE_SERVICE_URL: ${OVERRIDE_STATIC_FILE_SERVICE_URL:-http://static-file-service:8080}
+    OVERRIDE_STATIC_FILE_PUBLIC_URL: ${OVERRIDE_STATIC_FILE_PUBLIC_URL:-https://${MACRO_DOMAIN}/static-file}
+    OVERRIDE_COGNITION_PUBLIC_URL: ${OVERRIDE_COGNITION_PUBLIC_URL:-https://${MACRO_DOMAIN}/cognition}
+    OVERRIDE_MCP_PUBLIC_URL: ${OVERRIDE_MCP_PUBLIC_URL:-https://${MACRO_DOMAIN}/mcp}
+    OVERRIDE_AUTHENTICATION_SERVICE_URL: ${OVERRIDE_AUTHENTICATION_SERVICE_URL:-http://authentication-service:8080}
+    OVERRIDE_DOCUMENT_STORAGE_SERVICE_URL: ${OVERRIDE_DOCUMENT_STORAGE_SERVICE_URL:-http://document-storage-service:8080}
+    OVERRIDE_EMAIL_SERVICE_URL: ${OVERRIDE_EMAIL_SERVICE_URL:-http://email-service:8080}
+    OVERRIDE_CALENDAR_SERVICE_URL: ${OVERRIDE_CALENDAR_SERVICE_URL:-http://calendar-service:8080}
+    OVERRIDE_CONNECTION_GATEWAY_URL: ${OVERRIDE_CONNECTION_GATEWAY_URL:-http://connection-gateway:8080}
+    OVERRIDE_CONTACTS_SERVICE_URL: ${OVERRIDE_CONTACTS_SERVICE_URL:-http://contacts-service:8080}
+    OVERRIDE_SYNC_SERVICE_URL: ${OVERRIDE_SYNC_SERVICE_URL:-http://sync-service:8787}
+    OVERRIDE_LEXICAL_SERVICE_URL: ${OVERRIDE_LEXICAL_SERVICE_URL:-http://lexical-service:8096}
+    OVERRIDE_NOTIFICATION_SERVICE_URL: ${OVERRIDE_NOTIFICATION_SERVICE_URL:-http://notification-service:8080}
+    OVERRIDE_UNFURL_SERVICE_URL: ${OVERRIDE_UNFURL_SERVICE_URL:-http://unfurl-service:8080}
+    OVERRIDE_SEARCH_PROCESSING_SERVICE_URL: ${OVERRIDE_SEARCH_PROCESSING_SERVICE_URL:-http://search-processing-service:8080}
+    OVERRIDE_AI_EDITING_WORKER_URL: ${OVERRIDE_AI_EDITING_WORKER_URL:-http://ai-editing-worker:8933}
+    OVERRIDE_DOCUMENT_COGNITION_SERVICE_URL: ${OVERRIDE_DOCUMENT_COGNITION_SERVICE_URL:-http://agent-harness-service:8080/cognition}
+    OVERRIDE_SCHEDULED_ACTION_SERVICE_URL: ${OVERRIDE_SCHEDULED_ACTION_SERVICE_URL:-http://agent-harness-service:8080/scheduled-action}
+    OVERRIDE_PREVIEW_GATEWAY_URL: ${OVERRIDE_PREVIEW_GATEWAY_URL:-http://agent-harness-service:8080/preview}
+    OVERRIDE_MCP_SERVICE_URL: ${OVERRIDE_MCP_SERVICE_URL:-http://agent-harness-service:8080}
+    OVERRIDE_AGENT_HARNESS_SERVICE_URL: ${OVERRIDE_AGENT_HARNESS_SERVICE_URL:-http://agent-harness-service:8080}
+    OVERRIDE_AGENT_HARNESS_EGRESS_URL: ${OVERRIDE_AGENT_HARNESS_EGRESS_URL:-http://agent-harness-service:8102}
+    OVERRIDE_CALENDAR_SERVICE_BACKFILL_QUEUE: ${OVERRIDE_CALENDAR_SERVICE_BACKFILL_QUEUE:-http://localstack:4566/000000000000/calendar-service-backfill-queue}
+    OVERRIDE_SLACK_IMPORT_QUEUE: ${OVERRIDE_SLACK_IMPORT_QUEUE:-http://localstack:4566/000000000000/slack-import-queue}
+    OVERRIDE_SLACK_IMPORT_DLQ: ${OVERRIDE_SLACK_IMPORT_DLQ:-http://localstack:4566/000000000000/slack-import-dlq}
+    ENABLE_EMAIL_SCHEDULED_QUEUE: ${ENABLE_EMAIL_SCHEDULED_QUEUE:-true}
+    ENABLE_GMAIL_OPS_QUEUE: ${ENABLE_GMAIL_OPS_QUEUE:-true}
+    GITHUB_PULL_REQUEST_PATCH_BUCKET: ${GITHUB_PULL_REQUEST_PATCH_BUCKET:-github-pull-request-patches}
+    AGENT_SESSION_CHANGES_BUCKET: ${AGENT_SESSION_CHANGES_BUCKET:-agent-session-changes}
+    AI_USAGE_FREE_INCLUDED_ALLOWANCE_CENTS: ${AI_USAGE_FREE_INCLUDED_ALLOWANCE_CENTS:-500}
+    AI_USAGE_INCLUDED_ALLOWANCE_CENTS: ${AI_USAGE_INCLUDED_ALLOWANCE_CENTS:-1500}
+    AI_USAGE_MAX_INCLUDED_ALLOWANCE_CENTS: ${AI_USAGE_MAX_INCLUDED_ALLOWANCE_CENTS:-15000}
+    AI_USAGE_OVERAGE_MARKUP_PERCENT: ${AI_USAGE_OVERAGE_MARKUP_PERCENT:-25}
+    ACCOUNT_LINK_STATE_SECRET: ${ACCOUNT_LINK_STATE_SECRET:-local-account-link-state-secret-0123456789}
+    FIREWORK_API_KEY: ${FIREWORK_API_KEY:-unset-fireworks}
+    GOOGLE_GENERATIVE_AI_API_KEY: ${GOOGLE_GENERATIVE_AI_API_KEY:-unset-google-genai}
+    PIPEDREAM_CLIENT_ID: ${PIPEDREAM_CLIENT_ID:-unset-pipedream-id}
+    PIPEDREAM_CLIENT_SECRET: ${PIPEDREAM_CLIENT_SECRET:-unset-pipedream-secret}
+    PIPEDREAM_PROJECT_ID: ${PIPEDREAM_PROJECT_ID:-unset-pipedream-project}
+    HARNESS_BOT_ID: ${HARNESS_BOT_ID:-00000000-0000-0000-0000-00000000a9e7}
+    PREVIEW_DOMAIN: ${PREVIEW_DOMAIN:-preview.${MACRO_DOMAIN}}
+    PREVIEW_SSH_HOST: ${PREVIEW_SSH_HOST:-127.0.0.1}
+    PREVIEW_SSH_PROXY_HOST: ${PREVIEW_SSH_PROXY_HOST:-agent-harness-service}
+    PREVIEW_SSH_PUBLIC_PORT: ${PREVIEW_SSH_PUBLIC_PORT:-2222}
+    PREVIEW_HTTPS_PORT: ${PREVIEW_HTTPS_PORT:-3000}
 
 x-healthcheck: &healthcheck
   interval: 30s
@@ -75,18 +121,6 @@ services:
       - "-c"
       - |
         cp -a /srv/frontend/. /out/ && find /out -type f -name '*-*.js*' -mtime +14 -delete 2>/dev/null || true
-        # 自动化修补前端生产产物 (避免修改官方源码并保持上游合并 0 冲突)
-        for f in /out/app-*.js; do
-          if [ -f "$$f" ]; then
-            sed -i "s/P1=uk\.sonnet5/P1=uk\.gpt56/g" "$$f"
-            sed -i "s/fEt=uk\.haiku45/fEt=uk\.gpt56Mini/g" "$$f"
-            # 自动化修复文档组件卸载时 cDe.get 未捕获异常导致的侧边栏点击卡死问题
-            sed -i 's/const I=cDe\.get();/const I=cDe?.get?.();/g' "$$f"
-            sed -i 's/xe(()=>{h\.stop(),u\.destroy();const I=i()?.documentId;I&&o(I)})/xe(()=>{h.stop(),u.destroy();try{const I=i()?.documentId;I\&\&o(I)}catch{}})/g' "$$f"
-            # 自动化修补发件人默认优先为 etsy@chnprints.com
-            sed -i 's/accounts:{\.\.\.l,primaryId:i}/accounts:{...l,primaryId:(()=>{const p=i;return()=>l?.inboxes?.()?.find(x=>x.email_address?.toLowerCase()==="etsy@chnprints.com")?.id??p()})()}/g' "$$f"
-          fi
-        done
         if ! grep -q "env-config.js" /out/index.html 2>/dev/null; then
           sed -i 's|<head>|<head><script src="/app/env-config.js"></script>|' /out/index.html
         fi
@@ -99,8 +133,8 @@ services:
           FREE_DEFAULT_AI_MODEL: "$${FREE_DEFAULT_AI_MODEL:-openai/gpt-5-mini}",
           ENABLE_SIDEBAR_NEXT: "$${ENABLE_SIDEBAR_NEXT:-true}",
           ENABLE_INBOX_RESYNC: "$${ENABLE_INBOX_RESYNC:-true}",
-          ENABLE_INBOX_SYNC_STATUS: "${ENABLE_INBOX_SYNC_STATUS:-true}",
-          ENABLE_INBOX_NOTIFIED_SORT: "${ENABLE_INBOX_NOTIFIED_SORT:-false}",
+          ENABLE_INBOX_SYNC_STATUS: "$${ENABLE_INBOX_SYNC_STATUS:-true}",
+          ENABLE_INBOX_NOTIFIED_SORT: "$${ENABLE_INBOX_NOTIFIED_SORT:-false}",
           ENABLE_CHAT_V3_AGENTS: "$${ENABLE_CHAT_V3_AGENTS:-true}",
           ENABLE_AGENT_SESSION_COMPOSER: "$${ENABLE_AGENT_SESSION_COMPOSER:-true}",
           BOT_MANAGEMENT: "$${BOT_MANAGEMENT:-true}",
@@ -481,35 +515,26 @@ services:
       <<: *healthcheck
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
 
-  document_cognition_service:
+  calendar_service:
     <<: *service
-    command: ["/app/out/document_cognition_service"]
-    environment:
-      OVERRIDE_DOCUMENT_STORAGE_SERVICE_URL: http://document-storage-service:8080
-      OVERRIDE_AI_EDITING_WORKER_URL: http://ai-editing-worker:8933
-      OVERRIDE_SYNC_SERVICE_URL: http://sync-service:8787
-      OVERRIDE_LEXICAL_SERVICE_URL: http://lexical-service:8096
-      OVERRIDE_CONNECTION_GATEWAY_URL: http://connection-gateway:8080
+    command: ["/app/out/calendar_service"]
     depends_on:
       postgres:
         condition: service_healthy
-      document_storage_service:
+      redis:
         condition: service_healthy
-      sync_service:
+      authentication-service:
         condition: service_started
-      lexical_service:
-        condition: service_started
+      localstack_reconciler:
+        condition: service_healthy
     networks:
       databases:
       services:
         aliases:
-          - document-cognition-service
+          - calendar-service
     healthcheck:
+      <<: *healthcheck
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
 
   document_storage_service:
     <<: *service
@@ -626,29 +651,6 @@ services:
       <<: *healthcheck
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
 
-  scheduled_action_service:
-    <<: *env
-    image: ${MACRO_IMAGE_SCHEDULED_ACTION:-ghcr.io/kevinlaucn/macro-scheduled-action}:${MACRO_VERSION:?set MACRO_VERSION in .env}
-    restart: unless-stopped
-    command: ["/app/out/service"]
-    environment:
-      OVERRIDE_CONNECTION_GATEWAY_URL: http://connection-gateway:8080
-    depends_on:
-      postgres:
-        condition: service_healthy
-      authentication-service:
-        condition: service_started
-      connection_gateway:
-        condition: service_started
-    networks:
-      databases:
-      services:
-        aliases:
-          - scheduled-action-service
-    healthcheck:
-      <<: *healthcheck
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-
   search_processing_service:
     <<: *service
     command: ["/app/out/search_processing_service"]
@@ -708,34 +710,60 @@ services:
     healthcheck:
       <<: *healthcheck
 
-  # gets the daemon socket — root-equivalent on the host. The profile must be
-  # explicitly listed in COMPOSE_PROFILES when Agent capability is enabled.
+  # Consolidated service hosting agent-harness, document-cognition (/cognition),
+  # scheduled-action (/scheduled-action), preview (/preview), and public MCP (/mcp).
+  # Runs as the image's unprivileged user with DEV_DANGEROUS_LOCAL_CONTAINERS=false
+  # and no host Docker socket mounted in production.
   agent_harness_service:
     <<: *service
-    profiles: ["agents"]
-    command: ["/app/out/agent_harness_service"]
-    # The only service that does not run as the image's unprivileged user: it
-    # drives the host's Docker daemon through the socket below, which the
-    # `macro` account has no access to. Another reason this is opt-in.
-    user: root
+    command:
+      - "sh"
+      - "-c"
+      - |
+        export PREVIEW_SSH_HOST_KEY="$$(printf '%b' "$${PREVIEW_SSH_HOST_KEY:?PREVIEW_SSH_HOST_KEY must be set in .env}")"
+        exec /app/out/agent_harness_service
     environment:
+      PORT: 8080
+      DEV_DANGEROUS_LOCAL_CONTAINERS: "false"
+      OVERRIDE_DOCUMENT_STORAGE_SERVICE_URL: http://document-storage-service:8080
+      OVERRIDE_AI_EDITING_WORKER_URL: http://ai-editing-worker:8933
+      OVERRIDE_SYNC_SERVICE_URL: http://sync-service:8787
+      OVERRIDE_LEXICAL_SERVICE_URL: http://lexical-service:8096
       OVERRIDE_CONNECTION_GATEWAY_URL: http://connection-gateway:8080
-      LOCAL_CONTAINER_NETWORK: macro-selfhost_services
+      OVERRIDE_DOCUMENT_COGNITION_SERVICE_URL: http://agent-harness-service:8080/cognition
+      OVERRIDE_SCHEDULED_ACTION_SERVICE_URL: http://agent-harness-service:8080/scheduled-action
+      OVERRIDE_PREVIEW_GATEWAY_URL: http://agent-harness-service:8080/preview
+      OVERRIDE_MCP_SERVICE_URL: http://agent-harness-service:8080
+      OVERRIDE_AGENT_HARNESS_SERVICE_URL: http://agent-harness-service:8080
+      OVERRIDE_AGENT_HARNESS_EGRESS_URL: http://agent-harness-service:8102
       CODEX_OAUTH_KMS_KEY_ID: ${CODEX_OAUTH_KMS_KEY_ID:-alias/macro-selfhost-codex-oauth}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
         condition: service_started
+      authentication-service:
+        condition: service_started
+      document_storage_service:
+        condition: service_healthy
       connection_gateway:
         condition: service_started
+      sync_service:
+        condition: service_started
+      lexical_service:
+        condition: service_started
+      localstack_reconciler:
+        condition: service_healthy
     networks:
       databases:
       services:
         aliases:
           - agent-harness-service
+          - document-cognition-service
+          - scheduled-action-service
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
 
   # ==========================================================================
   # Workers (Cloudflare Workers running on workerd, via wrangler)

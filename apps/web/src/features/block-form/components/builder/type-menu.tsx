@@ -1,7 +1,7 @@
-import CaretDown from '@phosphor/caret-down.svg';
-import CaretRight from '@phosphor/caret-right.svg';
-import Check from '@phosphor/check.svg';
-import Plus from '@phosphor/plus.svg';
+import CaretDown from '@icon/system/regular/caret-down.svg';
+import CaretRight from '@icon/system/regular/caret-right.svg';
+import Check from '@icon/system/regular/check.svg';
+import Plus from '@icon/system/regular/plus.svg';
 import { Dropdown } from '@ui';
 import { For, type JSX, Show } from 'solid-js';
 import {
@@ -93,7 +93,7 @@ export function TypeMenu(props: {
   return (
     <Dropdown>
       <Dropdown.Trigger
-        variant="outline"
+        variant="secondary"
         size="sm"
         disabled={props.disabled}
         aria-label={`Question type: ${props.label}`}
@@ -119,6 +119,7 @@ export function TypeMenu(props: {
 export function AddQuestionMenu(props: {
   trigger: JSX.Element;
   triggerRef?: (element: HTMLButtonElement) => void;
+  triggerClass?: string;
   disabled?: boolean;
   children?: JSX.Element;
   tables: readonly RelationTable[];
@@ -131,14 +132,13 @@ export function AddQuestionMenu(props: {
   return (
     <Dropdown>
       <Dropdown.Trigger
-        variant="outline"
+        variant="secondary"
         size="md"
-        class="w-full justify-start gap-2"
+        class={`w-full justify-start gap-2 ${props.triggerClass ?? ''}`}
         ref={props.triggerRef}
         disabled={props.disabled}
       >
         {props.trigger}
-        <CaretDown class="ml-auto size-3.5" aria-hidden="true" />
       </Dropdown.Trigger>
       <Dropdown.Content
         class="max-h-[min(32rem,75vh)] w-64 overflow-y-auto"

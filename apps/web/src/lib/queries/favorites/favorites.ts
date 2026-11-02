@@ -2,6 +2,7 @@ import {
   enableGraphqlSoup,
   isFeatureEnabled,
 } from '@core/constant/featureFlags';
+import { useIsAuthenticated } from '@core/context/user';
 import { throwOnErr } from '@core/util/result';
 import type { EntityData } from '@entity';
 import { storageServiceClient } from '@service-storage/client';
@@ -9,8 +10,8 @@ import type { AddFavoriteRequest } from '@service-storage/generated/schemas/addF
 import type { Favorite } from '@service-storage/generated/schemas/favorite';
 import type { FavoritesList } from '@service-storage/generated/schemas/favoritesList';
 import type { ListFavoritesParams } from '@service-storage/generated/schemas/listFavoritesParams';
-import type { ReorderFavoritesResult } from '@service-storage/graphql-favorites';
-import { useMutation, useQuery } from '@tanstack/solid-query';
+import type { FavoriteWriteResult } from '@service-storage/graphql-favorites';
+import { queryOptions, useMutation, useQuery } from '@tanstack/solid-query';
 import type { Accessor } from 'solid-js';
 
 import { queryClient } from '../client';
@@ -64,6 +65,10 @@ export function favoriteEntityType(
       return 'crm_contact';
     case 'foreign':
       return 'foreign_entity';
+    case 'database':
+      return 'database';
+    case 'form':
+      return 'form';
     default:
       return undefined;
   }
@@ -78,21 +83,34 @@ function favoriteEntityKey(
 
 /** The user's favorites from the transport selected at hook creation. */
 export function useFavoritesQuery(filter?: FavoritesFilter) {
+  const authenticated = useIsAuthenticated();
+  const enabled = () => authenticated() === true;
   if (isFeatureEnabled(enableGraphqlSoup)) {
-    return createGraphqlFavoritesQuery(filter);
+    return createGraphqlFavoritesQuery(filter, enabled);
   }
 
-  return createRestFavoritesQuery(filter);
+  return createRestFavoritesQuery(filter, enabled);
 }
 
-function createRestFavoritesQuery(filter?: FavoritesFilter) {
-  return useQuery(() => ({
+// Cached callbacks outlive the hook; only the plain filter enters this closure.
+function restFavoritesQueryOptions(filter?: FavoritesFilter) {
+  return queryOptions({
     queryKey: favoriteKeys.list(filter).queryKey,
     queryFn: async () =>
       await throwOnErr(() =>
         storageServiceClient.favorites.getFavorites(filter)
       ),
     staleTime: 60_000,
+  });
+}
+
+function createRestFavoritesQuery(
+  filter: FavoritesFilter | undefined,
+  enabled: Accessor<boolean>
+) {
+  return useQuery(() => ({
+    ...restFavoritesQueryOptions(filter),
+    enabled: enabled(),
   }));
 }
 
@@ -109,12 +127,14 @@ function createRestFavoritesQuery(filter?: FavoritesFilter) {
 export function useFavoritesData(
   filter?: FavoritesFilter
 ): Accessor<FavoritesList | undefined> {
+  const authenticated = useIsAuthenticated();
+  const enabled = () => authenticated() === true;
   if (isFeatureEnabled(enableGraphqlSoup)) {
-    const query = createGraphqlFavoritesQuery(filter);
-    return () => query.data;
+    const query = createGraphqlFavoritesQuery(filter, enabled);
+    return () => (enabled() ? query.data : undefined);
   }
-  const query = createRestFavoritesQuery(filter);
-  return () => (query.isSuccess ? query.data : undefined);
+  const query = createRestFavoritesQuery(filter, enabled);
+  return () => (enabled() && query.isSuccess ? query.data : undefined);
 }
 
 function readLists() {
@@ -185,9 +205,13 @@ function updateSoupFavorite(entityId: string, favorite: boolean) {
 
 type FavoriteMutationContext = { rollback: () => void } | undefined;
 
+// A paused REST toggle lives only in memory and replays in parallel on
+// reconnect, so an offline toggle must fail and roll back instead of waiting.
+const TOGGLE_NETWORK_MODE = 'always';
+
 type AddFavoriteArgs = AddFavoriteRequest;
 type AddFavoriteCallbacks = FavoriteMutationCallbacks<
-  Favorite | undefined,
+  FavoriteWriteResult,
   AddFavoriteArgs,
   FavoriteMutationContext
 >;
@@ -207,9 +231,17 @@ export function useAddFavoriteMutation(callbacks?: AddFavoriteCallbacks) {
   }
 
   return useMutation(() => ({
-    mutationFn: async (args: AddFavoriteArgs) =>
-      await throwOnErr(() => storageServiceClient.favorites.addFavorite(args)),
-    ...withCallbacks<Favorite, Error, AddFavoriteArgs, FavoriteMutationContext>(
+    networkMode: TOGGLE_NETWORK_MODE,
+    mutationFn: async (args: AddFavoriteArgs): Promise<FavoriteWriteResult> => {
+      await throwOnErr(() => storageServiceClient.favorites.addFavorite(args));
+      return { kind: 'committed' };
+    },
+    ...withCallbacks<
+      FavoriteWriteResult,
+      Error,
+      AddFavoriteArgs,
+      FavoriteMutationContext
+    >(
       {
         onMutate: async (args: AddFavoriteArgs) => {
           await queryClient.cancelQueries({
@@ -248,7 +280,7 @@ type RemoveFavoriteArgs = {
   entityId: string;
 };
 type RemoveFavoriteCallbacks = FavoriteMutationCallbacks<
-  void,
+  FavoriteWriteResult,
   RemoveFavoriteArgs,
   FavoriteMutationContext
 >;
@@ -259,12 +291,21 @@ export function useRemoveFavoriteMutation(callbacks?: RemoveFavoriteCallbacks) {
   }
 
   return useMutation(() => ({
-    mutationFn: async (args: RemoveFavoriteArgs) => {
+    networkMode: TOGGLE_NETWORK_MODE,
+    mutationFn: async (
+      args: RemoveFavoriteArgs
+    ): Promise<FavoriteWriteResult> => {
       await throwOnErr(() =>
         storageServiceClient.favorites.removeFavoriteByEntity(args)
       );
+      return { kind: 'committed' };
     },
-    ...withCallbacks<void, Error, RemoveFavoriteArgs, FavoriteMutationContext>(
+    ...withCallbacks<
+      FavoriteWriteResult,
+      Error,
+      RemoveFavoriteArgs,
+      FavoriteMutationContext
+    >(
       {
         onMutate: async (args: RemoveFavoriteArgs) => {
           await queryClient.cancelQueries({
@@ -303,7 +344,7 @@ type ReorderFavoritesArgs = {
   favorites: { entityType: FavoriteEntityType; entityId: string }[];
 };
 type ReorderFavoritesCallbacks = FavoriteMutationCallbacks<
-  ReorderFavoritesResult,
+  FavoriteWriteResult,
   ReorderFavoritesArgs,
   FavoriteMutationContext
 >;
@@ -318,7 +359,7 @@ export function useReorderFavoritesMutation(
   return useMutation(() => ({
     mutationFn: async (
       args: ReorderFavoritesArgs
-    ): Promise<ReorderFavoritesResult> => {
+    ): Promise<FavoriteWriteResult> => {
       // Entities the user has not favorited (e.g. an optimistic row whose add
       // is still in flight) are ignored by the backend.
       if (args.favorites.length === 0) return { kind: 'committed' };
@@ -330,7 +371,7 @@ export function useReorderFavoritesMutation(
       return { kind: 'committed' };
     },
     ...withCallbacks<
-      ReorderFavoritesResult,
+      FavoriteWriteResult,
       Error,
       ReorderFavoritesArgs,
       FavoriteMutationContext

@@ -23,11 +23,18 @@
  */
 
 import { handleAiUsageLimitError } from '@app/features/paywall/ai-usage-limit-handling';
+import { analytics } from '@app/lib/analytics';
 import { AgentSession } from '@core/agent-session/AgentSession';
 import {
   type PromptSubmitSurface,
   PromptTrace,
 } from '@core/agent-session/prompt-telemetry';
+import { markSessionCreated } from '@core/agent-session/recently-created';
+import {
+  enableFirstPromptOnCreate,
+  isFeatureEnabled,
+} from '@core/constant/featureFlags';
+import { fireAndForget } from '@core/util/fireAndForget';
 import {
   replenishWarmAgentSession,
   takeWarmAgentSession,
@@ -35,6 +42,7 @@ import {
 import { refetchSoupEntity } from '@queries/soup/normalized-cache';
 import { agentHarnessServiceClient } from '@service-agent-harness/client';
 import type {
+  AgentAction,
   CreateAgentSessionRequest,
   PromptAttachment,
 } from '@service-agent-harness/generated/schemas';
@@ -89,6 +97,8 @@ export type StartPendingSessionOptions = {
   submitSurface?: PromptSubmitSurface;
   /** Model to run on instead of the persona's, set as the session is created. */
   modelOverride?: string;
+  /** The composer's model catalog was still loading, so the persona default runs. */
+  modelFallback?: boolean;
   /**
    * Context the surface opening the session gives the agent: its runtime reads it as
    * instructions, so neither the composer nor the sent prompt shows it.
@@ -96,6 +106,12 @@ export type StartPendingSessionOptions = {
   instructions?: string;
   /** Opaque harness setting confirmed before the first prompt. */
   effortOverride?: { configId: string; value: string };
+  /** Inference speed confirmed before the first prompt. */
+  speedOverride?: { configId: string; value: string };
+  /** Release the submitting composer's attachments after the first prompt is accepted. */
+  onDelivered?: () => void;
+  /** Restore the submitting draft when creation, configuration, or first delivery fails. */
+  onFailure?: () => void;
   /**
    * Explicit GitHub repository for the managed Cursor session.
    */
@@ -114,7 +130,7 @@ export type StartPendingSessionOptions = {
 export function startPendingSession(
   options: StartPendingSessionOptions = {}
 ): string {
-  const warmId = takeWarmAgentSession(options);
+  const { id: warmId, claim: warmClaim } = takeWarmAgentSession(options);
   const id = warmId ?? uuidv7();
   const prompt = options.prompt?.trim() ?? '';
   // Started before the create so the whole wait up to the first output,
@@ -124,7 +140,34 @@ export function startPendingSession(
       ? new PromptTrace(id, {
           newSession: true,
           submitSurface: options.submitSurface,
+          create: {
+            warmClaim,
+            modelOverride: options.modelOverride !== undefined,
+            modelFallback: options.modelFallback ?? false,
+            effort: options.effortOverride?.value,
+          },
         })
+      : undefined;
+  const firstPrompt: AgentAction | undefined = trace
+    ? {
+        type: 'prompt',
+        prompt,
+        ...(options.attachments?.length
+          ? { attachments: options.attachments }
+          : {}),
+      }
+    : undefined;
+  // The default persona takes its first prompt on the create, so the agent
+  // hears it one round trip sooner. An effort or speed must be applied before
+  // the prompt, and another persona may run on its operator's machine, where
+  // the create cannot deliver one: those send it once the session exists.
+  const promptActionId =
+    firstPrompt &&
+    isFeatureEnabled(enableFirstPromptOnCreate) &&
+    !options.botId &&
+    !options.effortOverride &&
+    !options.speedOverride
+      ? uuidv7()
       : undefined;
   const [sessionId, setSessionId] = createSignal<string>();
   const [error, setError] = createSignal<string>();
@@ -138,6 +181,7 @@ export function startPendingSession(
     trace?.end('failed', cause ?? new Error(message));
     releaseNavigation();
     setError(message);
+    options.onFailure?.();
   };
   const expiry = setTimeout(
     () => forgetPendingSession(id),
@@ -165,6 +209,15 @@ export function startPendingSession(
       ...(options.botId ? { botId: options.botId } : {}),
       ...(options.modelOverride ? { model: options.modelOverride } : {}),
       ...(options.instructions ? { instructions: options.instructions } : {}),
+      ...(promptActionId
+        ? {
+            prompt,
+            promptActionId,
+            ...(options.attachments?.length
+              ? { promptAttachments: options.attachments }
+              : {}),
+          }
+        : {}),
       ...(options.repoUrl
         ? { repoUrl: options.repoUrl, repoBranch: options.repoBranch }
         : {}),
@@ -176,89 +229,117 @@ export function startPendingSession(
     return warmId && result.isErr() ? await create(uuidv7()) : result;
   };
 
-  void traced(() =>
-    createWithFallback()
-      .then(async (result) => {
-        if (result.isErr()) {
-          handleAiUsageLimitError(result.error);
-          fail(
-            result.error.map((error) => error.message).join(' ') ||
-              'The agent session could not be created.'
-          );
-          return;
-        }
-        trace?.stage('created');
-        // Normally the id this tab minted; an older service may mint its own.
-        const created = result.value.session.id;
-        // A warm claim releases its server reservation before creation answers.
-        replenishWarmAgentSession(result.value.session.ownerId);
-        void refetchSoupEntity(created, 'agentSession', { created: true });
-        // The create already starts the session on `modelOverride`, so only
-        // an effort holds the block in preflight. Then adopt the session before
-        // issuing the first prompt so that prompt is folded speculatively while
-        // its POST is in flight.
-        if (options.effortOverride || prompt || options.attachments?.length) {
-          const session = AgentSession.acquire(created);
-          try {
-            if (options.effortOverride) {
-              await session.load();
-              trace?.stage('loaded');
-              await sessionConfigReported(session);
-              await configureSessionModel(
-                session,
-                options.modelOverride,
-                options.effortOverride
-              );
-              trace?.stage('configured');
-            }
-            // The prompt's reference ends when its POST answers. Navigation
-            // owns a separate reference until the destination acquires, so a
-            // fast POST cannot destroy the fold before that view mounts.
-            if (!disposed) navigation = AgentSession.acquire(created);
-            setSessionId(created);
-            if (prompt || options.attachments?.length) {
-              const delivered = await issueSessionAction(
-                session,
-                {
-                  type: 'prompt',
-                  prompt,
-                  ...(options.attachments?.length
-                    ? { attachments: options.attachments }
-                    : {}),
-                },
-                {
-                  userId: options.userId ?? result.value.session.ownerId,
-                  trace,
-                }
-              );
-              if (delivered.isErr()) {
-                releaseNavigation();
-                setError(
-                  delivered.error.map((error) => error.message).join(' ') ||
-                    'The first message could not be sent.'
-                );
-              }
-            }
-          } catch (error) {
+  fireAndForget(
+    traced(() =>
+      createWithFallback()
+        .then(async (result) => {
+          if (result.isErr()) {
+            handleAiUsageLimitError(result.error);
             fail(
-              error instanceof Error
-                ? error.message
-                : 'The selected settings could not be applied.',
-              error
+              result.error.map((error) => error.message).join(' ') ||
+                'The agent session could not be created.'
             );
-          } finally {
-            session.release();
+            return;
           }
-        } else {
-          setSessionId(created);
-        }
-      })
-      .catch((error: unknown) =>
-        fail(
-          'Could not reach the agent service. Check your connection and try again.',
-          error
+          trace?.stage('created');
+          // Normally the id this tab minted; an older service may mint its own.
+          const created = result.value.session.id;
+          // Before anything acquires it: `AgentSession`'s constructor reads the
+          // session row at once, and that read can arrive before the create's
+          // writes are readable. Marked first, a refusal to that read is waited
+          // out rather than reported as a session that is not ours.
+          markSessionCreated(created);
+          // `agent`, as BlockLoader reports the session's opens.
+          analytics.track('create_entity', {
+            entityType: 'agent',
+            entityId: created,
+            agentId: options.botId,
+            submitSurface: options.submitSurface,
+          });
+          // A warm claim releases its server reservation before creation answers.
+          replenishWarmAgentSession(result.value.session.ownerId);
+          fireAndForget(
+            refetchSoupEntity(created, 'agentSession', {
+              created: true,
+              refreshGraphql: true,
+            }),
+            'agent-session'
+          );
+          // The create already starts the session on `modelOverride`, so only
+          // an effort holds the block in preflight. Then adopt the session before
+          // issuing the first prompt so that prompt is folded speculatively while
+          // its POST is in flight.
+          if (options.effortOverride || options.speedOverride || firstPrompt) {
+            const session = AgentSession.acquire(created);
+            try {
+              if (options.effortOverride || options.speedOverride) {
+                await session.load();
+                trace?.stage('loaded');
+                await sessionConfigReported(session);
+                await configureSessionModel(
+                  session,
+                  options.modelOverride,
+                  options.effortOverride
+                );
+                if (options.speedOverride) {
+                  await configureSessionModel(
+                    session,
+                    options.modelOverride,
+                    options.speedOverride
+                  );
+                }
+                trace?.stage('configured');
+              }
+              // The prompt's reference ends when its POST answers. Navigation
+              // owns a separate reference until the destination acquires, so a
+              // fast POST cannot destroy the fold before that view mounts.
+              if (!disposed) navigation = AgentSession.acquire(created);
+              setSessionId(created);
+              const userId = options.userId ?? result.value.session.ownerId;
+              if (promptActionId && firstPrompt && trace) {
+                trace.accepted(promptActionId, false);
+                session.adoptPrompt(promptActionId, firstPrompt, {
+                  userId,
+                  trace,
+                });
+                options.onDelivered?.();
+              } else if (firstPrompt) {
+                const delivered = await issueSessionAction(
+                  session,
+                  firstPrompt,
+                  { userId, trace }
+                );
+                if (delivered.isErr()) {
+                  fail(
+                    delivered.error.map((error) => error.message).join(' ') ||
+                      'The first message could not be sent.'
+                  );
+                } else {
+                  options.onDelivered?.();
+                }
+              }
+            } catch (error) {
+              fail(
+                error instanceof Error
+                  ? error.message
+                  : 'The selected settings could not be applied.',
+                error
+              );
+            } finally {
+              session.release();
+            }
+          } else {
+            setSessionId(created);
+          }
+        })
+        .catch((error: unknown) =>
+          fail(
+            'Could not reach the agent service. Check your connection and try again.',
+            error
+          )
         )
-      )
+    ),
+    'agent-session'
   );
 
   return id;

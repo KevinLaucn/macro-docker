@@ -84,3 +84,43 @@ fn require_confirmation(confirmation: &str) -> Result<(), ToolCallError> {
 
 #[cfg(test)]
 mod test;
+
+mod read_booking_settings;
+pub use read_booking_settings::ReadBookingSettings;
+mod update_booking_settings;
+pub use update_booking_settings::UpdateBookingSettings;
+mod list_bookings;
+pub use list_bookings::ListBookings;
+mod get_booking_insights;
+pub use get_booking_insights::GetBookingInsights;
+mod get_booking_reschedule_slots;
+pub use get_booking_reschedule_slots::GetBookingRescheduleSlots;
+mod change_booking;
+pub use change_booking::ChangeBooking;
+
+/// Calendar administration service and public application origin.
+pub struct BookingManagementToolContext<Scheduling> {
+    /// Authorized scheduling service or its transport adapter.
+    pub service: Arc<Scheduling>,
+    /// Public application origin.
+    pub public_origin: String,
+}
+impl<Scheduling> Clone for BookingManagementToolContext<Scheduling> {
+    fn clone(&self) -> Self {
+        Self {
+            service: self.service.clone(),
+            public_origin: self.public_origin.clone(),
+        }
+    }
+}
+/// Full settings, booking lifecycle and reporting tools, available in every AI host.
+pub fn booking_management_toolset<S: crate::domain::administration::SchedulingAdministration>()
+-> AsyncToolCollection<BookingManagementToolContext<S>> {
+    AsyncToolCollection::new()
+        .add_tool::<ReadBookingSettings, BookingManagementToolContext<S>>()
+        .add_tool::<UpdateBookingSettings, BookingManagementToolContext<S>>()
+        .add_tool::<ListBookings, BookingManagementToolContext<S>>()
+        .add_tool::<GetBookingInsights, BookingManagementToolContext<S>>()
+        .add_tool::<GetBookingRescheduleSlots, BookingManagementToolContext<S>>()
+        .add_tool::<ChangeBooking, BookingManagementToolContext<S>>()
+}

@@ -9,8 +9,24 @@ import {
 } from '@app/features/calendar-view/calendar-url';
 import { CALENDAR_VIEW_ID } from '@app/features/calendar-view/types';
 import { changesSearch } from '@app/features/changes/changes-search';
+import { mobileSearchRouteStateSchema } from '@app/features/command/mobile/mobile-search-route-state';
+import {
+  crmItemBlockType,
+  crmItemParams,
+  crmItemStateSchema,
+  crmPipelineParams,
+  crmPipelineReference,
+  crmRecordClaim,
+  crmRecordFileItemParams,
+  crmRecordItemParams,
+  crmRecordParams,
+  crmRecordReference,
+  crmRecordTrailSchema,
+  crmViewReference,
+} from '@app/features/crm/crm-route';
 import { driveDetailTrailSchema } from '@app/features/drive-view/primitives/drive-detail-trail';
 import {
+  DRIVE_DETAIL_TYPES,
   DRIVE_DOCUMENT_TYPES,
   driveDocumentBlockType,
 } from '@app/features/drive-view/primitives/drive-route-schema';
@@ -20,12 +36,14 @@ import {
   homeBaseBlockType,
   homePreviewRouteParams,
 } from '@app/features/home/home-route-schema';
+import { parseProjectRoute } from '@app/features/projects/core/route';
 import { reviewsTabSearch } from '@app/features/reviews-view/reviews-tab-search';
 import {
   ROUTINE_CREATE_ROUTE_ID,
   ROUTINE_DETAIL_ROUTE_ID,
   ROUTINES_ROUTE_ID,
 } from '@app/features/routines/routine-navigation';
+import { bookingLinksSearch } from '@app/features/scheduling/booking-links-search';
 import { defineRoute, type Entry, routeParams } from '@app/lib/split-router';
 import { callDetailSearch } from '@block-call/call-route';
 import { URL_PARAMS as CALL_URL_PARAMS } from '@block-call/constants';
@@ -154,6 +172,13 @@ export const internalInviteLinksRoute = defineRoute({
   externalSearch: '*',
 });
 
+/** Macro staff only: set the status banner every user sees. */
+export const internalSystemStatusRoute = defineRoute({
+  id: 'internal-system-status',
+  path: 'internal/status',
+  externalSearch: '*',
+});
+
 export const teamInviteRoute = defineRoute({
   id: 'team-invite',
   path: 'team-invite',
@@ -165,6 +190,12 @@ export const channelInviteRoute = defineRoute({
   path: 'channel-invite',
   externalSearch: '*',
 });
+
+/** Sign-in, onboarding, invite, and handoff pages, without the app's chrome. */
+export const authRoute = defineRoute({ id: 'auth' });
+
+/** Booking pages a visitor opens from a shared link, in the focused shell. */
+export const publicRoute = defineRoute({ id: 'public' });
 
 /** The split layout; its children are the pane routes. */
 export const appRoute = defineRoute({ id: APP_ROUTE_ID });
@@ -182,7 +213,7 @@ export const driveCallRoute = defineRoute({
 });
 
 const driveDocumentParams = z.object({
-  documentType: z.enum(DRIVE_DOCUMENT_TYPES),
+  documentType: z.enum(DRIVE_DETAIL_TYPES),
   documentId: z.string().min(1),
 });
 
@@ -295,11 +326,15 @@ export const settingsRoute = defineRoute({
   externalSearch: ['pair', 'createAgent'],
 });
 
+// The Agents list and its conversations share one workspace mount, so picking
+// a conversation swaps the pane beside the sidebar instead of rebuilding both.
+const AGENTS_WORKSPACE_MOUNT = 'agents-workspace';
+
 export const agentsRoute = defineRoute({
   id: 'agents',
   path: 'agents/:id',
   params: z.object({ id: z.string() }),
-  remountKey: ({ id }) => id,
+  mountKey: AGENTS_WORKSPACE_MOUNT,
   claim: ({ id }) => ({ namespace: 'agent', id }),
   search: [changesSearch.namespace, agentDetailSearch.namespace],
   toReference: ({ id }) => uuidRouteReference(id, 'agent'),
@@ -309,7 +344,7 @@ export const codersRoute = defineRoute({
   id: 'coders',
   path: 'coders/:id',
   params: z.object({ id: z.string() }),
-  remountKey: ({ id }) => id,
+  mountKey: AGENTS_WORKSPACE_MOUNT,
   claim: ({ id }) => ({ namespace: 'agent', id }),
   search: [changesSearch.namespace, agentDetailSearch.namespace],
   toReference: ({ id }) => uuidRouteReference(id, 'agent'),
@@ -320,7 +355,7 @@ export const agentChatsRoute = defineRoute({
   path: 'agents/chat/:id',
   aliases: ['agent-chats/:id'],
   params: z.object({ id: z.string() }),
-  remountKey: ({ id }) => id,
+  mountKey: AGENTS_WORKSPACE_MOUNT,
   claim: ({ id }) => ({ namespace: 'chat', id }),
   search: [changesSearch.namespace],
   toReference: ({ id }) => uuidRouteReference(id, 'chat'),
@@ -363,6 +398,11 @@ export const homeChannelRoute = defineRoute({
 export const homeDocumentRoute = defineRoute({
   ...driveRootDocumentRoute,
   id: 'home-document',
+  // Home previews databases and forms as blocks under `home-preview`.
+  params: z.object({
+    documentType: z.enum(DRIVE_DOCUMENT_TYPES),
+    documentId: z.string().min(1),
+  }),
   externalSearch: (entry: Readonly<Entry>) => {
     const type = routeParams(entry.location.route).documentType;
     if (
@@ -462,6 +502,7 @@ export const routineDetailRoute = defineRoute({
 export const agentsViewRoute = defineRoute({
   id: 'view-agents',
   path: 'agents',
+  mountKey: AGENTS_WORKSPACE_MOUNT,
   search: '*' as const,
   externalSearch: ['createAgent'],
   claim: () => ({ namespace: 'component', id: 'agents' }),
@@ -555,6 +596,28 @@ export const reviewsSplitRoute = defineRoute({
   search: [reviewsTabSearch.namespace],
 });
 
+/** A shareable external chat (any provider) in External's main pane, with no channel or legacy block. */
+export const externalChatRoute = defineRoute({
+  id: 'external-chat',
+  path: 'chat/:chatId',
+  params: z.object({ chatId: z.string().uuid() }),
+  remountKey: ({ chatId }) => chatId,
+  claim: ({ chatId }) => ({ namespace: 'external-chat', id: chatId }),
+});
+
+/** External: outside messaging accounts (WhatsApp) linked into Macro. */
+export const externalRoute = defineRoute({
+  id: 'view-external',
+  path: 'external',
+  // A WhatsApp pairing handed off to Macro desktop, by id only.
+  externalSearch: ['whatsappPairing'],
+});
+
+export const bookingLinksRoute = defineRoute({
+  id: 'view-booking-links',
+  path: 'scheduling',
+  search: [bookingLinksSearch.namespace],
+});
 export const calendarSplitRoute = defineRoute({
   id: CALENDAR_ROUTE_ID,
   path: 'calendar/:period',
@@ -574,6 +637,17 @@ export const callsRoute = defineRoute({
   claim: () => ({ namespace: 'component', id: 'calls' }),
 });
 
+export const callsCallRoute = defineRoute({
+  id: 'calls-call',
+  path: 'call/:callId',
+  params: z.object({ callId: z.string().min(1) }),
+  search: [callDetailSearch.namespace],
+  externalSearch: [CALL_URL_PARAMS.transcriptId, CALL_URL_PARAMS.messageId],
+  remountKey: ({ callId }) => callId,
+  claim: ({ callId }) => ({ namespace: 'block', id: `call:${callId}` }),
+  toReference: ({ callId }) => uuidRouteReference(callId, 'call'),
+});
+
 export const callDetailRoute = defineRoute({
   id: 'call-detail',
   path: 'call/:callId',
@@ -589,7 +663,84 @@ export const companiesRoute = defineRoute({
   path: 'companies',
   search: '*' as const,
   externalSearch: ['crmView'],
+  state: crmRecordTrailSchema,
   claim: () => ({ namespace: 'component', id: 'companies' }),
+  toReference: (_, query) => crmViewReference(query),
+});
+
+/** A company or contact opened from a Customers list. */
+export const crmRecordRoute = defineRoute({
+  id: 'companies-record',
+  path: ':recordType/:recordId/:section?',
+  params: crmRecordParams,
+  state: crmRecordTrailSchema,
+  claim: crmRecordClaim,
+  toReference: crmRecordReference,
+});
+
+export const crmPipelineRecordRoute = defineRoute({
+  id: 'companies-pipeline-record',
+  path: ':recordType/:recordId/:section?',
+  params: crmRecordParams,
+  state: crmRecordTrailSchema,
+  claim: crmRecordClaim,
+  toReference: crmRecordReference,
+});
+
+/** An item opened from a Customers activity view or record section. */
+export const crmItemRoute = defineRoute({
+  id: 'companies-item',
+  path: ':itemType/:itemId/:itemFileType?/:itemSubType?',
+  params: crmItemParams,
+  state: crmItemStateSchema,
+  claim: (params) => ({
+    namespace: 'block',
+    id: `${driveDocumentBlockType(crmItemBlockType(params))}:${params.itemId}`,
+  }),
+  toReference: (params) =>
+    uuidRouteReference(params.itemId, crmItemBlockType(params)),
+});
+
+export const crmPipelineItemRoute = defineRoute({
+  ...crmItemRoute,
+  id: 'companies-pipeline-item',
+});
+
+/** A typed record section already identifies the selected item's renderer. */
+export const crmRecordItemRoute = defineRoute({
+  ...crmItemRoute,
+  id: 'companies-record-item',
+  path: ':recordType/:recordId/:section/:itemId',
+  params: crmRecordItemParams,
+});
+
+export const crmPipelineRecordItemRoute = defineRoute({
+  ...crmRecordItemRoute,
+  id: 'companies-pipeline-record-item',
+});
+
+export const crmRecordFileItemRoute = defineRoute({
+  ...crmItemRoute,
+  id: 'companies-record-file-item',
+  path: ':recordType/:recordId/:section?/:itemType/:itemId/:itemFileType?/:itemSubType?',
+  params: crmRecordFileItemParams,
+});
+
+export const crmPipelineRecordFileItemRoute = defineRoute({
+  ...crmRecordFileItemRoute,
+  id: 'companies-pipeline-record-file-item',
+});
+
+export const crmPipelineRoute = defineRoute({
+  id: 'companies-pipeline',
+  path: 'pipeline/:pipelineId',
+  params: crmPipelineParams,
+  state: crmRecordTrailSchema,
+  claim: ({ pipelineId }) => ({
+    namespace: 'block',
+    id: `pipeline:${pipelineId}`,
+  }),
+  toReference: ({ pipelineId }) => crmPipelineReference(pipelineId),
 });
 
 export const foldersRoute = defineRoute({
@@ -603,7 +754,10 @@ export const searchRoute = defineRoute({
   id: 'view-search',
   path: 'search',
   search: '*' as const,
+  state: mobileSearchRouteStateSchema,
   claim: () => ({ namespace: 'component', id: 'search' }),
+  // Each visit owns its query and result scroll state, even in a reused pane.
+  remountKey: (_params, { entryId }) => entryId,
 });
 
 export const prDetailRoute = defineRoute({
@@ -621,6 +775,7 @@ export const prDetailRoute = defineRoute({
 const debugComponentIds = [
   'ui',
   'icon-gallery',
+  'create-menu-demo',
   ...(LOCAL_ONLY
     ? [
         'theme-edit-3',
@@ -643,6 +798,7 @@ const debugComponentIds = [
         'dynamic-ui',
         'agent-ui',
         'agent-replay',
+        'agent-progress',
         'agent-changes-ui',
         'diff-view-ui',
       ]
@@ -708,6 +864,14 @@ export const legacyContentRoute = defineRoute({
       namespace: 'block',
       id: `${content.aliasContext?.baseType ?? content.type}:${id}`,
     };
+  },
+  toReference: ({ type, id }) => {
+    const project = type === 'component' ? parseProjectRoute(id) : undefined;
+    // A project mention opens the project, not one of its discussions.
+    if (project?.discussionId) return;
+    return project
+      ? uuidRouteReference(project.id, 'initiative')
+      : uuidRouteReference(id, type);
   },
 });
 

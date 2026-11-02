@@ -21,77 +21,12 @@ use nom::bytes::complete::take;
 use nom::combinator::{cut, eof, map_opt, opt, peek};
 use nom::multi::separated_list1;
 use nom::sequence::{delimited, preceded, terminated};
-use nom::{Finish, IResult, Input, Parser};
+use nom::{Finish, IResult, Parser};
 
 use super::ParseError;
 use super::ast::{ColumnRef, Identifier, Literal, Statement, TableName};
 use super::lexer::{Token, TokenKind};
-
-/// The input: the statement's tokens and where the statement ends. A
-/// newtype because nom implements [`Input`] only for bytes and `&str`.
-#[derive(Debug, Clone, Copy)]
-pub struct Tokens<'a> {
-    tokens: &'a [Token],
-    end: usize,
-}
-
-impl std::ops::Deref for Tokens<'_> {
-    type Target = [Token];
-    fn deref(&self) -> &Self::Target {
-        self.tokens
-    }
-}
-
-impl<'a> Input for Tokens<'a> {
-    type Item = &'a Token;
-    type Iter = std::slice::Iter<'a, Token>;
-    type IterIndices = std::iter::Enumerate<std::slice::Iter<'a, Token>>;
-
-    fn input_len(&self) -> usize {
-        self.tokens.len()
-    }
-    fn take(&self, index: usize) -> Self {
-        Tokens {
-            tokens: &self.tokens[..index],
-            end: self.end,
-        }
-    }
-    fn take_from(&self, index: usize) -> Self {
-        Tokens {
-            tokens: &self.tokens[index..],
-            end: self.end,
-        }
-    }
-    fn take_split(&self, index: usize) -> (Self, Self) {
-        let (head, tail) = self.tokens.split_at(index);
-        (
-            Tokens {
-                tokens: tail,
-                end: self.end,
-            },
-            Tokens {
-                tokens: head,
-                end: self.end,
-            },
-        )
-    }
-    fn position<Predicate: Fn(Self::Item) -> bool>(&self, predicate: Predicate) -> Option<usize> {
-        self.tokens.iter().position(predicate)
-    }
-    fn iter_elements(&self) -> Self::Iter {
-        self.tokens.iter()
-    }
-    fn iter_indices(&self) -> Self::IterIndices {
-        self.tokens.iter().enumerate()
-    }
-    fn slice_index(&self, count: usize) -> Result<usize, nom::Needed> {
-        if count <= self.tokens.len() {
-            Ok(count)
-        } else {
-            Err(nom::Needed::new(count - self.tokens.len()))
-        }
-    }
-}
+pub(crate) use super::tokens::Tokens;
 
 type ParseResult<'a, Output> = IResult<Tokens<'a>, Output, ParseError>;
 
@@ -113,9 +48,35 @@ impl nom::error::ParseError<Tokens<'_>> for ParseError {
 
 /// Parse one statement from its tokens; `end` is the length of the source.
 pub fn statement(tokens: &[Token], end: usize) -> Result<Statement, ParseError> {
+    check_nesting(tokens)?;
     statement_rule(Tokens { tokens, end })
         .finish()
         .map(|(_, statement)| statement)
+}
+
+/// Bound condition recursion before entering nom, including unclosed conditions.
+/// Quoted parentheses are part of a string or identifier token and do not count.
+fn check_nesting(tokens: &[Token]) -> Result<(), ParseError> {
+    const MAX_NESTING_DEPTH: usize = 64;
+    let mut depth: usize = 0;
+    for token in tokens {
+        match token.kind {
+            TokenKind::LeftParen => {
+                depth += 1;
+                if depth > MAX_NESTING_DEPTH {
+                    return Err(ParseError {
+                        span: token.span.clone(),
+                        message: format!(
+                            "SQL nesting exceeds {MAX_NESTING_DEPTH} levels; simplify the condition"
+                        ),
+                    });
+                }
+            }
+            TokenKind::RightParen => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 fn statement_rule(input: Tokens<'_>) -> ParseResult<'_, Statement> {

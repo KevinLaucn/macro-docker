@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
+use crate::domain::models::grouping::{GroupByField, GroupLabels};
 use crate::domain::models::{
-    AdvancedSortParams, EnrichedSoupItem, GroupedSortRequest, IntoSoupReqAst, NotifiedEntity,
-    NotifiedSoupRequest, SimpleSortRequest, SoupErr, SoupProjectionHydration, SoupPropertiesField,
-    SoupRequest, TouchedEntity, TouchedSoupRequest, grouping::ItemGroupingInfo,
+    AdvancedSortParams, CrmPropertyEdge, EnrichedSoupItem, GroupedSortRequest, IntoSoupReqAst,
+    NotifiedEntity, NotifiedSoupRequest, SimpleSortRequest, SoupErr, SoupProjectionHydration,
+    SoupPropertiesField, SoupRequest, TouchedEntity, TouchedSoupRequest, WorkFeedCandidate,
+    WorkFeedCandidateRequest, WorkFeedSoupPage, WorkFeedSoupRequest, grouping::ItemGroupingInfo,
 };
 use entity_access::domain::models::{EntityAccessReceipt, MemberTeamRole};
 use macro_user_id::user_id::MacroUserIdStr;
@@ -28,6 +30,7 @@ pub trait SoupRepo: Send + Sync + 'static {
     type Err;
     /// Iterator returned by grouped Soup queries.
     type GroupedItems: Iterator<Item = ItemGroupingInfo> + Send;
+
     /// Fetch expanded soup items for a simple sorted cursor query.
     fn expanded_generic_cursor_soup<'a>(
         &self,
@@ -96,6 +99,15 @@ pub trait SoupRepo: Send + Sync + 'static {
         req: TouchedSoupRequest<'a>,
     ) -> impl Future<Output = Result<Vec<TouchedEntity>, Self::Err>> + Send;
 
+    /// Every entity whose Companies property names one of `company_ids` or
+    /// whose Contacts property names one of `contact_ids`. Not authorized:
+    /// each entity reaches the caller only through its own source query.
+    fn crm_property_edges<'a>(
+        &self,
+        company_ids: &'a [uuid::Uuid],
+        contact_ids: &'a [uuid::Uuid],
+    ) -> impl Future<Output = Result<Vec<CrmPropertyEdge>, Self::Err>> + Send;
+
     /// Fetch one page of notified-at candidates: entities the user holds a
     /// live notification for, newest notification first, already gated on
     /// existence, deletion and access, and on the request's entity filters
@@ -104,6 +116,15 @@ pub trait SoupRepo: Send + Sync + 'static {
         &self,
         req: NotifiedSoupRequest<'a>,
     ) -> impl Future<Output = Result<Vec<NotifiedEntity>, Self::Err>> + Send;
+
+    /// Fetch one page of work feed candidates: entities with live attention
+    /// or own work, newest `sort_at` first, already gated on existence,
+    /// deletion and access, and on the request's entity filters where soup
+    /// owns the fold.
+    fn work_feed_soup_page<'a>(
+        &self,
+        req: WorkFeedCandidateRequest<'a>,
+    ) -> impl Future<Output = Result<Vec<WorkFeedCandidate>, Self::Err>> + Send;
 }
 
 /// The possible outputs of soup — one paginated page per query mode.
@@ -122,6 +143,8 @@ pub enum SoupOutput<T, Item = SoupItem<()>> {
     Touched(PaginatedCursor<Item, String, TouchedByMe, T>),
     /// Page of a notified-at query.
     Notified(PaginatedCursor<Item, String, NotifiedAt, T>),
+    /// Page sorted by a selected property's numeric key.
+    Property(PaginatedCursor<Item, String, super::models::DynamicSort, T>),
 }
 
 impl<T, Item> SoupOutput<T, Item> {
@@ -132,6 +155,7 @@ impl<T, Item> SoupOutput<T, Item> {
     {
         match self {
             SoupOutput::Simple(page) => SoupOutput::Simple(page.map(f)),
+            SoupOutput::Property(page) => SoupOutput::Property(page.map(f)),
             SoupOutput::Frecency(page) => SoupOutput::Frecency(page.map(f)),
             SoupOutput::Touched(page) => SoupOutput::Touched(page.map(f)),
             SoupOutput::Notified(page) => SoupOutput::Notified(page.map(f)),
@@ -142,6 +166,7 @@ impl<T, Item> SoupOutput<T, Item> {
     pub fn into_items(self) -> Vec<Item> {
         match self {
             SoupOutput::Simple(page) => page.items,
+            SoupOutput::Property(page) => page.items,
             SoupOutput::Frecency(page) => page.items,
             SoupOutput::Touched(page) => page.items,
             SoupOutput::Notified(page) => page.items,
@@ -152,7 +177,10 @@ impl<T, Item> SoupOutput<T, Item> {
     pub fn into_simple(self) -> Option<PaginatedCursor<Item, String, SimpleSortMethod, T>> {
         match self {
             SoupOutput::Simple(page) => Some(page),
-            SoupOutput::Frecency(_) | SoupOutput::Touched(_) | SoupOutput::Notified(_) => None,
+            SoupOutput::Frecency(_)
+            | SoupOutput::Touched(_)
+            | SoupOutput::Notified(_)
+            | SoupOutput::Property(_) => None,
         }
     }
 
@@ -160,7 +188,10 @@ impl<T, Item> SoupOutput<T, Item> {
     pub fn into_frecency(self) -> Option<PaginatedCursor<Item, String, Frecency, T>> {
         match self {
             SoupOutput::Frecency(page) => Some(page),
-            SoupOutput::Simple(_) | SoupOutput::Touched(_) | SoupOutput::Notified(_) => None,
+            SoupOutput::Property(_)
+            | SoupOutput::Simple(_)
+            | SoupOutput::Touched(_)
+            | SoupOutput::Notified(_) => None,
         }
     }
 
@@ -168,7 +199,10 @@ impl<T, Item> SoupOutput<T, Item> {
     pub fn into_touched(self) -> Option<PaginatedCursor<Item, String, TouchedByMe, T>> {
         match self {
             SoupOutput::Touched(page) => Some(page),
-            SoupOutput::Simple(_) | SoupOutput::Frecency(_) | SoupOutput::Notified(_) => None,
+            SoupOutput::Property(_)
+            | SoupOutput::Simple(_)
+            | SoupOutput::Frecency(_)
+            | SoupOutput::Notified(_) => None,
         }
     }
 
@@ -176,7 +210,10 @@ impl<T, Item> SoupOutput<T, Item> {
     pub fn into_notified(self) -> Option<PaginatedCursor<Item, String, NotifiedAt, T>> {
         match self {
             SoupOutput::Notified(page) => Some(page),
-            SoupOutput::Simple(_) | SoupOutput::Frecency(_) | SoupOutput::Touched(_) => None,
+            SoupOutput::Property(_)
+            | SoupOutput::Simple(_)
+            | SoupOutput::Frecency(_)
+            | SoupOutput::Touched(_) => None,
         }
     }
 }
@@ -185,6 +222,7 @@ impl<T, Item> TypeEraseCursor<Item> for SoupOutput<T, Item> {
     fn type_erase(self) -> PaginatedOpaqueCursor<Item> {
         match self {
             SoupOutput::Simple(page) => page.type_erase(),
+            SoupOutput::Property(page) => page.type_erase(),
             SoupOutput::Frecency(page) => page.type_erase(),
             SoupOutput::Touched(page) => page.type_erase(),
             SoupOutput::Notified(page) => page.type_erase(),
@@ -231,6 +269,7 @@ pub trait SoupService: Send + Sync + 'static {
                 output.map(|item| SoupProjectionHydration {
                     item,
                     document_server_facts: None,
+                    sort_key: None,
                 })
             })
         }
@@ -276,6 +315,7 @@ pub trait SoupService: Send + Sync + 'static {
                     output.map(|item| SoupProjectionHydration {
                         item,
                         document_server_facts: None,
+                        sort_key: None,
                     })
                 })
         }
@@ -302,12 +342,42 @@ pub trait SoupService: Send + Sync + 'static {
         >,
     > + Send;
 
+    /// Display text for group keys that `group_by` leaves unlabeled, such as
+    /// the names behind entity-id keys, limited to what the user can read.
+    /// Keys the grouping labels on its own, or the user cannot read, are left
+    /// out.
+    fn group_labels<'a>(
+        &'a self,
+        user_id: MacroUserIdStr<'a>,
+        group_by: &'a GroupByField,
+        keys: &'a [String],
+    ) -> impl Future<Output = Result<GroupLabels, SoupErr>> + Send;
+
     /// Fetch the tag definitions visible to a user — their own plus their
     /// teams' — with options attached.
     fn caller_tag_sets<'a>(
         &self,
         user_id: MacroUserIdStr<'a>,
     ) -> impl Future<Output = Result<Vec<PropertyDefinitionWithOptions>, SoupErr>> + Send;
+
+    /// Fetch one hydrated page of the viewer's work feed: entities with live
+    /// attention or own work, newest `sort_at` first, each with its reason
+    /// timestamps and authoritative server facts.
+    ///
+    /// Services without a work feed reject the request. The production
+    /// service overrides this method.
+    fn get_work_feed_page(
+        &self,
+        req: WorkFeedSoupRequest,
+        team_receipt: Option<EntityAccessReceipt<MemberTeamRole>>,
+    ) -> impl Future<Output = Result<WorkFeedSoupPage, SoupErr>> + Send {
+        let _ = (req, team_receipt);
+        async move {
+            Err(SoupErr::SoupDbErr(anyhow::anyhow!(
+                "this soup service does not serve the work feed"
+            )))
+        }
+    }
 }
 
 impl<S> SoupService for Arc<S>
@@ -403,11 +473,28 @@ where
         (**self).get_user_soup_grouped(req).await
     }
 
+    async fn group_labels<'a>(
+        &'a self,
+        user_id: MacroUserIdStr<'a>,
+        group_by: &'a GroupByField,
+        keys: &'a [String],
+    ) -> Result<GroupLabels, SoupErr> {
+        (**self).group_labels(user_id, group_by, keys).await
+    }
+
     async fn caller_tag_sets<'a>(
         &self,
         user_id: MacroUserIdStr<'a>,
     ) -> Result<Vec<PropertyDefinitionWithOptions>, SoupErr> {
         (**self).caller_tag_sets(user_id).await
+    }
+
+    async fn get_work_feed_page(
+        &self,
+        req: WorkFeedSoupRequest,
+        team_receipt: Option<EntityAccessReceipt<MemberTeamRole>>,
+    ) -> Result<WorkFeedSoupPage, SoupErr> {
+        (**self).get_work_feed_page(req, team_receipt).await
     }
 }
 
@@ -475,6 +562,15 @@ impl SoupService for NoOpSoupService {
         _req: GroupedSortRequest<'_>,
     ) -> Result<impl Iterator<Item = ItemGroupingInfo<SoupPropertiesField>> + Send, SoupErr> {
         Err::<std::vec::IntoIter<ItemGroupingInfo<SoupPropertiesField>>, _>(no_op_soup_err())
+    }
+
+    async fn group_labels<'a>(
+        &'a self,
+        _user_id: MacroUserIdStr<'a>,
+        _group_by: &'a GroupByField,
+        _keys: &'a [String],
+    ) -> Result<GroupLabels, SoupErr> {
+        Ok(GroupLabels::default())
     }
 
     async fn caller_tag_sets<'a>(

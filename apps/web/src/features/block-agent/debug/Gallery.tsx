@@ -4,16 +4,17 @@
  * `/component/agent-ui`.
  */
 
+import { PermissionCard } from '@app/features/agent-interactions/components/PermissionCard';
+import {
+  initialValues,
+  validate,
+} from '@app/features/agent-interactions/state/elicitation-form';
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { MagicChipView } from '@core/component/LexicalMarkdown/component/decorator/MagicChip/MagicChipView';
 import type { MagicChipPresentation } from '@core/component/LexicalMarkdown/component/decorator/MagicChip/presentation';
 import { MarkdownImage } from '@core/component/LexicalMarkdown/component/decorator/MarkdownImage';
 import { MediaLoadingPlaceholder } from '@core/component/LexicalMarkdown/component/decorator/MediaLoadingPlaceholder';
 import { useUserId } from '@core/context/user';
-import FileText from '@phosphor/file-text.svg';
-import MagnifyingGlass from '@phosphor/magnifying-glass.svg';
-import PencilSimple from '@phosphor/pencil-simple.svg';
-import Terminal from '@phosphor/terminal.svg';
 import type {
   ElicitationSchema,
   FoldedMessage,
@@ -26,7 +27,6 @@ import { createSignal, type JSX, onCleanup } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { Message } from '../component/AgentMessage';
 import { ReplyToSelection } from '../component/ReplyToSelection';
-import { initialValues, validate } from '../state/elicitation-form';
 import {
   ActionLine,
   AgentInput,
@@ -201,12 +201,19 @@ function QueuedInFlightDemo() {
     {
       actionId: 'older',
       kind: 'prompt',
-      prompt: 'Summarize the queue design',
+      prompt:
+        '<m-agent-context>{"version":1,"text":"Private instructions"}</m-agent-context>\n\nSummarize the queue design',
     },
     {
       actionId: 'newer',
       kind: 'prompt',
       prompt: 'Also mention the flush control',
+    },
+    {
+      actionId: 'refused',
+      kind: 'prompt',
+      prompt: 'This steer was refused, so it stays queued',
+      sendFailed: true,
     },
   ]);
   const [note, setNote] = createSignal(
@@ -214,7 +221,10 @@ function QueuedInFlightDemo() {
   );
 
   return (
-    <div class="flex max-w-xl flex-col gap-2">
+    <div
+      class="flex max-w-xl flex-col gap-2"
+      data-testid="queued-context-proof"
+    >
       <p class="text-xs text-ink-muted">{note()}</p>
       <QueuedPrompts
         items={items()}
@@ -403,6 +413,9 @@ function ToolReplayDemo() {
     agentSessionId: 'tool-replay',
     requestId: null,
     pending: false,
+    segments: [],
+    phase: null,
+    postedAt: null,
     turn: 0,
     author: { kind: 'agent' },
     stop: inFlight() ? null : { kind: 'end_turn' },
@@ -450,6 +463,9 @@ function DisplayResultsDemo() {
     agentSessionId: 'display-results-demo',
     requestId: null,
     pending: false,
+    segments: [],
+    phase: null,
+    postedAt: null,
     turn: 0,
     author: { kind: 'agent' },
     stop: pending() ? null : { kind: 'end_turn' },
@@ -517,6 +533,9 @@ const FIXTURE_MESSAGE: FoldedMessage = {
   agentSessionId: 'demo',
   requestId: null,
   pending: false,
+  segments: [],
+  phase: null,
+  postedAt: null,
   turn: 0,
   author: { kind: 'agent' },
   stop: { kind: 'end_turn' },
@@ -763,6 +782,9 @@ const FIXTURE_IN_FLIGHT: FoldedMessage = {
   agentSessionId: 'demo',
   requestId: null,
   pending: false,
+  segments: [],
+  phase: null,
+  postedAt: null,
   turn: 1,
   author: { kind: 'agent' },
   stop: null,
@@ -806,6 +828,9 @@ const FIXTURE_UNCLOSED: FoldedMessage = {
   agentSessionId: 'demo',
   requestId: null,
   pending: false,
+  segments: [],
+  phase: null,
+  postedAt: null,
   turn: 2,
   author: { kind: 'agent' },
   stop: null,
@@ -872,15 +897,21 @@ function PromptAuthorDemo() {
     agentSessionId: 'demo',
     requestId: null,
     pending: false,
+    segments: [],
+    phase: null,
+    postedAt: null,
     turn: 0,
     author: { kind: 'user', userId },
     stop: null,
     parts: [{ kind: 'text', text }],
   });
   return (
-    <div class="flex flex-col gap-3">
+    <div class="flex flex-col gap-3" data-testid="prompt-context-proof">
       <Message
-        message={prompt(userId() ?? null, 'Tighten up the fold, please.')}
+        message={prompt(
+          userId() ?? null,
+          '<m-agent-context>{"version":1,"text":"Private instructions"}</m-agent-context>\n\nTighten up the fold, please.'
+        )}
         inFlight={false}
       />
       <Message
@@ -1127,11 +1158,29 @@ export default function AgentUiGallery() {
                   },
                   attendees: [],
                   recurrenceLines: [],
-                  addGoogleMeet: false,
+                  addConference: false,
                   eventType: 'default',
                 },
                 schema: FIXTURE_ELICITATION,
               }}
+            />
+          </Item>
+
+          <Item label="PermissionCard (native Herdr session)">
+            <PermissionCard
+              action="Run command"
+              detail="cargo test -p coding_agent_worker"
+              options={[
+                { id: 'allow', name: 'Allow once', kind: 'allow_once' },
+                {
+                  id: 'always',
+                  name: 'Always allow `cargo test -p coding_agent_worker` in this session',
+                  kind: 'allow_always',
+                },
+                { id: 'reject', name: 'Reject', kind: 'reject_once' },
+              ]}
+              canAnswer
+              onSelect={() => {}}
             />
           </Item>
 
@@ -1173,20 +1222,17 @@ export default function AgentUiGallery() {
           <Item label="ToolCard">
             <ToolCard
               title="Shell"
-              icon={<Terminal />}
               subtitle="cargo test -p agent_fold"
               status={status()}
             />
             <ToolCard
               title="Read"
-              icon={<FileText />}
               subtitle="crates/agent_fold/src/domain/fold.rs"
               args={{ limit: '200' }}
               status="completed"
             />
             <ToolCard
               title="Edit"
-              icon={<PencilSimple />}
               subtitle={FIXTURE_DIFF.path}
               trailing={<DiffChanges additions={4} deletions={3} />}
               status="completed"
@@ -1199,19 +1245,16 @@ export default function AgentUiGallery() {
             <LiveToolGroup count={3} active={pulse()}>
               <ToolCard
                 title="Read"
-                icon={<FileText />}
                 subtitle="crates/agent_fold/src/domain/fold.rs"
                 status="completed"
               />
               <ToolCard
                 title="Edit"
-                icon={<PencilSimple />}
                 subtitle={FIXTURE_DIFF.path}
                 status="completed"
               />
               <ToolCard
                 title="Shell"
-                icon={<Terminal />}
                 subtitle="cargo test -p agent_fold"
                 status={pulse() ? 'running' : 'completed'}
               />
@@ -1219,12 +1262,11 @@ export default function AgentUiGallery() {
             <LiveToolGroup count={2} active={false} defaultOpen>
               <ToolCard
                 title="Search"
-                icon={<MagnifyingGlass />}
                 subtitle="fold"
                 status="completed"
                 trailing="3 results"
               />
-              <ToolCard title="Read" icon={<FileText />} status="completed" />
+              <ToolCard title="Read" status="completed" />
             </LiveToolGroup>
           </Item>
 

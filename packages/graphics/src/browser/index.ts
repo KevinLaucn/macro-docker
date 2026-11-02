@@ -16,8 +16,9 @@ import {
 import { isShapeKind } from '../core/shapes/registry';
 import { selectionTarget } from './selection-target';
 
-const WHEEL_ZOOM_RATE = 0.002;
-const MAX_WHEEL_ZOOM_EXPONENT = 0.2;
+// Matches the Figma viewer: pinch tracks finger speed, wheel notches stay bounded.
+const WHEEL_ZOOM_RATE = 0.01;
+const MAX_WHEEL_ZOOM_EXPONENT = 0.6;
 
 export function resizeCursor(handle: ResizeHandle, frame?: SelectionFrame) {
   if (handle === 'n' || handle === 's') return 'ns-resize';
@@ -39,6 +40,7 @@ export type GraphicsHover = Readonly<{
 }>;
 export type GraphicsInputOptions = {
   tool?: () => 'pan' | DrawingKind | 'select';
+  /** False permits navigation and selection, but never document changes. */
   editing?: boolean;
   suspended?: () => boolean;
   /** Host-owned controls may keep their pointer events without starting a gesture. */
@@ -189,7 +191,9 @@ export function attachCameraControls(
       options.suspended?.() ||
       options.ignoreTarget?.(event.target) ||
       (event.target instanceof Element &&
-        event.target.closest('[contenteditable="true"]'))
+        event.target
+          .closest('[contenteditable]')
+          ?.getAttribute('contenteditable') === 'true')
     )
       return;
     if (
@@ -210,7 +214,11 @@ export function attachCameraControls(
       (event.button === 1 ||
         (event.button === 0 && (space || options.tool?.() === 'pan')));
     const tool = options.tool?.();
-    const drawing = event.button === 0 && !pan && isShapeKind(tool);
+    const drawing =
+      options.editing !== false &&
+      event.button === 0 &&
+      !pan &&
+      isShapeKind(tool);
     const selecting =
       event.button === 0 && !pan && options.tool?.() === 'select';
     let transforming = false;
@@ -255,7 +263,15 @@ export function attachCameraControls(
         (!deep && frame && selectionContainsPoint(frame, point)
           ? editor.getSession().selectedIds[0]
           : undefined);
-      if (shiftTarget && event.shiftKey && !transformHandle) {
+      if (options.editing === false) {
+        if (id) {
+          if (event.shiftKey) editor.toggleSelection(id);
+          else editor.select(id);
+          event.preventDefault();
+          return;
+        }
+        boxing = editor.beginBoxSelection(point, event.shiftKey);
+      } else if (shiftTarget && event.shiftKey && !transformHandle) {
         // Defer Shift-click toggling until release so Shift-drag can move instead.
         pendingSelection = {
           id: shiftTarget,
@@ -436,6 +452,37 @@ export function attachCameraControls(
       editor.panBy({ x: -event.deltaX * unit, y: -event.deltaY * unit });
     }
   };
+  // WebKit (Safari, the desktop app) reports trackpad pinches as gesture events
+  // with a running scale instead of ctrl+wheel.
+  let gestureScale = 1;
+  const gestureStart = (event: Event) => {
+    event.preventDefault();
+    gestureScale = 1;
+  };
+  const gestureChange = (event: Event) => {
+    event.preventDefault();
+    const gesture = event as Event & {
+      scale: number;
+      clientX: number;
+      clientY: number;
+    };
+    const factor = gesture.scale / gestureScale;
+    gestureScale = gesture.scale;
+    if (options.suspended?.() || drag) return;
+    const camera = editor.getCamera();
+    if (options.navigation === 'centered-image') {
+      editor.centerImage(
+        { width: element.clientWidth, height: element.clientHeight },
+        camera.scale * factor
+      );
+      return;
+    }
+    const rect = element.getBoundingClientRect();
+    editor.zoomAt(
+      { x: gesture.clientX - rect.left, y: gesture.clientY - rect.top },
+      camera.scale * factor
+    );
+  };
   element.addEventListener('pointerdown', pointerDown);
   element.addEventListener('pointermove', pointerHover);
   element.addEventListener('pointerup', pointerHover);
@@ -444,6 +491,8 @@ export function attachCameraControls(
   element.addEventListener('keyup', keyUp);
   element.addEventListener('blur', cancel);
   element.addEventListener('wheel', wheel, { passive: false });
+  element.addEventListener('gesturestart', gestureStart);
+  element.addEventListener('gesturechange', gestureChange);
   window.addEventListener('blur', cancel);
   window.addEventListener('keydown', updateHover);
   window.addEventListener('keyup', updateHover);
@@ -457,6 +506,8 @@ export function attachCameraControls(
     element.removeEventListener('keyup', keyUp);
     element.removeEventListener('blur', cancel);
     element.removeEventListener('wheel', wheel);
+    element.removeEventListener('gesturestart', gestureStart);
+    element.removeEventListener('gesturechange', gestureChange);
     window.removeEventListener('blur', cancel);
     window.removeEventListener('keydown', updateHover);
     window.removeEventListener('keyup', updateHover);

@@ -33,10 +33,11 @@ NIX_PATH = ROOT / "nix/cloud-storage.nix"
 
 SERVICE_ROOTS: dict[str, str] = {
     "authentication-service": "authentication_service",
+    "calendar-service": "calendar_service",
     "connection-gateway": "connection_gateway",
     "contacts-service": "contacts_service",
     "document-storage-service": "document_storage_service",
-    "document-cognition-service": "document_cognition_service",
+    "agent-harness-service": "agent_harness_service",
     "email-service": "email_service",
     "image-proxy-service": "image_proxy_service",
     "notification-service": "notification_service",

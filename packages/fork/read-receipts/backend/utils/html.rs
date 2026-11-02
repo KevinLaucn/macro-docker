@@ -51,9 +51,8 @@ pub fn inject_open_tracking_pixel(html: &str, pixel_url: &str) -> String {
 /// still cleaned.
 pub fn strip_open_tracking_pixels(html: &str, email_service_base_url: &str) -> String {
     let base = regex::escape(email_service_base_url.trim_end_matches('/'));
-    let path = regex::escape(OPEN_TRACKING_PATH);
     let pattern = format!(
-        r#"(?is)<img\b[^>]*\bsrc\s*=\s*["'](?:{base}|https?://email-service[a-z0-9.-]*\.macro\.com){path}[^"']*["'][^>]*/?>"#
+        r#"(?is)<img\b[^>]*\bsrc\s*=\s*["'](?:{base}|https?://email-service[a-z0-9.-]*\.macro\.com)(?:/t/o/|/opens/)[^"']*["'][^>]*/?>"#
     );
 
     // The pattern is built from constants and an escaped URL, so it always compiles.
@@ -96,7 +95,7 @@ pub fn strip_blocked_tracking_pixels(html: &str) -> String {
         return html.to_string();
     };
     let Ok(macro_pixel_re) = Regex::new(
-        r#"(?i)\bsrc\s*=\s*["'](?:https?://(?:[a-z0-9.-]*\.)?macro\.com/t/o/[^"']*|https?://[^"']*/t/o/[0-9a-fA-F-]{36}(?:[?#][^"']*)?|/t/o/[^"']*)["']"#,
+        r#"(?i)\bsrc\s*=\s*["'](?:https?://(?:[a-z0-9.-]*\.)?macro\.com(?:/t/o/|/opens/)[^"']*|https?://[^"']*(?:/t/o/|/opens/)[0-9a-fA-F-]{32,36}(?:[?#][^"']*)?|(?:/t/o/|/opens/)[^"']*)["']"#,
     ) else {
         return html.to_string();
     };

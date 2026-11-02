@@ -136,7 +136,7 @@ export function pickRecommendations(
 /** What the Recommended section should render. */
 export type RecommendedView =
   | { kind: 'loading' }
-  | { kind: 'error' }
+  | { kind: 'error'; retryable: boolean }
   | { kind: 'items'; items: RecommendedItem[] }
   | { kind: 'connect-inbox' }
   | { kind: 'caught-up' };
@@ -149,6 +149,8 @@ export type RecommendedView =
 export function deriveRecommendedView(input: {
   loading: boolean;
   failed: boolean;
+  /** False when the failure would repeat on retry (the plan refused it). */
+  retryable: boolean;
   items: RecommendedItem[] | undefined;
   emailLinked: boolean;
 }): RecommendedView {
@@ -156,7 +158,9 @@ export function deriveRecommendedView(input: {
     return { kind: 'items', items: input.items };
   }
   if (input.loading && input.items === undefined) return { kind: 'loading' };
-  if (input.failed && input.items === undefined) return { kind: 'error' };
+  if (input.failed && input.items === undefined) {
+    return { kind: 'error', retryable: input.retryable };
+  }
   if (!input.emailLinked) return { kind: 'connect-inbox' };
   return { kind: 'caught-up' };
 }

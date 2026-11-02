@@ -2,9 +2,13 @@ import { toast } from '@core/component/Toast/Toast';
 import { applyDatabaseOps } from '@queries/storage/databases';
 import type { TableDetail } from '@service-storage/generated/schemas/tableDetail';
 import { ResultAsync } from 'neverthrow';
-import { TableNavigation } from '../components/table-navigation';
-import { tableDeleteMessage, tableOrderMessage } from '../core/column-schema';
-import { tableDeleteConsequence } from '../core/forms-usage';
+import type { JSX } from 'solid-js';
+import { TableNavigation } from '../../database/components/table-navigation';
+import {
+  tableDeleteMessage,
+  tableOrderMessage,
+} from '../../database/core/column-schema';
+import { tableDeleteConsequence } from '../../database/core/forms-usage';
 import { createTableWithName } from '../queries/create-table';
 import { patchDetail, patchTable } from '../queries/detail-cache';
 import { useFormsOverTables } from '../queries/forms-usage';
@@ -15,6 +19,7 @@ export function TableTabs(props: {
   tables: TableDetail[];
   activeTableId: string | undefined;
   canEdit: boolean;
+  menuItems?: () => JSX.Element;
   onSelect: (tableId: string) => void;
 }) {
   const formsOver = useFormsOverTables(() => props.databaseId);
@@ -29,6 +34,7 @@ export function TableTabs(props: {
       }))}
       activeTableId={props.activeTableId}
       canCreate={props.canEdit}
+      menuItems={props.menuItems}
       onSelect={props.onSelect}
       onRename={(tableId, name, previousName) =>
         ResultAsync.fromSafePromise(
@@ -51,14 +57,14 @@ export function TableTabs(props: {
           )
           .map(() => undefined)
       }
-      onReorder={(tableIds) =>
-        void reorderDatabaseTables({
+      onReorder={(tableIds) => {
+        reorderDatabaseTables({
           databaseId: props.databaseId,
           tableIds,
-        }).mapErr((errors) => toast.failure(tableOrderMessage(errors)))
-      }
-      onDelete={(tableId) =>
-        void ResultAsync.fromSafePromise(
+        }).mapErr((errors) => toast.failure(tableOrderMessage(errors)));
+      }}
+      onDelete={(tableId) => {
+        ResultAsync.fromSafePromise(
           patchDetail(props.databaseId, (detail) => ({
             ...detail,
             tables: detail.tables.filter((entry) => entry.table.id !== tableId),
@@ -72,8 +78,8 @@ export function TableTabs(props: {
               return error;
             })
           )
-          .mapErr((error) => toast.failure(tableDeleteMessage(error)))
-      }
+          .mapErr((error) => toast.failure(tableDeleteMessage(error)));
+      }}
       onCreate={(name, existingTableId) =>
         createTableWithName({
           databaseId: props.databaseId,

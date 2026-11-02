@@ -87,6 +87,34 @@ fn inject_after_strip_leaves_one_tracking_pixel() {
 }
 
 #[test]
+fn strip_open_tracking_pixels_removes_upstream_opens_pixel() {
+    let upstream_pixel = format!(r#"<img src="{BASE_URL}/opens/01931a2b-c3d4-7e8f-9012-3456789abcde" width="1" height="1">"#);
+    let html = format!(r#"<html><body><p>upstream message</p>{upstream_pixel}</body></html>"#);
+
+    let cleaned = strip_open_tracking_pixels(&html, BASE_URL);
+    assert!(!cleaned.contains("/opens/"));
+    assert_eq!(cleaned, "<html><body><p>upstream message</p></body></html>");
+}
+
+#[test]
+fn strip_and_inject_ensures_single_pixel_when_upstream_and_fork_present() {
+    let upstream_pixel = format!(r#"<img src="{BASE_URL}/opens/upstream-token-12345" width="1" height="1">"#);
+    let old_fork_pixel = open_tracking_pixel_url(BASE_URL, "fork-token-67890");
+    let html = format!(r#"<div><p>quoted</p><img src="{old_fork_pixel}">{upstream_pixel}</div>"#);
+
+    let cleaned = strip_open_tracking_pixels(&html, BASE_URL);
+    assert!(!cleaned.contains("/opens/"));
+    assert!(!cleaned.contains("fork-token-67890"));
+
+    let new_url = open_tracking_pixel_url(BASE_URL, TOKEN);
+    let injected = inject_open_tracking_pixel(&cleaned, &new_url);
+
+    assert_eq!(injected.matches("/t/o/").count(), 1);
+    assert_eq!(injected.matches("/opens/").count(), 0);
+    assert!(injected.contains(TOKEN));
+}
+
+#[test]
 fn strip_blocked_pixels_removes_1x1_and_preserves_cid_and_regular_images() {
     let html = r#"
         <p>Hello world</p>

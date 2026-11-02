@@ -5,12 +5,12 @@
  * access rule, so the grid edits as it does on the database page.
  */
 import { DatabaseGrid } from '@block-database/component/DatabaseGrid';
-import type { DatabaseRelatedDestination } from '@block-database/core/database-relations';
-import { allRecordsView } from '@block-database/core/views';
 import { useDatabaseDetailQuery } from '@queries/storage/databases';
 import { useDatabaseTableChangedSync } from '@queries/storage/databases-sync';
 import type { DatabaseView } from '@service-storage/generated/schemas/databaseView';
 import { createSignal, Show } from 'solid-js';
+import type { DatabaseRelatedDestination } from '../database/core/database-relations';
+import { allRecordsView } from '../database/core/views';
 
 export function FormResponsesGrid(props: {
   databaseId: string;
@@ -60,6 +60,7 @@ export function FormResponsesGrid(props: {
           return (
             <div class="@container/database flex min-h-0 flex-1 flex-col overflow-hidden">
               <DatabaseGrid
+                host="form"
                 databaseId={props.databaseId}
                 table={shown()}
                 canEdit={canEdit()}

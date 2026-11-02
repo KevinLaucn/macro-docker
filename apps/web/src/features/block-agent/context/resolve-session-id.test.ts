@@ -5,11 +5,14 @@
  * in for one being created — resolved into the one the block consumes.
  */
 
+import type { WarmClaim } from '@queries/agent-session/warm';
 import type { AgentAction } from '@service-agent-harness/generated/schemas';
 import { createRoot } from 'solid-js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const takeWarm = vi.hoisted(() => vi.fn<() => string | undefined>());
+const takeWarm = vi.hoisted(() =>
+  vi.fn<() => { id?: string; claim: WarmClaim }>()
+);
 const replenishWarm = vi.hoisted(() => vi.fn<(userId: string) => void>());
 vi.mock('@queries/agent-session/warm', () => ({
   takeWarmAgentSession: takeWarm,
@@ -29,6 +32,8 @@ const create = vi.hoisted(() => ({
   confirm: undefined as ((error?: string) => void) | undefined,
   release: vi.fn(),
   attribution: vi.fn(),
+  adopted: vi.fn(),
+  requests: [] as unknown[],
   confirmedModel: undefined as string | undefined,
   configReported: true,
   notify: undefined as (() => void) | undefined,
@@ -39,6 +44,7 @@ vi.mock('@service-agent-harness/client', () => ({
     create: vi.fn(
       (request: { id: string }) =>
         new Promise((resolve) => {
+          create.requests.push(request);
           create.resolve = (id: string = request.id) =>
             resolve({
               isErr: () => false,
@@ -75,6 +81,7 @@ vi.mock('@core/agent-session/AgentSession', () => ({
       };
       return {
         load: async () => {},
+        adoptPrompt: create.adopted,
         issue: async (action: AgentAction, options: unknown) => {
           create.attribution(options);
           const result = await create.control(id, action);
@@ -139,6 +146,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 beforeEach(() => {
   takeWarm.mockReset();
+  takeWarm.mockReturnValue({ claim: 'miss_none_ready' });
   replenishWarm.mockReset();
   refetchSoupEntity.mockClear();
   create.control.mockReset();
@@ -221,7 +229,7 @@ describe('an id whose create is in flight', () => {
       expect(refetchSoupEntity).toHaveBeenCalledExactlyOnceWith(
         placeholder,
         'agentSession',
-        { created: true }
+        { created: true, refreshGraphql: true }
       );
       dispose();
     });
@@ -240,7 +248,7 @@ describe('an id whose create is in flight', () => {
       expect(refetchSoupEntity).toHaveBeenCalledExactlyOnceWith(
         'server-minted',
         'agentSession',
-        { created: true }
+        { created: true, refreshGraphql: true }
       );
       dispose();
     });
@@ -336,7 +344,10 @@ describe('an id whose create is in flight', () => {
         deliver = resolve;
       })
     );
-    const placeholder = startPendingSession({ prompt: 'Hello' });
+    const placeholder = startPendingSession({
+      botId: 'persona',
+      prompt: 'Hello',
+    });
     await createRoot(async (dispose) => {
       const resolved = resolveSessionId(() => placeholder);
       expect(resolved.pendingPrompt()).toBe('Hello');
@@ -447,7 +458,10 @@ describe('an id whose create is in flight', () => {
       isErr: () => true,
       error: [{ code: 'HTTP_ERROR', message: 'Runtime is disconnected.' }],
     });
-    const placeholder = startPendingSession({ prompt: 'Hello' });
+    const placeholder = startPendingSession({
+      botId: 'persona',
+      prompt: 'Hello',
+    });
     await createRoot(async (dispose) => {
       const resolved = resolveSessionId(() => placeholder);
       create.resolve?.();
@@ -472,12 +486,10 @@ describe('an id whose create is in flight', () => {
 });
 
 it.each(['Describe this', ''])(
-  'delivers first-prompt attachments with text %j',
+  'delivers first-prompt attachments with text %j on the create',
   async (prompt) => {
-    create.control.mockResolvedValue({
-      isErr: () => false,
-      value: { actionId: 'image-action', status: 'accepted' },
-    });
+    create.requests.length = 0;
+    create.adopted.mockClear();
     const attachments = [
       {
         uri: 'https://static.macro.com/file/image-id',
@@ -488,34 +500,40 @@ it.each(['Describe this', ''])(
     const id = startPendingSession({ prompt, attachments });
     create.resolve?.();
     await flush();
-    expect(create.control).toHaveBeenCalledWith(id, {
-      type: 'prompt',
-      prompt,
-      attachments,
-    });
+    expect(create.requests).toEqual([
+      {
+        id,
+        prompt,
+        promptActionId: expect.any(String),
+        promptAttachments: attachments,
+      },
+    ]);
+    expect(create.control).not.toHaveBeenCalled();
+    expect(create.adopted).toHaveBeenCalledWith(
+      (create.requests[0] as { promptActionId: string }).promptActionId,
+      { type: 'prompt', prompt, attachments },
+      { userId: 'session-owner', trace: expect.any(PromptTrace) }
+    );
   }
 );
 
 it.each([undefined, 'explicit-user'])(
   'attributes the first prompt when userId is %s',
   async (userId) => {
-    create.attribution.mockClear();
-    create.control.mockResolvedValue({
-      isErr: () => false,
-      value: { actionId: 'prompt-id' },
-    });
+    create.adopted.mockClear();
     startPendingSession({ prompt: 'Hello', userId });
     create.resolve?.();
     await flush();
-    expect(create.attribution).toHaveBeenCalledWith({
-      userId: userId ?? 'session-owner',
-      trace: expect.any(PromptTrace),
-    });
+    expect(create.adopted).toHaveBeenCalledWith(
+      expect.any(String),
+      { type: 'prompt', prompt: 'Hello' },
+      { userId: userId ?? 'session-owner', trace: expect.any(PromptTrace) }
+    );
   }
 );
 
 it('falls back to a cold session when claiming a warm session fails', async () => {
-  takeWarm.mockReturnValueOnce('stale-warm');
+  takeWarm.mockReturnValueOnce({ id: 'stale-warm', claim: 'hit' });
   const placeholder = startPendingSession();
   expect(placeholder).toBe('stale-warm');
   create.reject?.();
@@ -537,7 +555,10 @@ it('falls back to a cold session when claiming a warm session fails', async () =
 it.each([undefined, 'ready-warm'])(
   'replenishes only after successful creation when the reservation is %s',
   async (warmId) => {
-    takeWarm.mockReturnValueOnce(warmId);
+    takeWarm.mockReturnValueOnce({
+      id: warmId,
+      claim: warmId ? 'hit' : 'miss_none_ready',
+    });
     startPendingSession({ userId: 'session-owner' });
     await flush();
     expect(replenishWarm).not.toHaveBeenCalled();
@@ -548,7 +569,7 @@ it.each([undefined, 'ready-warm'])(
 );
 
 it('does not replenish when both the warm claim and fallback creation fail', async () => {
-  takeWarm.mockReturnValueOnce('stale-warm');
+  takeWarm.mockReturnValueOnce({ id: 'stale-warm', claim: 'hit' });
   const placeholder = startPendingSession({ userId: 'session-owner' });
   create.reject?.();
   await vi.waitFor(() =>

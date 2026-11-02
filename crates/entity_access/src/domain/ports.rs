@@ -104,6 +104,31 @@ pub trait AccessRepository: Clone + Send + Sync + 'static {
         agent_session_id: &str,
     ) -> impl Future<Output = Result<Option<AgentSessionParent>, AccessError>> + Send;
 
+    /// Whether a session row exists at all, for anyone.
+    ///
+    /// Asked only once a viewer has turned out to hold no grant, to tell
+    /// "there is no such session" apart from "this one is not yours". The two
+    /// used to answer alike, which made a session read before its create had
+    /// landed - and a session that had since been deleted - indistinguishable
+    /// from a refusal.
+    fn agent_session_exists(
+        &self,
+        agent_session_id: &str,
+    ) -> impl Future<Output = Result<bool, AccessError>> + Send;
+
+    /// Highest grant on a CRM pipeline.
+    fn get_pipeline_access(
+        &self,
+        id: &str,
+        user_id: Option<&MacroUserId<Lowercase<'_>>>,
+    ) -> impl Future<Output = Result<Option<AccessLevel>, AccessError>> + Send;
+
+    /// All pipeline grants for the caller's current sharing sources.
+    fn list_pipeline_access(
+        &self,
+        user_id: &MacroUserId<Lowercase<'_>>,
+    ) -> impl Future<Output = Result<Vec<(Uuid, AccessLevel)>, AccessError>> + Send;
+
     /// Get the highest access level a user has for a database.
     fn get_database_access(
         &self,
@@ -137,6 +162,13 @@ pub trait AccessRepository: Clone + Send + Sync + 'static {
     /// View for anyone (signed in or not) while the form's audience is public
     /// and it is not trashed.
     fn get_form_access(
+        &self,
+        form_id: &str,
+        user_id: Option<&MacroUserId<Lowercase<'_>>>,
+    ) -> impl Future<Output = Result<Option<AccessLevel>, AccessError>> + Send;
+
+    /// Resolve ordinary shares on an external chat.
+    fn get_external_chat_access(
         &self,
         form_id: &str,
         user_id: Option<&MacroUserId<Lowercase<'_>>>,
@@ -296,8 +328,8 @@ pub trait AccessRepository: Clone + Send + Sync + 'static {
 
     /// Resolve a call ID to its channel ID and share permission ID.
     ///
-    /// Checks both the `calls` table (active calls) and the `call_records` table
-    /// (archived calls). Returns `None` if the call does not exist in either table.
+    /// Resolves the durable identity for native and imported calls.
+    /// Returns `None` if the call entity does not exist.
     fn get_call_channel(
         &self,
         call_id: &Uuid,
@@ -538,6 +570,10 @@ pub trait EntityAccessService: Clone + Send + Sync + 'static {
     /// access or inherited access through the project hierarchy via `entity_access`.
     /// For Channel: returns active channel participants.
     /// Returns `AccessError::BadRequest` for unsupported types (Team, User).
+    ///
+    /// The activity team feed applies this audience in SQL
+    /// (`crates/activity/src/outbound/pg_activity_repo/team_feed.sql`); keep
+    /// the two in step.
     fn get_users_by_entity(
         &self,
         entity_id: &str,
@@ -546,7 +582,7 @@ pub trait EntityAccessService: Clone + Send + Sync + 'static {
 
     /// Resolve a call ID to its channel ID and share permission ID.
     ///
-    /// Checks both `calls` (active) and `call_records` (archived) tables.
+    /// Resolves the durable identity for native and imported calls.
     fn get_call_channel(
         &self,
         call_id: &Uuid,
@@ -716,4 +752,13 @@ impl EntityAccessService for NoOpEntityAccessService {
     ) -> Result<Option<UserTeamInfo>, AccessError> {
         Ok(None)
     }
+}
+
+/// Directory of pipeline grants for CRM navigation.
+pub trait AccessiblePipelines: Clone + Send + Sync + 'static {
+    /// Highest effective grant on each accessible pipeline.
+    fn accessible_pipelines(
+        &self,
+        user_id: &MacroUserId<Lowercase<'_>>,
+    ) -> impl Future<Output = Result<Vec<(Uuid, AccessLevel)>, AccessError>> + Send;
 }

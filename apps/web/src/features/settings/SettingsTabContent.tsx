@@ -1,12 +1,12 @@
 // PRIVATE-HOOK: self_host_health:settings_import
 import type { SettingsTab } from '@core/constant/SettingsState';
 import { useSettingsTabAvailable } from '@core/constant/settingsTabsConfig';
+import { lazyNamed } from '@core/util/lazyNamed';
 import { SelfHostHealth } from '@macro/self-host-health';
 import { Show, Suspense } from 'solid-js';
 import { CalendarSettings } from '../calendar/calendar-settings';
 import { CrmSettings as Crm } from '../crm/crm-settings';
 import { Extensions } from '../extensions/Extensions';
-import { SchedulingSettings } from '../scheduling/scheduling';
 import { Usage } from '../usage/usage';
 import { Account } from './Account';
 import { Admin } from './Admin';
@@ -16,15 +16,21 @@ import { ApiKeys } from './ApiKeys';
 import { Appearance } from './Appearance';
 import { Billing } from './Billing';
 import { Bots } from './Bots';
-import { ConnectedAccounts } from './ConnectedAccounts';
 import { DesktopApp } from './DesktopApp';
 import { EmailSettings } from './email-settings';
-import { McpConnections } from './McpConnections';
+import { IntegrationsPage } from './IntegrationsPage';
 import { MobileApp } from './MobileApp';
 import { Notifications } from './Notifications';
 import { Shortcuts } from './Shortcuts';
 import { Tags } from './Tags';
-import { Team } from './Team';
+import { TeamPage } from './Team';
+import { TeamGeneral } from './TeamGeneral';
+import { TeamMembers } from './TeamMembers';
+
+const RoutineSettings = lazyNamed(
+  () => import('../routines/routine-settings'),
+  'RoutineSettings'
+);
 
 /** Shared forms for desktop panels and mobile sheet detail pages. */
 export function SettingsTabContent(props: { tab: SettingsTab }) {
@@ -48,9 +54,6 @@ export function SettingsTabContent(props: { tab: SettingsTab }) {
       <Show when={isCurrentTab('Calendar')}>
         <CalendarSettings />
       </Show>
-      <Show when={isCurrentTab('Booking links')}>
-        <SchedulingSettings />
-      </Show>
       <Show when={isCurrentTab('API Keys')}>
         <ApiKeys />
       </Show>
@@ -70,7 +73,10 @@ export function SettingsTabContent(props: { tab: SettingsTab }) {
         <Shortcuts />
       </Show>
       <Show when={isCurrentTab('Team')}>
-        <Team />
+        <TeamPage>{(team) => <TeamGeneral team={team} />}</TeamPage>
+      </Show>
+      <Show when={isCurrentTab('Team Members')}>
+        <TeamPage>{(team) => <TeamMembers team={team} />}</TeamPage>
       </Show>
       <Show when={isCurrentTab('Tags')}>
         <Tags />
@@ -79,10 +85,7 @@ export function SettingsTabContent(props: { tab: SettingsTab }) {
         <Crm />
       </Show>
       <Show when={isCurrentTab('Connected')}>
-        <ConnectedAccounts />
-      </Show>
-      <Show when={isCurrentTab('Connections')}>
-        <McpConnections />
+        <IntegrationsPage />
       </Show>
       <Show when={isCurrentTab('Desktop App')}>
         <DesktopApp />
@@ -95,6 +98,9 @@ export function SettingsTabContent(props: { tab: SettingsTab }) {
       </Show>
       <Show when={isCurrentTab('Agents')}>
         <AgentSettings />
+      </Show>
+      <Show when={isCurrentTab('Routines')}>
+        <RoutineSettings />
       </Show>
       <Show when={isCurrentTab('Harness')}>
         <AgentSettings initialSection="runtimes" />

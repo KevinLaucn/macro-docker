@@ -1,9 +1,13 @@
 import { toast } from '@core/component/Toast/Toast';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { t } from '@macro/i18n';
-import { InlineCheckbox } from '@ui';
+import { cn, InlineCheckbox } from '@ui';
 import { Show } from 'solid-js';
 import type { CrmContact as CrmContactResponse } from '../core/contact';
 import { useSetContactHiddenMutation } from './use-crm';
+
+const TOGGLE_BUTTON_CLASS =
+  'inline-flex items-center gap-2 rounded-md h-7 px-2.5 text-xs select-none w-fit border border-ink-muted/[0.08] bg-ink-muted/[0.025] text-ink hover:bg-ink-muted/[0.06]';
 
 /**
  * Admin-only (the parent gates the whole section on `useIsTeamAdmin`):
@@ -46,8 +50,10 @@ export function ContactSharingSection(props: { contact?: CrmContactResponse }) {
                 role="checkbox"
                 aria-checked={isShared()}
                 disabled={hiddenMutation.isPending}
-                onClick={() => void handleToggle(contact(), !isShared())}
-                class="inline-flex h-7 w-fit select-none items-center gap-2 rounded-md border border-ink-muted/[0.08] bg-ink-muted/[0.025] px-2.5 text-xs text-ink hover:bg-ink-muted/[0.06]"
+                onClick={() =>
+                  fireAndForget(handleToggle(contact(), !isShared()), 'crm')
+                }
+                class={cn(TOGGLE_BUTTON_CLASS)}
               >
                 <InlineCheckbox checked={isShared()} />
                 <span class="whitespace-nowrap">{t('Visible in CRM')}</span>

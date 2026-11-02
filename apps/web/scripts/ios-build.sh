@@ -20,6 +20,9 @@ script_dir="$(\cd "$(dirname "$0")" && pwd)"
 source "$script_dir/ios-native-env.sh"
 ios_resolve_toolchain aarch64-apple-ios
 
+ios_require_posthog_key
+ios_production_telemetry
+
 # The web/WASM build keeps its original toolchain. Switch to Apple tools only
 # for the native build, and skip Tauri's hook because it has already run here.
 just build-tauri

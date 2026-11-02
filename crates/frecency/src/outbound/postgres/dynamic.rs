@@ -217,6 +217,13 @@ fn build_document_filter(ast: Option<&Expr<DocumentLiteral>>) -> String {
         filter_ast::ExprFrame::Literal(DocumentLiteral::EmailAttachmentParticipant(email)) => {
             email_attachment_participant_predicate(&email)
         }
+        filter_ast::ExprFrame::Literal(DocumentLiteral::NameContains(name)) => format!(
+            r#"entity_id IN (SELECT id FROM "Document" WHERE STRPOS(LOWER(name), {}) > 0 AND "deletedAt" IS NULL)"#,
+            sql_string_literal(&name.to_lowercase())
+        ),
+        // Soup resolves CRM associations before querying and rejects them on
+        // frecency sorts, so an unresolved one matches nothing.
+        filter_ast::ExprFrame::Literal(DocumentLiteral::CrmAssociated(_)) => "FALSE".to_string(),
     });
     if formatting.is_empty() {
         String::new()
@@ -239,6 +246,7 @@ fn property_literal_predicate(literal: &PropertiesLiteral) -> String {
         value,
     } = literal;
     let value_predicate = match value {
+        PropertyMatchValue::DateRange(_) => return "FALSE".to_owned(),
         PropertyMatchValue::SelectOption(option_id) => {
             format!("ep_prop.values->'value' ? '{option_id}'")
         }

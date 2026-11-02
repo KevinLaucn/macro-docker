@@ -90,6 +90,17 @@ export default defineConfig({
       '../../packages/collaboration/vitest.transport.config.ts',
       '../../packages/machine/vitest.config.ts',
       {
+        extends: false,
+        test: {
+          name: 'forms-editing-worker',
+          environment: 'node',
+          include: [
+            '../../services/ai-editing-worker/src/forms/**/*.test.ts',
+            '../../services/ai-editing-worker/src/endpoints/forms.test.ts',
+          ],
+        },
+      },
+      {
         // Core package tests
         extends: './src/lib/core/vitest.config.ts',
         test: {
@@ -281,6 +292,7 @@ export default defineConfig({
             'src/lib/analytics/**/*.{test,spec}.{ts,tsx}',
             'src/lib/constants/**/*.{test,spec}.{ts,tsx}',
             'src/lib/fullcalendar-solid/**/*.{test,spec}.{ts,tsx}',
+            'src/lib/i18n/**/*.{test,spec}.{ts,tsx}',
             'src/lib/persistence/**/*.{test,spec}.{ts,tsx}',
             'src/lib/utils/**/*.{test,spec}.{ts,tsx}',
             'src/lib/workers/slack-import/**/*.{test,spec}.{ts,tsx}',

@@ -9,6 +9,7 @@ mod installation_state;
 mod link;
 mod repository;
 mod sync;
+mod webhook_delivery;
 
 #[cfg(feature = "sync")]
 pub use app_jwt::AppJwt;
@@ -16,25 +17,39 @@ pub use app_jwt::AppJwt;
 pub(crate) use app_jwt::app_jwt;
 pub use github_pull_requests::domain::models::{
     EnrichGithubPullRequestsProxyRequest, EnrichGithubPullRequestsResponse,
-    EnrichedGithubPullRequest, GITHUB_PULL_REQUEST_FOREIGN_ENTITY_SOURCE, GitRef, GithubKey,
-    GithubMergeMethod, GithubMergeOutcome, GithubMergeRejection, GithubPullRequestCheckRun,
-    GithubPullRequestComment, GithubPullRequestDetails, GithubPullRequestLabel,
-    GithubPullRequestMerge, GithubPullRequestRef, GithubPullRequestReview,
-    GithubPullRequestReviewState, GithubPullRequestStatus, GithubPullRequestUser,
-    GithubRepositoryMergeSettings, MergeGithubPullRequestRequest, MergeGithubPullRequestResponse,
-    latest_reviews,
+    EnrichedGithubPullRequest, GITHUB_PULL_REQUEST_FOREIGN_ENTITY_SOURCE, GitRef,
+    GithubDraftOutcome, GithubKey, GithubMergeMethod, GithubMergeOutcome, GithubMergeRejection,
+    GithubPullRequestCheckRun, GithubPullRequestComment, GithubPullRequestDetails,
+    GithubPullRequestLabel, GithubPullRequestMerge, GithubPullRequestMergeability,
+    GithubPullRequestMergeabilityEntry, GithubPullRequestMergeabilityRequest,
+    GithubPullRequestMergeabilityResponse, GithubPullRequestNumber, GithubPullRequestRef,
+    GithubPullRequestReview, GithubPullRequestReviewState, GithubPullRequestState,
+    GithubPullRequestStatus, GithubPullRequestUpdateRejection, GithubPullRequestUser,
+    GithubRepositoryMergeSettings, GithubStateOutcome, MergeGithubPullRequestRequest,
+    MergeGithubPullRequestResponse, SetGithubPullRequestDraftRequest,
+    SetGithubPullRequestDraftResponse, SetGithubPullRequestStateRequest,
+    SetGithubPullRequestStateResponse, latest_reviews,
 };
 pub use installation_state::{
     InstallationState, InstallationStateError, sign_installation_state, verify_installation_state,
 };
-pub use link::{GithubAccessToken, GithubExchangeTokenResponse, GithubLink, GithubUserInfo};
+pub use link::{
+    GithubAccessToken, GithubExchangeTokenResponse, GithubGrantLinkOutcome, GithubLink,
+    GithubLinkStatus, GithubUserInfo,
+};
 pub use repository::{GithubRepository, PullRequestIndexPage, PullRequestIndexRequest};
 pub use sync::{
     GithubAppInstallationSource, GithubAuthenticatedUser, GithubInstallationAccessToken,
     GithubInstallationSetupAction, GithubSetupAccessToken, GithubUserInstallation,
     GithubUserInstallationsPage, GithubWebhookEventType, MacroTaskId, ResolvedTeamTaskReference,
-    TeamTaskReference, ValidatedGithubWebhookEvent, extract_github_mentions, strip_markdown_code,
+    TeamTaskReference, ValidatedGithubWebhookEvent, extract_github_mentions,
+    pull_request_task_reference, strip_markdown_code,
 };
+use upstream_error::UpstreamError;
+pub use webhook_delivery::{
+    GithubWebhookReceived, GithubWebhookRepository, GithubWebhookSender, MAX_WEBHOOK_PAYLOAD_BYTES,
+};
+
 /// Errors that can occur during github operations.
 #[derive(Debug, thiserror::Error)]
 pub enum GithubError {
@@ -47,6 +62,9 @@ pub enum GithubError {
     /// The Github link token has expired and the user must reauthenticate.
     #[error("reauthentication required")]
     ReauthenticationRequired,
+    /// Reconnect must use the currently linked GitHub account.
+    #[error("disconnect the current GitHub account before linking a different account")]
+    AccountMismatch,
     /// No refresh token was provided in the token exchange
     #[error("no refresh token provided in token exchange")]
     NoRefreshTokenProvided,
@@ -90,4 +108,21 @@ pub enum GithubError {
         /// GitHub's message for the user.
         message: String,
     },
+    /// GitHub declined to change the pull request. The message is GitHub's
+    /// own and is written for the person who asked, so it is safe to show.
+    #[error("GitHub declined to change the pull request: {message}")]
+    PullRequestUpdateRejected {
+        /// Why GitHub declined.
+        rejection: GithubPullRequestUpdateRejection,
+        /// GitHub's message for the user.
+        message: String,
+    },
+    /// The request asked for more pull requests than one call may cover.
+    #[error("too many pull requests requested")]
+    TooManyPullRequests,
+    /// GitHub, or the sign-in service holding the user's GitHub grant, was
+    /// down, throttling, or answered with something unusable. Not the
+    /// caller's fault and not ours; retrying later can help.
+    #[error(transparent)]
+    Upstream(#[from] UpstreamError),
 }

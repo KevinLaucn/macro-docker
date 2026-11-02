@@ -1,4 +1,5 @@
 import { useViewShell, ViewShell } from '@app/components/view-shell';
+import { SidebarCreateHeader } from '@app/components/view-shell/SidebarCreateButton';
 import { calendarSearch } from '@app/features/calendar-view/calendar-url';
 import { ViewTour } from '@app/features/tours/ViewTour';
 import { createSearchParams, SplitRouter } from '@app/lib/split-router';
@@ -19,6 +20,7 @@ import { HomeList } from './components/HomeList';
 import { HomeListLayout } from './components/HomeListLayout';
 import { HomeListSkeleton } from './components/HomeListSkeleton';
 import { HomeReturnBreadcrumb } from './components/HomeReturnBreadcrumb';
+import { HomeSetupPromotion } from './components/HomeSetupPromotion';
 import { HomeTabs } from './components/HomeTabs';
 import { HomeViewProvider, useHomeView } from './home-view-context';
 import { homeTour } from './tour';
@@ -48,7 +50,10 @@ function HomeFallback() {
 
 function HomeListPane(props: {
   hasPreview: boolean;
-  onPreviewEntityChange: (entity: PreviewSelection | undefined) => void;
+  onPreviewEntityChange: (
+    entity: PreviewSelection | undefined,
+    options?: { activate?: boolean }
+  ) => void;
   onNewChat: () => void;
 }) {
   const shell = useViewShell();
@@ -67,6 +72,7 @@ function HomeListPane(props: {
         props.onNewChat();
         showContent();
       }}
+      footer={<HomeSetupPromotion class="px-(--sidebar-gutter) py-2" />}
     >
       <ViewTour tour={homeTour} />
       <DebugSuspense name="HomeView.list" fallback={<HomeFallback />}>
@@ -86,8 +92,11 @@ function HomeViewRoot() {
     useHomeView();
 
   const newChat = closePreview;
-  const onPreviewEntityChange = (entity: PreviewSelection | undefined) => {
-    if (entity) openPreview(entity);
+  const onPreviewEntityChange = (
+    entity: PreviewSelection | undefined,
+    options?: { activate?: boolean }
+  ) => {
+    if (entity) openPreview(entity, options);
     else closePreview();
   };
 
@@ -160,6 +169,51 @@ function HomeViewRoot() {
   );
 }
 
+/**
+ * Home's frame while sign-in is confirmed: the view's layout, header, and list
+ * skeleton. Home's persisted state and list query key on the user, so the view
+ * itself waits for identity; the frame keeps the screen from going blank.
+ */
+export function HomePendingView() {
+  const listSkeleton = (
+    <div class="mt-3 min-h-0 min-w-0 flex-1 overflow-hidden touch:mt-0 touch:pt-(--mobile-content-inset-top)">
+      <HomeListSkeleton grouped />
+    </div>
+  );
+
+  return (
+    <SplitPanel.Root>
+      <SplitPanel.Body>
+        <Show
+          when={isTouchDevice()}
+          fallback={
+            <div class="size-full min-h-0 bg-panel">
+              <ViewShell.Root
+                asidePreferenceKey="home"
+                aside={{ preserveDuringResize: false }}
+                main={{ preferredWidth: 640 }}
+                resizable
+              >
+                <ViewShell.Aside class="flex flex-col bg-panel">
+                  <SidebarCreateHeader
+                    title="Home"
+                    label="New chat"
+                    onCreate={() => {}}
+                  />
+                  {listSkeleton}
+                </ViewShell.Aside>
+                <ViewShell.Main class="overflow-hidden" />
+              </ViewShell.Root>
+            </div>
+          }
+        >
+          {listSkeleton}
+        </Show>
+      </SplitPanel.Body>
+    </SplitPanel.Root>
+  );
+}
+
 /** The Calendar view aimed at an event, inside Home's inline preview chrome. */
 function HomeCalendarRouteContent() {
   const panel = useSplitPanelOrThrow();
@@ -171,9 +225,18 @@ function HomeCalendarRouteContent() {
       <PreviewFrame
         splitPanelContext={panel}
         headerLeading={<HomeReturnBreadcrumb onReturn={closePreview} />}
+        hideHeader={!isTouchDevice()}
         locationKey={() => `${search.eventId}:${search.occurrenceKey}`}
       >
-        <CalendarView route={homeCalendarRoute} refocus={calendarRefocus} />
+        <CalendarView
+          route={homeCalendarRoute}
+          refocus={calendarRefocus}
+          headerLeading={
+            <Show when={!isTouchDevice()}>
+              <HomeReturnBreadcrumb onReturn={closePreview} />
+            </Show>
+          }
+        />
       </PreviewFrame>
     </div>
   );

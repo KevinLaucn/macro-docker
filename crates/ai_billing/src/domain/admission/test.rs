@@ -21,6 +21,14 @@ impl FakeBilling {
 }
 
 impl BillingService for FakeBilling {
+    async fn change_plan(
+        &self,
+        _: &MacroUserIdStr<'_>,
+        _: crate::domain::plan_change::PlanChange,
+    ) -> BillingResult<()> {
+        panic!("this use case must not change plans")
+    }
+
     async fn check_allowance(&self, user: &MacroUserIdStr<'_>) -> BillingResult<AllowanceDecision> {
         assert_eq!(user.as_ref(), "macro|user@example.com");
         self.calls.fetch_add(1, Ordering::SeqCst);
@@ -54,6 +62,13 @@ impl BillingService for FakeBilling {
     ) -> BillingResult<UsageSnapshot> {
         panic!("admission must not change settings")
     }
+    async fn purchase_credits(
+        &self,
+        _: &MacroUserIdStr<'_>,
+        _: i64,
+    ) -> BillingResult<crate::domain::CreditPurchase> {
+        panic!("admission must not purchase credits")
+    }
     async fn create_credit_checkout(
         &self,
         _: &MacroUserIdStr<'_>,
@@ -83,7 +98,12 @@ impl BillingService for FakeBilling {
     async fn mark_overage_invoice(&self, _: &str, _: bool) -> BillingResult<()> {
         panic!("admission must not handle invoices")
     }
-    async fn mark_credit_reload_invoice(&self, _: &str, _: bool) -> BillingResult<()> {
+    async fn mark_credit_reload_invoice(
+        &self,
+        _: &str,
+        _: Option<macro_uuid::Uuid>,
+        _: bool,
+    ) -> BillingResult<()> {
         panic!("admission must not handle invoices")
     }
 }

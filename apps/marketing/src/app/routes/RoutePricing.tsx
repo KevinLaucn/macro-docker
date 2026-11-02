@@ -56,7 +56,7 @@ function sectionHeadingStyle(): JSX.CSSProperties {
     color: 'var(--c1)',
     'font-family': 'display',
     'font-size': mobile() ? '32px' : breakpoint() ? '38px' : '44px',
-    'font-weight': '315',
+    'font-weight': 'calc(315 + var(--cream-slab-weight-increase, 0))',
     'letter-spacing': '-0.015em',
     'line-height': 1.1,
     margin: 0,
@@ -108,7 +108,7 @@ function PlanCard(props: {
               color: 'var(--c0)',
               'font-family': 'display',
               'font-size': mobile() ? '48px' : '52px',
-              'font-weight': '315',
+              'font-weight': 'calc(315 + var(--cream-slab-weight-increase, 0))',
               'letter-spacing': '-0.015em',
               'line-height': 1,
             }}
@@ -203,7 +203,6 @@ function PricingPlans() {
           eyebrow="Free"
           price="$0"
           primaryLine="per seat / month"
-          secondaryLine="No credit card required"
           buttonName="pricing_free_connect_google"
           buttonLabel="Start for free"
         />
@@ -242,7 +241,7 @@ const comparisonGroups: Array<{
     group: 'AI and agents',
     rows: [
       { label: 'AI usage', free: 'Limited', pro: 'Standard', max: '10× Pro' },
-      { label: 'AI models', free: 'Haiku', pro: 'All', max: 'All' },
+      { label: 'AI models', free: 'Gemini Flash', pro: 'All', max: 'All' },
       {
         label: 'Agents with workspace context',
         free: true,
@@ -260,7 +259,7 @@ const comparisonGroups: Array<{
         pro: 'Unlimited',
         max: 'Unlimited',
       },
-      { label: 'Storage', free: '5 GB', pro: '1 TB', max: '1 TB' },
+      { label: 'Storage', free: '5 GB', pro: '100 GB', max: '1 TB' },
       {
         label: 'Calls, recording, and transcription',
         free: false,
@@ -279,20 +278,8 @@ const comparisonGroups: Array<{
         max: 'Removed',
       },
       {
-        label: 'Auto-shared email and CRM for your team',
-        free: false,
-        pro: true,
-        max: true,
-      },
-      {
         label: 'Team-level memory for your agents',
-        free: false,
-        pro: true,
-        max: true,
-      },
-      {
-        label: 'Channel-based sharing and access control',
-        free: false,
+        free: true,
         pro: true,
         max: true,
       },
@@ -382,8 +369,8 @@ function comparisonPlanHeadingStyle(color: string): JSX.CSSProperties {
 }
 
 function ComparisonGrid() {
-  const cols = () =>
-    mobile() ? '1fr 64px 64px 64px' : '1fr 140px 140px 140px';
+  const planWidth = () => (mobile() ? 64 : 160);
+  const cols = () => `minmax(0, 1fr) repeat(3, ${planWidth()}px)`;
 
   return (
     <section
@@ -401,7 +388,7 @@ function ComparisonGrid() {
         style={{
           'box-sizing': 'border-box',
           'max-width': '1100px',
-          'padding-left': mobile() ? '12px' : '40px',
+          'background-image': `linear-gradient(to right, transparent calc(100% - ${planWidth() * 2}px), color-mix(in srgb, var(--c1) 6%, transparent) calc(100% - ${planWidth() * 2}px), color-mix(in srgb, var(--c1) 6%, transparent) calc(100% - ${planWidth()}px), transparent calc(100% - ${planWidth()}px))`,
           width: '100%',
         }}
       >
@@ -410,16 +397,28 @@ function ComparisonGrid() {
             'align-items': 'end',
             'border-bottom': `1px solid ${RULE_STRONG}`,
             display: 'grid',
-            gap: mobile() ? '8px' : '16px',
+            gap: '0',
             'grid-template-columns': cols(),
-            padding: mobile() ? '0 4px 16px' : '0 8px 20px',
+            padding: '0',
           }}
         >
           <div aria-hidden="true" />
           <For each={comparisonPlans}>
             {(plan) => (
-              <div style={{ 'text-align': 'center' }}>
-                <div style={comparisonPlanHeadingStyle('var(--c1)')}>
+              <div
+                style={{
+                  'text-align': 'center',
+                  opacity: plan.key === 'free' ? 0.6 : 1,
+                  padding: mobile() ? '18px 4px' : '24px 12px',
+                  'box-shadow':
+                    plan.key === 'pro' ? 'inset 0 2px 0 var(--c1)' : undefined,
+                }}
+              >
+                <div
+                  style={comparisonPlanHeadingStyle(
+                    plan.key === 'pro' ? 'var(--c1)' : 'var(--c4)'
+                  )}
+                >
                   {plan.name}
                 </div>
                 <div
@@ -442,10 +441,9 @@ function ComparisonGrid() {
               <div
                 style={{
                   ...eyebrowStyle(),
-                  'border-bottom': `1px solid ${RULE}`,
                   color: 'color-mix(in srgb, var(--c4) 70%, transparent)',
-                  'font-size': mobile() ? '12px' : '13px',
-                  padding: mobile() ? '20px 4px 12px' : '24px 8px 14px',
+                  'font-size': mobile() ? '10px' : '11px',
+                  padding: mobile() ? '28px 8px 8px' : '36px 16px 10px',
                 }}
               >
                 {group.group}
@@ -460,15 +458,16 @@ function ComparisonGrid() {
                           ? '0'
                           : `1px solid ${RULE}`,
                       display: 'grid',
-                      gap: mobile() ? '8px' : '16px',
+                      gap: '0',
                       'grid-template-columns': cols(),
-                      padding: mobile() ? '14px 4px' : '16px 8px',
+                      padding: '0',
                     }}
                   >
                     <div
                       style={{
-                        color: 'var(--c2)',
-                        'font-size': mobile() ? '14px' : '16px',
+                        color: 'var(--c4)',
+                        'font-size': mobile() ? '13px' : '14px',
+                        padding: mobile() ? '16px 8px' : '20px 16px',
                         'line-height': 1.4,
                       }}
                     >
@@ -477,7 +476,12 @@ function ComparisonGrid() {
                     <For each={comparisonPlans}>
                       {(plan) => (
                         <div
-                          style={{ display: 'grid', 'place-items': 'center' }}
+                          style={{
+                            display: 'grid',
+                            'place-items': 'center',
+                            padding: mobile() ? '16px 4px' : '20px 12px',
+                            opacity: plan.key === 'free' ? 0.5 : 1,
+                          }}
                         >
                           <ComparisonCell value={row[plan.key]} />
                         </div>
@@ -537,7 +541,7 @@ function CaseStudyVideo() {
               color: 'var(--c1)',
               'font-family': 'display',
               'font-size': compact() ? '28px' : '34px',
-              'font-weight': '315',
+              'font-weight': 'calc(315 + var(--cream-slab-weight-increase, 0))',
               'letter-spacing': '-0.01em',
               'line-height': 1.14,
               margin: '0',
@@ -873,7 +877,7 @@ function FaqSection() {
           display: flex;
           font-family: 'display';
           font-size: 20px;
-          font-weight: 410;
+          font-weight: calc(410 + var(--cream-slab-weight-increase, 0));
           gap: 16px;
           justify-content: space-between;
           letter-spacing: -0.01em;
@@ -965,18 +969,6 @@ function SavingsSection() {
         <h2 id="pricing-savings-title" style={sectionHeadingStyle()}>
           See what you’d save
         </h2>
-        <p
-          style={{
-            color: 'var(--c4)',
-            'font-size': mobile() ? '15px' : '16px',
-            'line-height': 1.6,
-            margin: 0,
-            'max-width': '440px',
-            'text-wrap': 'balance',
-          }}
-        >
-          Choose the tools your team pays for today and how many seats you need.
-        </p>
       </div>
       <SavingsCalculator />
     </section>
@@ -1038,7 +1030,7 @@ export const RoutePricing: Component = () => {
           style={{
             'font-family': 'display',
             'font-size': mobile() ? 'clamp(46px, 13vw, 62px)' : '52.36px',
-            'font-weight': '315',
+            'font-weight': 'calc(315 + var(--cream-slab-weight-increase, 0))',
             'letter-spacing': '-0.012em',
             'line-height': 1.12,
             margin: 0,

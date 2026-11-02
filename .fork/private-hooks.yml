@@ -33,17 +33,12 @@ hooks:
     customization: SELFHOST-RUNTIME-001
     file: apps/web/src/lib/queries/agents/capabilities.ts
     marker: "// PRIVATE-HOOK: selfhost_runtime:agent-capabilities-gate"
-    expected: "enabled: getAppCapabilities().agents && target() !== undefined,"
+    expected: "enabled: getAppCapabilities().agents && request !== undefined,"
   - id: selfhost_runtime_agent_warm_gate
     customization: SELFHOST-RUNTIME-001
     file: apps/web/src/lib/queries/agent-session/warm.ts
     marker: "// PRIVATE-HOOK: selfhost_runtime:agent-warm-gate"
     expected: "enabled: getAppCapabilities().agents && !!owner,"
-  - id: selfhost_runtime_claude_auth_gate
-    customization: SELFHOST-RUNTIME-001
-    file: apps/web/src/lib/queries/claude-auth/connection.ts
-    marker: "// PRIVATE-HOOK: selfhost_runtime:claude-auth-gate"
-    expected: "enabled: getAppCapabilities().agents && !!owner() && enabled(),"
   - id: selfhost_runtime_home_composer_gate
     customization: SELFHOST-RUNTIME-001
     file: apps/web/src/features/home/home-chat-input.tsx
@@ -123,7 +118,7 @@ hooks:
     expected: "const notification = parseBrowserNewEmailNotification(wsData.data);"
     context:
       - "createSocketEffect(ws, (wsData) => {"
-      - "if (wsData.type !== NOTIFICATION_EVENT_TYPE || usesGraphql()) {"
+      - "wsData.type !== NOTIFICATION_EVENT_TYPE ||"
 
   - id: email_selfhost_local_poller_gate
     customization: EMAIL-SELFHOST-001
@@ -152,12 +147,12 @@ hooks:
     marker: "// PRIVATE-HOOK: read_receipts:registration"
     expected: "#[path = \"../../../../../packages/fork/read-receipts/backend/service/send.rs\"]"
     context:
-      - "use models_email::service::attachment::{AttachmentDraft, AttachmentToSend};"
+      - "use models_email::service::attachment::AttachmentDraft;"
   - id: email_read_receipts_send_call
     customization: READ-RECEIPTS-001
     file: services/email_service/src/outbound/scheduled_delivery.rs
     marker: "// PRIVATE-HOOK: read_receipts:schedule-call"
-    expected: "attach_open_tracking_pixel(&ctx.db, &mut message_to_send).await;"
+    expected: "attach_open_tracking_pixel(&self.db, &mut outgoing).await;"
     context:
       - "Read receipts are attached at the last possible moment"
   - id: email_read_receipts_public_router
@@ -225,7 +220,7 @@ hooks:
       - "id: props.message.db_id,"
   - id: email_read_receipts_realtime_event
     customization: READ-RECEIPTS-001
-    file: apps/web/src/lib/queries/sync/SyncProvider.tsx
+    file: apps/web/src/lib/queries/sync/use-query-sync.ts
     marker: "// PRIVATE-HOOK: read_receipts:realtime-event"
     expected: "handleReadReceiptOpenedEvent(payload, queryClient);"
     context:
@@ -423,7 +418,7 @@ hooks:
     marker: "// PRIVATE-HOOK: self_host_health:settings_icon"
     expected: "import HeartbeatIcon from '@phosphor/heartbeat.svg';"
     context:
-      - "import DeviceMobileIcon from '@phosphor/device-mobile-speaker.svg';"
+      - "import HardDrivesIcon from '@icon/system/regular/hard-drives.svg';"
   - id: self_host_health_settings_item
     customization: SELFHOST-HEALTH-001
     file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx
@@ -431,12 +426,13 @@ hooks:
     expected: |-
       {
               tab: 'SelfHostHealth',
-              label: t('Health Check'),
+              label: tFork('Health Check'),
+              englishLabel: 'Health Check',
               icon: HeartbeatIcon,
               keywords: ['health', 'self-host'],
             },
     context:
-      - "{ tab: 'Admin', label: t('Debug'), icon: BugIcon, keywords: [] },"
+      - "tabItem('tabDebug', { tab: 'Admin', icon: BugIcon, keywords: [] }),"
   - id: self_host_health_settings_slug
     customization: SELFHOST-HEALTH-001
     file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx
@@ -471,7 +467,7 @@ hooks:
     marker: "// PRIVATE-HOOK: self_host_health:email_probe"
     expected: "pub async fn health_check_handler("
     context:
-      - "LinkManagerMessage::HealthCheck"
+      - "ctx.inbox_health"
   - id: self_host_resilience_verify_attachment_s3_presence
     customization: EMAIL-SELFHOST-001
     file: services/email_service/src/api/email/attachments/get_document_id.rs
@@ -552,14 +548,6 @@ hooks:
       - "export function agentModelsQueryOptions(target: AgentModelTarget) {"
 
 
-  - id: self_host_health_auth_models_email_dep
-    customization: SELFHOST-HEALTH-001
-    file: services/authentication_service/Cargo.toml
-    marker: "# PRIVATE-HOOK: self_host_health:auth-models-email-dep"
-    expected: 'models_email = { path = "../../crates/models_email" }'
-    context:
-      - 'model = { path = "../../crates/model" }'
-
   - id: self_host_health_auth_sqs_gmail_feature
     customization: SELFHOST-HEALTH-001
     file: services/authentication_service/Cargo.toml
@@ -587,7 +575,7 @@ hooks:
 
   - id: email_selfhost_root_init_user_id
     customization: EMAIL-SELFHOST-001
-    file: apps/web/src/routes/Root.tsx
+    file: apps/web/src/components/app/InitialInteractiveOnboardingModal.tsx
     marker: "PRIVATE-HOOK: email_selfhost:init-user-id-fallback"
     expected: "const uid = data.id ?? data.userId;"
     context:
@@ -603,7 +591,7 @@ hooks:
 
   - id: ai_model_policy_chat_renamer
     customization: AI-MODEL-POLICY-001
-    file: services/document_cognition_service/src/service/chat_renamer.rs
+    file: services/agent_harness_service/src/cognition/service/chat_renamer.rs
     marker: "PRIVATE-HOOK: ai_model_policy:chat-renamer"
     expected: "PredefinedModel::Gpt5Mini"
     context:

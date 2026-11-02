@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThreadList, type ThreadListNavigation } from '../ThreadList';
 
 const rowHeights = new Map<string, number>();
+let viewportHeight = 400;
 
 const platform = vi.hoisted(() => ({ safari: true }));
 vi.mock('@solid-primitives/platform', () => ({
@@ -19,16 +20,19 @@ vi.mock('@core/component/CustomScrollbar', () => ({
 beforeEach(() => {
   platform.safari = true;
   rowHeights.clear();
+  viewportHeight = 400;
   // Supply layout for the real virtualizer; jsdom does not measure DOM nodes.
   vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(
     function (this: HTMLElement) {
       return this.hasAttribute('data-index')
         ? (rowHeights.get(this.textContent ?? '') ?? 96)
-        : 400;
+        : viewportHeight;
     }
   );
   vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(400);
-  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(400);
+  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(
+    () => viewportHeight
+  );
   vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(
     function (this: HTMLElement) {
       return Number.parseFloat(
@@ -70,6 +74,7 @@ function setup(followOnAppend = true) {
     Array.from({ length: 20 }, (_, index) => String(index))
   );
   const paginate = vi.fn();
+  const onScroll = vi.fn();
   let navigation: ThreadListNavigation | undefined;
   const { container } = render(() => (
     <ThreadList
@@ -79,6 +84,7 @@ function setup(followOnAppend = true) {
         navigation = value;
       }}
       onScrollNearTop={paginate}
+      onScroll={onScroll}
     >
       {({ id }) => <div>{id}</div>}
     </ThreadList>
@@ -95,10 +101,72 @@ function setup(followOnAppend = true) {
       ...previous,
     ]);
   };
-  return { element, paginate, prepend, setKeys, navigation: () => navigation };
+  return {
+    element,
+    paginate,
+    prepend,
+    setKeys,
+    onScroll,
+    navigation: () => navigation,
+  };
 }
 
 describe('history loading ahead of scrolling', () => {
+  it.each([false, true])(
+    'renders every row of a short list that fits the viewport (safari=%s)',
+    async (safari) => {
+      platform.safari = safari;
+      // The estimated rows fit, so the initial end scroll clamps to zero
+      // without emitting a scroll event.
+      viewportHeight = 1000;
+      const keys = Array.from({ length: 10 }, (_, i) => `row-${i}`);
+      for (const key of keys) rowHeights.set(key, 50);
+      const { container } = render(() => (
+        <ThreadList keys={() => keys}>{({ id }) => <div>{id}</div>}</ThreadList>
+      ));
+      await waitFor(() =>
+        expect(container.querySelectorAll('[data-index]')).toHaveLength(
+          keys.length
+        )
+      );
+      const element = container.querySelector<HTMLDivElement>(
+        '[data-channel-scroll]'
+      )!;
+      expect(element.scrollTop).toBe(0);
+      expect(element.scrollHeight).toBe(element.clientHeight);
+      expect(container.querySelector('[data-index="0"]')?.textContent).toBe(
+        keys[0]
+      );
+    }
+  );
+
+  it('preserves a restored history offset during the initial readback', async () => {
+    platform.safari = false;
+    const keys = Array.from({ length: 20 }, (_, index) => String(index));
+    const onScroll = vi.fn();
+    const { container } = render(() => (
+      <ThreadList
+        keys={() => keys}
+        initialPosition={{
+          type: 'restore',
+          snapshot: { scrollOffset: 700, isNearBottom: false },
+        }}
+        onScroll={onScroll}
+      >
+        {({ id }) => <div>{id}</div>}
+      </ThreadList>
+    ));
+    await waitFor(() =>
+      expect(onScroll).toHaveBeenLastCalledWith(
+        expect.objectContaining({ distanceFromTop: 700, isNearBottom: false }),
+        expect.objectContaining({ scrollOffset: 700 })
+      )
+    );
+    expect(container.querySelector('[data-channel-scroll]')?.scrollTop).toBe(
+      700
+    );
+  });
+
   it('fills a bounded Safari buffer before a gesture and preserves the bottom pin', async () => {
     const f = setup();
     await waitFor(() => expect(f.paginate).toHaveBeenCalledOnce());
@@ -119,6 +187,32 @@ describe('history loading ahead of scrolling', () => {
     f.prepend(20);
     await waitFor(() => expect(f.element.scrollTop).toBe(before + 20 * 96));
     expect(f.paginate).toHaveBeenCalledTimes(3);
+  });
+
+  it('ends native scrolling at the latest message while a gesture shifts the rows', async () => {
+    const f = setup();
+    await waitFor(() => expect(f.paginate).toHaveBeenCalledOnce());
+    expect(f.element.scrollTop).toBe(1520);
+    f.element.dispatchEvent(new TouchEvent('touchstart'));
+    // History arriving mid-gesture shifts the rows instead of writing scrollTop.
+    f.prepend(10);
+    f.element.dispatchEvent(new Event('scroll'));
+    await waitFor(() =>
+      expect(f.onScroll).toHaveBeenLastCalledWith(
+        expect.objectContaining({ distanceFromTop: 2480 }),
+        expect.anything()
+      )
+    );
+    expect(f.element.scrollTop).toBe(1520);
+    // Scrolling down from here would only reveal blank space below the rows.
+    expect(f.element.scrollHeight - f.element.clientHeight).toBe(1520);
+    expect(f.onScroll).toHaveBeenLastCalledWith(
+      expect.objectContaining({ distanceFromBottom: 0, isNearBottom: true }),
+      expect.anything()
+    );
+    f.element.dispatchEvent(new TouchEvent('touchend', { touches: [] }));
+    await waitFor(() => expect(f.element.scrollTop).toBe(2480));
+    expect(f.element.scrollHeight).toBe(30 * 96);
   });
 
   it('does not repeat a request for an unchanged boundary', async () => {
@@ -146,6 +240,13 @@ describe('history loading ahead of scrolling', () => {
 });
 
 describe('server acknowledgement scroll anchoring', () => {
+  // Acknowledgements arrive outside gestures, where WebKit writes scrollTop
+  // directly too. The mocked scroll events would otherwise start gesture
+  // compensation, which hides the offset these tests check.
+  beforeEach(() => {
+    platform.safari = false;
+  });
+
   it.each([0, 10])(
     'preserves the pin only when already at the end (%ipx gap)',
     async (gap) => {
@@ -177,4 +278,23 @@ describe('server acknowledgement scroll anchoring', () => {
     await waitFor(() => expect(f.element.scrollHeight).toBe(19 * 96 + 160));
     expect(f.element.scrollTop).toBe(before);
   });
+});
+
+it('coalesces explicit destination changes into a post-render layout notification', async () => {
+  const f = setup();
+  await waitFor(() => expect(f.navigation()).toBeDefined());
+  await new Promise((resolve) => queueMicrotask(() => resolve(undefined)));
+  f.onScroll.mockClear();
+  const before = f.element.scrollTop;
+  f.navigation()?.requestLayoutUpdate();
+  f.navigation()?.requestLayoutUpdate();
+  expect(f.onScroll).not.toHaveBeenCalled();
+  await new Promise((resolve) => queueMicrotask(() => resolve(undefined)));
+  expect(f.onScroll).toHaveBeenCalledOnce();
+  expect(f.element.scrollTop).toBe(before);
+  cleanup();
+  f.onScroll.mockClear();
+  f.navigation()?.requestLayoutUpdate();
+  await new Promise((resolve) => queueMicrotask(() => resolve(undefined)));
+  expect(f.onScroll).not.toHaveBeenCalled();
 });

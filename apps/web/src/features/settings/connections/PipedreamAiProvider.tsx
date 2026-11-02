@@ -1,6 +1,7 @@
 import { toast } from '@core/component/Toast/Toast';
 import { createPipedreamCatalogConnect } from '@core/pipedream/catalog';
 import { connectSlugForPipedreamApp } from '@core/pipedream/slugs';
+import { fireAndForget } from '@core/util/fireAndForget';
 import { t } from '@macro/i18n';
 import {
   useDeletePipedreamConnectionMutation,
@@ -182,13 +183,13 @@ export function PipedreamAiProvider(props: {
       native.startAuth(url, cap.account || copy.name);
       return;
     }
-    void connect();
+    fireAndForget(connect(), 'connections-settings');
   };
 
   const actions = (): JSX.Element => (
     <AiGrantActions
       status={status()}
-      onConnect={() => void connect()}
+      onConnect={() => fireAndForget(connect(), 'connections-settings')}
       onReconnect={reconnect}
       onEnable={() => setEnabled(true)}
       onDisable={() => setEnabled(false)}
@@ -206,7 +207,7 @@ export function PipedreamAiProvider(props: {
       icon={providerIcon(props.provider)}
       description={t(copy.outcome)}
       onBack={view.closeProvider}
-      backLabel={t('Connections')}
+      backLabel={t('Integrations')}
     >
       <SettingsSection title="Macro AI">
         <SettingsCard>

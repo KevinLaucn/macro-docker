@@ -428,7 +428,7 @@ function HealthItemRow(props: {
             <Button
               variant="ghost"
               size="icon-xs"
-              label={t('修复')}
+              aria-label={t('修复')}
               tooltip={repairTooltip()}
               disabled={repairing()}
               onClick={repair}

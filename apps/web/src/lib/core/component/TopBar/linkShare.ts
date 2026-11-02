@@ -2,10 +2,15 @@ import type { ItemType } from '@service-storage/client';
 import type { AccessLevel } from '@service-storage/generated/schemas/accessLevel';
 import type { LinkShare } from '@service-storage/generated/schemas/linkShare';
 import type { UpdateSharePermissionRequestV2 } from '@service-storage/generated/schemas/updateSharePermissionRequestV2';
+import { match } from 'ts-pattern';
 
 export const NO_LINK_SHARE = 'NONE' as const;
 
-export type ShareItemType = ItemType | 'initiative';
+export type ShareItemType =
+  | ItemType
+  | 'initiative'
+  | 'crm_pipeline'
+  | 'external_chat';
 
 const TEAM_SHAREABLE_ITEM_TYPES: ReadonlySet<ShareItemType> =
   new Set<ShareItemType>([
@@ -15,26 +20,44 @@ const TEAM_SHAREABLE_ITEM_TYPES: ReadonlySet<ShareItemType> =
     'project',
     'agent_session',
     'initiative',
+    'crm_pipeline',
+    'database',
+    'external_chat',
   ]);
 
 export function isTeamShareSupportedForItem(itemType: ShareItemType): boolean {
   return TEAM_SHAREABLE_ITEM_TYPES.has(itemType);
 }
 
-/** Human noun for share-modal copy such as "Share this chat with the owner's team." */
+/**
+ * Human noun for copy such as "Share this chat with the owner's team." or a
+ * mention card's "You don't have access to this event".
+ */
 export function getShareItemNoun(itemType: ShareItemType): string {
-  switch (itemType) {
-    case 'email':
-      return 'email thread';
-    case 'agent_session':
-      return 'agent session';
-    case 'project':
-      return 'folder';
-    case 'initiative':
-      return 'project';
-    default:
-      return itemType;
-  }
+  return match(itemType)
+    .with('email', () => 'email thread')
+    .with('agent_session', () => 'agent session')
+    .with('project', () => 'folder')
+    .with('initiative', () => 'project')
+    .with('crm_pipeline', () => 'pipeline')
+    .with('crm_company', () => 'company')
+    .with('crm_contact', () => 'contact')
+    .with('calendar_event', () => 'event')
+    .with('channel_message', () => 'message')
+    .with('channel_thread', () => 'thread')
+    .with('foreign', () => 'item')
+    .with('external_chat', () => 'chat')
+    .with(
+      'document',
+      'chat',
+      'channel',
+      'call',
+      'database',
+      'form',
+      'routine',
+      (noun) => noun
+    )
+    .exhaustive();
 }
 
 export type LinkShareScope = LinkShare | typeof NO_LINK_SHARE;
@@ -71,23 +94,21 @@ import { t } from '@macro/i18n';
 const LINK_SHARE_SCOPE_COPY: Record<LinkShareScope, LinkShareScopeCopy> = {
   NONE: {
     get label() {
-      return t('None');
+      return t('Only people with access');
     },
     get title() {
-      return t('Link sharing off');
+      return t('Only people with access');
     },
     get description() {
-      return t(
-        'Only people and channels you explicitly share with can access this item.'
-      );
+      return t('The link only works for people who already have access.');
     },
   },
   PUBLIC: {
     get label() {
-      return t('Public');
+      return t('Anyone with the link');
     },
     get title() {
-      return t('Public link');
+      return t('Anyone with the link');
     },
     get description() {
       return t('Anyone with the link can access this item.');
@@ -95,14 +116,14 @@ const LINK_SHARE_SCOPE_COPY: Record<LinkShareScope, LinkShareScopeCopy> = {
   },
   TEAM: {
     get label() {
-      return t('Team');
+      return t('Team members with the link');
     },
     get title() {
-      return t('Team link');
+      return t('Team members with the link');
     },
     get description() {
       return t(
-        "Members of the owner's team with the link can access this item. This does not share it directly with a team or channel."
+        "Members of the owner's team can open this link. Others need to be added separately."
       );
     },
   },
@@ -110,16 +131,16 @@ const LINK_SHARE_SCOPE_COPY: Record<LinkShareScope, LinkShareScopeCopy> = {
 
 const TEAM_SHARE_COPY: Record<TeamShareScope, string> = {
   get NONE() {
-    return t('None');
+    return t('No team access');
   },
   get view() {
-    return t('View');
+    return t('Can view');
   },
   get comment() {
-    return t('Comment');
+    return t('Can comment');
   },
   get edit() {
-    return t('Edit');
+    return t('Can edit');
   },
 };
 
@@ -151,7 +172,11 @@ export const CALL_TEAM_SHARE_SCOPE_OPTIONS = (
 }));
 
 export function teamShareScopeOptionsForItem(itemType: ShareItemType) {
-  return itemType === 'call'
+  if (itemType === 'crm_pipeline')
+    return TEAM_SHARE_SCOPE_OPTIONS.filter(
+      (option) => option.value === 'NONE' || option.value === 'edit'
+    );
+  return itemType === 'call' || itemType === 'external_chat'
     ? CALL_TEAM_SHARE_SCOPE_OPTIONS
     : TEAM_SHARE_SCOPE_OPTIONS;
 }

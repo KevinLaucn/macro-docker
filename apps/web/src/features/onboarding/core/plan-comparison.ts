@@ -10,18 +10,18 @@ export const PLAN_COMPARISON = [
   {
     feature: 'Email branding',
     values: {
-      free: '“Sent with Macro” footer',
+      free: '“Sent with Macro”',
       premium: 'No watermark',
       max: 'No watermark',
     },
   },
   {
     feature: 'AI models',
-    values: { free: 'Haiku', premium: 'All models', max: 'All models' },
+    values: { free: 'Gemini Flash', premium: 'All models', max: 'All models' },
   },
   {
     feature: 'Storage',
-    values: { free: '5 GB', premium: '1 TB', max: '1 TB' },
+    values: { free: '5 GB', premium: '100 GB', max: '1 TB' },
   },
   {
     feature: 'Calls, recording & transcription',

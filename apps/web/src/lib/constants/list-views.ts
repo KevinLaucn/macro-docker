@@ -37,6 +37,9 @@ export const LIST_VIEW_PATHS = {
   search: '/search',
 } as const satisfies Record<ListView, string>;
 
+/** External linked accounts (WhatsApp); a settings-like view, not an entity list. */
+export const EXTERNAL_VIEW_PATH = '/external';
+
 export const LIST_VIEW_ID = {
   home: 'home',
   recent: 'recent',
@@ -116,7 +119,11 @@ export const soupItemMatchesListView = (
       'recent',
       () => item.touched_at != null || hasOwnTouchFloor(soupItemEntityId(item))
     )
-    .with('companies', () => item.tag === 'crmCompany')
+    // Customers lists companies and, on its People tab, contacts.
+    .with(
+      'companies',
+      () => item.tag === 'crmCompany' || item.tag === 'crmContact'
+    )
     .exhaustive();
 
 const propertiesMatchTagFilter = (

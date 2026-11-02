@@ -226,6 +226,7 @@ fn star_expands_and_every_column_kind_types_its_literal() {
     assert_eq!(
         resolve(
             &Catalog {
+                scope: None,
                 tables: catalog().tables.into_iter().take(2).collect(),
             },
             parse(sql).unwrap()
@@ -850,9 +851,11 @@ fn exact_case_resolves_a_case_insensitive_collision() {
             placement: ColumnId::from_uuid(Uuid::from_u128(id + 0x100)),
             name: "Name".into(),
             kind: ColumnKind::Text,
+            formula: None,
         }],
     };
     let catalog = Catalog {
+        scope: None,
         tables: vec![table(1, "Test"), table(2, "test")],
     };
     let Query::Select(select) = compile(&catalog, "SELECT * FROM test.\"Table 1\"").unwrap() else {

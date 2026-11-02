@@ -1,11 +1,10 @@
+import ArrowSquareOut from '@icon/system/regular/arrow-square-out.svg';
+import ChatCircle from '@icon/system/regular/chat-circle.svg';
+import Check from '@icon/system/regular/check.svg';
+import CircleDashed from '@icon/system/regular/circle-dashed.svg';
+import MinusCircle from '@icon/system/regular/minus-circle.svg';
+import X from '@icon/system/regular/x.svg';
 import { Popover } from '@kobalte/core/popover';
-import { t } from '@macro/i18n';
-import ArrowSquareOut from '@phosphor/arrow-square-out.svg';
-import ChatCircle from '@phosphor/chat-circle.svg';
-import Check from '@phosphor/check.svg';
-import CircleDashed from '@phosphor/circle-dashed.svg';
-import MinusCircle from '@phosphor/minus-circle.svg';
-import X from '@phosphor/x.svg';
 import CheckCircle from '@phosphor-icons/core/assets/fill/check-circle-fill.svg?component-solid';
 import XCircle from '@phosphor-icons/core/assets/fill/x-circle-fill.svg?component-solid';
 import { Button, cn, Layer, Surface } from '@ui';
@@ -18,7 +17,9 @@ import {
   Show,
 } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
+import { rowPillClasses } from '../../components/row-pill';
 import type { GithubPullRequestEntity } from '../../types/entity';
+import { PrAgentSessionsChip } from '../../views/PrAgentSessionsChip';
 
 type PillProps = {
   children: JSX.Element;
@@ -28,13 +29,7 @@ type PillProps = {
 
 function Pill(props: PillProps) {
   return (
-    <span
-      title={props.title}
-      class={cn(
-        'min-w-0 rounded-full inline-flex items-center gap-1 px-1.5 py-1 leading-tight text-xs font-medium border border-edge bg-surface/50',
-        props.class
-      )}
-    >
+    <span title={props.title} class={rowPillClasses(props.class)}>
       {props.children}
     </span>
   );
@@ -94,16 +89,16 @@ function checkCounts(entity: GithubPullRequestEntity): CheckCounts {
 }
 
 function checkOverviewTitle(counts: CheckCounts) {
-  if (counts.total === 0) return t('No checks');
+  if (counts.total === 0) return 'No checks';
 
   if (counts.failed > 0) {
     return counts.failed === counts.total
-      ? t('All checks failed')
-      : t('Some checks failed');
+      ? 'All checks failed'
+      : 'Some checks failed';
   }
-  if (counts.pending > 0) return t('Checks pending');
-  if (counts.successful === counts.total) return t('All checks succeeded');
-  return t('Checks completed');
+  if (counts.pending > 0) return 'Checks pending';
+  if (counts.successful === counts.total) return 'All checks succeeded';
+  return 'Checks completed';
 }
 
 function checkOverviewTitleClass(state: CheckVisualState): string {
@@ -124,51 +119,21 @@ function showCheckCountSummary(counts: CheckCounts) {
 }
 
 const CHECK_RUN_STATE_LABELS: Record<string, string> = {
-  get action_required() {
-    return t('Action required');
-  },
-  get cancelled() {
-    return t('Cancelled');
-  },
-  get completed() {
-    return t('Completed');
-  },
-  get failure() {
-    return t('Failed');
-  },
-  get in_progress() {
-    return t('In progress');
-  },
-  get neutral() {
-    return t('Neutral');
-  },
-  get pending() {
-    return t('Pending');
-  },
-  get queued() {
-    return t('Queued');
-  },
-  get requested() {
-    return t('Requested');
-  },
-  get skipped() {
-    return t('Skipped');
-  },
-  get stale() {
-    return t('Stale');
-  },
-  get startup_failure() {
-    return t('Startup failure');
-  },
-  get success() {
-    return t('Success');
-  },
-  get timed_out() {
-    return t('Timed out');
-  },
-  get waiting() {
-    return t('Waiting');
-  },
+  action_required: 'Action required',
+  cancelled: 'Cancelled',
+  completed: 'Completed',
+  failure: 'Failed',
+  in_progress: 'In progress',
+  neutral: 'Neutral',
+  pending: 'Pending',
+  queued: 'Queued',
+  requested: 'Requested',
+  skipped: 'Skipped',
+  stale: 'Stale',
+  startup_failure: 'Startup failure',
+  success: 'Success',
+  timed_out: 'Timed out',
+  waiting: 'Waiting',
 };
 
 type CheckVisualState = 'success' | 'failure' | 'pending' | 'skipped' | 'none';
@@ -244,6 +209,7 @@ function checkDurationText(
 function CheckStateIcon(props: {
   state: CheckVisualState;
   circle?: boolean;
+  size?: 'md';
   class?: string;
 }) {
   return (
@@ -256,14 +222,41 @@ function CheckStateIcon(props: {
       <Show when={props.state === 'success'}>
         <Show
           when={props.circle}
-          fallback={<Check class="size-3 text-success" />}
+          fallback={
+            <Check
+              class={cn(
+                props.size === 'md' ? 'size-4' : 'size-3',
+                'text-success'
+              )}
+            />
+          }
         >
-          <CheckCircle class="size-5 text-success" />
+          <CheckCircle
+            class={cn(
+              props.size === 'md' ? 'size-4' : 'size-5',
+              'text-success'
+            )}
+          />
         </Show>
       </Show>
       <Show when={props.state === 'failure'}>
-        <Show when={props.circle} fallback={<X class="size-3 text-failure" />}>
-          <XCircle class="size-5 text-failure" />
+        <Show
+          when={props.circle}
+          fallback={
+            <X
+              class={cn(
+                props.size === 'md' ? 'size-4' : 'size-3',
+                'text-failure'
+              )}
+            />
+          }
+        >
+          <XCircle
+            class={cn(
+              props.size === 'md' ? 'size-4' : 'size-5',
+              'text-failure'
+            )}
+          />
         </Show>
       </Show>
       <Show when={props.state === 'pending'}>
@@ -289,7 +282,12 @@ function CheckStateIcon(props: {
         </div>
       </Show>
       <Show when={props.state === 'skipped'}>
-        <MinusCircle class="size-5 text-ink-extra-muted/50" />
+        <MinusCircle
+          class={cn(
+            props.size === 'md' ? 'size-4' : 'size-5',
+            'text-ink-extra-muted/50'
+          )}
+        />
       </Show>
       <Show when={props.state === 'none'}>
         <div class="relative size-4 inline-flex items-center justify-center">
@@ -317,7 +315,8 @@ function GithubPullRequestChecksPopover(props: {
       <div class="flex items-start gap-2 py-2 pl-4 border-b border-b-edge">
         <CheckStateIcon
           state={checkState(props.entity)}
-          class="mt-1 [&_svg]:size-4"
+          size="md"
+          class="mt-1"
         />
         <div class="flex min-w-0 flex-col">
           <div
@@ -426,11 +425,10 @@ export function GithubPullRequestChecksIndicator(props: {
         type="button"
         variant="ghost"
         size="icon-sm"
-        noTouchResize={true}
-        class="[&_:where(svg)]:size-4 shrink-0"
+        class="shrink-0"
         onClick={(event) => event.stopPropagation()}
       >
-        <CheckStateIcon state={checkState(props.entity)} />
+        <CheckStateIcon state={checkState(props.entity)} size="md" />
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
@@ -438,7 +436,7 @@ export function GithubPullRequestChecksIndicator(props: {
           onClick={(event) => event.stopPropagation()}
         >
           <Surface
-            class="flex items-stretch justify-start rounded-xl w-full glass bg-menu-glass"
+            class="menu-surface flex items-stretch justify-start w-full"
             depth={3}
             hideBorder
           >
@@ -481,7 +479,9 @@ export function GithubAuthorBadge(props: {
           />
         )}
       </Show>
-      <span class="min-w-0 truncate">{name()}</span>
+      <span data-pill-text class="min-w-0 truncate">
+        {name()}
+      </span>
     </span>
   );
 }
@@ -530,6 +530,7 @@ export function GithubPullRequestPills(props: {
         <ChatCircle class="size-3 shrink-0" />
         {numberFormatter.format(props.entity.metadata.comments.length)}
       </Pill>
+      <PrAgentSessionsChip url={props.entity.metadata.url} />
     </>
   );
 }

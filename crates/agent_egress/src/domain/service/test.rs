@@ -4,6 +4,7 @@ use crate::domain::model::{
     McpServerListing, McpServerSlug, ProxyBody, RepoSlug, SessionGrant, UpstreamCall,
     UpstreamCredential,
 };
+use bot_id::BotId;
 use http::header::{AUTHORIZATION, HeaderMap, HeaderName, HeaderValue};
 use http::{Method, StatusCode};
 use http_body_util::{BodyExt, Empty, Full};
@@ -51,6 +52,7 @@ impl StubSessions {
         Self(Ok(SessionGrant {
             session: AgentSessionId::new(),
             owner: owner(),
+            agent: BotId::TEST_A,
             repo: Some(session_repo()),
             mcp_servers: servers,
             prompter: None,
@@ -89,6 +91,8 @@ enum Knowledge {
 /// Records who it was asked about, and answers with a fixed upstream.
 struct SpyCredentials {
     asked: Mutex<Vec<(String, String)>>,
+    /// The agent each resolution was attributed to.
+    agents: Mutex<Vec<BotId>>,
     known: Knowledge,
     url: String,
     scope: HeaderMap,
@@ -103,6 +107,7 @@ impl SpyCredentials {
     fn at(url: &str) -> Self {
         Self {
             asked: Mutex::default(),
+            agents: Mutex::default(),
             known: Knowledge::Connected,
             url: url.to_owned(),
             scope: HeaderMap::new(),
@@ -156,6 +161,7 @@ impl SpyCredentials {
     fn empty() -> Self {
         Self {
             asked: Mutex::default(),
+            agents: Mutex::default(),
             known: Knowledge::Unknown,
             url: String::new(),
             scope: HeaderMap::new(),
@@ -170,8 +176,10 @@ impl McpCredentials for SpyCredentials {
     async fn resolve(
         &self,
         owner: &MacroUserIdStr<'static>,
+        agent: BotId,
         destination: &McpDestination,
     ) -> Result<McpResolution, EgressError> {
+        self.agents.lock().expect("lock").push(agent);
         let slug = match destination {
             McpDestination::Connected(slug) => slug.clone(),
             McpDestination::Preview => unreachable!("preview must never resolve owner credentials"),
@@ -876,16 +884,17 @@ async fn strips_hop_by_hop_headers_from_the_response() {
     assert_eq!(names(response.headers()), ["mcp-session-id"]);
 }
 
-/// The proxy is staff-only for now: a session owned outside macro.com gets
-/// nothing, whatever its token says - told only, in our words, that staff
-/// membership is what it lacks.
+/// Egress is open to every session owner, not only Macro staff: an outside
+/// owner's call resolves against their own connections and goes through.
 #[tokio::test]
-async fn a_session_owned_outside_macro_gets_nothing() {
+async fn a_session_owned_outside_macro_is_proxied_with_its_owners_credentials() {
+    let visitor = MacroUserIdStr::try_from_email("visitor@example.com").expect("a valid user id");
     let service = EgressServiceImpl::new(
         StubSessions(Ok(SessionGrant {
             session: AgentSessionId::new(),
-            owner: MacroUserIdStr::try_from_email("visitor@example.com").expect("a valid user id"),
-            repo: Some(session_repo()),
+            owner: visitor.clone(),
+            agent: BotId::TEST_A,
+            repo: None,
             mcp_servers: Vec::new(),
             prompter: None,
         })),
@@ -894,24 +903,27 @@ async fn a_session_owned_outside_macro_gets_nothing() {
         SpyForwarder::answering(&[]),
     );
 
-    let refusal = service
+    service
         .proxy(
             &SessionToken::new("token"),
             datadog(),
             request(Method::POST, &[]),
         )
         .await
-        .expect_err("refused");
+        .expect("proxied");
 
-    assert!(
-        matches!(refusal, EgressError::Unauthenticated(_)),
-        "{refusal}"
+    assert_eq!(
+        service
+            .credentials
+            .asked
+            .lock()
+            .expect("lock")
+            .iter()
+            .map(|(owner, _)| owner.clone())
+            .collect::<Vec<_>>(),
+        [visitor.to_string()]
     );
-    assert!(
-        service.credentials.asked.lock().expect("lock").is_empty(),
-        "an outside owner must never reach credential resolution"
-    );
-    assert!(!service.forward.was_called());
+    assert!(service.forward.was_called());
 }
 
 /// Resolution reads the owner's connected servers, so an unverified token
@@ -1194,6 +1206,7 @@ async fn a_session_without_a_repository_can_use_mcp_but_cannot_mint_git_credenti
         StubSessions(Ok(SessionGrant {
             session: AgentSessionId::new(),
             owner: owner(),
+            agent: BotId::TEST_A,
             repo: None,
             mcp_servers: Vec::new(),
             prompter: None,
@@ -1263,57 +1276,6 @@ async fn preview_uses_only_the_authenticated_session_token_at_a_fixed_destinatio
     assert!(service.credentials.asked.lock().unwrap().is_empty());
 }
 
-#[tokio::test]
-async fn non_staff_session_owners_can_share_previews_without_workspace_or_git_access() {
-    let service = EgressServiceImpl::new(
-        StubSessions(Ok(SessionGrant {
-            session: AgentSessionId::new(),
-            owner: MacroUserIdStr::try_from_email("viewer@example.com").unwrap(),
-            repo: None,
-            prompter: None,
-            mcp_servers: Vec::new(),
-        })),
-        SpyCredentials::knowing(),
-        SpyGithubTokens::default(),
-        SpyForwarder::answering(&[]),
-    )
-    .with_preview_mcp(
-        "https://preview-control.example/mcp".parse().unwrap(),
-        false,
-    )
-    .unwrap();
-    service
-        .proxy(
-            &SessionToken::new("session-token"),
-            EgressTarget::McpServer(McpDestination::Preview),
-            request(Method::POST, &[]),
-        )
-        .await
-        .unwrap();
-    assert!(matches!(
-        service
-            .proxy(
-                &SessionToken::new("session-token"),
-                EgressTarget::McpServer(McpDestination::Macro),
-                request(Method::POST, &[])
-            )
-            .await,
-        Err(EgressError::Unauthenticated(_))
-    ));
-    assert!(matches!(
-        service
-            .proxy(
-                &SessionToken::new("session-token"),
-                git(GitEndpoint::UploadPack),
-                request(Method::POST, &[])
-            )
-            .await,
-        Err(EgressError::Unauthenticated(_))
-    ));
-    assert!(service.credentials.asked.lock().unwrap().is_empty());
-    assert!(service.tokens.asked.lock().unwrap().is_empty());
-}
-
 fn asker() -> MacroUserIdStr<'static> {
     MacroUserIdStr::try_from_email("asker@macro.com").expect("a valid user id")
 }
@@ -1326,6 +1288,7 @@ fn prompted_by(prompter: Option<MacroUserIdStr<'static>>) -> StubSessions {
         unreachable!("granting grants");
     };
     grant.prompter = Some(crate::domain::model::TurnPrompter {
+        kind: agent_session::domain::model::PrompterKind::User,
         action_id: agent_runtime_protocol::domain::action::AgentActionId::mint(),
         user: prompter,
     });
@@ -1567,3 +1530,5 @@ async fn a_public_web_search_in_a_gated_turn_goes_straight_through() {
     assert!(service.forward.was_called());
     assert!(service.approvals.held.lock().unwrap().is_empty());
 }
+
+mod actor;

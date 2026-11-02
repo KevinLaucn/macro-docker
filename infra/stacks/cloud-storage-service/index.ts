@@ -32,7 +32,7 @@ import { WafObservability } from './waf-observability';
 
 const tags = {
   environment: stack,
-  tech_lead: 'hutch',
+  tech_lead: 'teo',
   project: 'cloud-storage-service',
 };
 
@@ -57,6 +57,14 @@ const DATABASE_URL_PROXY = aws.secretsmanager
     secretId: config.require(`macro_db_proxy_secret_key`),
   })
   .apply((secret) => secret.secretString);
+
+// GraphQL email sender discovery resolves the selected inbox's Google grant.
+// This is the existing credential registered in this stack's Doppler config.
+const authenticationServiceSecretKeyArn = aws.secretsmanager
+  .getSecretVersionOutput({
+    secretId: config.require('authentication_service_secret_key'),
+  })
+  .apply((secret) => secret.arn);
 
 const JWT_SECRET_KEY = config.require(`jwt_secret_key`);
 const jwtSecretKeyArn: pulumi.Output<string> = aws.secretsmanager
@@ -158,6 +166,7 @@ const gmailOpsQueueArn: pulumi.Output<string> = emailServiceStack
 const {
   notificationIngressQueueArn,
   notificationApnsVoipPlatformArn: snsApnsVoipPlatformArn,
+  notificationFcmPlatformArn: snsFcmPlatformArn,
 } = getMacroNotify();
 
 // To re-use this secret name after a destroy, you will need to delete the secret without recovery to prevent conflict:
@@ -200,7 +209,6 @@ const bulkUploadBucketName = bulkUploadStack
 
 const slackImportQueue = new SlackImportQueue(`slack-import-${stack}`, {
   stagingBucketArn: pulumi.interpolate`arn:aws:s3:::${bulkUploadBucketName}`,
-  notificationIngressQueueArn,
   tags,
 });
 
@@ -358,6 +366,7 @@ const cloudStorageService = new CloudStorageService(
     serviceContainerPort: 8080,
     healthCheckPath: '/health',
     secretKeyArns: [
+      authenticationServiceSecretKeyArn,
       jwtSecretKeyArn,
       documentStoragePermissionsKeyArn,
       cloudfrontPrivateKeySecretArn,
@@ -370,7 +379,8 @@ const cloudStorageService = new CloudStorageService(
     ],
     slackImportUploadPolicyArn: slackImportQueue.uploadPolicy.arn,
     callRecordingCrudPolicyArn,
-    snsPlatformArns: [snsApnsVoipPlatformArn],
+    // Native call pushes: iOS PushKit and Android FCM.
+    snsPlatformArns: [snsApnsVoipPlatformArn, snsFcmPlatformArn],
     containerEnvVars: [
       {
         name: 'GITHUB_PULL_REQUEST_PATCH_BUCKET',

@@ -30,7 +30,28 @@ export const CHART_TYPES = [
   },
   { id: 'bar', label: 'Bar', kind: 'bar' },
   { id: 'bar-stacked', label: 'Stacked bar', kind: 'bar', grouping: 'stacked' },
+  {
+    id: 'bar-percent',
+    label: '100% stacked bar',
+    kind: 'bar',
+    grouping: 'percentStacked',
+    catalog: true,
+  },
   { id: 'line', label: 'Line', kind: 'line' },
+  {
+    id: 'line-stacked',
+    label: 'Stacked line',
+    kind: 'line',
+    grouping: 'stacked',
+    catalog: true,
+  },
+  {
+    id: 'line-percent',
+    label: '100% stacked line',
+    kind: 'line',
+    grouping: 'percentStacked',
+    catalog: true,
+  },
   { id: 'area', label: 'Area', kind: 'area' },
   {
     id: 'area-stacked',
@@ -38,9 +59,18 @@ export const CHART_TYPES = [
     kind: 'area',
     grouping: 'stacked',
   },
+  {
+    id: 'area-percent',
+    label: '100% stacked area',
+    kind: 'area',
+    grouping: 'percentStacked',
+    catalog: true,
+  },
   { id: 'pie', label: 'Pie', kind: 'pie' },
   { id: 'doughnut', label: 'Doughnut', kind: 'doughnut' },
   { id: 'scatter', label: 'Scatter', kind: 'scatter' },
+  // Columns for every series but the last, which is a line on its own axis.
+  { id: 'combo', label: 'Combo', kind: 'column', combo: true, catalog: true },
   { id: 'radar', label: 'Radar', kind: 'radar', more: true },
   {
     id: 'radar-filled',
@@ -52,12 +82,47 @@ export const CHART_TYPES = [
   { id: 'bubble', label: 'Bubble', kind: 'bubble', more: true },
   { id: 'stock', label: 'Stock', kind: 'stock', more: true },
   { id: 'contour', label: 'Contour', kind: 'surface', more: true },
+  { id: 'histogram', label: 'Histogram', kind: 'histogram', more: true },
+  { id: 'pareto', label: 'Pareto', kind: 'pareto', catalog: true },
+  { id: 'waterfall', label: 'Waterfall', kind: 'waterfall', more: true },
+  { id: 'funnel', label: 'Funnel', kind: 'funnel', more: true },
+  {
+    id: 'box-whisker',
+    label: 'Box and whisker',
+    kind: 'boxWhisker',
+    more: true,
+  },
+  { id: 'treemap', label: 'Treemap', kind: 'treemap', more: true },
+  { id: 'sunburst', label: 'Sunburst', kind: 'sunburst', more: true },
+  {
+    id: 'pie-of-pie',
+    label: 'Pie of pie',
+    kind: 'pie',
+    ofPie: 'pie',
+    catalog: true,
+  },
+  {
+    id: 'bar-of-pie',
+    label: 'Bar of pie',
+    kind: 'pie',
+    ofPie: 'bar',
+    catalog: true,
+  },
 ] as const satisfies readonly {
   id: string;
   label: string;
   kind: ChartKind;
   grouping?: ChartGrouping;
   filled?: true;
+  /** A pie with some points in a second pie or a bar. */
+  ofPie?: 'pie' | 'bar';
+  /** Columns plus a line on the secondary axis. */
+  combo?: true;
+  /**
+   * Listed in Edit chart. Kept out of the insert menu so that menu, and its
+   * submenu, still fit on screen.
+   */
+  catalog?: true;
   more?: true;
 }[];
 export type ChartTypeId = (typeof CHART_TYPES)[number]['id'];
@@ -68,26 +133,57 @@ const definitionOf = (type: ChartTypeId): ChartType | undefined =>
 const groupingOf = (type: ChartType) =>
   'grouping' in type ? type.grouping : undefined;
 const filledOf = (type: ChartType) => 'filled' in type && type.filled;
+const comboOf = (type: ChartType) => 'combo' in type && type.combo;
+const ofPieOf = (type: ChartType) => ('ofPie' in type ? type.ofPie : undefined);
 /** Kinds whose series all belong in one plot. */
 const SINGLE_PLOT: readonly ChartKind[] = [
   'radar',
   'bubble',
   'stock',
   'surface',
+  'funnel',
+  'boxWhisker',
 ];
 const isRound = (kind: ChartKind) => kind === 'pie' || kind === 'doughnut';
+/** Kinds that show one series, as Excel's do. */
+const ONE_SERIES: readonly ChartKind[] = [
+  'pie',
+  'doughnut',
+  'histogram',
+  'pareto',
+  'waterfall',
+  'treemap',
+  'sunburst',
+];
+/** Kinds whose labels are levels, in every column before the values. */
+const isNested = (kind: ChartKind) => kind === 'treemap' || kind === 'sunburst';
 /** Kinds that plot numbers on both axes. */
 const isXy = (kind: ChartKind) => kind === 'scatter' || kind === 'bubble';
 
+/** Columns together with a line, as a combination chart. */
+function isCombo(chart: SheetChart): boolean {
+  return (
+    chart.plots.length > 1 &&
+    chart.plots.every(
+      (plot) => plot.kind === 'column' || plot.kind === 'line'
+    ) &&
+    chart.plots.some((plot) => plot.kind === 'column') &&
+    chart.plots.some((plot) => plot.kind === 'line')
+  );
+}
+
 /** The type a chart's first plot shows, as Macro offers it. */
 export function chartType(chart: SheetChart): ChartTypeId | undefined {
+  if (isCombo(chart)) return 'combo';
   const plot = chart.plots[0];
   return CHART_TYPES.find(
     (type) =>
+      !comboOf(type) &&
       type.kind === plot?.kind &&
       groupingOf(type) ===
         (plot.grouping === 'clustered' ? undefined : plot.grouping) &&
-      filledOf(type) === !!plot.filled
+      filledOf(type) === !!plot.filled &&
+      ofPieOf(type) === plot.ofPie?.type
   )?.id;
 }
 
@@ -101,6 +197,8 @@ export function chartTypeProblem(
 ): string | undefined {
   if (definitionOf(type)?.kind === 'stock' && (series < 3 || series > 4))
     return 'A stock chart needs three or four series: high, low and close, or open, high, low and close.';
+  if (type === 'combo' && series < 2)
+    return 'A combo chart needs at least two series: columns, and a line on the secondary axis.';
 }
 
 export type CellBounds = {
@@ -229,10 +327,10 @@ export function guessLayout(
   const dataRows = rows - (firstRow ? 1 : 0);
   const dataColumns = columns - (firstColumn ? 1 : 0);
   const orientation = dataRows >= dataColumns ? 'columns' : 'rows';
-  // Scatter and bubble charts read x values from the first column (or
-  // row) even when they are numbers, as Excel does.
   const kind = type && definitionOf(type)?.kind;
-  if (kind && isXy(kind)) {
+  // Scatter and bubble charts' x values, and a treemap's or sunburst's
+  // levels, come before the values even when they are numbers.
+  if (kind && (isXy(kind) || isNested(kind))) {
     if (orientation === 'columns' && columns > 1) firstColumn = true;
     if (orientation === 'rows' && rows > 1) firstRow = true;
   }
@@ -251,6 +349,26 @@ function reference(sheet: string, area: CellBounds) {
     '$$$1$$$2'
   );
   return `${quote(sheet)}!${start === end ? start : `${start}:${end}`}`;
+}
+
+/**
+ * Options a type sets as Excel's do: labeled values make a histogram of
+ * categories, waterfalls and funnels write their values, and a pie of pie
+ * or bar of pie names its second plot.
+ */
+function kindOptions(
+  type: ChartType,
+  series: ChartSeries[]
+): Partial<ChartPlot> {
+  const ofPie = ofPieOf(type);
+  if (ofPie) return { ofPie: { type: ofPie } };
+  if (type.kind === 'histogram' || type.kind === 'pareto')
+    return series.some((value) => value.categories !== undefined)
+      ? { aggregate: true }
+      : {};
+  if (type.kind === 'waterfall' || type.kind === 'funnel')
+    return { labels: true };
+  return {};
 }
 
 /**
@@ -283,8 +401,7 @@ export function chartFromLayout(
   const bubble = definition.kind === 'bubble';
   const step = bubble && lines > 1 ? 2 : 1;
   const count = Math.ceil(lines / step);
-  // Pie and doughnut charts show one series.
-  const shown = isRound(definition.kind) ? 1 : Math.min(count, 255);
+  const shown = ONE_SERIES.includes(definition.kind) ? 1 : Math.min(count, 255);
   const colors = previous?.plots.flatMap((plot) =>
     plot.series.map((value) => value.color)
   );
@@ -303,7 +420,55 @@ export function chartFromLayout(
           left: dataLeft,
           right: range.right,
         };
-  for (let index = 0; index < shown; index++) {
+  // A treemap's or sunburst's levels are every line before its values.
+  const nested =
+    isNested(definition.kind) &&
+    (orientation === 'columns'
+      ? firstColumn && range.right > range.left
+      : firstRow && range.bottom > range.top);
+  if (nested) {
+    const columns = orientation === 'columns';
+    const last = columns ? range.right : range.bottom;
+    const name = columns
+      ? firstRow && {
+          top: range.top,
+          bottom: range.top,
+          left: last,
+          right: last,
+        }
+      : firstColumn && {
+          top: last,
+          bottom: last,
+          left: range.left,
+          right: range.left,
+        };
+    const color = colors?.[0];
+    series.push({
+      ...(name && { nameRef: add(name) }),
+      categories: add(
+        columns
+          ? {
+              top: dataTop,
+              bottom: range.bottom,
+              left: range.left,
+              right: last - 1,
+            }
+          : {
+              top: range.top,
+              bottom: last - 1,
+              left: dataLeft,
+              right: range.right,
+            }
+      ),
+      values: add(
+        columns
+          ? { top: dataTop, bottom: range.bottom, left: last, right: last }
+          : { top: last, bottom: last, left: dataLeft, right: range.right }
+      ),
+      ...(color && { color }),
+    });
+  }
+  for (let index = 0; !nested && index < shown; index++) {
     const at = index * step;
     const name =
       orientation === 'columns'
@@ -341,8 +506,39 @@ export function chartFromLayout(
       ...(bubble && at + 1 < lines && { sizes: add(line(at + 1)) }),
       ...(color && { color }),
       // Prices are drawn by their high-low lines and bars, not series lines.
-      ...(definition.kind === 'stock' && { noLine: true }),
+      // A scatter chart plots markers; connecting them would invent an order.
+      ...((definition.kind === 'stock' || definition.kind === 'scatter') && {
+        noLine: true as const,
+      }),
     });
+  }
+  const shell = {
+    ...(previous?.title && { title: previous.title }),
+    ...(previous
+      ? previous.legend && { legend: previous.legend }
+      : // A waterfall's legend names its colors; a treemap's, its branches.
+        definition.kind === 'waterfall'
+        ? { legend: 'top' as const }
+        : definition.kind === 'treemap'
+          ? { legend: 'right' as const }
+          : (series.length > 1 ||
+              isRound(definition.kind) ||
+              definition.kind === 'surface' ||
+              comboOf(definition)) && { legend: 'bottom' as const }),
+    references,
+    ...(previous?.colors && { colors: previous.colors }),
+  };
+  // The last series uses its own axis, as Excel's column-and-line chart does.
+  if (comboOf(definition)) {
+    const line = series.at(-1);
+    if (!line || series.length < 2) return;
+    return {
+      ...shell,
+      plots: [
+        { kind: 'column', series: series.slice(0, -1) },
+        { kind: 'line', secondary: true, series: [line] },
+      ],
+    };
   }
   const plot: ChartPlot = {
     kind: definition.kind,
@@ -352,19 +548,10 @@ export function chartFromLayout(
       hiLow: true,
       ...(series.length === 4 && { upDown: true }),
     }),
+    ...kindOptions(definition, series),
     series,
   };
-  return {
-    ...(previous?.title && { title: previous.title }),
-    ...(previous
-      ? previous.legend && { legend: previous.legend }
-      : (series.length > 1 ||
-          isRound(definition.kind) ||
-          definition.kind === 'surface') && { legend: 'bottom' as const }),
-    plots: [plot],
-    references,
-    ...(previous?.colors && { colors: previous.colors }),
-  };
+  return { ...shell, plots: [plot] };
 }
 
 /** How many series a block of cells makes in a chart of a type. */
@@ -437,10 +624,11 @@ export function withChartType(
   const definition = definitionOf(type);
   if (!definition) return chart;
   const kind = definition.kind;
-  // Stock series have no lines of their own; other kinds draw theirs.
+  // Stock and scatter series have no lines of their own; other kinds draw theirs.
   const shown = (series: ChartSeries, from: ChartKind): ChartSeries => {
-    if (kind === 'stock') return { ...series, noLine: true };
-    if (from !== 'stock') return series;
+    if (kind === 'stock' || kind === 'scatter')
+      return { ...series, noLine: true };
+    if (from !== 'stock' && from !== 'scatter') return series;
     const { noLine: _noLine, ...rest } = series;
     return rest;
   };
@@ -448,29 +636,40 @@ export function withChartType(
     plot.series.map((series) => shown(series, plot.kind))
   );
   if (chartTypeProblem(type, all.length)) return;
-  const flags = (count: number) => ({
+  if (comboOf(definition)) {
+    const line = all.at(-1);
+    if (!line) return;
+    return {
+      ...chart,
+      plots: [
+        { kind: 'column', series: all.slice(0, -1) },
+        { kind: 'line', secondary: true, series: [line] },
+      ],
+    };
+  }
+  const flags = (series: ChartSeries[]) => ({
     ...('grouping' in definition && { grouping: definition.grouping }),
     ...(filledOf(definition) && { filled: true as const }),
     ...(kind === 'stock' && {
       hiLow: true as const,
-      ...(count === 4 && { upDown: true as const }),
+      ...(series.length === 4 && { upDown: true as const }),
     }),
+    ...kindOptions(definition, series),
   });
-  if (isRound(kind))
-    return {
-      ...chart,
-      plots: [{ kind, ...flags(1), series: all.slice(0, 1) }],
-    };
+  if (ONE_SERIES.includes(kind)) {
+    const first = all.slice(0, 1);
+    return { ...chart, plots: [{ kind, ...flags(first), series: first }] };
+  }
   if (SINGLE_PLOT.includes(kind))
     return {
       ...chart,
-      plots: [{ kind, ...flags(all.length), series: all }],
+      plots: [{ kind, ...flags(all), series: all }],
     };
   return {
     ...chart,
     plots: chart.plots.map((plot) => ({
       kind,
-      ...flags(plot.series.length),
+      ...flags(plot.series),
       ...(plot.secondary && { secondary: true }),
       series: plot.series.map((series) => shown(series, plot.kind)),
     })),

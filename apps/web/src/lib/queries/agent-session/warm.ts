@@ -2,7 +2,11 @@ import { getAppCapabilities } from '@core/constant/featureFlags';
 import { MACRO_NEW_BOT_ID } from '@core/constant/macroNew';
 import { throwOnErr } from '@core/util/result';
 import { agentHarnessServiceClient } from '@service-agent-harness/client';
-import { type QueryClient, useQuery } from '@tanstack/solid-query';
+import {
+  type QueryClient,
+  queryOptions,
+  useQuery,
+} from '@tanstack/solid-query';
 import type { Accessor } from 'solid-js';
 import { v7 as uuidv7 } from 'uuid';
 import { queryClient } from '../client';
@@ -16,38 +20,51 @@ type WarmSession = {
   expires: number;
 };
 
-/** Best-effort speculation; never read its data into a Suspense boundary. */
-export function useWarmAgentSessionQuery(userId: Accessor<string | undefined>) {
-  return useQuery(() => {
-    const owner = userId();
-    return {
-      queryKey: agentSessionWarmKeys.owner(owner).queryKey,
-      // PRIVATE-HOOK: selfhost_runtime:agent-warm-gate
-      enabled: getAppCapabilities().agents && !!owner,
-      staleTime: CLIENT_WARM_TTL_MS,
-      gcTime: CLIENT_WARM_TTL_MS,
-      retry: false,
-      refetchOnWindowFocus: false,
-      queryFn: async () => {
-        if (!owner) return null;
-        // Keep one reservation in flight across Home -> Agents navigation.
-        // Aborting on unmount would abandon its server ID and warm another.
-        const result = await throwOnErr(() =>
-          agentHarnessServiceClient.warm(uuidv7())
-        );
-        if (result.session) {
-          return {
-            id: result.session.id,
-            model: result.session.model,
-            instructions: result.session.instructions,
-            expires: Date.now() + CLIENT_WARM_TTL_MS,
-          } satisfies WarmSession;
-        }
-        return null;
-      },
-    };
+function warmAgentSessionQueryOptions(owner: string | undefined) {
+  return queryOptions({
+    queryKey: agentSessionWarmKeys.owner(owner).queryKey,
+    // PRIVATE-HOOK: selfhost_runtime:agent-warm-gate
+    enabled: getAppCapabilities().agents && !!owner,
+    staleTime: CLIENT_WARM_TTL_MS,
+    gcTime: CLIENT_WARM_TTL_MS,
+    retry: false,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      if (!owner) return null;
+      // Keep one reservation in flight across Home -> Agents navigation.
+      // Aborting on unmount would abandon its server ID and warm another.
+      const result = await throwOnErr(() =>
+        agentHarnessServiceClient.warm(uuidv7())
+      );
+      if (result.session) {
+        return {
+          id: result.session.id,
+          model: result.session.model,
+          instructions: result.session.instructions,
+          expires: Date.now() + CLIENT_WARM_TTL_MS,
+        } satisfies WarmSession;
+      }
+      return null;
+    },
   });
 }
+
+/** Best-effort speculation; never read its data into a Suspense boundary. */
+export function useWarmAgentSessionQuery(userId: Accessor<string | undefined>) {
+  return useQuery(() => warmAgentSessionQueryOptions(userId()));
+}
+
+/** Why a new session did or did not start on a warm reservation. */
+export type WarmClaim =
+  | 'hit'
+  /** A reservation was ready on another model. */
+  | 'miss_model'
+  /** No reservation, or only an expired one. */
+  | 'miss_none_ready'
+  /** A reservation was ready with other instructions. */
+  | 'miss_other'
+  /** The session is not the owner's default agent, so none could match. */
+  | 'not_attempted';
 
 /**
  * Consume once, only for the owner and exact default-agent configuration.
@@ -62,27 +79,28 @@ export function takeWarmAgentSession(
     repoUrl?: string;
   },
   client: QueryClient = queryClient
-): string | undefined {
+): { id?: string; claim: WarmClaim } {
   if (
     !options.userId ||
     (options.botId && options.botId !== MACRO_NEW_BOT_ID) ||
     options.repoUrl
   )
-    return;
+    return { claim: 'not_attempted' };
   const key = agentSessionWarmKeys.owner(options.userId).queryKey;
   const entry = client.getQueryData<WarmSession | null>(key);
-  if (!entry) return;
+  if (!entry) return { claim: 'miss_none_ready' };
   if (entry.expires <= Date.now()) {
     client.setQueryData(key, null);
-    return;
+    return { claim: 'miss_none_ready' };
   }
-  if (options.modelOverride && options.modelOverride !== entry.model) return;
+  if (options.modelOverride && options.modelOverride !== entry.model)
+    return { claim: 'miss_model' };
   if (
     (options.instructions?.trim() || '') !== (entry.instructions?.trim() || '')
   )
-    return;
+    return { claim: 'miss_other' };
   client.setQueryData(key, null);
-  return entry.id;
+  return { id: entry.id, claim: 'hit' };
 }
 
 /** Prepare one replacement after creation succeeds, joining any existing request. */
@@ -95,7 +113,7 @@ export function replenishWarmAgentSession(
   // A different configuration may have left a usable reservation in the cache.
   // No query means this owner has not mounted a warming surface.
   if (!query || query.data) return;
-  void client.invalidateQueries(
+  client.invalidateQueries(
     { queryKey: key, exact: true },
     { cancelRefetch: false }
   );

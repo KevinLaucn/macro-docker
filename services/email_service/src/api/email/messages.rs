@@ -1,3 +1,4 @@
+pub(crate) mod eml;
 pub(crate) mod get;
 pub(crate) mod labels;
 pub(crate) mod tracking;
@@ -25,4 +26,5 @@ pub fn router(_state: ApiContext) -> Router<ApiContext> {
         // PRIVATE-HOOK: read_receipts:messages_router
         .merge(crate::features::read_receipts::messages_router())
         .route("/{id}", get(get::handler))
+        .route("/{id}/eml", get(eml::handler))
 }

@@ -469,6 +469,72 @@ async fn settlement_uses_stored_overage_policy_and_flushes_at_period_end(pool: P
 }
 
 #[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn frozen_period_starts_lists_the_payers_periods_in_the_window(pool: PgPool) {
+    let repo = PgBillingRepo::new(pool.clone(), AiPricing::testing());
+    let payer = payer();
+    let other = MacroUserIdStr::try_from("macro|other@example.com".to_string()).unwrap();
+    let now = Utc::now()
+        .duration_trunc(chrono::Duration::microseconds(1))
+        .unwrap();
+    let month = chrono::Duration::days(30);
+    let seats = |user: &MacroUserIdStr<'static>| {
+        vec![SeatAllowance {
+            user: user.clone(),
+            included_cents: 2_000,
+        }]
+    };
+    // Four consecutive periods frozen for the payer, out of order, and one
+    // for someone else in the middle of them.
+    let starts = [now - month * 3, now - month, now - month * 2, now];
+    for start in starts {
+        let period = BillingPeriod {
+            start,
+            end: start + month,
+        };
+        repo.store_open_allowance(
+            &payer,
+            period.open_start(start).unwrap(),
+            &seats(&payer),
+            SeatGeneration::from_raw(0),
+        )
+        .await
+        .unwrap();
+    }
+    let other_period = BillingPeriod {
+        start: now - month * 2,
+        end: now - month,
+    };
+    repo.store_open_allowance(
+        &other,
+        other_period.open_start(other_period.start).unwrap(),
+        &seats(&other),
+        SeatGeneration::from_raw(0),
+    )
+    .await
+    .unwrap();
+
+    // Inclusive of `since`, exclusive of `before`, oldest first.
+    assert_eq!(
+        repo.frozen_period_starts(&payer, now - month * 2, now)
+            .await
+            .unwrap(),
+        vec![now - month * 2, now - month]
+    );
+    assert_eq!(
+        repo.frozen_period_starts(&payer, now - month * 3, now + month)
+            .await
+            .unwrap(),
+        vec![now - month * 3, now - month * 2, now - month, now]
+    );
+    assert!(
+        repo.frozen_period_starts(&payer, now + chrono::Duration::days(1), now + month)
+            .await
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
 async fn period_allowance_roundtrips_and_upserts_per_period(pool: PgPool) {
     let repo = PgBillingRepo::new(pool.clone(), AiPricing::testing());
     let payer = payer();
@@ -606,8 +672,8 @@ async fn auto_reload_defaults_when_no_account_row_exists(pool: PgPool) {
     assert_eq!(
         settings.auto_reload,
         AutoReloadThresholds {
-            minimum_cents: 1_000,
-            target_cents: 10_000,
+            minimum_cents: 500,
+            target_cents: 2_500,
             monthly_limit_cents: None,
         }
     );
@@ -673,7 +739,7 @@ async fn update_auto_reload_persists_thresholds_and_clears_both_suspensions(pool
 }
 
 #[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
-async fn reserve_credit_reload_requires_active_overage_and_unsuspended_reloads(pool: PgPool) {
+async fn reserve_credit_reload_requires_opt_in_and_unsuspended_reloads(pool: PgPool) {
     let repo = PgBillingRepo::new(pool.clone(), AiPricing::testing());
     let now = Utc::now();
     let period_start = now - chrono::Duration::days(10);
@@ -688,15 +754,13 @@ async fn reserve_credit_reload_requires_active_overage_and_unsuspended_reloads(p
             .unwrap()
             .is_none()
     );
-    // Overage on but suspended.
-    enable_auto_reload(&repo, &thresholds(None)).await;
+    // Historical direct-charge suspension does not affect reload eligibility.
+    // Saving with a zero direct-charge cap still allows reloads.
+    repo.update_auto_reload(&payer(), true, 0, Some(&thresholds(None)))
+        .await
+        .unwrap();
     repo.suspend_overage(&payer()).await.unwrap();
-    assert!(
-        repo.reserve_credit_reload(&payer(), period_start, 0, now)
-            .await
-            .unwrap()
-            .is_none()
-    );
+    assert!(repo.settings(&payer()).await.unwrap().auto_reload_active());
     // Reloads suspended after a failed collection.
     enable_auto_reload(&repo, &thresholds(None)).await;
     repo.suspend_auto_reload(&payer()).await.unwrap();
@@ -747,7 +811,7 @@ async fn reserve_credit_reload_subtracts_usage_the_settlement_will_consume(pool:
         .await
         .unwrap();
     assert_eq!(repo.credit_balance_cents(&payer()).await.unwrap(), 500);
-    repo.record_credit_reload(&payer(), 9_500, "in_1")
+    repo.record_credit_reload(&payer(), 9_500, "in_1", CreditReloadKind::Automatic)
         .await
         .unwrap();
     assert!(
@@ -771,6 +835,13 @@ async fn reserve_credit_reload_honors_the_monthly_limit_including_pending_rows(p
         .unwrap()
         .expect("reload reserved");
     assert_eq!(first.amount_cents, 10_000);
+    let month = BillingPeriod::calendar_month(now);
+    assert_eq!(
+        repo.credit_reload_committed_cents(&payer(), month)
+            .await
+            .unwrap(),
+        10_000
+    );
     // Pending rows count against the limit, so once Stripe resolves this one
     // only 2_000 of room is left.
     repo.finish_credit_reload(first.id, Some("in_1"), CreditReloadStatus::Paid)
@@ -793,6 +864,18 @@ async fn reserve_credit_reload_honors_the_monthly_limit_including_pending_rows(p
             .is_none()
     );
     assert_eq!(reload_rows(&pool).await, 2);
+    assert_eq!(
+        repo.credit_reload_committed_cents(&payer(), month)
+            .await
+            .unwrap(),
+        12_000
+    );
+    assert_eq!(
+        repo.credit_reload_committed_cents(&payer(), BillingPeriod::calendar_month(month.end))
+            .await
+            .unwrap(),
+        0
+    );
 
     // A failed reload does not count; a reload from last month does not either.
     sqlx::query!(
@@ -812,6 +895,12 @@ async fn reserve_credit_reload_honors_the_monthly_limit_including_pending_rows(p
     repo.finish_credit_reload(third.id, None, CreditReloadStatus::Failed)
         .await
         .unwrap();
+    assert_eq!(
+        repo.credit_reload_committed_cents(&payer(), month)
+            .await
+            .unwrap(),
+        10_000
+    );
     // Suspension is what stops reloads after a failure, not the ledger.
     enable_auto_reload(&repo, &thresholds(Some(12_000))).await;
     let fourth = repo
@@ -896,6 +985,12 @@ async fn reserve_credit_reload_retries_a_failed_reload_on_its_open_invoice(pool:
         .await
         .unwrap();
     repo.suspend_auto_reload(&payer()).await.unwrap();
+    assert_eq!(
+        repo.credit_reload_committed_cents(&payer(), BillingPeriod::calendar_month(now))
+            .await
+            .unwrap(),
+        10_000
+    );
     assert!(
         repo.reserve_credit_reload(&payer(), period_start, 0, now)
             .await
@@ -947,7 +1042,7 @@ async fn reserve_credit_reload_retries_a_failed_reload_on_its_open_invoice(pool:
 async fn credit_reloads_are_idempotent_on_the_invoice(pool: PgPool) {
     let repo = PgBillingRepo::new(pool, AiPricing::testing());
     assert!(
-        repo.record_credit_reload(&payer(), 9_500, "in_1")
+        repo.record_credit_reload(&payer(), 9_500, "in_1", CreditReloadKind::Automatic)
             .await
             .unwrap()
     );
@@ -955,7 +1050,7 @@ async fn credit_reloads_are_idempotent_on_the_invoice(pool: PgPool) {
     // The collector and the webhook may both report the same invoice.
     assert!(
         !repo
-            .record_credit_reload(&payer(), 9_500, "in_1")
+            .record_credit_reload(&payer(), 9_500, "in_1", CreditReloadKind::Automatic)
             .await
             .unwrap()
     );
@@ -986,45 +1081,143 @@ async fn reload_invoice_webhooks_resolve_once_and_never_unpay(pool: PgPool) {
         .unwrap();
 
     assert!(
-        repo.resolve_credit_reload_invoice("in_unknown", CreditReloadStatus::Paid)
+        repo.resolve_credit_reload_invoice("in_unknown", None, CreditReloadStatus::Paid)
             .await
             .unwrap()
             .is_none()
     );
     // Declined first; re-reporting it is a no-op.
     let failed = repo
-        .resolve_credit_reload_invoice("in_1", CreditReloadStatus::Failed)
+        .resolve_credit_reload_invoice("in_1", None, CreditReloadStatus::Failed)
         .await
         .unwrap()
         .expect("status changed");
     assert_eq!(failed.payer.as_ref(), payer().as_ref());
     assert_eq!(failed.amount_cents, 10_000);
     assert!(
-        repo.resolve_credit_reload_invoice("in_1", CreditReloadStatus::Failed)
+        repo.resolve_credit_reload_invoice("in_1", None, CreditReloadStatus::Failed)
             .await
             .unwrap()
             .is_none()
     );
     // Stripe's retry collected it: reported exactly once.
     let paid = repo
-        .resolve_credit_reload_invoice("in_1", CreditReloadStatus::Paid)
+        .resolve_credit_reload_invoice("in_1", None, CreditReloadStatus::Paid)
         .await
         .unwrap()
         .expect("status changed");
     assert_eq!(paid.payer.as_ref(), payer().as_ref());
     assert_eq!(paid.amount_cents, 10_000);
+    assert_eq!(repo.credit_balance_cents(&payer()).await.unwrap(), 10_000);
     assert!(
-        repo.resolve_credit_reload_invoice("in_1", CreditReloadStatus::Paid)
+        repo.resolve_credit_reload_invoice("in_1", None, CreditReloadStatus::Paid)
             .await
             .unwrap()
             .is_none()
     );
     // A late or duplicate failure cannot un-pay it.
     assert!(
-        repo.resolve_credit_reload_invoice("in_1", CreditReloadStatus::Failed)
+        repo.resolve_credit_reload_invoice("in_1", None, CreditReloadStatus::Failed)
             .await
             .unwrap()
             .is_none()
+    );
+    assert_eq!(repo.credit_balance_cents(&payer()).await.unwrap(), 10_000);
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn reload_invoice_credit_write_failure_leaves_paid_webhook_retryable(pool: PgPool) {
+    let repo = PgBillingRepo::new(pool.clone(), AiPricing::testing());
+    let now = Utc::now();
+    enable_auto_reload(&repo, &thresholds(None)).await;
+    let reserved = repo
+        .reserve_credit_reload(&payer(), now, 0, now)
+        .await
+        .unwrap()
+        .expect("reload reserved");
+    repo.finish_credit_reload(reserved.id, Some("in_retry"), CreditReloadStatus::Pending)
+        .await
+        .unwrap();
+
+    // Force the ledger INSERT to fail after the paid-status UPDATE executes.
+    sqlx::query!(
+        "ALTER TABLE ai_credit_ledger ADD CONSTRAINT reject_test_reload
+         CHECK (stripe_reference <> 'in_retry')"
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    assert!(
+        repo.resolve_credit_reload_invoice("in_retry", None, CreditReloadStatus::Paid)
+            .await
+            .is_err()
+    );
+    assert_eq!(repo.credit_balance_cents(&payer()).await.unwrap(), 0);
+    let status = sqlx::query_scalar!(
+        r#"SELECT status::text AS "status!" FROM ai_credit_reload WHERE stripe_invoice_id = $1"#,
+        "in_retry",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(status, "pending");
+
+    sqlx::query!("ALTER TABLE ai_credit_ledger DROP CONSTRAINT reject_test_reload")
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(
+        repo.resolve_credit_reload_invoice("in_retry", None, CreditReloadStatus::Paid)
+            .await
+            .unwrap()
+            .is_some()
+    );
+    assert_eq!(repo.credit_balance_cents(&payer()).await.unwrap(), 10_000);
+    // Re-delivery cannot issue the purchased credits twice.
+    assert!(
+        repo.resolve_credit_reload_invoice("in_retry", None, CreditReloadStatus::Paid)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(repo.credit_balance_cents(&payer()).await.unwrap(), 10_000);
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn reload_invoice_webhook_deduplicates_credits_booked_by_collector(pool: PgPool) {
+    let repo = PgBillingRepo::new(pool, AiPricing::testing());
+    let now = Utc::now();
+    enable_auto_reload(&repo, &thresholds(None)).await;
+    let reserved = repo
+        .reserve_credit_reload(&payer(), now, 0, now)
+        .await
+        .unwrap()
+        .expect("reload reserved");
+    repo.finish_credit_reload(
+        reserved.id,
+        Some("in_collector"),
+        CreditReloadStatus::Pending,
+    )
+    .await
+    .unwrap();
+    repo.record_credit_reload(
+        &payer(),
+        reserved.amount_cents,
+        "in_collector",
+        CreditReloadKind::Automatic,
+    )
+    .await
+    .unwrap();
+
+    assert!(
+        repo.resolve_credit_reload_invoice("in_collector", None, CreditReloadStatus::Paid)
+            .await
+            .unwrap()
+            .is_some()
+    );
+    assert_eq!(
+        repo.credit_balance_cents(&payer()).await.unwrap(),
+        reserved.amount_cents
     );
 }
 
@@ -1413,4 +1606,340 @@ async fn rows_frozen_before_the_cost_column_read_as_the_current_allowance(pool: 
     assert_eq!(raw.billed_users, vec![payer.as_ref().to_string()]);
     assert_eq!(raw.included_cents_by_user, vec![4_000]);
     assert_eq!(raw.included_cost_cents_by_user, None);
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn credit_only_settlement_never_reserves_or_retries_direct_charges(pool: PgPool) {
+    let repo = PgBillingRepo::new(pool.clone(), AiPricing::testing());
+    let period_start = Utc::now() - chrono::Duration::days(10);
+    repo.update_overage(&payer(), true, 10_000).await.unwrap();
+    let mut credit_only = policy(false);
+    credit_only.overage_active = false;
+    let outcome = repo
+        .apply_settlement(&payer(), period_start, 5_000, credit_only)
+        .await
+        .unwrap();
+    assert!(outcome.pending_charge.is_none());
+    assert_eq!(charge_rows(&pool).await, 0);
+
+    // Seed historical rows through the legacy policy, then retire collection.
+    let historical = repo
+        .apply_settlement(&payer(), period_start, 5_000, policy(false))
+        .await
+        .unwrap()
+        .pending_charge
+        .unwrap();
+    for (status, invoice) in [
+        (OverageChargeStatus::Pending, None),
+        (OverageChargeStatus::Failed, None),
+        (OverageChargeStatus::Failed, Some("in_legacy")),
+    ] {
+        repo.finish_overage_charge(historical.id, invoice, status)
+            .await
+            .unwrap();
+        sqlx::query!(
+            "UPDATE ai_overage_charge SET updated_at = NOW() - INTERVAL '1 hour' WHERE id = $1",
+            historical.id,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        repo.update_overage(&payer(), true, 10_000).await.unwrap();
+        let outcome = repo
+            .apply_settlement(&payer(), period_start, 8_000, credit_only)
+            .await
+            .unwrap();
+        assert!(outcome.pending_charge.is_none());
+        assert_eq!(charge_rows(&pool).await, 1);
+    }
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn credit_purchases_respect_the_monthly_limit_and_retry_declined_invoices(pool: PgPool) {
+    let repo = PgBillingRepo::new(pool.clone(), AiPricing::testing());
+    let now = Utc::now();
+    let member = MacroUserIdStr::try_from("macro|member@example.com".to_string()).unwrap();
+
+    let PurchaseReservation::New(first) = repo
+        .reserve_credit_purchase(&payer(), &member, 2_500, Some(5_000), now)
+        .await
+        .unwrap()
+    else {
+        panic!("first purchase reserved");
+    };
+    // Still with Stripe: a second purchase waits.
+    assert_eq!(
+        repo.reserve_credit_purchase(&payer(), &member, 2_500, Some(5_000), now)
+            .await
+            .unwrap(),
+        PurchaseReservation::InProgress
+    );
+    // Declined with its invoice open: buying again retries that invoice.
+    repo.finish_credit_reload(first.id, Some("in_first"), CreditReloadStatus::Failed)
+        .await
+        .unwrap();
+    assert_eq!(
+        repo.reserve_credit_purchase(&payer(), &member, 5_000, Some(5_000), now)
+            .await
+            .unwrap(),
+        PurchaseReservation::Retry(PendingReload {
+            id: first.id,
+            amount_cents: 2_500,
+            stripe_invoice_id: Some("in_first".into()),
+        })
+    );
+    repo.finish_credit_reload(first.id, Some("in_first"), CreditReloadStatus::Paid)
+        .await
+        .unwrap();
+
+    // The paid purchase counts against the limit.
+    assert_eq!(
+        repo.reserve_credit_purchase(&payer(), &member, 5_000, Some(5_000), now)
+            .await
+            .unwrap(),
+        PurchaseReservation::OverLimit {
+            remaining_cents: 2_500
+        }
+    );
+    assert!(matches!(
+        repo.reserve_credit_purchase(&payer(), &member, 2_500, Some(5_000), now)
+            .await
+            .unwrap(),
+        PurchaseReservation::New(_)
+    ));
+    let committed = repo
+        .credit_reload_committed_cents(&payer(), BillingPeriod::calendar_month(now))
+        .await
+        .unwrap();
+    assert_eq!(committed, 5_000);
+    let buyer = sqlx::query_scalar!(
+        "SELECT purchased_by FROM ai_credit_reload WHERE kind = 'purchase' LIMIT 1"
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(buyer.as_deref(), Some(member.as_ref()));
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn automatic_reloads_ignore_open_purchases(pool: PgPool) {
+    let repo = PgBillingRepo::new(pool.clone(), AiPricing::testing());
+    let now = Utc::now();
+    let period_start = now - chrono::Duration::days(10);
+    let PurchaseReservation::New(purchase) = repo
+        .reserve_credit_purchase(&payer(), &payer(), 2_500, None, now)
+        .await
+        .unwrap()
+    else {
+        panic!("purchase reserved");
+    };
+    repo.finish_credit_reload(purchase.id, Some("in_purchase"), CreditReloadStatus::Failed)
+        .await
+        .unwrap();
+    enable_auto_reload(&repo, &thresholds(None)).await;
+
+    let reload = repo
+        .reserve_credit_reload(&payer(), period_start, 0, now)
+        .await
+        .unwrap()
+        .expect("automatic reload reserved");
+    assert_ne!(reload.id, purchase.id);
+    assert!(reload.stripe_invoice_id.is_none());
+
+    // A failed purchase invoice resolves as a purchase.
+    let resolved = repo
+        .resolve_credit_reload_invoice("in_purchase", None, CreditReloadStatus::Paid)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(resolved.kind, CreditReloadKind::Purchase);
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn voided_purchases_are_neither_retried_nor_counted(pool: PgPool) {
+    let repo = PgBillingRepo::new(pool.clone(), AiPricing::testing());
+    let now = Utc::now();
+    let member = MacroUserIdStr::try_from("macro|member@example.com".to_string()).unwrap();
+
+    let PurchaseReservation::New(declined) = repo
+        .reserve_credit_purchase(&payer(), &member, 2_500, Some(5_000), now)
+        .await
+        .unwrap()
+    else {
+        panic!("purchase reserved");
+    };
+    repo.finish_credit_reload(declined.id, Some("in_declined"), CreditReloadStatus::Failed)
+        .await
+        .unwrap();
+    // An automatic reload's open invoice is never treated as a purchase.
+    enable_auto_reload(&repo, &thresholds(None)).await;
+    let auto = repo
+        .reserve_credit_reload(&payer(), now - chrono::Duration::days(10), 0, now)
+        .await
+        .unwrap()
+        .expect("automatic reload reserved");
+    repo.finish_credit_reload(auto.id, Some("in_auto"), CreditReloadStatus::Failed)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        repo.declined_credit_purchases(&payer()).await.unwrap(),
+        vec![PendingReload {
+            id: declined.id,
+            amount_cents: 2_500,
+            stripe_invoice_id: Some("in_declined".into()),
+        }]
+    );
+    let period = BillingPeriod::calendar_month(now);
+    let before = repo
+        .credit_reload_committed_cents(&payer(), period)
+        .await
+        .unwrap();
+
+    repo.void_credit_purchase(declined.id).await.unwrap();
+    // Voiding never touches an automatic reload.
+    repo.void_credit_purchase(auto.id).await.unwrap();
+
+    assert!(
+        repo.declined_credit_purchases(&payer())
+            .await
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(
+        repo.credit_reload_committed_cents(&payer(), period)
+            .await
+            .unwrap(),
+        before - 2_500
+    );
+    // Buying again reserves a fresh purchase instead of retrying the void.
+    assert!(matches!(
+        repo.reserve_credit_purchase(&payer(), &member, 2_500, None, now)
+            .await
+            .unwrap(),
+        PurchaseReservation::New(_)
+    ));
+    let auto_invoice = sqlx::query_scalar!(
+        "SELECT stripe_invoice_id FROM ai_credit_reload WHERE id = $1",
+        auto.id
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(auto_invoice.as_deref(), Some("in_auto"));
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn a_paid_purchase_cannot_be_voided(pool: PgPool) {
+    let repo = PgBillingRepo::new(pool.clone(), AiPricing::testing());
+    let now = Utc::now();
+    let PurchaseReservation::New(paid) = repo
+        .reserve_credit_purchase(&payer(), &payer(), 2_500, None, now)
+        .await
+        .unwrap()
+    else {
+        panic!("purchase reserved");
+    };
+    repo.finish_credit_reload(paid.id, Some("in_paid"), CreditReloadStatus::Paid)
+        .await
+        .unwrap();
+
+    repo.void_credit_purchase(paid.id).await.unwrap();
+
+    let row = sqlx::query!(
+        r#"SELECT status::text AS "status!", stripe_invoice_id FROM ai_credit_reload WHERE id = $1"#,
+        paid.id
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(row.status, "paid");
+    assert_eq!(row.stripe_invoice_id.as_deref(), Some("in_paid"));
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn a_paid_invoice_is_matched_to_its_orphaned_row_by_reload_id(pool: PgPool) {
+    let repo = PgBillingRepo::new(pool.clone(), AiPricing::testing());
+    let now = Utc::now();
+    let PurchaseReservation::New(orphan) = repo
+        .reserve_credit_purchase(&payer(), &payer(), 2_500, None, now)
+        .await
+        .unwrap()
+    else {
+        panic!("purchase reserved");
+    };
+
+    // A failure never adopts the row.
+    assert_eq!(
+        repo.resolve_credit_reload_invoice("in_lost", Some(orphan.id), CreditReloadStatus::Failed)
+            .await
+            .unwrap(),
+        None
+    );
+    let resolved = repo
+        .resolve_credit_reload_invoice("in_lost", Some(orphan.id), CreditReloadStatus::Paid)
+        .await
+        .unwrap()
+        .expect("orphan adopted");
+    assert_eq!(resolved.kind, CreditReloadKind::Purchase);
+    assert_eq!(resolved.amount_cents, 2_500);
+
+    let row = sqlx::query!(
+        r#"SELECT status::text AS "status!", stripe_invoice_id FROM ai_credit_reload WHERE id = $1"#,
+        orphan.id
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(row.status, "paid");
+    assert_eq!(row.stripe_invoice_id.as_deref(), Some("in_lost"));
+    let note =
+        sqlx::query_scalar!("SELECT note FROM ai_credit_ledger WHERE stripe_reference = 'in_lost'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(note.as_deref(), Some("Credit purchase"));
+
+    // A row that already has another invoice is never adopted.
+    assert_eq!(
+        repo.resolve_credit_reload_invoice("in_other", Some(orphan.id), CreditReloadStatus::Paid)
+            .await
+            .unwrap(),
+        None
+    );
+}
+
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn a_stale_orphaned_purchase_stops_counting_against_the_limit(pool: PgPool) {
+    let repo = PgBillingRepo::new(pool.clone(), AiPricing::testing());
+    let now = Utc::now();
+    let PurchaseReservation::New(orphan) = repo
+        .reserve_credit_purchase(&payer(), &payer(), 2_500, None, now)
+        .await
+        .unwrap()
+    else {
+        panic!("purchase reserved");
+    };
+    let period = BillingPeriod::calendar_month(now);
+    assert_eq!(
+        repo.credit_reload_committed_cents(&payer(), period)
+            .await
+            .unwrap(),
+        2_500
+    );
+
+    sqlx::query!(
+        "UPDATE ai_credit_reload SET updated_at = NOW() - INTERVAL '11 minutes' WHERE id = $1",
+        orphan.id
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    assert_eq!(
+        repo.credit_reload_committed_cents(&payer(), period)
+            .await
+            .unwrap(),
+        0
+    );
 }

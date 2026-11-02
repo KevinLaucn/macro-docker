@@ -30,6 +30,8 @@ export type SendCodeResult =
 export type VerifyCodeResult =
   | { t: 'verified' }
   | { t: 'invalid-code' }
+  /** Too many attempts for this address; the code itself may be right. */
+  | { t: 'rate-limited' }
   | { t: 'failed' };
 
 type AuthEventName =
@@ -61,7 +63,12 @@ export type AuthContext = {
   /** Refreshes everything that depends on who is signed in. */
   completeLogin(): Promise<void>;
   sendMobileWelcomeEmail(email: string): Promise<MobileWelcomeResult>;
-  identify(user: { id: string; email: string | undefined }): void;
+  identify(user: {
+    id: string;
+    email: string | undefined;
+    /** Person properties set once. Mobile capture uses this for attribution. */
+    setOnce?: Record<string, string>;
+  }): void;
   /** Ad conversions for a mobile-web lead, deduplicated by email. */
   trackMobileSignupLead(email: string): void;
   pageView(name: 'login' | 'signup'): void;

@@ -90,9 +90,11 @@ export type HoverCardComponentProps = {
    * Element type Kobalte should render the trigger as. Defaults to `span`.
    * Use `div` for block-level children or `nav` for navigation triggers.
    */
-  triggerAs?: 'span' | 'div' | 'nav';
+  triggerAs?: 'span' | 'div' | 'nav' | 'button';
   /** Accessible label applied to the trigger element. */
   triggerAriaLabel?: string;
+  /** Click action for a button trigger that also opens a hover preview. */
+  triggerOnClick?: JSX.EventHandler<HTMLElement, MouseEvent>;
   /** Class applied to the underlying trigger element. */
   triggerClass?: string;
   /** Receives the underlying Kobalte trigger element. */
@@ -122,6 +124,13 @@ export type HoverCardComponentProps = {
   keepOpenOnTriggerPress?: boolean;
   /** Dismiss on outside scrolling (default: true). Disable for stationary triggers. */
   closeOnScroll?: boolean;
+  /**
+   * Let pointer events reach whatever the card overlays. Use for a purely
+   * informational card that covers interactive content: without it the card
+   * holds itself open under the pointer and swallows clicks meant for the
+   * surface below.
+   */
+  passThroughPointerEvents?: boolean;
   /** Callback when open state changes */
   onOpenChange?: (open: boolean) => void;
   /**
@@ -153,7 +162,7 @@ export function HoverCard(props: HoverCardComponentProps) {
 
   const [nestedOpenCount, setNestedOpenCount] = createSignal(0);
   const [isHoverCardOpen, setIsHoverCardOpen] = createSignal(false);
-  let contentEl: HTMLElement | undefined;
+  const [contentEl, setContentEl] = createSignal<HTMLElement>();
 
   let entry: HoverCardEntry;
 
@@ -311,7 +320,7 @@ export function HoverCard(props: HoverCardComponentProps) {
 
     const onScroll = (e: Event) => {
       const target = e.target;
-      if (target instanceof Node && contentEl?.contains(target)) return;
+      if (target instanceof Node && contentEl()?.contains(target)) return;
       handleOpenChange(false);
     };
 
@@ -322,6 +331,19 @@ export function HoverCard(props: HoverCardComponentProps) {
     onCleanup(() => {
       window.removeEventListener('scroll', onScroll, true);
     });
+  });
+
+  // Kobalte positions the card inside a wrapper element of its own, so opting
+  // the content out of hit testing is not enough: the wrapper is the same size
+  // and still takes the pointer.
+  createEffect(() => {
+    if (!props.passThroughPointerEvents) return;
+    const positioner = contentEl()?.closest<HTMLElement>(
+      '[data-popper-positioner]'
+    );
+    if (!positioner) return;
+    positioner.style.pointerEvents = 'none';
+    onCleanup(() => positioner.style.removeProperty('pointer-events'));
   });
 
   // Kobalte forwards these to the content's DismissableLayer but leaves them
@@ -364,6 +386,10 @@ export function HoverCard(props: HoverCardComponentProps) {
         }}
         as={props.triggerAs ?? 'span'}
         aria-label={props.triggerAriaLabel}
+        {...(props.triggerAs === 'button'
+          ? { type: 'button', role: 'button' }
+          : {})}
+        onClick={props.triggerOnClick}
         class={props.triggerClass}
         disabled={isDisabled()}
         tabIndex={props.triggerTabIndex}
@@ -374,12 +400,15 @@ export function HoverCard(props: HoverCardComponentProps) {
       <KobalteHoverCard.Portal mount={props.portalMount}>
         <KobalteHoverCard.Content
           ref={(el) => {
-            contentEl = el;
+            setContentEl(el);
             props.contentRef?.(el);
           }}
           {...dismissableLayerProps}
           class={cn(
             props.contentZIndexClass ?? 'z-tool-tip',
+            // `!` because the dismissable layer writes `pointer-events: auto`
+            // onto this element.
+            props.passThroughPointerEvents && 'pointer-events-none!',
             props.contentClass
           )}
         >

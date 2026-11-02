@@ -34,7 +34,6 @@ function mount() {
     <TitleCard
       name={name()}
       description={description()}
-      meta={null}
       databaseLink={null}
       onName={names.save}
       onDescription={descriptions.save}
@@ -45,7 +44,7 @@ function mount() {
     descriptions,
     setName,
     setDescription,
-    nameField: screen.getByLabelText<HTMLInputElement>('Form name'),
+    nameField: screen.getByLabelText<HTMLTextAreaElement>('Form name'),
     descriptionField:
       screen.getByLabelText<HTMLTextAreaElement>('Form description'),
   };
@@ -64,7 +63,6 @@ describe('TitleCard', () => {
       <TitleCard
         name={name()}
         description={description()}
-        meta={null}
         databaseLink={null}
         onName={(value) => {
           sentNames.push(value);
@@ -73,7 +71,7 @@ describe('TitleCard', () => {
         onDescription={async () => true}
       />
     ));
-    const nameField = screen.getByLabelText<HTMLInputElement>('Form name');
+    const nameField = screen.getByLabelText<HTMLTextAreaElement>('Form name');
     const descriptionField =
       screen.getByLabelText<HTMLTextAreaElement>('Form description');
     nameField.focus();
@@ -142,7 +140,6 @@ describe('TitleCard', () => {
       <TitleCard
         name="Workshop ideas"
         description="Saved words"
-        meta={null}
         databaseLink={null}
         onName={async () => true}
         onDescription={() => failure}

@@ -232,7 +232,7 @@ fn reload_below_the_stripe_minimum_is_skipped() {
 #[test]
 fn default_thresholds_are_valid() {
     let defaults = AutoReloadThresholds::default();
-    assert_eq!(defaults, thresholds(1_000, 10_000, None));
+    assert_eq!(defaults, thresholds(500, 2_500, None));
     assert!(defaults.validate().is_ok());
 }
 
@@ -352,7 +352,7 @@ fn gate_counts_unsettled_usage_against_credits() {
 }
 
 #[test]
-fn gate_uses_overage_room_and_reports_the_cap() {
+fn gate_never_counts_legacy_overage_room_as_funding() {
     let settings = BillingSettings {
         overage_enabled: true,
         overage_limit_cents: 2_000,
@@ -365,10 +365,13 @@ fn gate_uses_overage_room_and_reports_the_cap() {
         PeriodLedger::default(),
         0,
     );
-    // 1_500 cost over is 1_575 owed against 2_000 of room: 425 left pays for 404 cost cents.
+    // The historical cap cannot fund any of the 1_575 uncovered cents.
     assert_eq!(s.uncovered_cents, 1_575);
-    assert_eq!(s.remaining_cents, 404);
-    assert_eq!(decide(&s), AllowanceDecision::Allow);
+    assert_eq!(s.remaining_cents, 0);
+    assert_eq!(
+        decide(&s),
+        AllowanceDecision::Deny(DenyReason::AllowanceExhausted)
+    );
 
     let s = snapshot_for(
         PlanTier::Premium,
@@ -383,7 +386,7 @@ fn gate_uses_overage_room_and_reports_the_cap() {
     assert_eq!(s.remaining_cents, 0);
     assert_eq!(
         decide(&s),
-        AllowanceDecision::Deny(DenyReason::OverageLimitReached)
+        AllowanceDecision::Deny(DenyReason::AllowanceExhausted)
     );
 }
 
@@ -403,11 +406,11 @@ fn a_single_cent_of_headroom_does_not_pay_for_marked_up_usage() {
 }
 
 #[test]
-fn gate_reports_failed_payment_when_suspended() {
+fn gate_reports_failed_reload_when_suspended() {
     let settings = BillingSettings {
         overage_enabled: true,
         overage_limit_cents: 2_000,
-        overage_suspended_at: Some(Utc::now()),
+        auto_reload_suspended_at: Some(Utc::now()),
         ..Default::default()
     };
     let s = snapshot_for(
@@ -432,8 +435,8 @@ fn snapshot_reports_auto_reload_settings_and_activity() {
         PeriodLedger::default(),
         0,
     );
-    assert_eq!(s.auto_reload.minimum_balance_cents, 1_000);
-    assert_eq!(s.auto_reload.target_balance_cents, 10_000);
+    assert_eq!(s.auto_reload.minimum_balance_cents, 500);
+    assert_eq!(s.auto_reload.target_balance_cents, 2_500);
     assert_eq!(s.auto_reload.monthly_spend_limit_cents, None);
     assert!(!s.auto_reload.suspended);
     assert!(!s.auto_reload.active, "overage off: reloads never fire");
@@ -528,6 +531,37 @@ fn unlimited_is_never_blocked() {
 }
 
 #[test]
+fn credit_scope_follows_team_ownership_even_with_only_one_seat() {
+    let owner = user("owner@x.com");
+    let mut entitlement = Entitlement::personal(owner.clone(), PlanTier::Max);
+    for (scope, shared) in [
+        (PayerScope::Personal, false),
+        (
+            PayerScope::TeamOwner {
+                team_id: macro_uuid::generate_uuid_v7(),
+            },
+            true,
+        ),
+    ] {
+        entitlement.scope = scope;
+        let snapshot = build_snapshot(
+            &owner,
+            &entitlement,
+            &BillingSettings::default(),
+            BillingPeriod::calendar_month(Utc::now()),
+            0,
+            0,
+            PeriodLedger::default(),
+            2_500,
+            AiPricing::testing(),
+        );
+        assert_eq!(snapshot.seats, 1);
+        assert!(snapshot.can_manage_billing);
+        assert_eq!(snapshot.credits_shared_with_team, shared);
+    }
+}
+
+#[test]
 fn team_member_is_not_the_payer() {
     let owner = user("owner@x.com");
     let member = user("member@x.com");
@@ -553,6 +587,7 @@ fn team_member_is_not_the_payer() {
         AiPricing::testing(),
     );
     assert!(!s.can_manage_billing);
+    assert!(s.credits_shared_with_team);
     assert_eq!(s.seats, 2);
     assert_eq!(s.included_cents, 10_000);
 }

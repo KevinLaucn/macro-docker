@@ -56,6 +56,7 @@ const ANA: RowId = RowId::from_uuid(Uuid::from_u128(0x01990000_0000_7000_8000_00
 /// the catalog from a database's detail.
 fn crm() -> Catalog {
     Catalog {
+        scope: None,
         tables: vec![
             Table {
                 id: DEALS,
@@ -68,12 +69,14 @@ fn crm() -> Catalog {
                         placement: NAME_COLUMN,
                         name: "name".into(),
                         kind: ColumnKind::Text,
+                        formula: None,
                     },
                     Column {
                         id: AMOUNT,
                         placement: AMOUNT_COLUMN,
                         name: "amount".into(),
                         kind: ColumnKind::Number,
+                        formula: None,
                     },
                     Column {
                         id: STAGE,
@@ -92,6 +95,7 @@ fn crm() -> Catalog {
                                 },
                             ],
                         },
+                        formula: None,
                     },
                     Column {
                         id: OWNER,
@@ -101,12 +105,14 @@ fn crm() -> Catalog {
                             multi: true,
                             target: EntityKind::Row,
                         },
+                        formula: None,
                     },
                     Column {
                         id: PITCH,
                         placement: PITCH_COLUMN,
                         name: "pitch".into(),
                         kind: ColumnKind::Text,
+                        formula: None,
                     },
                 ],
                 source: TableSource::Database,
@@ -121,6 +127,7 @@ fn crm() -> Catalog {
                     placement: PEOPLE_NAME_COLUMN,
                     name: "name".into(),
                     kind: ColumnKind::Text,
+                    formula: None,
                 }],
                 source: TableSource::Database,
             },

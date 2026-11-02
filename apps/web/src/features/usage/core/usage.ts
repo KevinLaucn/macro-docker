@@ -3,9 +3,17 @@ export type UsageSummary = {
   periodEnd: string;
   unlimited: boolean;
   creditBalanceCents: number;
+  creditScope: 'personal' | 'team';
   billingAccess: 'free' | 'payer' | 'team-member';
   existingUsageBilling?: { limitCents: number; suspended: boolean };
-  autoReload: { settings: AutoReloadSettings; suspended: boolean };
+  autoReload: {
+    settings: AutoReloadSettings;
+    suspended: boolean;
+    budget?: AutoReloadBudget;
+  };
+  /** The monthly credit limit on one-time purchases and what is left of it;
+   * absent when there is no limit. A team member always has one. */
+  purchaseLimit?: { limitCents: number; remainingCents: number };
 };
 
 export type UsagePreviewPlan = 'free' | 'paid';
@@ -19,8 +27,8 @@ export type AutoReloadSettings = {
 
 export const DEFAULT_AUTO_RELOAD: AutoReloadSettings = {
   enabled: false,
-  minimumBalanceCents: 1_000,
-  targetBalanceCents: 10_000,
+  minimumBalanceCents: 500,
+  targetBalanceCents: 2_500,
   monthlySpendLimitCents: null,
 };
 
@@ -87,3 +95,12 @@ export function validateAutoReload(
     return `Monthly spend limit must be at least ${formatCreditBalance(MIN_MONTHLY_SPEND_LIMIT_CENTS)}, or leave it blank.`;
   }
 }
+
+/** Reload purchases use UTC calendar months, independently of subscription renewal. */
+export type AutoReloadBudget = {
+  /** Authoritative cap status, including insufficient room for the minimum charge. */
+  limitReached?: boolean;
+  spentCents: number;
+  limitCents: number;
+  resetsAt: string;
+};

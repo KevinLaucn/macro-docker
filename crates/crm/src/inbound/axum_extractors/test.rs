@@ -56,13 +56,20 @@ const TEAM_ID: &str = "55555555-5555-4555-8555-555555555555";
 struct FakeJwtValidator;
 
 impl JwtValidator for FakeJwtValidator {
-    fn validate(&self, jwt: &str) -> Result<ValidatedIdentity, Report<MacroAuthorizationError>> {
+    fn validate_credential(
+        &self,
+        jwt: &str,
+    ) -> Result<macro_authorization::ValidatedCredential, Report<MacroAuthorizationError>> {
         match jwt {
-            VALID_TOKEN => Ok(ValidatedIdentity {
-                user_id: USER_ID.to_string(),
-                fusion_user_id: "test-fusion-user".to_string(),
-                organization_id: None,
-                permissions: None,
+            VALID_TOKEN => Ok(macro_authorization::ValidatedCredential {
+                origin: macro_authorization::CredentialOrigin::Session,
+                identity: ValidatedIdentity {
+                    agent_id: None,
+                    user_id: USER_ID.to_string(),
+                    fusion_user_id: "test-fusion-user".to_string(),
+                    organization_id: None,
+                    permissions: None,
+                },
             }),
             "expired" => Err(Report::new(MacroAuthorizationError::CredentialsExpired)),
             _ => Err(Report::new(MacroAuthorizationError::InvalidCredentials)),
@@ -238,6 +245,17 @@ impl CrmService for FakeCrmService {
         Ok(vec![])
     }
 
+    async fn resolve_association(
+        &self,
+        _user_id: &str,
+        _access: Option<
+            &crate::domain::auth::CrmTeamReceipt<entity_access::domain::models::MemberTeamRole>,
+        >,
+        _record: crate::domain::association::CrmAssociation,
+    ) -> Result<crate::domain::association::CrmRecordAssociation, CrmError> {
+        panic!("unexpected resolve_association call")
+    }
+
     async fn populate_contact(
         &self,
         _team_id: &Uuid,
@@ -259,6 +277,10 @@ impl CrmService for FakeCrmService {
         _email: &str,
     ) -> Result<DepopulateContactOutcome, CrmError> {
         panic!("unexpected depopulate_contact call")
+    }
+
+    async fn has_depopulate_target(&self, _team_id: &Uuid, _email: &str) -> Result<bool, CrmError> {
+        panic!("unexpected has_depopulate_target call")
     }
 
     async fn link_contact_pairs_with_sources(
@@ -284,7 +306,7 @@ impl CrmService for FakeCrmService {
         &self,
         _access: &CrmTeamReceipt<MemberTeamRole>,
         _name: &str,
-        _domain: &str,
+        _domain: Option<&str>,
     ) -> Result<CrmCompanyWithContacts, CrmError> {
         panic!("unexpected create_company call")
     }

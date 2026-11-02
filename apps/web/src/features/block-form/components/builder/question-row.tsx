@@ -1,4 +1,4 @@
-import Spinner from '@phosphor/spinner.svg';
+import Spinner from '@icon/system/regular/spinner.svg';
 import { Badge, cn } from '@ui';
 import { type JSX, Show } from 'solid-js';
 import { DraftInput } from './draft-input';
@@ -38,7 +38,7 @@ export function QuestionRow(props: {
       data-selected={props.selected ? '' : undefined}
       class={cn(
         'group/question relative flex gap-1 px-2 py-3 transition-[background-color,opacity] duration-100',
-        props.selected ? 'bg-panel' : 'hover:bg-hover/50',
+        props.selected ? 'ring-1 ring-inset ring-accent!' : 'hover:bg-hover/50',
         props.dragging && 'opacity-40'
       )}
       onFocusIn={(event) => {
@@ -55,12 +55,6 @@ export function QuestionRow(props: {
         props.onSelect();
       }}
     >
-      <Show when={props.selected}>
-        <span
-          aria-hidden="true"
-          class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent"
-        />
-      </Show>
       <div
         class={cn(
           'pt-0.5 transition-opacity',
@@ -100,6 +94,7 @@ export function QuestionRow(props: {
             {props.editors}
             <Show when={props.busy}>
               <Spinner
+                aria-hidden={false}
                 class="size-3.5 animate-spin text-ink-muted"
                 aria-label="Saving"
               />

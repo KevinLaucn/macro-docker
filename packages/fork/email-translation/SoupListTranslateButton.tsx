@@ -33,10 +33,8 @@ export function SoupListTranslateButton(props: {
     <Show when={props.forceVisible || isEmailListView()}>
       <Tooltip shortcut={undefined} label={label()}>
         <Button
-          variant="outline"
+          variant="secondary"
           size={buttonSize()}
-          square={isSquare()}
-          depth={2}
           onClick={requestBrowserTranslation}
           class={cn(
             'bg-surface transition-colors',

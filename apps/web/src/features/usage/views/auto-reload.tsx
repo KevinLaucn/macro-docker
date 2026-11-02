@@ -1,3 +1,4 @@
+import { fireAndForget } from '@core/util/fireAndForget';
 import { createSignal } from 'solid-js';
 import { AutoReloadDialog } from '../components/auto-reload-dialog';
 import type { UsageContext } from '../context/usage-context';
@@ -55,6 +56,7 @@ export function AutoReloadView(props: {
   };
   return (
     <AutoReloadDialog
+      sharedWithTeam={props.context.summary()?.creditScope === 'team'}
       enabled={props.context.autoReload.settings().enabled}
       minimum={form.minimum()}
       target={form.target()}
@@ -64,9 +66,9 @@ export function AutoReloadView(props: {
       onMaximum={form.setMaximum}
       onClose={props.onClose}
       onRestoreFocus={props.onRestoreFocus}
-      onSave={() => void save(true)}
-      onTurnOff={() => void save(false)}
-      onPaymentMethods={() => void paymentMethods()}
+      onSave={() => fireAndForget(save(true), 'usage')}
+      onTurnOff={() => fireAndForget(save(false), 'usage')}
+      onPaymentMethods={() => fireAndForget(paymentMethods(), 'usage')}
       canManagePaymentMethods={
         props.context.summary()?.billingAccess === 'payer' &&
         !props.context.autoReload.preview() &&

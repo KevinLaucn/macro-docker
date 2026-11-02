@@ -3,5 +3,5 @@
 pub mod domain;
 #[cfg(any(feature = "inbound", feature = "ai_tools"))]
 pub mod inbound;
-#[cfg(any(feature = "postgres", feature = "calendar"))]
+#[cfg(any(feature = "postgres", feature = "calendar", feature = "client"))]
 pub mod outbound;

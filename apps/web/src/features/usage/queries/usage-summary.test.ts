@@ -24,6 +24,22 @@ const snapshot: AiUsageSnapshot = {
 };
 
 describe('usage billing access', () => {
+  it('uses authoritative credit scope for a single-seat team and preserves the older-backend fallback', () => {
+    expect(
+      toUsageSummary({
+        ...snapshot,
+        tier: 'max',
+        credits_shared_with_team: true,
+      })
+    ).toMatchObject({ billingAccess: 'payer', creditScope: 'team' });
+    expect(
+      toUsageSummary({ ...snapshot, seats: 4, credits_shared_with_team: false })
+        .creditScope
+    ).toBe('personal');
+    expect(toUsageSummary({ ...snapshot, seats: 4 }).creditScope).toBe('team');
+    expect(toUsageSummary(snapshot).creditScope).toBe('personal');
+  });
+
   it('marks a Free payer as ineligible for credit purchases', () => {
     expect(toUsageSummary(snapshot)).toMatchObject({
       billingAccess: 'free',
@@ -64,12 +80,52 @@ describe('usage billing access', () => {
   it.each(['premium', 'max'] as const)(
     'lets a %s payer purchase credits',
     (tier) => {
-      expect(toUsageSummary({ ...snapshot, tier }).billingAccess).toBe('payer');
+      expect(toUsageSummary({ ...snapshot, tier })).toMatchObject({
+        billingAccess: 'payer',
+        creditScope: 'personal',
+      });
+      expect(toUsageSummary({ ...snapshot, tier, seats: 4 })).toMatchObject({
+        billingAccess: 'payer',
+        creditScope: 'team',
+      });
     }
   );
 });
 
 describe('automatic reload', () => {
+  it('decodes authoritative calendar-month budget facts and keeps legacy responses unknown', () => {
+    const auto_reload = {
+      minimum_balance_cents: 1_000,
+      target_balance_cents: 10_000,
+      monthly_spend_limit_cents: 5_000,
+      suspended: false,
+      active: true,
+    };
+    expect(
+      toUsageSummary({ ...snapshot, tier: 'max', auto_reload }).autoReload
+        .budget
+    ).toBeUndefined();
+    expect(
+      toUsageSummary({
+        ...snapshot,
+        tier: 'max',
+        auto_reload: {
+          ...auto_reload,
+          monthly_budget: {
+            committed_cents: 4_951,
+            resets_at: '2026-11-01T00:00:00Z',
+            limit_reached: true,
+          },
+        },
+      }).autoReload.budget
+    ).toEqual({
+      spentCents: 4_951,
+      limitCents: 5_000,
+      resetsAt: '2026-11-01T00:00:00Z',
+      limitReached: true,
+    });
+  });
+
   it('treats usage billing as the opt-in and reads thresholds from the backend', () => {
     expect(
       toUsageSummary({
@@ -93,6 +149,66 @@ describe('automatic reload', () => {
         monthlySpendLimitCents: 7_500,
       },
       suspended: true,
+    });
+  });
+
+  it('starts an off Auto-Reload from the catalog defaults and the plan limit, but keeps an opted-in payer’s settings', () => {
+    const catalog = {
+      plans: [
+        {
+          tier: 'premium' as const,
+          monthly_price_cents: 4_000,
+          included_ai_cents_per_seat: 2_000,
+          purchasable: true,
+          auto_reload_default_monthly_limit_cents: 20_000,
+        },
+        {
+          tier: 'max' as const,
+          monthly_price_cents: 20_000,
+          included_ai_cents_per_seat: 10_000,
+          purchasable: true,
+          auto_reload_default_monthly_limit_cents: 100_000,
+        },
+      ],
+      credit_packs_cents: [1_000],
+      overage_limit_min_cents: 500,
+      overage_limit_max_cents: 500_000,
+      auto_reload_defaults: {
+        minimum_balance_cents: 500,
+        target_balance_cents: 2_500,
+      },
+    };
+    const stored = {
+      minimum_balance_cents: 1_000,
+      target_balance_cents: 10_000,
+      monthly_spend_limit_cents: null,
+      suspended: false,
+      active: false,
+    };
+    expect(
+      toUsageSummary({ ...snapshot, tier: 'max', auto_reload: stored }, catalog)
+        .autoReload.settings
+    ).toEqual({
+      enabled: false,
+      minimumBalanceCents: 500,
+      targetBalanceCents: 2_500,
+      monthlySpendLimitCents: 100_000,
+    });
+    expect(
+      toUsageSummary(
+        {
+          ...snapshot,
+          tier: 'premium',
+          overage_enabled: true,
+          auto_reload: stored,
+        },
+        catalog
+      ).autoReload.settings
+    ).toEqual({
+      enabled: true,
+      minimumBalanceCents: 1_000,
+      targetBalanceCents: 10_000,
+      monthlySpendLimitCents: null,
     });
   });
 

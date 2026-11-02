@@ -22,9 +22,8 @@ export function EmailThreadTranslateButton(
     <Show when={props.threadId}>
       <Tooltip label={label()}>
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
-          depth={2}
           onClick={requestBrowserTranslation}
           class={cn('bg-surface transition-colors shrink-0', props.class)}
           aria-label={label()}

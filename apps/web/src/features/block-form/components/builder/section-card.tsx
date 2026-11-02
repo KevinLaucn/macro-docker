@@ -1,9 +1,9 @@
-import ArrowBendDownRight from '@phosphor/arrow-bend-down-right.svg';
-import ArrowDown from '@phosphor/arrow-down.svg';
-import ArrowUp from '@phosphor/arrow-up.svg';
-import DotsThree from '@phosphor/dots-three.svg';
-import ShieldCheck from '@phosphor/shield-check.svg';
-import Trash from '@phosphor/trash.svg';
+import ArrowBendDownRight from '@icon/system/regular/arrow-bend-down-right.svg';
+import ArrowDown from '@icon/system/regular/arrow-down.svg';
+import ArrowUp from '@icon/system/regular/arrow-up.svg';
+import DotsThree from '@icon/system/regular/dots-three.svg';
+import ShieldCheck from '@icon/system/regular/shield-check.svg';
+import Trash from '@icon/system/regular/trash.svg';
 import { Button, cn, Dropdown } from '@ui';
 import { type JSX, Show } from 'solid-js';
 import { LiveTextarea, LiveTextInput } from './live-text-input';
@@ -21,7 +21,7 @@ export function SectionMenu(props: {
   return (
     <Dropdown>
       <Dropdown.Trigger variant="ghost" size="icon-sm" aria-label={props.label}>
-        <DotsThree />
+        <DotsThree class="size-3.5 touch:size-6 shrink-0 pointer-events-none" />
       </Dropdown.Trigger>
       <Dropdown.Content class="w-52">
         <Dropdown.Item disabled={!props.canMoveUp} onSelect={props.onMoveUp}>
@@ -69,7 +69,7 @@ export function SectionCard(props: {
   /** New questions go to this section's end. */
   targeted: boolean;
   onTarget: () => void;
-  /** Adds a question into this section; shown while it is empty. */
+  /** Adds a question into this section; shown after its questions. */
   addQuestion: JSX.Element;
   handle: JSX.Element;
   menu: JSX.Element;
@@ -134,19 +134,12 @@ export function SectionCard(props: {
       </header>
       <div
         data-form-section-list={props.sectionId}
-        class="flex min-h-16 flex-col divide-y divide-edge-divider"
+        class="flex flex-col divide-y divide-edge-divider"
       >
-        <Show
-          when={!props.empty}
-          fallback={
-            <div class="flex min-h-16 flex-col items-center justify-center gap-2 px-4 py-3 text-xs text-ink-muted">
-              <span>No questions yet. Add one, or drag a question here.</span>
-              <div class="w-44">{props.addQuestion}</div>
-            </div>
-          }
-        >
-          {props.children}
-        </Show>
+        <Show when={!props.empty}>{props.children}</Show>
+      </div>
+      <div classList={{ 'border-t border-edge-divider': !props.empty }}>
+        {props.addQuestion}
       </div>
       {props.routing}
     </section>
@@ -183,7 +176,7 @@ export function GateCard(props: {
       data-form-section={props.sectionId}
       data-section-kind="gate"
       class={cn(
-        'overflow-hidden rounded-xl border border-dashed border-edge bg-panel transition-opacity',
+        'overflow-hidden rounded-xl border border-edge bg-surface shadow-xs transition-opacity',
         props.dragging && 'opacity-40'
       )}
     >
@@ -195,8 +188,8 @@ export function GateCard(props: {
             <span>{props.eyebrow}</span>
           </div>
           <LiveTextInput
-            aria-label="Screener title"
-            placeholder="Untitled screener"
+            aria-label="Gate title"
+            placeholder="Untitled gate"
             value={props.title}
             maxlength={200}
             class="h-8 w-full rounded-md border border-transparent bg-transparent px-1.5 text-base font-semibold text-ink outline-none placeholder:text-ink-placeholder hover:border-edge-muted focus:border-edge-focus focus:bg-input"
@@ -213,10 +206,10 @@ export function GateCard(props: {
           >
             <span class="flex-1">
               {props.brokenRules === 1
-                ? 'A rule checks a question that is no longer before this screener. Responses are refused until it is fixed.'
-                : `${props.brokenRules} rules check questions that are no longer before this screener. Responses are refused until they are fixed.`}
+                ? 'A rule checks a question that is no longer before this gate. Responses are refused until it is fixed.'
+                : `${props.brokenRules} rules check questions that are no longer before this gate. Responses are refused until they are fixed.`}
             </span>
-            <Button variant="outline" size="sm" onClick={props.onRepair}>
+            <Button variant="secondary" size="sm" onClick={props.onRepair}>
               Remove broken rules
             </Button>
           </div>
@@ -225,8 +218,8 @@ export function GateCard(props: {
           when={!props.noQuestionsBefore}
           fallback={
             <p class="rounded-lg border border-edge-muted bg-surface px-3 py-2 text-xs text-ink-muted">
-              A screener checks answers from the sections before it. Move it
-              below a section with questions to add rules.
+              A gate checks answers from the sections before it. Move it below a
+              section with questions to add rules.
             </p>
           }
         >
@@ -248,7 +241,7 @@ export function GateCard(props: {
             when={props.editingRules}
             fallback={
               <Button
-                variant="outline"
+                variant="secondary"
                 size="md"
                 class="self-start"
                 onClick={props.onEditRules}

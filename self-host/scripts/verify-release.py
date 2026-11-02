@@ -19,7 +19,6 @@ SELF_HOST = ROOT / "self-host"
 
 REQUIRED_IMAGES = [
     "macro-services-email",
-    "macro-scheduled-action",
     "macro-init-email",
     "macro-web",
     "macro-caddy",
@@ -48,9 +47,11 @@ def verify_caddyfile(caddy_text: str) -> list[str]:
     for m in mock_pattern.finditer(caddy_text):
         errors.append(f"Fake 200 mock detected in Caddyfile: {m.group(0).strip()}")
 
-    # Check that scheduled-action route exists and proxies to scheduled-action-service:8080
-    if not re.search(r'handle_path\s+/scheduled-action/\*\s*\{\s*reverse_proxy\s+scheduled-action-service:8080\s*\}', caddy_text):
-        errors.append("Caddyfile missing canonical reverse_proxy to scheduled-action-service:8080")
+    # Check that cognition and scheduled-action routes preserve path prefix and proxy to agent-harness-service:8080
+    if not re.search(r'@cognition\s+path\s+/cognition\s+/cognition/\*\s*handle\s+@cognition\s*\{[^}]*reverse_proxy\s+agent-harness-service:8080', caddy_text, re.S):
+        errors.append("Caddyfile missing canonical non-stripping @cognition route to agent-harness-service:8080")
+    if not re.search(r'@scheduled_action\s+path\s+/scheduled-action\s+/scheduled-action/\*\s*handle\s+@scheduled_action\s*\{\s*reverse_proxy\s+agent-harness-service:8080\s*\}', caddy_text, re.S):
+        errors.append("Caddyfile missing canonical non-stripping @scheduled_action route to agent-harness-service:8080")
 
     # Check @sync route exists and proxies to sync-service:8787 with Origin rewrite
     if not re.search(r'@sync\s+path\s+/sync\s+/sync/\*\s*handle\s+@sync\s*\{[^}]*reverse_proxy\s+sync-service:8787', caddy_text, re.S):
@@ -63,11 +64,20 @@ def verify_caddyfile(caddy_text: str) -> list[str]:
 def verify_compose(compose_text: str, caddy_text: str) -> list[str]:
     errors = []
     agents_match = re.search(r'^  agent_harness_service:\n(.*?)(?=^  \w|\Z)', compose_text, re.M | re.S)
-    if not agents_match or 'profiles: ["agents"]' not in agents_match.group(1):
-        errors.append("agent_harness_service must remain isolated behind the agents profile")
+    if not agents_match:
+        errors.append("agent_harness_service definition missing from docker-compose.yml")
+    else:
+        agents_body = agents_match.group(1)
+        if "profiles:" in agents_body:
+            errors.append("agent_harness_service must not be restricted by profiles in docker-compose.yml")
+        if "docker.sock" in agents_body or "user: root" in agents_body:
+            errors.append("agent_harness_service must not mount docker.sock or run as root in production docker-compose.yml")
+        for alias in ("agent-harness-service", "document-cognition-service", "scheduled-action-service"):
+            if alias not in agents_body:
+                errors.append(f"agent_harness_service missing network alias '{alias}'")
     env_example = (SELF_HOST / ".env.example").read_text()
-    if not re.search(r'^COMPOSE_PROFILES=.*\bagents\b', env_example, re.M):
-        errors.append(".env.example must enable the agents Compose profile when Agent capability is enabled")
+    if re.search(r'^DEV_DANGEROUS_LOCAL_CONTAINERS=true', env_example, re.M):
+        errors.append(".env.example must keep DEV_DANGEROUS_LOCAL_CONTAINERS=false in production")
     # Find all reverse_proxy targets in Caddyfile: host:port
     proxy_targets = re.findall(r'reverse_proxy\s+([a-zA-Z0-9_-]+):(\d+)', caddy_text)
     
@@ -80,17 +90,6 @@ def verify_compose(compose_text: str, caddy_text: str) -> list[str]:
         svc_pattern = re.compile(r'^  ' + re.escape(host) + r':(?:\s|$)', re.M)
         if not alias_pattern.search(compose_text) and not svc_pattern.search(compose_text):
             errors.append(f"Caddyfile proxies to '{host}:{port}', but '{host}' is neither a service name nor a network alias in docker-compose.yml")
-
-    # Check scheduled_action_service is standard (no profiles: ["full"])
-    sched_match = re.search(r'^\s\sscheduled_action_service:\n(.*?)(?=^\s\s\w|\Z)', compose_text, re.M | re.S)
-    if not sched_match:
-        errors.append("scheduled_action_service definition missing from docker-compose.yml")
-    else:
-        sched_body = sched_match.group(1)
-        if 'profiles: ["full"]' in sched_body or "profiles:" in sched_body:
-            errors.append("scheduled_action_service must not be restricted by profiles in docker-compose.yml")
-        if "scheduled-action-service" not in sched_body:
-            errors.append("scheduled_action_service missing network alias 'scheduled-action-service'")
 
     # Check caddy binds release-owned ./Caddyfile
     caddy_match = re.search(r'^\s\scaddy:\n(.*?)(?=^\s\s\w|\Z)', compose_text, re.M | re.S)

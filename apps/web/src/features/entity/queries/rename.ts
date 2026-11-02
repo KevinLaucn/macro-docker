@@ -1,20 +1,27 @@
+import { renameDatabase } from '@block-database/queries/rename-database';
 import { renameItem } from '@core/component/FileList/itemOperations';
 import { toast } from '@core/component/Toast/Toast';
 import {
   enableGraphqlSoup,
   isFeatureEnabled,
 } from '@core/constant/featureFlags';
+import { fireAndForget } from '@core/util/fireAndForget';
+import { optimisticMutationDispositionOf } from '@graphql-cache/exchange/optimistic';
 import { renameAgentSession } from '@queries/agent-session/entity-mutations';
 import { callKeys } from '@queries/call/keys';
 import { channelKeys } from '@queries/channel/keys';
 import { queryClient } from '@queries/client';
 import { setHistoryItemName } from '@queries/history/history';
+import { historyKeys } from '@queries/history/keys';
 import { setPreviewName } from '@queries/preview';
+import { refreshActiveGraphqlPreviewQueries } from '@queries/preview/active-queries';
 import {
   getSoupEntityById,
   optimisticUpdateSoupEntity,
   type SoupTransaction,
 } from '@queries/soup/cache';
+import { refreshActiveGraphqlSoupQueries } from '@queries/soup/graphql/active-queries';
+import { soupKeys } from '@queries/soup/keys';
 import { ownTouchStamp } from '@queries/soup/normalized-cache/own-touch';
 import { type MutationCallbacks, withCallbacks } from '@queries/utils';
 import type { CallRecord } from '@service-call/client';
@@ -27,7 +34,10 @@ import {
   type RenameEntitiesMutation,
   type RenameEntitiesMutationVariables,
 } from '@service-storage/graphql/generated/graphql';
-import { getEntityGraphqlClient } from '@service-storage/graphql-soup';
+import {
+  getEntityGraphqlClient,
+  getGraphqlCacheHost,
+} from '@service-storage/graphql-soup';
 import { useMutation } from '@tanstack/solid-query';
 import type { EntityData } from '../types/entity';
 
@@ -41,6 +51,7 @@ type EntityRenameOperation = {
 
 type EntityRenameOperationResult = {
   success: boolean;
+  queued?: boolean;
 };
 
 // Keyed by the full entity identity so heterogeneous or duplicate IDs cannot
@@ -53,7 +64,7 @@ type RenameRollbackContext = {
 
 type EntityRenameData = {
   id: string;
-  itemType: ItemType;
+  itemType: EntityData['type'];
   oldName: string;
   newName: string;
 };
@@ -100,8 +111,8 @@ const getEntityRenameData = (
   // Reminders aren't either — the entity-mutation router rejects them, and a
   // reminder's name is its description, edited through the reminders API.
   // Calendar event titles are edited through the calendar mutation API.
-  // Databases are renamed by the database block's `renameDatabase`, which owns
-  // the schema cache it updates; forms by the form block's `renameForm`.
+  // Databases go through `renameDatabase` (not Soup optimism); forms through
+  // `renameForm` on the form block.
   if (
     entity.type === 'crm_company' ||
     entity.type === 'crm_contact' ||
@@ -121,6 +132,20 @@ const getEntityRenameData = (
 };
 
 const performEntityRename = async (operation: EntityRenameOperation) => {
+  if (operation.entity.type === 'database') {
+    if (operation.newName.trim() === operation.entity.name) {
+      return { success: true };
+    }
+    const renamed = await renameDatabase(
+      getEntityGraphqlClient(),
+      operation.entity.id,
+      operation.newName
+    );
+    if (renamed.isErr()) {
+      console.error('Failed to rename database', renamed.error);
+    }
+    return { success: renamed.isOk() };
+  }
   const data = getEntityRenameData(operation);
   if (!data) return { success: false };
   if (data.itemType === 'agent_session') {
@@ -161,17 +186,88 @@ async function performGraphqlRenames(
       displayName: newName,
     };
   });
-  const result = await getEntityGraphqlClient()
-    .mutation<RenameEntitiesMutation, RenameEntitiesMutationVariables>(
-      RenameEntitiesDocument,
-      { inputs }
-    )
-    .toPromise();
-  if (result.error) throw result.error;
-  if (!result.data) throw new Error('GraphQL rename returned no data');
-  return result.data.renameEntities.results.map((result) => ({
-    success: result.__typename === 'GraphqlMutationSuccess',
-  }));
+  const uuid = crypto.randomUUID();
+  const settlement = observeRenameSettlement(uuid, operations);
+  let queued = false;
+  try {
+    const result = await getEntityGraphqlClient()
+      .mutation<RenameEntitiesMutation, RenameEntitiesMutationVariables>(
+        RenameEntitiesDocument,
+        { inputs },
+        { optimisticMutation: { uuid } }
+      )
+      .toPromise();
+    const disposition = optimisticMutationDispositionOf(result);
+    if (disposition?.kind === 'queued') {
+      queued = true;
+      return operations.map(() => ({ success: true, queued: true }));
+    }
+    if (disposition?.kind === 'permanently-failed') throw disposition.error;
+    if (result.error) throw result.error;
+    if (!result.data) throw new Error('GraphQL rename returned no data');
+    return result.data.renameEntities.results.map((result) => ({
+      success: result.__typename === 'GraphqlMutationSuccess',
+    }));
+  } finally {
+    if (!queued) settlement.complete();
+  }
+}
+
+/** Legacy readers refetch confirmed state; the normalized layer owns optimism. */
+function observeRenameSettlement(
+  uuid: string,
+  operations: EntityRenameOperation[]
+) {
+  const host = getGraphqlCacheHost();
+  let finished = false;
+  let unsubscribe: (() => void) | undefined;
+  let unsubscribeReset: (() => void) | undefined;
+  const dispose = () => {
+    unsubscribe?.();
+    unsubscribeReset?.();
+  };
+  const refresh = async () => {
+    const requests = [
+      queryClient.invalidateQueries({ queryKey: historyKeys.list.queryKey }),
+      queryClient.invalidateQueries({ queryKey: soupKeys._def }),
+    ];
+    if (operations.some(({ entity }) => entity.type === 'channel'))
+      requests.push(
+        queryClient.invalidateQueries({
+          queryKey: channelKeys.listChannels.queryKey,
+        })
+      );
+    for (const { entity } of operations) {
+      if (entity.type === 'call')
+        requests.push(
+          queryClient.invalidateQueries({
+            queryKey: callKeys.record(entity.id).queryKey,
+          })
+        );
+      if (!host || host.disabled)
+        requests.push(refreshActiveGraphqlPreviewQueries(entity.id));
+    }
+    if (!host || host.disabled)
+      requests.push(refreshActiveGraphqlSoupQueries());
+    await Promise.allSettled(requests);
+  };
+  const complete = () => {
+    if (finished) return;
+    finished = true;
+    dispose();
+    fireAndForget(refresh(), 'entity-rename');
+  };
+  unsubscribe = host?.onMutationSettled((settlement) => {
+    if (settlement.mutationUuid === uuid && settlement.status !== 'superseded')
+      complete();
+  });
+  unsubscribeReset = host?.onCacheGenerationChanged((change) => {
+    if (change.storage === 'reset') {
+      finished = true;
+      dispose();
+    }
+  });
+  return { complete };
 }
 
 const validateEntityRename = (entity: RenamableEntity): void => {
@@ -187,6 +283,7 @@ const validateEntityRename = (entity: RenamableEntity): void => {
     case 'chat':
     case 'project':
     case 'call':
+    case 'database':
       return;
     case 'foreign':
       throw new Error('Foreign entities do not support renaming');
@@ -307,6 +404,13 @@ const renameHistorySetData = (entities: EntityRenameOptimisticInfo[]) => {
 function performOptimisticRenameUpdates(
   entities: EntityRenameOptimisticInfo[]
 ): RenameRollbackContext {
+  // A durable queued write can fail after the mutation callback has returned.
+  // Only REST operations may write the legacy caches before confirmation.
+  if (isFeatureEnabled(enableGraphqlSoup))
+    entities = entities.filter(
+      ({ id, itemType, newName }) =>
+        !graphqlRenameType({ id, type: itemType, name: newName })
+    );
   renamePreviewSetData(entities);
   renameHistorySetData(entities);
   renameChannelSetData(entities);
@@ -324,11 +428,15 @@ function rollbackOptimisticRenameUpdates({
     txn.rollback();
   }
 
-  const rollbackEntities = updates.map(({ id, oldName, itemType }) => ({
-    id,
-    itemType,
-    newName: oldName,
-  }));
+  const rollbackEntities = updates
+    .filter(({ id, itemType }) =>
+      contexts.soupTransactions.has(soupTransactionKey(itemType, id))
+    )
+    .map(({ id, oldName, itemType }) => ({
+      id,
+      itemType,
+      newName: oldName,
+    }));
 
   renameHistorySetData(rollbackEntities);
   renamePreviewSetData(rollbackEntities);
@@ -433,7 +541,10 @@ const bulkRenameOnSettled = (
 
   data.forEach((result, index) => {
     if (!result.success) {
-      const update = onMutateResult.updates[index];
+      const { entity } = params[index];
+      const update = onMutateResult.updates.find(
+        ({ id, itemType }) => id === entity.id && itemType === entity.type
+      );
       if (update) {
         failedUpdates.push(update);
         const key = soupTransactionKey(update.itemType, update.id);
@@ -454,7 +565,7 @@ const bulkRenameOnSettled = (
   }
 };
 
-/** Supports channel/document/chat/project/call/agent-session rename. */
+/** Supports channel/document/chat/project/call/agent-session/database rename. */
 export function createRenameDssEntityMutation(
   callbacks?: MutationCallbacks<
     RenameDssEntityMutationData,
@@ -492,7 +603,7 @@ export function createRenameDssEntityMutation(
   }));
 }
 
-/** Supports channel/document/chat/project/call/agent-session bulk rename. */
+/** Supports channel/document/chat/project/call/agent-session/database bulk rename. */
 export function createBulkRenameDssEntityMutation() {
   return useMutation<
     BulkRenameDssEntityMutationData,

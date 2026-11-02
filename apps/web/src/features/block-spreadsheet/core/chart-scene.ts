@@ -1,83 +1,29 @@
 import { scaleLinear } from 'd3-scale';
 import { arc, pie } from 'd3-shape';
+import {
+  chartTree,
+  funnelChart,
+  ofPieChart,
+  sunburstChart,
+  treemapChart,
+} from './chart-area-scenes';
+import {
+  boxWhiskerChart,
+  histogramChart,
+  waterfallChart,
+} from './chart-axis-scenes';
 import type { ChartData, ChartPlotData, ChartSeriesData } from './chart-data';
-
-/** Shapes a chart draws, in pixels within its box; the view only paints. */
-export type ChartShape =
-  | {
-      type: 'rect';
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      fill: string;
-      tip?: string;
-    }
-  | {
-      type: 'path';
-      d: string;
-      /** Where the path's origin is drawn. */
-      translate?: [number, number];
-      fill?: string;
-      stroke?: string;
-      strokeWidth?: number;
-      opacity?: number;
-      tip?: string;
-    }
-  | {
-      type: 'circle';
-      x: number;
-      y: number;
-      r: number;
-      fill: string;
-      opacity?: number;
-      stroke?: string;
-      tip?: string;
-    }
-  | {
-      type: 'line';
-      x1: number;
-      y1: number;
-      x2: number;
-      y2: number;
-      /** Gridlines and axes use theme colors. */
-      role: 'grid' | 'axis';
-    }
-  | {
-      type: 'text';
-      x: number;
-      y: number;
-      text: string;
-      anchor: 'start' | 'middle' | 'end';
-      size: number;
-      role: 'title' | 'label';
-      baseline?: 'middle' | 'hanging' | 'auto';
-    };
-
-export type ChartScene = { shapes: ChartShape[] };
-
-const CHARACTER_WIDTH = 0.6;
-
-function truncate(text: string, width: number, size: number): string {
-  const fits = Math.max(1, Math.floor(width / (size * CHARACTER_WIDTH)));
-  return text.length > fits ? `${text.slice(0, Math.max(1, fits - 1))}…` : text;
-}
-
-/** Tick labels formatted like the series' cells: percentages, currency. */
-function tickFormat(sample: string | undefined, step: number) {
-  const digits = step >= 1 ? 0 : Math.min(4, Math.ceil(-Math.log10(step)));
-  const percent = !!sample?.trim().endsWith('%');
-  const currency = /^-?\(?([$€£¥])/.exec(sample?.trim() ?? '')?.[1];
-  const format = new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: percent ? Math.max(0, digits - 2) : digits,
-    ...(percent && { style: 'percent' }),
-  });
-  return (value: number) => {
-    const text = format.format(value);
-    if (!currency) return text;
-    return value < 0 ? `-${currency}${text.slice(1)}` : `${currency}${text}`;
-  };
-}
+import {
+  axisDomain,
+  type Box,
+  CHARACTER_WIDTH,
+  type ChartScene,
+  type ChartShape,
+  type Scale,
+  tickFormat,
+  truncate,
+} from './chart-shapes';
+import { paletteColor } from './drawingml-colors';
 
 /** The extent a value axis spans for the plots drawn on it. */
 function extent(plots: ChartPlotData[], categories: number): [number, number] {
@@ -89,14 +35,14 @@ function extent(plots: ChartPlotData[], categories: number): [number, number] {
   };
   for (const plot of plots) {
     if (plot.grouping === 'percentStacked') {
+      // Each category fills to 100% of its positive values and -100% of its
+      // negative values, so the axis always includes both ends that occur.
       see(0);
-      see(
-        plot.series.some((series) =>
-          series.values.some((value) => (value ?? 0) < 0)
-        )
-          ? -1
-          : 1
-      );
+      const values = plot.series.flatMap((series) => series.values);
+      const hasPositive = values.some((value) => (value ?? 0) > 0);
+      const hasNegative = values.some((value) => (value ?? 0) < 0);
+      if (hasPositive || !hasNegative) see(1);
+      if (hasNegative) see(-1);
       continue;
     }
     if (plot.grouping === 'stacked')
@@ -118,13 +64,7 @@ function extent(plots: ChartPlotData[], categories: number): [number, number] {
     if (plot.kind === 'column' || plot.kind === 'bar' || plot.kind === 'area')
       see(0);
   }
-  if (!Number.isFinite(low)) return [0, 1];
-  // Like Excel, an axis starts at zero unless the values sit far from it.
-  if (low > 0 && (high - low) / high >= 1 / 6) low = 0;
-  if (high < 0 && (low - high) / low >= 1 / 6) high = 0;
-  if (low === high)
-    return low === 0 ? [0, 1] : [Math.min(0, low), Math.max(0, high)];
-  return [low, high];
+  return axisDomain(low, high);
 }
 
 const sample = (plots: ChartPlotData[]) =>
@@ -165,32 +105,56 @@ export function chartScene(
   );
   const surface = data.plots.find((plot) => plot.kind === 'surface');
   const bands = surface && surfaceBands(surface, data.palette);
-  // Legend entries: slices of a pie, bands of a surface, otherwise series.
+  // Legend entries: slices of a pie, bands of a surface, branches of a
+  // tree, a waterfall's directions, otherwise series.
+  const first = data.plots[0];
+  const color = (index: number) => paletteColor(data.palette, index);
   const entries = round
     ? data.categories.map((name, index) => ({
         name,
-        color: data.palette[index % data.palette.length],
+        color: color(index),
         line: false,
       }))
     : bands
       ? bands.entries
-      : data.plots.flatMap((plot) =>
-          plot.series
-            // Prices draw as high-low lines and bars, not as their series.
-            .filter(
-              (series) =>
-                plot.kind !== 'stock' &&
-                (!series.noFill || plot.kind === 'line')
-            )
-            .map((series) => ({
-              name: series.name,
-              color: series.color,
-              line:
-                plot.kind === 'line' ||
-                plot.kind === 'scatter' ||
-                (plot.kind === 'radar' && !plot.filled),
+      : first?.kind === 'treemap' || first?.kind === 'sunburst'
+        ? chartTree(first, data).map((root, index) => ({
+            name: root.name,
+            color: color(index),
+            line: false,
+          }))
+        : first?.kind === 'waterfall'
+          ? ['Increase', 'Decrease', 'Total'].map((name, index) => ({
+              name,
+              color: color(index),
+              line: false,
             }))
-        );
+          : first?.kind === 'pareto'
+            ? [
+                ...first.series.slice(0, 1).map((series) => ({
+                  name: series.name,
+                  color: series.color,
+                  line: false,
+                })),
+                { name: 'Cumulative %', color: color(1), line: true },
+              ]
+            : data.plots.flatMap((plot) =>
+                plot.series
+                  // Prices draw as high-low lines and bars, not as their series.
+                  .filter(
+                    (series) =>
+                      plot.kind !== 'stock' &&
+                      (!series.noFill || plot.kind === 'line')
+                  )
+                  .map((series) => ({
+                    name: series.name,
+                    color: series.color,
+                    line:
+                      plot.kind === 'line' ||
+                      plot.kind === 'scatter' ||
+                      (plot.kind === 'radar' && !plot.filled),
+                  }))
+              );
   if (data.legend && entries.length) {
     const swatch = 8 * scale;
     const row = font * 1.6;
@@ -265,8 +229,38 @@ export function chartScene(
     }
   }
   if (right - left < 20 || bottom - top < 20) return { shapes };
+  const area = { top, bottom, left, right };
+  if (round?.ofPie) {
+    ofPieChart(shapes, round, data, area);
+    return { shapes };
+  }
   if (round) {
-    roundChart(shapes, round, data, { top, bottom, left, right });
+    roundChart(shapes, round, data, area);
+    return { shapes };
+  }
+  // Excel 2016's charts each fill the chart on their own.
+  if (first?.kind === 'histogram' || first?.kind === 'pareto') {
+    histogramChart(shapes, first, data, area, font, scale);
+    return { shapes };
+  }
+  if (first?.kind === 'waterfall') {
+    waterfallChart(shapes, first, data, area, font, scale);
+    return { shapes };
+  }
+  if (first?.kind === 'boxWhisker') {
+    boxWhiskerChart(shapes, first, data, area, font, scale);
+    return { shapes };
+  }
+  if (first?.kind === 'funnel') {
+    funnelChart(shapes, first, data, area, font, scale);
+    return { shapes };
+  }
+  if (first?.kind === 'treemap') {
+    treemapChart(shapes, first, data, area, font, scale);
+    return { shapes };
+  }
+  if (first?.kind === 'sunburst') {
+    sunburstChart(shapes, first, data, area, font);
     return { shapes };
   }
   const radar = data.plots.filter((plot) => plot.kind === 'radar');
@@ -293,13 +287,22 @@ export function chartScene(
   );
   const count = Math.max(1, data.categories.length);
   const valueScale = (plots: ChartPlotData[], range: [number, number]) => {
-    const scale = scaleLinear()
-      .domain(extent(plots, count))
-      .range(range)
-      .nice(5);
+    // A 100% axis is already 0–100% (and -100% when negatives occur). Nice
+    // rounding would draw ticks past the stack.
+    const percent =
+      plots.length > 0 &&
+      plots.every((plot) => plot.grouping === 'percentStacked');
+    const scale = scaleLinear().domain(extent(plots, count)).range(range);
+    if (!percent) scale.nice(5);
     const ticks = scale.ticks(5);
     const step = ticks.length > 1 ? ticks[1] - ticks[0] : 1;
-    return { scale, ticks, format: tickFormat(sample(plots), step) };
+    const format = tickFormat(sample(plots), step);
+    return {
+      scale,
+      ticks,
+      format,
+      axisFormat: percent ? tickFormat('0%', step) : format,
+    };
   };
   // Axis label space, measured with the widest tick label.
   const measure = (plots: ChartPlotData[]) => {
@@ -351,7 +354,7 @@ export function chartScene(
             type: 'text',
             x: at,
             y: bottom + font * 1.2,
-            text: values.format(tick),
+            text: values.axisFormat(tick),
             anchor: 'middle',
             size: font,
             role: 'label',
@@ -360,7 +363,7 @@ export function chartScene(
             type: 'text',
             x: left - 4 * scale,
             y: at,
-            text: values.format(tick),
+            text: values.axisFormat(tick),
             anchor: 'end',
             size: font,
             role: 'label',
@@ -377,7 +380,7 @@ export function chartScene(
         type: 'text',
         x: right + 4 * scale,
         y: secondaryValues.scale(tick),
-        text: secondaryValues.format(tick),
+        text: secondaryValues.axisFormat(tick),
         anchor: 'start',
         size: font,
         role: 'label',
@@ -503,8 +506,32 @@ function legendSwatch(
   );
 }
 
-type Box = { top: number; bottom: number; left: number; right: number };
-type Scale = ReturnType<typeof scaleLinear<number, number>>;
+/**
+ * How much of its category a value is in a 100% stack. Positive values share
+ * the positive total and negative values share the negative total, so each
+ * direction fills the axis to 100%, as Excel, Google Sheets and LibreOffice
+ * draw it.
+ */
+function percentShare(
+  raw: number,
+  mass: { positive: number; negative: number }
+): number {
+  if (raw > 0) return mass.positive ? raw / mass.positive : 0;
+  if (raw < 0) return mass.negative ? raw / Math.abs(mass.negative) : 0;
+  return 0;
+}
+
+function categoryMass(series: ChartSeriesData[], index: number) {
+  let positive = 0;
+  let negative = 0;
+  for (const item of series) {
+    const value = item.values[index];
+    if (value === null || value === undefined) continue;
+    if (value > 0) positive += value;
+    else if (value < 0) negative += value;
+  }
+  return { positive, negative };
+}
 
 function bars(
   shapes: ChartShape[],
@@ -521,18 +548,19 @@ function bars(
   const groups = stacked ? 1 : plot.series.length;
   // Excel's default gap is 150% of a bar's width.
   const barWidth = band / (groups + 1.5);
+  const masses = data.categories.map((_, index) =>
+    categoryMass(plot.series, index)
+  );
   data.categories.forEach((category, index) => {
     let positive = 0;
     let negative = 0;
-    const total = plot.series.reduce(
-      (sum, series) => sum + Math.abs(series.values[index] ?? 0),
-      0
-    );
     plot.series.forEach((series, position) => {
       const raw = series.values[index];
       if (raw === null || raw === undefined) return;
       const value =
-        plot.grouping === 'percentStacked' ? (total ? raw / total : 0) : raw;
+        plot.grouping === 'percentStacked'
+          ? percentShare(raw, masses[index])
+          : raw;
       let from = 0;
       let to = value;
       if (stacked) {
@@ -585,35 +613,45 @@ function lines(
   format: (value: number) => string,
   zoom: number
 ) {
-  const stacked =
-    plot.grouping === 'stacked' || plot.grouping === 'percentStacked';
-  const totals = data.categories.map((_, index) =>
-    plot.series.reduce(
-      (sum, series) => sum + Math.abs(series.values[index] ?? 0),
-      0
-    )
+  const percent = plot.grouping === 'percentStacked';
+  const stacked = plot.grouping === 'stacked' || percent;
+  // A stacked line or area is one running total. A 100% stack keeps
+  // positives and negatives on separate piles, the same way bars do.
+  const running = data.categories.map(() => 0);
+  const positive = data.categories.map(() => 0);
+  const negative = data.categories.map(() => 0);
+  const masses = data.categories.map((_, index) =>
+    categoryMass(plot.series, index)
   );
-  const base = data.categories.map(() => 0);
   const markers = data.categories.length <= 40;
   for (const series of plot.series) {
     const points = series.values.map((raw, index) => {
       if (raw === null) return undefined;
-      let value =
-        plot.grouping === 'percentStacked'
-          ? totals[index]
-            ? raw / totals[index]
-            : 0
+      const baseline = percent
+        ? raw >= 0
+          ? positive[index]
+          : negative[index]
+        : stacked
+          ? running[index]
+          : 0;
+      const value = percent
+        ? baseline + percentShare(raw, masses[index])
+        : stacked
+          ? baseline + raw
           : raw;
-      if (stacked) value += base[index];
-      return { x: center(index), y: scale(value), raw, index };
+      return {
+        x: center(index),
+        y: scale(value),
+        from: scale(baseline),
+        raw,
+        index,
+      };
     });
     if (plot.kind === 'area' && !series.noFill) {
       const present = points.filter((point) => point !== undefined);
       if (present.length) {
         const floor = present
-          .map(
-            (point) => `L${point.x},${scale(stacked ? base[point.index] : 0)}`
-          )
+          .map((point) => `L${point.x},${point.from}`)
           .reverse()
           .join('');
         shapes.push({
@@ -627,12 +665,14 @@ function lines(
     }
     if (stacked)
       series.values.forEach((raw, index) => {
-        base[index] +=
-          plot.grouping === 'percentStacked'
-            ? totals[index]
-              ? (raw ?? 0) / totals[index]
-              : 0
-            : (raw ?? 0);
+        if (raw === null || raw === undefined) return;
+        if (!percent) {
+          running[index] += raw;
+          return;
+        }
+        const share = percentShare(raw, masses[index]);
+        if (share >= 0) positive[index] += share;
+        else negative[index] += share;
       });
     if (plot.kind !== 'line') continue;
     // Gaps in the data break the line, as Excel shows blanks.
@@ -855,7 +895,7 @@ function roundChart(
       // Arcs are centered at the origin.
       d,
       translate: [cx, cy],
-      fill: data.palette[index % data.palette.length],
+      fill: paletteColor(data.palette, index),
       stroke: 'var(--color-surface)',
       strokeWidth: 1,
       tip: `${data.categories[index] ?? ''}: ${Math.round((slice.value / (total || 1)) * 1000) / 10}%`,
@@ -1053,7 +1093,7 @@ function surfaceBands(plot: ChartPlotData, palette: string[]) {
   return {
     entries: Array.from({ length: count }, (_, index) => ({
       name: `${format(ticks[index])}–${format(ticks[index + 1] ?? ticks[index])}`,
-      color: palette[index % palette.length],
+      color: paletteColor(palette, index),
       line: false,
     })),
     band: (value: number) => {

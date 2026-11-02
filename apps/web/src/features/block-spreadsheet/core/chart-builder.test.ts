@@ -167,6 +167,16 @@ describe('charts of cells', () => {
       { kind: 'pie', series: [chart.plots[0].series[0]] },
     ]);
     expect(chartType(withChartType(chart, 'bar-stacked')!)).toBe('bar-stacked');
+    expect(chartType(withChartType(chart, 'bar-percent')!)).toBe('bar-percent');
+    expect(chartType(withChartType(chart, 'line-stacked')!)).toBe(
+      'line-stacked'
+    );
+    expect(chartType(withChartType(chart, 'line-percent')!)).toBe(
+      'line-percent'
+    );
+    expect(chartType(withChartType(chart, 'area-percent')!)).toBe(
+      'area-percent'
+    );
   });
 
   it('plots against the first column for scatter and bubble charts', () => {
@@ -188,9 +198,12 @@ describe('charts of cells', () => {
       firstRow: true,
       firstColumn: true,
     });
-    expect(
-      chartFromLayout('scatter', 'Sheet1', layout)?.plots[0].series
-    ).toHaveLength(2);
+    const scatter = chartFromLayout('scatter', 'Sheet1', layout);
+    expect(scatter?.plots[0].series).toHaveLength(2);
+    // Points are not joined: a scatter has no order along a line.
+    expect(scatter?.plots[0].series.every((series) => series.noLine)).toBe(
+      true
+    );
     // A bubble series reads its values, then its sizes.
     const bubble = chartFromLayout(
       'bubble',
@@ -220,6 +233,9 @@ describe('charts of cells', () => {
       'A stock chart needs three or four series: high, low and close, or open, high, low and close.'
     );
     expect(chartTypeProblem('line', 2)).toBeUndefined();
+    expect(chartTypeProblem('combo', 1)).toBe(
+      'A combo chart needs at least two series: columns, and a line on the secondary axis.'
+    );
     // Open, high, low and close: bars from open to close.
     const prices = chartFromLayout('stock', 'Sheet1', layout(4));
     expect(prices?.plots[0]).toMatchObject({
@@ -241,6 +257,7 @@ describe('charts of cells', () => {
       ],
       references: ['A1:A3', 'B1:B3'],
     };
+    expect(chartType(combo)).toBe('combo');
     const radar = withChartType(combo, 'radar-filled');
     expect(radar?.plots).toEqual([
       { kind: 'radar', filled: true, series: [{ values: 0 }, { values: 1 }] },
@@ -273,5 +290,159 @@ describe('charts of cells', () => {
     ]);
     // As lines again, the series draw their lines.
     expect(withChartType(stock!, 'line')?.plots).toEqual(lines.plots);
+    // A scatter's markers become a line again, and a combo splits the series.
+    const marked = withChartType(lines, 'scatter');
+    expect(marked?.plots[0].series.every((series) => series.noLine)).toBe(true);
+    expect(withChartType(marked!, 'line')?.plots).toEqual(lines.plots);
+    const built = chartFromLayout('combo', 'Sheet1', {
+      range: { top: 0, left: 0, bottom: 3, right: 2 },
+      orientation: 'columns',
+      firstRow: true,
+      firstColumn: true,
+    });
+    expect(chartType(built!)).toBe('combo');
+    expect(built?.plots).toMatchObject([
+      { kind: 'column', series: [{}] },
+      { kind: 'line', secondary: true, series: [{}] },
+    ]);
+    expect(withChartType(lines, 'combo')?.plots).toEqual([
+      { kind: 'column', series: [{ values: 0 }, { values: 1 }] },
+      { kind: 'line', secondary: true, series: [{ values: 2 }] },
+    ]);
+  });
+});
+
+describe("Excel 2016's charts and pie of pie", () => {
+  const scores = sheet([['Score'], [52], [58], [61], [63], [67]]);
+  const defects = sheet([
+    ['Cause', 'Count'],
+    ['Scratches', 40],
+    ['Dents', 10],
+    ['Chips', 30],
+  ]);
+  const stores = sheet([
+    ['Region', 'Store', 'Sales'],
+    ['North', 'Downtown', 30],
+    [undefined, 'Airport', 20],
+    ['South', 'Harbor', 25],
+    ['West', undefined, 10],
+  ]);
+
+  it('bins a column of numbers, and sums labeled values by category', () => {
+    const range = { top: 0, left: 0, bottom: 5, right: 0 };
+    expect(
+      chartFromLayout(
+        'histogram',
+        'Data',
+        guessLayout(range, scores.value, 'histogram')
+      )
+    ).toEqual({
+      plots: [{ kind: 'histogram', series: [{ nameRef: 0, values: 1 }] }],
+      references: ["'Data'!$A$1", "'Data'!$A$2:$A$6"],
+    });
+    const labeled = { top: 0, left: 0, bottom: 3, right: 1 };
+    expect(
+      chartFromLayout(
+        'pareto',
+        'Data',
+        guessLayout(labeled, defects.value, 'pareto')
+      )?.plots
+    ).toEqual([
+      {
+        kind: 'pareto',
+        aggregate: true,
+        series: [{ nameRef: 0, categories: 1, values: 2 }],
+      },
+    ]);
+  });
+
+  it('labels waterfall and funnel bars, and legends the waterfall', () => {
+    const layout = guessLayout(
+      { top: 0, left: 0, bottom: 3, right: 1 },
+      defects.value,
+      'waterfall'
+    );
+    expect(chartFromLayout('waterfall', 'Data', layout)).toMatchObject({
+      legend: 'top',
+      plots: [{ kind: 'waterfall', labels: true }],
+    });
+    expect(chartFromLayout('funnel', 'Data', layout)?.plots).toEqual([
+      {
+        kind: 'funnel',
+        labels: true,
+        series: [{ nameRef: 0, categories: 1, values: 2 }],
+      },
+    ]);
+  });
+
+  it('reads every column before the values as a level of a treemap or sunburst', () => {
+    const range = { top: 0, left: 0, bottom: 4, right: 2 };
+    const layout = guessLayout(range, stores.value, 'treemap');
+    expect(layout).toEqual({
+      range,
+      orientation: 'columns',
+      firstRow: true,
+      firstColumn: true,
+    });
+    const treemap = chartFromLayout('treemap', 'Data', layout);
+    expect(treemap).toEqual({
+      legend: 'right',
+      plots: [
+        {
+          kind: 'treemap',
+          series: [{ nameRef: 0, categories: 1, values: 2 }],
+        },
+      ],
+      references: ["'Data'!$C$1", "'Data'!$A$2:$B$5", "'Data'!$C$2:$C$5"],
+    });
+    // The chart's cells read back as the same block.
+    expect(treemap && chartLayout(treemap, 'Data')).toEqual({
+      sheet: 'Data',
+      layout,
+    });
+    expect(
+      chartFromLayout('sunburst', 'Data', layout)?.plots[0].series
+    ).toEqual([{ nameRef: 0, categories: 1, values: 2 }]);
+  });
+
+  it('switches among pie of pie, bar of pie and other types', () => {
+    const layout = guessLayout(
+      { top: 0, left: 0, bottom: 3, right: 1 },
+      defects.value
+    );
+    const ofPie = chartFromLayout('pie-of-pie', 'Data', layout);
+    expect(ofPie?.plots).toEqual([
+      {
+        kind: 'pie',
+        ofPie: { type: 'pie' },
+        series: [{ nameRef: 0, categories: 1, values: 2 }],
+      },
+    ]);
+    if (!ofPie) throw new Error('Expected a chart.');
+    expect(chartType(ofPie)).toBe('pie-of-pie');
+    const bar = withChartType(ofPie, 'bar-of-pie');
+    expect(bar && chartType(bar)).toBe('bar-of-pie');
+    const pie = withChartType(ofPie, 'pie');
+    expect(pie?.plots[0]).toEqual({
+      kind: 'pie',
+      series: [{ nameRef: 0, categories: 1, values: 2 }],
+    });
+    // A labeled column chart becomes a histogram of its categories.
+    const columns = chartFromLayout('column', 'Data', layout);
+    const histogram = columns && withChartType(columns, 'histogram');
+    expect(histogram?.plots).toEqual([
+      {
+        kind: 'histogram',
+        aggregate: true,
+        series: [{ nameRef: 0, categories: 1, values: 2 }],
+      },
+    ]);
+    expect(histogram && chartType(histogram)).toBe('histogram');
+    expect(
+      chartType({
+        plots: [{ kind: 'boxWhisker', quartiles: 'inclusive', series: [] }],
+        references: [],
+      })
+    ).toBe('box-whisker');
   });
 });

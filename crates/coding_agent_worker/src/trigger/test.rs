@@ -75,6 +75,7 @@ fn mention(content: &str) -> AgentTriggerTopicEvent {
         AgentBotMentionedEvent {
             bot_id: bot_id::BotId::TEST_A,
             message: message(content, None),
+            context: None,
         },
     ))
 }
@@ -85,6 +86,7 @@ fn follow_up(content: &str) -> AgentTriggerTopicEvent {
         session_id: test_session(),
         kind: ThreadMessageKind::MentionThread,
         message: message(content, Some(Uuid::from_u128(7))),
+        context: None,
     }))
 }
 
@@ -96,6 +98,7 @@ fn document_triggers_become_work_on_the_document() {
         AgentTriggerTopicEvent::New(NewAgentSessionEvent::Mentioned(AgentMentionedEvent {
             bot_id: bot_id::BotId::TEST_A,
             message: document_message("summarize this", None),
+            context: None,
         }));
     assert_eq!(
         trigger_to_work(opened).expect("a document mention is work"),
@@ -107,6 +110,7 @@ fn document_triggers_become_work_on_the_document() {
             thread_id: Uuid::from_u128(2),
             message_id: Uuid::from_u128(2),
             content: "summarize this".to_owned(),
+            context: None,
         }
     );
     let followed =
@@ -115,13 +119,16 @@ fn document_triggers_become_work_on_the_document() {
             session_id: test_session(),
             kind: ThreadMessageKind::Inferred,
             message: document_message("and this", Some(Uuid::from_u128(7))),
+            context: None,
         }));
     assert_eq!(
         trigger_to_work(followed).expect("a document follow-up is work"),
         TriggerWork::PromptExisting {
+            message_id: Uuid::from_u128(2),
             session: test_session(),
             sender: sender(),
             content: "and this".to_owned(),
+            context: None,
         }
     );
 }
@@ -135,6 +142,7 @@ fn a_task_assignment_opens_and_prompts_in_the_task_discussion() {
             discussion_id: Uuid::from_u128(2),
             actor: sender(),
             prompt: "Complete the assigned task".to_owned(),
+            context: None,
         },
     ));
     assert_eq!(
@@ -147,6 +155,7 @@ fn a_task_assignment_opens_and_prompts_in_the_task_discussion() {
             thread_id: Uuid::from_u128(2),
             message_id: Uuid::from_u128(2),
             content: "Complete the assigned task".to_owned(),
+            context: None,
         }
     );
 }
@@ -164,6 +173,7 @@ fn a_mention_becomes_open_and_prompt_rooting_its_own_thread() {
             thread_id: Uuid::from_u128(2),
             message_id: Uuid::from_u128(2),
             content: "fix the test".to_owned(),
+            context: None,
         }
     );
 }
@@ -174,15 +184,17 @@ fn a_follow_up_becomes_prompt_existing() {
     assert_eq!(
         work,
         TriggerWork::PromptExisting {
+            message_id: Uuid::from_u128(2),
             session: test_session(),
             sender: sender(),
             content: "keep going".to_owned(),
+            context: None,
         }
     );
 }
 
 #[test]
-fn a_bots_own_message_is_skipped() {
+fn an_unattributed_bot_message_is_skipped() {
     let mut event = mention("self talk");
     if let AgentTriggerTopicEvent::New(NewAgentSessionEvent::TopLevelMentioned(mentioned)) =
         &mut event
@@ -271,5 +283,27 @@ async fn failed_work_is_returned() {
         handle_event(Event::new(mention("fix it")), &executor)
             .await
             .is_err()
+    );
+}
+
+#[test]
+fn attributed_bot_mentions_open_and_prompt_with_the_invoking_user() {
+    let mut open = mention("fix the test");
+    if let AgentTriggerTopicEvent::New(NewAgentSessionEvent::TopLevelMentioned(event)) = &mut open {
+        event.message.sender = ChannelSender::new_from_bot(bot_id::MACRO_NEW_BOT_ID);
+        event.message.triggered_by = Some(sender().to_string());
+    }
+    assert!(
+        matches!(trigger_to_work(open).unwrap(), TriggerWork::OpenAndPrompt { sender: actor, .. } if actor == sender())
+    );
+    let mut follow_up = follow_up("continue");
+    if let AgentTriggerTopicEvent::Existing(ExistingAgentSessionEvent::Channel(event)) =
+        &mut follow_up
+    {
+        event.message.sender = ChannelSender::new_from_bot(bot_id::MACRO_NEW_BOT_ID);
+        event.message.triggered_by = Some(sender().to_string());
+    }
+    assert!(
+        matches!(trigger_to_work(follow_up).unwrap(), TriggerWork::PromptExisting { sender: actor, .. } if actor == sender())
     );
 }
