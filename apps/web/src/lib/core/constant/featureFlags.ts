@@ -506,7 +506,7 @@ export const enableEmailSignatures = defineFlag({
 export const enableEmailReadReceipts = defineFlag({
   key: 'enable-email-read-receipts',
   env: 'ENABLE_EMAIL_READ_RECEIPTS',
-  default: onInDev,
+  default: false,
 });
 
 // CRM companies & contacts frontend: the Companies view + sidebar entry, the
