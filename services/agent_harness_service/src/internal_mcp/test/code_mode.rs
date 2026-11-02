@@ -101,6 +101,7 @@ async fn authenticated_mcp_runs_javascript_and_persists_source_and_result(pool: 
             cognition: None,
             reviews: Arc::new(std::sync::OnceLock::new()),
             gate: Arc::new(agent_inmem::domain::tool_gate::UngatedNativeTools),
+            app_url: "https://macro.com".into(),
         },
     );
     assert_eq!(
@@ -116,7 +117,11 @@ async fn authenticated_mcp_runs_javascript_and_persists_source_and_result(pool: 
         .iter()
         .map(|tool| tool["name"].as_str().unwrap())
         .collect();
-    assert!(names.contains(&"ExecuteCode") && names.contains(&"DescribeCodeTools"));
+    assert!(
+        ["ExecuteCode", "DescribeCodeTools", "ReadCodeDocs"]
+            .iter()
+            .all(|name| names.contains(name))
+    );
     let (_, docs) = rpc(
         app.clone(),
         Some("session-secret"),
@@ -131,10 +136,25 @@ async fn authenticated_mcp_runs_javascript_and_persists_source_and_result(pool: 
     let doc = &docs["result"]["structuredContent"]["tools"][0];
     assert_eq!(doc["name"], "documents");
     assert!(
-        doc["documentation"]
+        doc["index"]
             .as_str()
             .unwrap()
-            .contains("Class: DocumentNamespace")
+            .contains("### DocumentNamespace (`macro.documents`)")
+    );
+    let (_, read) = rpc(
+        app.clone(),
+        Some("session-secret"),
+        "tools/call",
+        json!({"name": "ReadCodeDocs", "arguments": {"symbols": ["DocumentNamespace.search"]}}),
+    )
+    .await;
+    let reference = &read["result"]["structuredContent"]["references"][0];
+    assert_eq!(reference["symbol"], "DocumentNamespace.search");
+    assert!(
+        reference["reference"]
+            .as_str()
+            .unwrap()
+            .starts_with("### search()")
     );
     let (_, guides) = rpc(
         app.clone(),

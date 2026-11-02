@@ -1,5 +1,5 @@
 import type { ListView } from '@app/constants/list-views';
-import { t } from '@macro/i18n';
+import { type TranslationKey, t } from '@app/lib/i18n';
 import type { TabOption } from '@ui';
 
 /** Views that have tab definitions. Shared between VIEW_TAB_LISTS and VIEW_TAB_PRESETS. */
@@ -15,55 +15,57 @@ export type TabbedListView = Extract<
   | 'folders'
 >;
 
+/** A tab whose label is translated each time it renders; `value` stays an English id. */
+const tab = (value: string, key: TranslationKey): TabOption<string> => ({
+  value,
+  get label() {
+    return t(key);
+  },
+});
+
 /** Tab definitions for each list view. */
 export const VIEW_TAB_LISTS: Record<TabbedListView, TabOption<string>[]> = {
   home: [
-    { value: 'signal', label: t('Signal') },
-    { value: 'noise', label: t('Noise') },
-    { value: 'all', label: t('All') },
+    tab('signal', 'viewMenus.signal'),
+    tab('noise', 'viewMenus.noise'),
+    tab('all', 'viewMenus.all'),
     // Hidden from every tab surface for unflagged users (see
     // `useVisibleViewTabs`); listed here so the tab/preset consistency tests
     // still cover it.
   ],
   agents: [
-    { value: 'owned', label: t('Owned') },
-    { value: 'running', label: t('Running') },
-    { value: 'shared', label: t('Shared') },
-    { value: 'routines', label: t('Routines') },
-    { value: 'skills', label: t('Skills') },
+    tab('owned', 'viewMenus.owned'),
+    tab('running', 'viewMenus.running'),
+    tab('shared', 'viewMenus.shared'),
+    tab('routines', 'viewMenus.routines'),
+    tab('skills', 'viewMenus.skills'),
   ],
   mail: [
-    { value: 'important', label: t('Signal') },
-    { value: 'noise', label: t('Noise') },
-    { value: 'sent', label: t('Sent') },
-    { value: 'calendar', label: t('Calendar') },
-    { value: 'drafts', label: t('Drafts') },
-    { value: 'shared', label: t('Shared') },
-    { value: 'all', label: t('All') },
+    tab('important', 'viewMenus.signal'),
+    tab('noise', 'viewMenus.noise'),
+    tab('sent', 'viewMenus.sent'),
+    tab('calendar', 'viewMenus.calendar'),
+    tab('drafts', 'viewMenus.drafts'),
+    tab('shared', 'viewMenus.shared'),
+    tab('all', 'viewMenus.all'),
   ],
   documents: [
-    { value: 'owned', label: t('Owned') },
-    { value: 'shared', label: t('Shared') },
-    { value: 'attachments', label: t('Attachments') },
-    { value: 'folders', label: t('Folders') },
-    { value: 'all', label: t('All') },
+    tab('owned', 'viewMenus.owned'),
+    tab('shared', 'viewMenus.shared'),
+    tab('attachments', 'viewMenus.attachments'),
+    tab('folders', 'viewMenus.folders'),
+    tab('all', 'viewMenus.all'),
   ],
-  tasks: [
-    { value: 'my-tasks', label: t('My tasks') },
-    { value: 'all', label: t('All') },
-  ],
+  tasks: [tab('my-tasks', 'viewMenus.myTasks'), tab('all', 'viewMenus.all')],
   channels: [
-    { value: 'recent', label: t('Recent') },
-    { value: 'people', label: t('People') },
-    { value: 'teams', label: t('Teams') },
+    tab('recent', 'viewMenus.recent'),
+    tab('people', 'viewMenus.people'),
+    tab('teams', 'viewMenus.teams'),
   ],
   calls: [
-    { value: 'all', label: t('All') },
-    { value: 'missed', label: t('Missed') },
-    { value: 'unattended', label: t('Unattended') },
+    tab('all', 'viewMenus.all'),
+    tab('missed', 'viewMenus.missed'),
+    tab('unattended', 'viewMenus.unattended'),
   ],
-  folders: [
-    { value: 'owned', label: t('Owned') },
-    { value: 'all', label: t('All') },
-  ],
+  folders: [tab('owned', 'viewMenus.owned'), tab('all', 'viewMenus.all')],
 };

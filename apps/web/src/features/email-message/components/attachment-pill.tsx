@@ -1,7 +1,7 @@
 import { EntityIcon } from '@core/component/EntityIcon';
 import { AdobeAttachmentBadge } from '@macro/adobe-preview';
 import { t } from '@macro/i18n';
-import X from '@phosphor/x.svg';
+import X from '@icon/system/regular/x.svg';
 import { FileTypeMap } from '@service-storage/fileTypeMap';
 import { Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';

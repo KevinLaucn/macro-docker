@@ -1,20 +1,20 @@
-import { t } from '@macro/i18n';
-
 /** The record types the CRM sidebar lists; ids are workspace tabs. */
 export const CRM_RECORDS = [
-  { id: 'active', label: t('Companies', 'crm') },
-  { id: 'people', label: t('People', 'crm') },
+  { id: 'active', label: 'Companies' },
+  { id: 'people', label: 'People' },
 ] as const;
 
 /** Workspace feeds scoped to CRM-linked content, rather than one record. */
 export const CRM_ACTIVITY_TABS = [
-  { id: 'tasks', label: t('Tasks', 'crm') },
-  { id: 'email', label: t('Email', 'crm') },
-  { id: 'notes', label: t('Notes', 'crm') },
-  { id: 'calls', label: t('Calls', 'crm') },
+  { id: 'tasks', label: 'Tasks' },
+  { id: 'email', label: 'Email' },
+  { id: 'notes', label: 'Notes' },
+  { id: 'calls', label: 'Calls' },
+  { id: 'databases', label: 'Databases' },
 ] as const;
 
 export type CrmActivityTab = (typeof CRM_ACTIVITY_TABS)[number]['id'];
+export type CrmSoupActivityTab = Exclude<CrmActivityTab, 'databases'>;
 
 export function isCrmActivityTab(value: string): value is CrmActivityTab {
   return CRM_ACTIVITY_TABS.some((tab) => tab.id === value);

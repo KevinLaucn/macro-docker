@@ -32,6 +32,8 @@ function setup(
   options: {
     world?: Partial<FakeOnboardingWorld>;
     resume?: OnboardingStep;
+    /** Raw `?step` value, including unknown names. */
+    step?: string;
     next?: string;
     checkoutReturn?: CheckoutReturn;
   } = {}
@@ -44,6 +46,7 @@ function setup(
     () => (
       <OnboardingFlowView
         next={options.next}
+        step={options.step}
         checkoutReturn={options.checkoutReturn}
         onNavigate={navigate}
         onRedirect={redirect}
@@ -134,12 +137,138 @@ describe('onboarding flow', () => {
     await heading('Connect your tools.');
   });
 
+  it('requires a team for a work domain and lets the creator close it to the domain', async () => {
+    const { fake } = setup({ resume: 'team' });
+    await heading('Built for teams.');
+    await screen.findByDisplayValue('Acme');
+
+    expect(screen.queryByRole('button', { name: 'Skip for now' })).toBeNull();
+    const domainJoin = screen.getByRole('switch', {
+      name: 'Allow @acme.com emails to join',
+    });
+    expect((domainJoin as HTMLInputElement).checked).toBe(true);
+
+    fireEvent.click(domainJoin);
+    click('Create team & invite 2');
+    await waitFor(() =>
+      expect(fake.calls()).toContain(
+        'createTeam:Acme:grace@acme.com,alan@acme.com:closed'
+      )
+    );
+  });
+
+  it('lets personal-domain accounts skip the team without a domain switch', async () => {
+    setup({
+      resume: 'team',
+      world: { record: { status: 'active', suggestedTeamDomain: undefined } },
+    });
+    await heading('Built for teams.');
+    await screen.findByRole('button', { name: 'Skip for now' });
+    expect(screen.queryByRole('switch')).toBeNull();
+  });
+
+  it('opens a step link on that step and records it as the entry', async () => {
+    const { fake } = setup({
+      step: 'plan',
+      world: {
+        emailAccounts: [
+          {
+            address: 'ada@acme.com',
+            isPrimary: true,
+            ownerId: FAKE_VIEWER_ID,
+          },
+        ],
+      },
+    });
+    await heading('Free Claude & GPT for 30 days.');
+    expect(
+      screen.getByRole('button', { name: 'Start 30 day trial' })
+    ).toBeTruthy();
+    expect(fake.events()).toContainEqual({
+      event: 'onboarding_v4_started',
+      data: { signup_method: 'google', entry_step: 'plan' },
+    });
+  });
+
+  it('shows a connected work inbox when the link opens that step', async () => {
+    setup({
+      step: 'work',
+      world: {
+        emailAccounts: [
+          {
+            address: 'ada@acme.com',
+            isPrimary: true,
+            ownerId: FAKE_VIEWER_ID,
+          },
+        ],
+      },
+    });
+    await heading(/Connect your work/);
+    expect(screen.getByText('Work email connected')).toBeTruthy();
+    expect(screen.getByText('ada@acme.com')).toBeTruthy();
+  });
+
+  it('ignores an unknown step link and starts at welcome', async () => {
+    setup({ step: 'not-a-step' });
+    await heading('Create your workspace');
+    expect(readSavedStep(FAKE_VIEWER_ID)).toBe('welcome');
+  });
+
+  it('prefers saved progress over the step link', async () => {
+    setup({ resume: 'team', step: 'plan' });
+    await heading('Built for teams.');
+  });
+
+  it('lets a checkout return beat saved progress and the step link', async () => {
+    const { navigate } = setup({
+      resume: 'work',
+      step: 'team',
+      checkoutReturn: { t: 'success', tier: 'premium' },
+      world: { webhookPollsRemaining: 1 },
+    });
+    await heading('Your workspace is ready.');
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/home'), {
+      timeout: 3_000,
+    });
+  });
+
+  it('keeps a deep-linked step after the link is gone and the session is new', async () => {
+    setup({ step: 'tools' });
+    await heading('Connect your tools.');
+    expect(readSavedStep(FAKE_VIEWER_ID)).toBe('tools');
+    cleanup();
+    sessionStorage.clear();
+    setup();
+    await heading('Connect your tools.');
+    expect(localStorage.getItem('onboarding-flow-step')).toContain(
+      '"step":"tools"'
+    );
+    expect(sessionStorage.getItem('onboarding-flow-step')).toBeNull();
+  });
+
+  it('resumes a step that was saved in sessionStorage before the move', async () => {
+    sessionStorage.setItem(
+      'onboarding-flow-step',
+      JSON.stringify({ user: FAKE_VIEWER_ID, step: 'personal' })
+    );
+    setup();
+    await heading(/Add your personal/);
+    expect(localStorage.getItem('onboarding-flow-step')).toContain('personal');
+    expect(sessionStorage.getItem('onboarding-flow-step')).toBeNull();
+  });
+
   it('resumes the saved step, and Back returns to the previous one', async () => {
     setup({ resume: 'team' });
     await heading('Built for teams.');
     click('Back to previous step');
     await heading('Connect your tools.');
     expect(readSavedStep(FAKE_VIEWER_ID)).toBe('tools');
+  });
+
+  it('resumes Google sign-up at work ahead of saved progress and a step link', async () => {
+    saveSignupDraft({ step: 'work', accent: '#f77d67', authenticating: true });
+    setup({ resume: 'team', step: 'plan' });
+    await heading(/Connect your work/);
   });
 
   it('resumes at the work step after Google sign-up and applies the chosen accent', async () => {
@@ -205,6 +334,44 @@ describe('onboarding flow', () => {
       event: 'onboarding_v4_team',
       data: { action: 'joined_invite' },
     });
+  });
+
+  it('passes over the team step for someone who already joined a team', async () => {
+    const { fake } = setup({
+      resume: 'tools',
+      world: { teams: [{ name: 'Acme' }] },
+    });
+    await heading('Connect your tools.');
+    click('Continue');
+    await heading('Free Claude & GPT for 30 days.');
+    expect(screen.queryByText("You're on Acme")).toBeNull();
+    expect(fake.events()).toContainEqual({
+      event: 'onboarding_v4_team',
+      data: { action: 'already_on_team' },
+    });
+    click('Back to previous step');
+    await heading('Connect your tools.');
+  });
+
+  it('finishes from the tools step for a licensed member of a team', async () => {
+    const { navigate } = setup({
+      resume: 'tools',
+      world: {
+        teams: [{ name: 'Acme' }],
+        viewer: {
+          id: FAKE_VIEWER_ID,
+          email: 'ada@acme.com',
+          tutorialComplete: false,
+          licensed: true,
+        },
+      },
+    });
+    await heading('Connect your tools.');
+    click('Continue');
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledExactlyOnceWith('/home')
+    );
+    expect(screen.queryByText("You're on Acme")).toBeNull();
   });
 
   it('confirms an existing team membership', async () => {

@@ -33,7 +33,7 @@ hooks:
     customization: SELFHOST-RUNTIME-001
     file: apps/web/src/lib/queries/agents/capabilities.ts
     marker: "// PRIVATE-HOOK: selfhost_runtime:agent-capabilities-gate"
-    expected: "enabled: getAppCapabilities().agents && target() !== undefined,"
+    expected: "enabled: getAppCapabilities().agents && request !== undefined,"
   - id: selfhost_runtime_agent_warm_gate
     customization: SELFHOST-RUNTIME-001
     file: apps/web/src/lib/queries/agent-session/warm.ts
@@ -418,7 +418,7 @@ hooks:
     marker: "// PRIVATE-HOOK: self_host_health:settings_icon"
     expected: "import HeartbeatIcon from '@phosphor/heartbeat.svg';"
     context:
-      - "import DeviceMobileIcon from '@phosphor/device-mobile-speaker.svg';"
+      - "import HardDrivesIcon from '@icon/system/regular/hard-drives.svg';"
   - id: self_host_health_settings_item
     customization: SELFHOST-HEALTH-001
     file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx
@@ -427,11 +427,12 @@ hooks:
       {
               tab: 'SelfHostHealth',
               label: t('Health Check'),
+              englishLabel: 'Health Check',
               icon: HeartbeatIcon,
               keywords: ['health', 'self-host'],
             },
     context:
-      - "{ tab: 'Admin', label: t('Debug'), icon: BugIcon, keywords: [] },"
+      - "tabItem('tabDebug', { tab: 'Admin', icon: BugIcon, keywords: [] }),"
   - id: self_host_health_settings_slug
     customization: SELFHOST-HEALTH-001
     file: apps/web/src/lib/core/constant/settingsTabsConfig.tsx
@@ -546,14 +547,6 @@ hooks:
     context:
       - "export function agentModelsQueryOptions(target: AgentModelTarget) {"
 
-
-  - id: self_host_health_auth_models_email_dep
-    customization: SELFHOST-HEALTH-001
-    file: services/authentication_service/Cargo.toml
-    marker: "# PRIVATE-HOOK: self_host_health:auth-models-email-dep"
-    expected: 'models_email = { path = "../../crates/models_email" }'
-    context:
-      - 'model = { path = "../../crates/model" }'
 
   - id: self_host_health_auth_sqs_gmail_feature
     customization: SELFHOST-HEALTH-001

@@ -638,6 +638,7 @@ export function createThreadNavigation(
         title: props.title,
         messages: () => context.messages.unfiltered(),
       }),
+      canActOnSender: context.canActOnSender,
       blockSender: context.blockSender,
       markDone,
       markNotDone: context.markThreadNotDone,

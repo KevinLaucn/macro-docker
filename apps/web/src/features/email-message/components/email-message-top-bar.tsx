@@ -1,8 +1,9 @@
 import type { EmailMessage } from '@app/features/email-message/core/email-message';
+import CaretRight from '@icon/system/regular/caret-right.svg';
+import Checks from '@icon/system/regular/checks.svg';
 import { EmailMessageTranslateButton } from '@macro/email-translation';
 import { ReadReceiptStatus } from '@macro/fork-read-receipts';
 import { t } from '@macro/i18n';
-import CaretRight from '@phosphor/caret-right.svg';
 import { Button, cn, Tooltip } from '@ui';
 import {
   type Accessor,
@@ -18,6 +19,11 @@ import {
   getSenderDisplayName,
 } from '../core/email-user';
 import { formatFullDate, formatShortDate } from '../core/format-email-date';
+import {
+  type ReadReceipt,
+  readReceiptDetail,
+  readReceiptLabel,
+} from '../core/read-receipt';
 
 import { EmailUserTooltip } from './email-user-tooltip';
 import { type EmailMessageAction, MessageActions } from './message-actions';
@@ -27,6 +33,7 @@ interface EmailMessageTopBarProps {
   focused: boolean;
   viewerEmail?: string;
   isTouch: boolean;
+  readReceipt?: ReadReceipt;
   setExpandedBodyId: (id: string, expanded: boolean) => void;
   isBodyExpanded: Accessor<boolean>;
   expandedHeader: Accessor<boolean>;
@@ -86,7 +93,10 @@ function DetailRow(props: {
   );
 }
 
-function ExpandedDetails(props: { message: EmailMessage }): JSX.Element {
+function ExpandedDetails(props: {
+  message: EmailMessage;
+  readReceipt?: ReadReceipt;
+}): JSX.Element {
   const fromRecipients = createMemo(() =>
     props.message.from ? [props.message.from] : []
   );
@@ -102,7 +112,32 @@ function ExpandedDetails(props: { message: EmailMessage }): JSX.Element {
           {formatFullDate(props.message.internal_date_ts!)}
         </div>
       </Show>
+      {/* Tooltips don't open on touch, so the full receipt also lives here. */}
+      <Show when={props.readReceipt}>
+        {(receipt) => (
+          <div class="text-xs text-ink-extra-muted tabular-nums select-text cursor-text">
+            {readReceiptDetail(receipt())}
+          </div>
+        )}
+      </Show>
     </div>
+  );
+}
+
+function UpstreamReadReceiptStatus(props: { receipt: ReadReceipt }): JSX.Element {
+  const opened = () => props.receipt.openCount > 0;
+  return (
+    <Tooltip as="span" label={readReceiptDetail(props.receipt)}>
+      <span
+        class={cn(
+          'flex items-center gap-1 shrink-0 text-xs whitespace-nowrap',
+          opened() ? 'text-accent' : 'text-ink-extra-muted/60'
+        )}
+      >
+        <Checks class="size-3.5" aria-hidden="true" />
+        {readReceiptLabel(props.receipt)}
+      </span>
+    </Tooltip>
   );
 }
 
@@ -142,6 +177,7 @@ function HeaderTopRow(props: {
   onReply?: (action: EmailMessageAction) => void;
   hiddenActions?: EmailMessageAction[];
   currentUserEmail?: string;
+  readReceipt?: ReadReceipt;
 }): JSX.Element {
   const allRecipients = createMemo(() => [
     ...props.message.to,
@@ -177,7 +213,6 @@ function HeaderTopRow(props: {
             <Button
               variant="ghost"
               size="icon-sm"
-              noTouchResize
               onClick={(e) => {
                 e.stopPropagation();
                 props.onToggle();
@@ -205,6 +240,9 @@ function HeaderTopRow(props: {
           hiddenActions={props.hiddenActions}
         />
       </div>
+      <Show when={props.readReceipt}>
+        {(receipt) => <UpstreamReadReceiptStatus receipt={receipt()} />}
+      </Show>
       <Show when={props.message.internal_date_ts}>
         <Tooltip
           as="span"
@@ -265,10 +303,14 @@ export function EmailMessageTopBar(props: EmailMessageTopBarProps) {
             onReply={props.onReply}
             hiddenActions={props.hiddenActions}
             currentUserEmail={userEmail()}
+            readReceipt={props.readReceipt}
           />
         </div>
         <Show when={props.expandedHeader()}>
-          <ExpandedDetails message={props.message} />
+          <ExpandedDetails
+            message={props.message}
+            readReceipt={props.readReceipt}
+          />
         </Show>
       </Show>
     </div>

@@ -1,3 +1,4 @@
+import { isViewerAddress } from '@app/features/email-message/core/email-user';
 import { HoverCard } from '@core/component/HoverCard';
 import { StaticMarkdown } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { unifiedListMarkdownTheme } from '@core/component/LexicalMarkdown/theme';
@@ -17,8 +18,9 @@ import {
   resolveParticipantIdentities,
   resolveSelfEmails,
 } from '@macro/email-participant-identity';
+import CopyIcon from '@icon/system/regular/copy.svg';
 import { Telemetry } from '@macro-inc/observability';
-import CopyIcon from '@phosphor/copy.svg';
+import { useInboxEmail } from '@queries/email/inbox-email';
 import { Surface } from '@ui';
 import { createSignal, For, Show } from 'solid-js';
 import type { EmailEntity, EmailThreadParticipants } from '../types/entity';
@@ -129,6 +131,7 @@ function ParticipantWithTooltip(props: {
   );
 }
 
+/**
 /**
  * Resolves participants into display-ready objects while preserving the fork's
  * logical self identity. External display names continue using Macro's normal

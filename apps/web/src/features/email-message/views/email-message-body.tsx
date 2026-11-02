@@ -4,7 +4,7 @@ import {
   EmailTranslationMarkdown,
   useEmailMessageTranslation,
 } from '@macro/email-translation';
-import DotsThree from '@phosphor/dots-three.svg';
+import DotsThree from '@icon/system/regular/dots-three.svg';
 import { Button, cn } from '@ui';
 import { Match, Show, Switch } from 'solid-js';
 
@@ -80,16 +80,17 @@ export function EmailMessageBody(props: EmailMessageBodyProps) {
         <Show when={!showFullHTML() && hasHiddenReplyStructure()}>
           <div class="flex items-center mt-1.5 mb-2">
             <Button
+              aria-label="Show quoted text"
+              tooltip="Show quoted text"
               variant="ghost"
               size="icon-sm"
-              label="Show quoted text"
               onClick={() => setShowFullHTML(true)}
               class={cn(
                 'text-ink-extra-muted hover:text-ink-muted',
                 props.isFocused ? 'hover:bg-surface' : 'hover:bg-active'
               )}
             >
-              <DotsThree />
+              <DotsThree class="size-3.5 touch:size-6 shrink-0 pointer-events-none" />
             </Button>
           </div>
         </Show>

@@ -20,8 +20,7 @@ import EmptyStateNoFilterMatchGraphic from '@design/empty-state-no-filter-match.
 import EmptyStateNoSearchMatchGraphic from '@design/empty-state-no-search-match.svg';
 import EmptyStateRoutinesGraphic from '@design/empty-state-routines.svg';
 import EmptyStateTasksGraphic from '@design/empty-state-tasks.svg';
-import { t } from '@macro/i18n';
-import PlusIcon from '@phosphor/plus.svg';
+import PlusIcon from '@icon/system/regular/plus.svg';
 import { EmptyStatePanel, FilteredHiddenBanner } from '@ui';
 import { type Component, type JSXElement, Match, Switch } from 'solid-js';
 import { FolderDropZone } from './FolderDropZone';
@@ -47,19 +46,17 @@ const FALLBACK_CONTENT: Partial<Record<ListView, FallbackContent>> = {
   documents: {
     plural: 'documents',
     graphic: EmptyStateDocGraphic,
-    description: t(
-      'Write, collaborate, and share documents right inside Macro. Create notes, specs, or any long-form content and keep it alongside your conversations.'
-    ),
-    create: { label: t('New document'), blockName: 'md' },
+    description:
+      'Write, collaborate, and share documents right inside Macro. Create notes, specs, or any long-form content and keep it alongside your conversations.',
+    create: { label: 'New document', blockName: 'md' },
     documentationUrl: `${DOCS_BASE}/product/docs`,
   },
   channels: {
     plural: 'channels',
     graphic: EmptyStateChannelsGraphic,
-    description: t(
-      'Channels are shared spaces for team conversations organized by topic, project, or team. Create a channel to start collaborating with your team.'
-    ),
-    create: { label: t('New channel'), blockName: 'channel' },
+    description:
+      'Channels are shared spaces for team conversations organized by topic, project, or team. Create a channel to start collaborating with your team.',
+    create: { label: 'New channel', blockName: 'channel' },
     documentationUrl: `${DOCS_BASE}/product/channels`,
   },
   calls: {
@@ -138,7 +135,7 @@ export function EmptyState(props: {
           title="Your inbox is empty"
           description="Bring your inbox into Macro to triage signal from noise, reply faster, and let agents work alongside your mail."
           primaryAction={{
-            label: t('Connect email'),
+            label: 'Connect email',
             onClick: onConnectEmail,
           }}
           documentationUrl={`${DOCS_BASE}/product/home`}
@@ -151,7 +148,7 @@ export function EmptyState(props: {
           title="Connect your email"
           description="Bring your inbox into Macro to triage signal from noise, reply faster, and let agents work alongside your mail."
           primaryAction={{
-            label: t('Connect email'),
+            label: 'Connect email',
             onClick: onConnectEmail,
           }}
           documentationUrl={`${DOCS_BASE}/product/email`}
@@ -167,7 +164,7 @@ export function EmptyState(props: {
           const { title, description } =
             tab === 'noise'
               ? {
-                  title: t('No noise'),
+                  title: 'No noise',
                   description: (
                     <>
                       Low-priority items like newsletters and notifications
@@ -179,16 +176,14 @@ export function EmptyState(props: {
                 }
               : tab === 'all'
                 ? {
-                    title: t('Inbox zero'),
-                    description: t(
-                      "You're all caught up. New items will appear here as they arrive."
-                    ),
+                    title: 'Inbox zero',
+                    description:
+                      "You're all caught up. New items will appear here as they arrive.",
                   }
                 : {
-                    title: t('Inbox zero'),
-                    description: t(
-                      "You're all caught up. Important items will appear here as they arrive."
-                    ),
+                    title: 'Inbox zero',
+                    description:
+                      "You're all caught up. Important items will appear here as they arrive.",
                   };
           return (
             <EmptyStatePanel
@@ -216,7 +211,7 @@ export function EmptyState(props: {
           title="Nothing to do"
           description="Tasks you create or that get assigned to you will show up here."
           primaryAction={{
-            label: t('New task'),
+            label: 'New task',
             icon: PlusIcon,
             onClick: () => runCreateAction('task'),
           }}
@@ -229,12 +224,10 @@ export function EmptyState(props: {
       >
         <EmptyStatePanel
           graphic={EmptyStateRoutinesGraphic}
-          title={t('No routines to show')}
-          description={t(
-            'Routines run in the background to handle repetitive work for you — like triaging messages, updating tasks, or sending follow-ups.'
-          )}
+          title="No routines to show"
+          description="Routines run in the background to handle repetitive work for you — like triaging messages, updating tasks, or sending follow-ups."
           primaryAction={{
-            label: t('New routine'),
+            label: 'New routine',
             icon: PlusIcon,
             onClick: () => runCreateAction('routine'),
           }}
@@ -250,7 +243,7 @@ export function EmptyState(props: {
           title="No skills yet"
           description="Skills are markdown documents with instructions AI follows. Reference one with / in any AI input."
           primaryAction={{
-            label: t('New skill'),
+            label: 'New skill',
             icon: PlusIcon,
             onClick: () => runCreateAction('skill'),
           }}
@@ -264,7 +257,7 @@ export function EmptyState(props: {
           title="Get started with agents"
           description="Create an agent, or use Macro with your favorite AI chat client or code editor via MCP."
           primaryAction={{
-            label: t('New agent'),
+            label: 'New agent',
             icon: PlusIcon,
             onClick: () => runCreateAction('chat'),
           }}

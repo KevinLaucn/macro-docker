@@ -136,7 +136,6 @@ pub async fn cg_refresh_email(
 /// Signal every viewer of a connected inbox's calendars — the link owner
 /// plus its delegated users — that the calendar projection changed. Best
 /// effort: an inactive or unreachable viewer only misses a refresh nudge.
-#[cfg(feature = "calendar")]
 #[tracing::instrument(skip(client, db), level = "debug")]
 pub async fn cg_refresh_calendar(
     client: &ConnectionGatewayClient,
@@ -180,14 +179,27 @@ pub async fn cg_refresh_calendar(
     }
 }
 
-#[cfg(not(feature = "calendar"))]
-#[allow(dead_code)]
-pub async fn cg_refresh_calendar(
-    _client: &ConnectionGatewayClient,
-    _db: &sqlx::PgPool,
-    _owner_macro_id: &str,
-    _link_id: uuid::Uuid,
+/// Tell one requester their request to join `event_id` was answered. It names
+/// the event, whose id they hold, and not the sharer's inbox.
+#[tracing::instrument(skip(client, requester_id), level = "debug")]
+pub async fn cg_refresh_join_request(
+    client: &ConnectionGatewayClient,
+    requester_id: &str,
+    event_id: uuid::Uuid,
 ) {
+    if !cfg!(feature = "connection_gateway") {
+        return;
+    }
+    let payload = serde_json::to_value(
+        calendar_events::domain::models::RefreshCalendarEvent::JoinRequestAnswered { event_id },
+    )
+    .unwrap_or_default();
+    let _ = client
+        .refresh_calendar(requester_id, payload)
+        .await
+        .inspect_err(
+            |e| tracing::error!(%event_id, "Failed to refresh the requester's calendar: {e}"),
+        );
 }
 
 /// Shared filter/dedup pass for the CRM populate + depopulate enqueue

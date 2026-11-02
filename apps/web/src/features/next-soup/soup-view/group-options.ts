@@ -1,4 +1,4 @@
-import { t } from '@macro/i18n';
+import { type TranslationKey, t } from '@app/lib/i18n';
 import { SYSTEM_PROPERTY_IDS } from '@property/constants';
 
 export type GroupOptionId =
@@ -13,16 +13,30 @@ export interface GroupOption {
   label: string;
 }
 
+/** A group option whose label is translated each time it renders. */
+const groupOption = <TValue extends GroupOptionId>(
+  value: TValue,
+  key: TranslationKey
+): { value: TValue; readonly label: string } => ({
+  value,
+  get label() {
+    return t(key);
+  },
+});
+
 const GROUP_OPTIONS = [
-  { value: 'none', label: t('None') },
-  { value: 'date', label: t('Date') },
-  { value: 'entity_type', label: t('Type') },
-  { value: 'project', label: t('Project') },
-  { value: `property:${SYSTEM_PROPERTY_IDS.STATUS}`, label: t('Status') },
-  { value: `property:${SYSTEM_PROPERTY_IDS.PRIORITY}`, label: t('Priority') },
-  { value: `property:${SYSTEM_PROPERTY_IDS.ASSIGNEES}`, label: t('Assignee') },
-  { value: 'project', label: t('Project') },
-  { value: 'date', label: t('Date') },
+  groupOption('none', 'viewMenus.groupNone'),
+  groupOption('date', 'viewMenus.date'),
+  groupOption('entity_type', 'viewMenus.type'),
+  groupOption('project', 'viewMenus.project'),
+  groupOption(`property:${SYSTEM_PROPERTY_IDS.STATUS}`, 'viewMenus.status'),
+  groupOption(`property:${SYSTEM_PROPERTY_IDS.PRIORITY}`, 'viewMenus.priority'),
+  groupOption(
+    `property:${SYSTEM_PROPERTY_IDS.ASSIGNEES}`,
+    'viewMenus.assignee'
+  ),
+  groupOption('project', 'viewMenus.project'),
+  groupOption('date', 'viewMenus.date'),
 ] as const satisfies GroupOption[];
 
 const _buildGroupOptions = (
@@ -42,36 +56,39 @@ const _buildGroupOptions = (
 };
 
 const _DEFAULT_GROUP_OPTIONS: GroupOption[] = [
-  { value: 'none', label: t('None') },
-  { value: 'entity_type', label: t('Type') },
-  { value: 'project', label: t('Project') },
+  groupOption('none', 'viewMenus.groupNone'),
+  groupOption('entity_type', 'viewMenus.type'),
+  groupOption('project', 'viewMenus.project'),
 ];
 
 export const TASK_GROUP_OPTIONS: GroupOption[] = [
-  { value: 'none', label: t('None') },
-  { value: `property:${SYSTEM_PROPERTY_IDS.STATUS}`, label: t('Status') },
-  { value: `property:${SYSTEM_PROPERTY_IDS.PRIORITY}`, label: t('Priority') },
-  { value: `property:${SYSTEM_PROPERTY_IDS.ASSIGNEES}`, label: t('Assignee') },
-  { value: 'project', label: t('Project') },
-  { value: 'date', label: t('Date') },
+  groupOption('none', 'viewMenus.groupNone'),
+  groupOption(`property:${SYSTEM_PROPERTY_IDS.STATUS}`, 'viewMenus.status'),
+  groupOption(`property:${SYSTEM_PROPERTY_IDS.PRIORITY}`, 'viewMenus.priority'),
+  groupOption(
+    `property:${SYSTEM_PROPERTY_IDS.ASSIGNEES}`,
+    'viewMenus.assignee'
+  ),
+  groupOption('project', 'viewMenus.project'),
+  groupOption('date', 'viewMenus.date'),
 ];
 
 export const TAG_VIEW_GROUP_OPTIONS: GroupOption[] = [
-  { value: 'none', label: t('None') },
-  { value: 'entity_type', label: t('Type') },
-  { value: 'project', label: t('Project') },
-  { value: 'date', label: t('Date') },
+  groupOption('none', 'viewMenus.groupNone'),
+  groupOption('entity_type', 'viewMenus.type'),
+  groupOption('project', 'viewMenus.project'),
+  groupOption('date', 'viewMenus.date'),
 ];
 
 const _EMAIL_GROUP_OPTIONS: GroupOption[] = [
-  { value: 'none', label: t('None') },
-  { value: 'date', label: t('Date') },
-  { value: 'project', label: t('Project') },
+  groupOption('none', 'viewMenus.groupNone'),
+  groupOption('date', 'viewMenus.date'),
+  groupOption('project', 'viewMenus.project'),
 ];
 
 const _INBOX_GROUP_OPTIONS: GroupOption[] = [
-  { value: 'none', label: t('None') },
-  { value: 'date', label: t('Date') },
-  { value: 'entity_type', label: t('Type') },
-  { value: 'project', label: t('Project') },
+  groupOption('none', 'viewMenus.groupNone'),
+  groupOption('date', 'viewMenus.date'),
+  groupOption('entity_type', 'viewMenus.type'),
+  groupOption('project', 'viewMenus.project'),
 ];

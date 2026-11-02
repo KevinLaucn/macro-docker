@@ -40,7 +40,7 @@ import {
 } from '../legacy-office';
 import { useGetFileBlob } from '../signal/blockData';
 import { TopBar } from './TopBar';
-import { UnknownContent } from './UnknownContent';
+import { UnknownFilePreview } from './UnknownFilePreview';
 
 const UploadedWorkbook = lazy(
   () => import('../../block-spreadsheet/views/UploadedWorkbook')
@@ -99,7 +99,8 @@ function BlockUnknownContent() {
               <Show
                 when={getAdobeFormatFromFileName(fileName())}
                 fallback={
-                  <UnknownContent
+                  <UnknownFilePreview
+                    file={blockMetadataSignal.get()}
                     fileName={fileName()}
                     convertingTo={convertingTo()}
                     onShare={openShare}

@@ -25,6 +25,7 @@ export type DriveState = {
   facets: FacetSelection;
   expandedFolderIds: string[];
   favoritesOpen: boolean;
+  databasesOpen: boolean;
   rootOpen: boolean;
 };
 

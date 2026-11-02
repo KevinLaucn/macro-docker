@@ -10,13 +10,16 @@ import { UserIcon } from '@core/component/UserIcon';
 import { useQuickAccess } from '@core/context/quickAccess';
 import { useUserId } from '@core/context/user';
 import { EntityIcon as EntityIconWithAvatar } from '@entity/extractors/entity-icon';
-import { t } from '@macro/i18n';
 import { PropertyValueIcon } from '@property/component/propertyValue/PropertyValueIcon';
-import { PROPERTY_OPTION_IDS } from '@property/constants';
 import { type Accessor, createEffect, createMemo, type JSX } from 'solid-js';
+import {
+  TASK_PRIORITY_OPTIONS,
+  TASK_STATUS_OPTIONS,
+} from '../../../core/search-options';
 import { useInboxPicker } from '../inbox-picker';
 import type { SearchableOption } from '../searchable-multi-select';
 import { useTagOptions } from '../tag-filter';
+import type { TagFilter } from '../tag-filter-state';
 import type {
   SearchFiltersController,
   SearchIndexId,
@@ -30,55 +33,41 @@ export const SEARCH_INDEX_OPTIONS: {
 }[] = [
   {
     value: 'channels',
-    get label() {
-      return t('Channels');
-    },
+    label: 'Channels',
     icon: () => (
       <EntityIcon targetType="channel" size="xs" theme="monochrome" />
     ),
   },
   {
     value: 'document-or-file',
-    get label() {
-      return t('Documents');
-    },
+    label: 'Documents',
     icon: () => <EntityIcon targetType="md" size="xs" theme="monochrome" />,
   },
   {
     value: 'task',
-    get label() {
-      return t('Tasks');
-    },
+    label: 'Tasks',
     icon: () => <EntityIcon targetType="task" size="xs" theme="monochrome" />,
   },
   {
     value: 'email',
-    get label() {
-      return t('Email');
-    },
+    label: 'Email',
     icon: () => <EntityIcon targetType="email" size="xs" theme="monochrome" />,
   },
   {
     value: 'calls',
-    get label() {
-      return t('Calls');
-    },
+    label: 'Calls',
     icon: () => <EntityIcon targetType="call" size="xs" theme="monochrome" />,
   },
   {
     value: 'folders',
-    get label() {
-      return t('Folders');
-    },
+    label: 'Folders',
     icon: () => (
       <EntityIcon targetType="project" size="xs" theme="monochrome" />
     ),
   },
   {
     value: 'agent',
-    get label() {
-      return t('Agents');
-    },
+    label: 'Agents',
     icon: () => <EntityIcon targetType="chat" size="xs" theme="monochrome" />,
   },
 ];
@@ -90,96 +79,19 @@ export const SEARCH_INDEX_OPTIONS: {
  */
 const CALENDAR_TYPE_OPTION: (typeof SEARCH_INDEX_OPTIONS)[number] = {
   value: 'calendar',
-  get label() {
-    return t('Calendar');
-  },
+  label: 'Calendar',
   icon: () => <EntityIcon targetType="calendar" size="xs" theme="monochrome" />,
 };
 
 const CALL_STATUS_LABELS: Record<CallStatus, string> = {
-  get ATTENDED() {
-    return t('Attended');
-  },
-  get MISSED() {
-    return t('Missed');
-  },
-  get UNATTENDED() {
-    return t('Unattended');
-  },
+  ATTENDED: 'Attended',
+  MISSED: 'Missed',
+  UNATTENDED: 'Unattended',
 };
 
 const optionIcon = (optionId: string) => () => (
   <PropertyValueIcon optionId={optionId} class="size-3.5" />
 );
-
-const TASK_STATUS_OPTIONS: SearchableOption[] = [
-  {
-    id: PROPERTY_OPTION_IDS.STATUS.NOT_STARTED,
-    get label() {
-      return t('Not Started');
-    },
-    icon: optionIcon(PROPERTY_OPTION_IDS.STATUS.NOT_STARTED),
-  },
-  {
-    id: PROPERTY_OPTION_IDS.STATUS.IN_PROGRESS,
-    get label() {
-      return t('In Progress');
-    },
-    icon: optionIcon(PROPERTY_OPTION_IDS.STATUS.IN_PROGRESS),
-  },
-  {
-    id: PROPERTY_OPTION_IDS.STATUS.IN_REVIEW,
-    get label() {
-      return t('In Review');
-    },
-    icon: optionIcon(PROPERTY_OPTION_IDS.STATUS.IN_REVIEW),
-  },
-  {
-    id: PROPERTY_OPTION_IDS.STATUS.COMPLETED,
-    get label() {
-      return t('Completed');
-    },
-    icon: optionIcon(PROPERTY_OPTION_IDS.STATUS.COMPLETED),
-  },
-  {
-    id: PROPERTY_OPTION_IDS.STATUS.CANCELED,
-    get label() {
-      return t('Canceled');
-    },
-    icon: optionIcon(PROPERTY_OPTION_IDS.STATUS.CANCELED),
-  },
-];
-
-const TASK_PRIORITY_OPTIONS: SearchableOption[] = [
-  {
-    id: PROPERTY_OPTION_IDS.PRIORITY.URGENT,
-    get label() {
-      return t('Urgent');
-    },
-    icon: optionIcon(PROPERTY_OPTION_IDS.PRIORITY.URGENT),
-  },
-  {
-    id: PROPERTY_OPTION_IDS.PRIORITY.HIGH,
-    get label() {
-      return t('High');
-    },
-    icon: optionIcon(PROPERTY_OPTION_IDS.PRIORITY.HIGH),
-  },
-  {
-    id: PROPERTY_OPTION_IDS.PRIORITY.MEDIUM,
-    get label() {
-      return t('Medium');
-    },
-    icon: optionIcon(PROPERTY_OPTION_IDS.PRIORITY.MEDIUM),
-  },
-  {
-    id: PROPERTY_OPTION_IDS.PRIORITY.LOW,
-    get label() {
-      return t('Low');
-    },
-    icon: optionIcon(PROPERTY_OPTION_IDS.PRIORITY.LOW),
-  },
-];
 
 export type FacetOption = {
   id: string;
@@ -269,9 +181,7 @@ function usePersonPicker(): Accessor<SearchableOption[]> {
       const opt: SearchableOption = {
         id: s.id,
         label:
-          s.id === uid
-            ? `${s.data.name || t('Me')} (${t('me')})`
-            : s.data.name || s.id,
+          s.id === uid ? `${s.data.name || 'Me'} (me)` : s.data.name || s.id,
         icon: () => (
           <UserIcon id={s.id} size="sm" suppressClick showTooltip={false} />
         ),
@@ -345,7 +255,8 @@ function multiFacet(args: {
  * one definition here + its compile line in `compileSearchQuery`.
  */
 export function useSearchFacets(
-  controller: SearchFiltersController
+  controller: SearchFiltersController,
+  tagOptions?: Pick<TagFilter, 'hasTags' | 'options' | 'defByOption'>
 ): Accessor<SearchFacetVM[]> {
   const channelOptions = useChannelPicker();
   const personOptions = usePersonPicker();
@@ -354,7 +265,7 @@ export function useSearchFacets(
     setSelectedIds: controller.setEmailInbox,
   });
 
-  const tagSource = useTagOptions();
+  const tagSource = tagOptions ?? useTagOptions();
   const calendarSearchEnabled = useCalendarSearchUiFlag();
   const posthog = usePosthog();
 
@@ -377,12 +288,7 @@ export function useSearchFacets(
   });
 
   const typeOptions = createMemo<FacetOption[]>(() => [
-    {
-      id: 'all',
-      get label() {
-        return t('All');
-      },
-    },
+    { id: 'all', label: 'All' },
     ...[
       ...SEARCH_INDEX_OPTIONS,
       ...(calendarSearchEnabled() ? [CALENDAR_TYPE_OPTION] : []),
@@ -392,7 +298,7 @@ export function useSearchFacets(
   const buildTypeFacet = () =>
     singleFacet({
       id: 'type',
-      label: t('Type'),
+      label: 'Type',
       options: typeOptions(),
       defaultId: 'all',
       selectedId: controller.type,
@@ -401,26 +307,11 @@ export function useSearchFacets(
 
   const importance = singleFacet({
     id: 'importance',
-    label: t('Importance'),
+    label: 'Importance',
     options: [
-      {
-        id: 'all',
-        get label() {
-          return t('All');
-        },
-      },
-      {
-        id: 'signal',
-        get label() {
-          return t('Signal');
-        },
-      },
-      {
-        id: 'noise',
-        get label() {
-          return t('Noise');
-        },
-      },
+      { id: 'all', label: 'All' },
+      { id: 'signal', label: 'Signal' },
+      { id: 'noise', label: 'Noise' },
     ],
     defaultId: 'all',
     selectedId: () => {
@@ -435,20 +326,20 @@ export function useSearchFacets(
   const inbox: SearchFacetVM = {
     kind: 'multi',
     id: 'email-inbox',
-    label: t('Inbox'),
+    label: 'Inbox',
     options: inboxPicker.options,
     activeIds: inboxPicker.activeIds,
     onChange: (ids) =>
       ids.length ? inboxPicker.onChange(ids) : inboxPicker.reset(),
     onOnly: inboxPicker.selectOnly,
-    placeholder: t('Search inboxes...'),
+    placeholder: 'Search inboxes...',
     preserveOrder: true,
     isDefault: inboxPicker.isDefault,
     reset: inboxPicker.reset,
     values: () => {
       const ids = controller.emailInbox();
-      if (ids === undefined) return [{ id: 'all', label: t('All inboxes') }];
-      if (ids.length === 0) return [{ id: 'none', label: t('No inboxes') }];
+      if (ids === undefined) return [{ id: 'all', label: 'All inboxes' }];
+      if (ids.length === 0) return [{ id: 'none', label: 'No inboxes' }];
       const options = inboxPicker.options();
       return ids.map((id) => {
         const option = options.find((o) => o.id === id);
@@ -459,9 +350,9 @@ export function useSearchFacets(
 
   const channelIn = multiFacet({
     id: 'channel-in',
-    label: t('In'),
-    neutralLabel: t('All channels'),
-    placeholder: t('Search channels...'),
+    label: 'In',
+    neutralLabel: 'All channels',
+    placeholder: 'Search channels...',
     options: channelOptions,
     activeIds: controller.channelIn,
     onChange: controller.setChannelIn,
@@ -469,9 +360,9 @@ export function useSearchFacets(
 
   const channelFrom = multiFacet({
     id: 'channel-from',
-    label: t('From'),
-    neutralLabel: t('Anyone'),
-    placeholder: t('Search senders...'),
+    label: 'From',
+    neutralLabel: 'Anyone',
+    placeholder: 'Search senders...',
     options: personOptions,
     activeIds: controller.channelFrom,
     onChange: controller.setChannelFrom,
@@ -479,9 +370,9 @@ export function useSearchFacets(
 
   const callIn = multiFacet({
     id: 'call-in',
-    label: t('In'),
-    neutralLabel: t('All channels'),
-    placeholder: t('Search channels...'),
+    label: 'In',
+    neutralLabel: 'All channels',
+    placeholder: 'Search channels...',
     options: channelOptions,
     activeIds: controller.callIn,
     onChange: controller.setCallIn,
@@ -489,9 +380,9 @@ export function useSearchFacets(
 
   const callFrom = multiFacet({
     id: 'call-from',
-    label: t('From'),
-    neutralLabel: t('Anyone'),
-    placeholder: t('Search speakers...'),
+    label: 'From',
+    neutralLabel: 'Anyone',
+    placeholder: 'Search speakers...',
     options: personOptions,
     activeIds: controller.callFrom,
     onChange: controller.setCallFrom,
@@ -499,9 +390,9 @@ export function useSearchFacets(
 
   const callStatus = singleFacet({
     id: 'call-status',
-    label: t('Status'),
+    label: 'Status',
     options: [
-      { id: 'all', label: t('All') },
+      { id: 'all', label: 'All' },
       ...(Object.keys(CALL_STATUS_LABELS) as CallStatus[]).map((status) => ({
         id: status,
         label: CALL_STATUS_LABELS[status],
@@ -515,29 +406,37 @@ export function useSearchFacets(
 
   const taskStatus = multiFacet({
     id: 'task-status',
-    label: t('Status'),
-    neutralLabel: t('Any status'),
-    placeholder: t('Filter by status...'),
-    options: () => TASK_STATUS_OPTIONS,
+    label: 'Status',
+    neutralLabel: 'Any status',
+    placeholder: 'Filter by status...',
+    options: () =>
+      TASK_STATUS_OPTIONS.map((option) => ({
+        ...option,
+        icon: optionIcon(option.id),
+      })),
     activeIds: controller.taskStatus,
     onChange: controller.setTaskStatus,
   });
 
   const taskPriority = multiFacet({
     id: 'task-priority',
-    label: t('Priority'),
-    neutralLabel: t('Any priority'),
-    placeholder: t('Filter by priority...'),
-    options: () => TASK_PRIORITY_OPTIONS,
+    label: 'Priority',
+    neutralLabel: 'Any priority',
+    placeholder: 'Filter by priority...',
+    options: () =>
+      TASK_PRIORITY_OPTIONS.map((option) => ({
+        ...option,
+        icon: optionIcon(option.id),
+      })),
     activeIds: controller.taskPriority,
     onChange: controller.setTaskPriority,
   });
 
   const taskAssignee = multiFacet({
     id: 'task-assignee',
-    label: t('Assignee'),
-    neutralLabel: t('Anyone'),
-    placeholder: t('Search assignees...'),
+    label: 'Assignee',
+    neutralLabel: 'Anyone',
+    placeholder: 'Search assignees...',
     options: personOptions,
     activeIds: controller.taskAssignees,
     onChange: controller.setTaskAssignees,
@@ -545,9 +444,9 @@ export function useSearchFacets(
 
   const taskCreatedBy = multiFacet({
     id: 'task-created-by',
-    label: t('Created by'),
-    neutralLabel: t('Anyone'),
-    placeholder: t('Search creators...'),
+    label: 'Created by',
+    neutralLabel: 'Anyone',
+    placeholder: 'Search creators...',
     options: personOptions,
     activeIds: controller.taskCreatedBy,
     onChange: controller.setTaskCreatedBy,
@@ -556,9 +455,9 @@ export function useSearchFacets(
   const tags: SearchFacetVM = {
     ...multiFacet({
       id: 'tags',
-      label: t('Tags'),
-      neutralLabel: t('Any tag'),
-      placeholder: t('Filter by tag...'),
+      label: 'Tags',
+      neutralLabel: 'Any tag',
+      placeholder: 'Filter by tag...',
       options: tagSource.options,
       activeIds: () => controller.tags().map((t) => t.value),
       onChange: (ids) => {

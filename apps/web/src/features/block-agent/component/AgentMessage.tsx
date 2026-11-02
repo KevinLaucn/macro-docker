@@ -14,6 +14,7 @@ import { idToDisplayName } from '@core/user/util';
 import { messageSendMotion } from '@core/util/message-send-motion';
 import { openExternalUrl } from '@core/util/url';
 import { t } from '@macro/i18n';
+import { stripAgentContext } from '@macro-inc/lexical-core/utils/parsers';
 import type {
   FoldedMessage,
   MessagePart,
@@ -51,6 +52,7 @@ import { ElicitationPart } from './parts/ElicitationPart';
 import { PermissionPart } from './parts/PermissionPart';
 import { PlanPart } from './parts/PlanPart';
 import { type ToolUsePart, toolUsedAfter } from './parts/shared';
+import { TaskNotificationPart } from './parts/TaskNotificationPart';
 import { TextPart } from './parts/TextPart';
 import { ToolApprovalPart } from './parts/ToolApprovalPart';
 import { ToolCallPart } from './parts/ToolCallPart';
@@ -79,8 +81,14 @@ function AgentMessagePart(props: {
       <Match when={props.part.kind === 'text' && props.part}>
         {(part) => (
           <TextPart
-            text={part().text}
+            text={
+              props.message.author.kind === 'user'
+                ? stripAgentContext(part().text)
+                : part().text
+            }
             inFlight={props.inFlight}
+            hideIncompleteXml={props.message.author.kind === 'agent'}
+            accentMentions={props.message.author.kind === 'agent'}
             observeRender={
               props.message.author.kind === 'agent'
                 ? (element) =>
@@ -135,6 +143,9 @@ function AgentMessagePart(props: {
       </Match>
       <Match when={props.part.kind === 'control' && props.part}>
         {(part) => <ControlPart part={part()} />}
+      </Match>
+      <Match when={props.part.kind === 'task_notification' && props.part}>
+        {(part) => <TaskNotificationPart part={part()} />}
       </Match>
       <Match when={props.part.kind === 'elicitation' && props.part}>
         {(part) => <ElicitationPart part={part()} turn={props.message.turn} />}
@@ -317,9 +328,9 @@ function UserMessage(props: { message: FoldedMessage }) {
           postedAt={props.message.postedAt ?? undefined}
           onOpen={
             origin()?.destination
-              ? () => {
+              ? (options) => {
                   const destination = origin()?.destination;
-                  if (destination) openOrigin(destination);
+                  if (destination) openOrigin(destination, options);
                 }
               : undefined
           }

@@ -1,13 +1,9 @@
-import { ListSkeleton } from '@app/components/view-shell/ListSkeleton';
-import { t } from '@macro/i18n';
-import DownloadIcon from '@phosphor-icons/core/regular/download-simple.svg?component-solid';
-import SignatureIcon from '@phosphor-icons/core/regular/signature.svg?component-solid';
+import DownloadIcon from '@icon/system/regular/download-simple.svg?component-solid';
 import { ToggleSwitch } from '@ui';
-import { lazy, Show, Suspense } from 'solid-js';
+import { Show } from 'solid-js';
 
 import { SettingsButton as Button } from '../primitives';
-
-const SignatureEditor = lazy(() => import('../SignatureEditor'));
+import { SignatureWorkspace } from './signature-workspace';
 
 export function SignatureForm(props: {
   email: string;
@@ -35,7 +31,7 @@ export function SignatureForm(props: {
         <div class="min-w-0">
           <h3 class="text-base font-medium break-all">{props.email}</h3>
           <p class="mt-1 text-sm text-ink-muted">
-            {t('Automatically added to new emails from this account.')}
+            Automatically added to new emails from this account.
           </p>
         </div>
         <Show when={!props.mobile && props.onImport}>
@@ -44,41 +40,23 @@ export function SignatureForm(props: {
               class="shrink-0"
               variant="ghost"
               size="md"
-              depth={3}
               disabled={props.pending || props.importing}
               onClick={() => onImport()()}
             >
               <DownloadIcon class="size-4" />
-              {props.importing ? t('Importing…') : t('Import from Gmail')}
+              {props.importing ? 'Importing…' : 'Import from Gmail'}
             </Button>
           )}
         </Show>
       </div>
-      {/* Editing (Quill) is desktop-only; on mobile the section still offers
-          the replies/forwards toggle and Remove, with a pointer to desktop. */}
-      <Show
-        when={!props.mobile}
-        fallback={
-          <div class="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-edge-muted px-3 py-6 text-center">
-            <SignatureIcon class="size-5 text-ink-muted" />
-            <p class="text-sm text-ink-muted">
-              {t('Update your signature on desktop.')}
-            </p>
-          </div>
-        }
-      >
-        <Suspense
-          fallback={<ListSkeleton.Bar class="h-44 w-full rounded-xl" />}
-        >
-          <SignatureEditor
-            label={t('Signature for {email}', { email: props.email })}
-            value={props.value}
-            disabled={props.pending || props.importing}
-            onInput={props.onInput}
-            onReady={props.onReady}
-          />
-        </Suspense>
-      </Show>
+      <SignatureWorkspace
+        email={props.email}
+        value={props.value}
+        disabled={props.pending || !!props.importing}
+        onInput={props.onInput}
+        onReady={props.onReady}
+        mobile={props.mobile}
+      />
       {/* Stacks on narrow screens so the toggle label and buttons never
           crowd each other onto wrapped lines. */}
       <div class="flex flex-col gap-3 @[520px]/signature:flex-row @[520px]/signature:items-center @[520px]/signature:justify-between">
@@ -88,29 +66,27 @@ export function SignatureForm(props: {
           disabled={props.pending}
           label={
             <span class="text-sm text-ink-muted">
-              {t('Add to replies & forwards')}
+              Add to replies & forwards
             </span>
           }
         />
         <div class="flex items-center justify-end gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="md"
-            depth={3}
             disabled={!props.hasContent || props.pending || props.importing}
             onClick={props.onClear}
           >
-            {t('Clear signature')}
+            Clear signature
           </Button>
           <Show when={!props.mobile}>
             <Button
-              variant="cta"
+              variant="primary"
               size="md"
-              depth={3}
               disabled={!props.dirty || props.pending || props.importing}
               onClick={props.onSave}
             >
-              {props.pending ? t('Saving…') : t('Save signature')}
+              {props.pending ? 'Saving…' : 'Save signature'}
             </Button>
           </Show>
         </div>

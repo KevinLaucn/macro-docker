@@ -6,7 +6,11 @@ import { match } from 'ts-pattern';
 
 export const NO_LINK_SHARE = 'NONE' as const;
 
-export type ShareItemType = ItemType | 'initiative' | 'crm_pipeline';
+export type ShareItemType =
+  | ItemType
+  | 'initiative'
+  | 'crm_pipeline'
+  | 'external_chat';
 
 const TEAM_SHAREABLE_ITEM_TYPES: ReadonlySet<ShareItemType> =
   new Set<ShareItemType>([
@@ -18,6 +22,7 @@ const TEAM_SHAREABLE_ITEM_TYPES: ReadonlySet<ShareItemType> =
     'initiative',
     'crm_pipeline',
     'database',
+    'external_chat',
   ]);
 
 export function isTeamShareSupportedForItem(itemType: ShareItemType): boolean {
@@ -41,6 +46,7 @@ export function getShareItemNoun(itemType: ShareItemType): string {
     .with('channel_message', () => 'message')
     .with('channel_thread', () => 'thread')
     .with('foreign', () => 'item')
+    .with('external_chat', () => 'chat')
     .with(
       'document',
       'chat',
@@ -88,23 +94,21 @@ import { t } from '@macro/i18n';
 const LINK_SHARE_SCOPE_COPY: Record<LinkShareScope, LinkShareScopeCopy> = {
   NONE: {
     get label() {
-      return t('None');
+      return t('Only people with access');
     },
     get title() {
-      return t('Link sharing off');
+      return t('Only people with access');
     },
     get description() {
-      return t(
-        'Only people and channels you explicitly share with can access this item.'
-      );
+      return t('The link only works for people who already have access.');
     },
   },
   PUBLIC: {
     get label() {
-      return t('Public');
+      return t('Anyone with the link');
     },
     get title() {
-      return t('Public link');
+      return t('Anyone with the link');
     },
     get description() {
       return t('Anyone with the link can access this item.');
@@ -112,14 +116,14 @@ const LINK_SHARE_SCOPE_COPY: Record<LinkShareScope, LinkShareScopeCopy> = {
   },
   TEAM: {
     get label() {
-      return t('Team');
+      return t('Team members with the link');
     },
     get title() {
-      return t('Team link');
+      return t('Team members with the link');
     },
     get description() {
       return t(
-        "Members of the owner's team with the link can access this item. This does not share it directly with a team or channel."
+        "Members of the owner's team can open this link. Others need to be added separately."
       );
     },
   },
@@ -127,16 +131,16 @@ const LINK_SHARE_SCOPE_COPY: Record<LinkShareScope, LinkShareScopeCopy> = {
 
 const TEAM_SHARE_COPY: Record<TeamShareScope, string> = {
   get NONE() {
-    return t('None');
+    return t('No team access');
   },
   get view() {
-    return t('View');
+    return t('Can view');
   },
   get comment() {
-    return t('Comment');
+    return t('Can comment');
   },
   get edit() {
-    return t('Edit');
+    return t('Can edit');
   },
 };
 
@@ -172,7 +176,7 @@ export function teamShareScopeOptionsForItem(itemType: ShareItemType) {
     return TEAM_SHARE_SCOPE_OPTIONS.filter(
       (option) => option.value === 'NONE' || option.value === 'edit'
     );
-  return itemType === 'call'
+  return itemType === 'call' || itemType === 'external_chat'
     ? CALL_TEAM_SHARE_SCOPE_OPTIONS
     : TEAM_SHARE_SCOPE_OPTIONS;
 }

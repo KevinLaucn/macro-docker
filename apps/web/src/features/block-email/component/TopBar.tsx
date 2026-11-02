@@ -73,6 +73,7 @@ export function TopBar(props: EmailThreadToolsOptions) {
             share={
               <Show when={ENABLE_EMAIL_SHARING}>
                 <ShareTrigger
+                  size="md"
                   onClick={openShare}
                   id={props.id}
                   blockType="email"

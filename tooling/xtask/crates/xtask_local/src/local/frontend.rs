@@ -28,6 +28,15 @@ fn rustup_preferred_path() -> Option<String> {
     Some(format!("{}:{path}", cargo_bin.display()))
 }
 
+fn prepare_dependencies(stage: &Stage) -> Result<()> {
+    let mut prepare = Command::new("bun");
+    prepare.current_dir(app_dir()).args(["run", "dev:prepare"]);
+    if let Some(path) = rustup_preferred_path() {
+        prepare.env("PATH", path);
+    }
+    stage.run("Preparing frontend dependencies", &mut prepare)
+}
+
 /// Host-facing frontend URL.
 pub fn url(instance: &Instance) -> String {
     format!("http://localhost:{}/app", instance.port(Port::Frontend))
@@ -74,6 +83,7 @@ pub fn static_dir(instance: &Instance) -> std::path::PathBuf {
 /// paths such as passwordless auto-login (`just run_local` uses `vite serve`,
 /// where DEV is already true). Headless `stack up` sets the same origin env.
 pub fn build_static(stage: &Stage, instance: &Instance, mode: Mode) -> Result<()> {
+    prepare_dependencies(stage)?;
     let dist = {
         let mut cmd = Command::new("bun");
         cmd.current_dir(app_dir())
@@ -350,15 +360,7 @@ pub fn start(
              previous run. Free it (`lsof -ti tcp:{port} | xargs kill`) and retry."
         );
     }
-    let mut prepare = Command::new("bash");
-    prepare.current_dir(app_dir()).args([
-        "-c",
-        "just ensure-cache-wasm && just ensure-agent-fold-wasm",
-    ]);
-    if let Some(path) = rustup_preferred_path() {
-        prepare.env("PATH", path);
-    }
-    stage.run("Preparing frontend dependencies", &mut prepare)?;
+    prepare_dependencies(stage)?;
 
     // Vite's node-http-proxy WebSocket upgrades hang under Bun (including
     // 1.3.13). Use Node for the dev server, while keeping Bun for dependencies

@@ -1,10 +1,5 @@
-import { setLocale } from '@macro/i18n';
-import { afterEach, describe, expect, it } from 'vitest';
-import { PROPERTY_OPTION_IDS, SYSTEM_PROPERTY_IDS } from '../identifiers';
-import { PROPERTIES_FILLED } from '../mocks/mockProperties';
-import { formatDate, formatPropertyValue } from './formatting';
-
-afterEach(() => setLocale('en-US'));
+import { describe, expect, it } from 'vitest';
+import { formatDate, formatTimeRange } from './formatting';
 
 describe('formatDate', () => {
   it('shows a day as its short month, day and year', () => {
@@ -13,41 +8,42 @@ describe('formatDate', () => {
   });
 });
 
-describe('system option localization', () => {
-  const status = PROPERTIES_FILLED.find(
-    (property) => property.propertyDefinitionId === SYSTEM_PROPERTY_IDS.STATUS
-  )!;
-
-  it('translates stored system labels and fallback labels as locale changes', () => {
-    setLocale('zh-CN');
+describe('formatTimeRange', () => {
+  it('shows an all-day range as its days, sharing the month and year', () => {
     expect(
-      formatPropertyValue(status, PROPERTY_OPTION_IDS.STATUS.NOT_STARTED)
-    ).toBe('未开始');
+      formatTimeRange({
+        allDay: true,
+        start: new Date(2026, 9, 9),
+        end: new Date(2026, 9, 13),
+      })
+    ).toBe('Oct 9\u2009–\u200913, 2026');
     expect(
-      formatPropertyValue(
-        { ...status, options: [] },
-        PROPERTY_OPTION_IDS.STATUS.NOT_STARTED
-      )
-    ).toBe('未开始');
-    setLocale('en-US');
-    expect(
-      formatPropertyValue(status, PROPERTY_OPTION_IDS.STATUS.NOT_STARTED)
-    ).toBe('Not started');
+      formatTimeRange({
+        allDay: true,
+        start: new Date(2026, 9, 9),
+        end: new Date(2026, 9, 9),
+      })
+    ).toBe('Oct 9, 2026');
   });
 
-  it('preserves a custom option even when its label matches a system translation', () => {
-    setLocale('zh-CN');
-    const option = status.options![0];
-    const custom = {
-      ...status,
-      options: [
-        {
-          ...option,
-          id: 'custom-option',
-          value: { type: 'string' as const, value: 'Not Started' },
-        },
-      ],
-    };
-    expect(formatPropertyValue(custom, 'custom-option')).toBe('Not Started');
+  // ICU versions differ on the space before AM/PM; the range content is the contract.
+  it('shows a timed range on one day as the day and both times', () => {
+    expect(
+      formatTimeRange({
+        allDay: false,
+        start: new Date(2026, 9, 9, 9),
+        end: new Date(2026, 9, 9, 17),
+      }).replaceAll('\u202f', ' ')
+    ).toBe('Oct 9, 9:00 AM\u2009–\u20095:00 PM');
+  });
+
+  it('shows a timed range over days as each day with its time', () => {
+    expect(
+      formatTimeRange({
+        allDay: false,
+        start: new Date(2026, 9, 9, 9),
+        end: new Date(2026, 9, 13, 17),
+      }).replaceAll('\u202f', ' ')
+    ).toBe('Oct 9, 9:00 AM\u2009–\u2009Oct 13, 5:00 PM');
   });
 });
