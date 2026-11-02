@@ -53,7 +53,6 @@ function warmAgentSessionQueryOptions(owner: string | undefined) {
 export function useWarmAgentSessionQuery(userId: Accessor<string | undefined>) {
   return useQuery(() => warmAgentSessionQueryOptions(userId()));
 }
-}
 
 /** Why a new session did or did not start on a warm reservation. */
 export type WarmClaim =

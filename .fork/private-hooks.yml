@@ -426,7 +426,7 @@ hooks:
     expected: |-
       {
               tab: 'SelfHostHealth',
-              label: t('Health Check'),
+              label: tFork('Health Check'),
               englishLabel: 'Health Check',
               icon: HeartbeatIcon,
               keywords: ['health', 'self-host'],

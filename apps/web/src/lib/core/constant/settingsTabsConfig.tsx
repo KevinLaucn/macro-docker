@@ -1,5 +1,6 @@
 import { useFeatureFlag } from '@app/lib/analytics/posthog';
 import { t } from '@app/lib/i18n';
+import { t as tFork } from '@macro/i18n';
 import settingsNavMessages from '@app/lib/i18n/locales/en/settings-nav';
 import BellIcon from '@icon/system/regular/bell-simple.svg';
 import BugIcon from '@icon/system/regular/bug.svg';
@@ -279,7 +280,7 @@ export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
       // PRIVATE-HOOK: self_host_health:settings_item
       {
         tab: 'SelfHostHealth',
-        label: t('Health Check'),
+        label: tFork('Health Check'),
         englishLabel: 'Health Check',
         icon: HeartbeatIcon,
         keywords: ['health', 'self-host'],
@@ -323,6 +324,7 @@ const SETTINGS_TAB_SLUGS: Record<SettingsTab, string> = {
   Email: 'email',
   GitHub: 'github',
   Admin: 'admin',
+  Extensions: 'extensions',
   // PRIVATE-HOOK: self_host_health:settings_slug
   SelfHostHealth: 'health-check',
 };

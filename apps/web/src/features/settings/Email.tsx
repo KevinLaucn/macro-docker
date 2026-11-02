@@ -535,17 +535,6 @@ function InboxRow(props: {
               <Match when={getBackfillProgress(props.link.id)}>
                 {(progress) => <BackfillProgressBar progress={progress()} />}
               </Match>
-              {/* Settled inbox with a completed backfill from the BE list. */}
-              <Match
-                when={
-                  props.link.sync_status === SyncStatus.UP_TO_DATE &&
-                  props.hasCompletedBackfill
-                }
-              >
-                <span class="text-xs text-ink-muted">
-                  {t('Initial sync complete')}
-                </span>
-              </Match>
             </Switch>
           </Show>
         </div>

@@ -30,7 +30,7 @@ export function EmailTranslateButton(props: EmailTranslateButtonProps) {
       variant="ghost"
       size="icon-sm"
       disabled={props.disabled || isLoading()}
-      label={tooltipLabel()}
+      aria-label={tooltipLabel()}
       onClick={(e: MouseEvent) => {
         e.stopPropagation();
         e.preventDefault();
