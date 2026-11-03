@@ -88,7 +88,9 @@ fn inject_after_strip_leaves_one_tracking_pixel() {
 
 #[test]
 fn strip_open_tracking_pixels_removes_upstream_opens_pixel() {
-    let upstream_pixel = format!(r#"<img src="{BASE_URL}/opens/01931a2b-c3d4-7e8f-9012-3456789abcde" width="1" height="1">"#);
+    let upstream_pixel = format!(
+        r#"<img src="{BASE_URL}/opens/01931a2b-c3d4-7e8f-9012-3456789abcde" width="1" height="1">"#
+    );
     let html = format!(r#"<html><body><p>upstream message</p>{upstream_pixel}</body></html>"#);
 
     let cleaned = strip_open_tracking_pixels(&html, BASE_URL);
@@ -98,7 +100,8 @@ fn strip_open_tracking_pixels_removes_upstream_opens_pixel() {
 
 #[test]
 fn strip_and_inject_ensures_single_pixel_when_upstream_and_fork_present() {
-    let upstream_pixel = format!(r#"<img src="{BASE_URL}/opens/upstream-token-12345" width="1" height="1">"#);
+    let upstream_pixel =
+        format!(r#"<img src="{BASE_URL}/opens/upstream-token-12345" width="1" height="1">"#);
     let old_fork_pixel = open_tracking_pixel_url(BASE_URL, "fork-token-67890");
     let html = format!(r#"<div><p>quoted</p><img src="{old_fork_pixel}">{upstream_pixel}</div>"#);
 

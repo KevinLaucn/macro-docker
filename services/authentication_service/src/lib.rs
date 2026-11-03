@@ -7,9 +7,9 @@ mod account_link_state;
 mod api;
 mod config;
 // PRIVATE-HOOK: self_host_health:features
+pub mod domain;
 #[path = "../../../packages/fork/self-host-health/backend/mod.rs"]
 mod features;
-pub mod domain;
 mod generate_password;
 mod microsoft_token_cipher;
 pub mod outbound;

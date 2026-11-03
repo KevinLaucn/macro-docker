@@ -68,10 +68,7 @@ pub async fn handler(
         }));
     }
 
-    let document_id = ctx
-        .attachment_reads
-        .document(actor, attachment_id)
-        .await?;
+    let document_id = ctx.attachment_reads.document(actor, attachment_id).await?;
     Ok(Json(GetAttachmentDocumentIDResponse {
         attachment_id,
         document_id,
