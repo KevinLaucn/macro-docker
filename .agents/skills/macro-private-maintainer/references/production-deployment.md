@@ -69,3 +69,10 @@ Compose 挂载 `init/localstack-jsonpickle-snapshot.sh`，启动时将 jsonpickl
 热修复前备份 SQS 持久化文件，短暂停止队列客户端写入；确认保存成功后再重启 LocalStack。
 重启前后核对全部队列及可见、处理中、延迟消息总数，并确认持久化文件继续更新且没有保存错误。
 用镜像虚拟环境运行 `scripts/test_localstack_persistence.py` 验证并发遍历和序列化引用一致性。
+
+### 历史已读回执字段的迁移兼容
+
+生产库若已手工添加 `email_settings.read_receipts_enabled`，执行
+`20261022224928_email_read_receipts.sql` 前先备份设置并检查列依赖，临时改名保留原列，
+再让原生 SQLx 迁移创建正式列及回执表；在同一事务内回填原设置、验证逐行相等、
+保留原默认值并删除影子列。不得跳过迁移、修改 checksum 或使用 `CASCADE`。
