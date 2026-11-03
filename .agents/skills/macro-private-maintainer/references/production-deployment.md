@@ -61,6 +61,10 @@
 
 ### LocalStack SQS 持久化
 
+`reconcile-localstack.sh` 同时绑定 `static-file-storage` 的 ObjectCreated 事件到
+`static-file-s3-event-notification-queue`；上传验收必须检查元数据 `is_uploaded=true`，
+仅验证 S3 PUT/GET 成功无法证明上传通知正常。
+
 `gresau/localstack-persist:4.14.0` 在队列并发变化时可能报
 `RuntimeError: dictionary changed size during iteration`，健康检查通过不能证明队列落盘成功。
 Compose 挂载 `init/localstack-jsonpickle-snapshot.sh`，启动时将 jsonpickle 的字典遍历改为快照，

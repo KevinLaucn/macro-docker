@@ -27,6 +27,11 @@ while true; do
       echo "LocalStack is healthy (transitioned from ${prev_state}). Reconciling upstream resources via ${PROVISIONER}..."
       if "$PROVISIONER" --url "$ENDPOINT"; then
         echo "LocalStack resources successfully reconciled."
+        # Notify SFS so uploaded objects become available through its metadata API.
+        static_queue_arn="arn:aws:sqs:us-east-1:000000000000:static-file-s3-event-notification-queue"
+        aws --endpoint-url="$ENDPOINT" s3api put-bucket-notification-configuration \
+          --bucket static-file-storage \
+          --notification-configuration "{\"QueueConfigurations\":[{\"Id\":\"static-file-upload\",\"QueueArn\":\"$static_queue_arn\",\"Events\":[\"s3:ObjectCreated:*\"]}]}"
         # Self-host extension: wire search-upload-queue to S3 doc-storage ObjectCreated events
         aws --endpoint-url="$ENDPOINT" sqs create-queue --queue-name search-upload-queue >/dev/null 2>&1 || true
         search_queue_arn="arn:aws:sqs:us-east-1:000000000000:search-upload-queue"
