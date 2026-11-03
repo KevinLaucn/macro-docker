@@ -1,6 +1,6 @@
 ---
 name: macro-private-maintainer
-description: Master router for maintaining the long-lived private Macro fork. Use for fork-owned development, upstream drift review, self-host invariants, private hooks, and deciding whether a change belongs to upstream or the private fork.
+description: Master router for maintaining the long-lived private Macro fork. Use for fork-owned development, upstream drift review, self-host invariants, private hooks, and Macro i18n, translation, or untranslated-field work.
 ---
 
 # Macro Private Maintainer
@@ -19,13 +19,18 @@ target. Put Fork instructions only in Fork-owned Skills.
 | UI/UX under apps/web | `skills/macro-ui-design/SKILL.md` |
 | Upstream merge/drift/conflict review | `skills/macro-upstream-sync/SKILL.md` |
 | Push, PR, release or build contract | `../macro-pre-push-gate/SKILL.md` |
-| i18n extraction/audit | `references/i18n-workflow.md` |
+| i18n、翻译、漏译或隐藏界面字段 | `references/i18n-workflow.md` + `../update-translations/SKILL.md` |
 | Email pixels, read receipts, send/reply status, or their upstream dependencies | `references/read-receipts-contract.md` |
 | Production operations | `references/production-deployment.md` |
 | Email attachment availability, provider fallback, or storage migration | `references/storage-attachments.md` |
 
 Read relevant AGENTS.md/CLAUDE.md and source before editing. Use CodeGraph when
 present and `rg` for literals, config, URLs, and PRIVATE-HOOK markers.
+
+For Macro i18n or translation requests, always read both routed workflows.
+Apply their combined checks within the requested scope; preserve each runtime's
+dictionary and interpolation conventions. Feed newly discovered hidden-field
+patterns back into the Fork-owned workflow and applicable audit regression tests.
 
 ## Authority order
 
