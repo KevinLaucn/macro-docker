@@ -130,26 +130,52 @@ export function auditFields(
           follow(expression);
     } else if (path.isCallExpression()) {
       const callee = path.get('callee') as AstPath;
-      if (callee.isIdentifier() && ['t', '__t'].includes(callee.node.name)) {
-        const args = path.get('arguments') as AstPath[];
-        let ctx = '';
-        for (const arg of args.slice(1)) {
-          if (arg.isStringLiteral()) ctx = arg.node.value;
-          if (!arg.isObjectExpression()) continue;
-          for (const prop of arg.get('properties') as AstPath[]) {
-            if (
-              !prop.isObjectProperty() ||
-              prop.node.key.type !== 'Identifier' ||
-              prop.node.key.name !== 'context'
-            )
-              continue;
-            const contextValue = prop.get('value') as AstPath;
-            if (contextValue.isStringLiteral()) ctx = contextValue.node.value;
+      if (callee.isIdentifier()) {
+        const calleeName = callee.node.name;
+        const binding = path.scope.getBinding(calleeName);
+        let isOfficial = false;
+        let isFork = false;
+        if (binding?.path.isImportSpecifier()) {
+          const importDecl = binding.path.parentPath;
+          if (importDecl.isImportDeclaration()) {
+            const src = importDecl.node.source.value;
+            if (src.includes('@macro/i18n') || src.includes('packages/fork/i18n')) {
+              isFork = true;
+            } else if (src.includes('@app/lib/i18n') || src.includes('src/lib/i18n')) {
+              isOfficial = true;
+            }
           }
         }
-        value(args[0], field, true, ctx, seen);
-      } else if (callee.isIdentifier()) {
-        follow(callee);
+        if (isOfficial) {
+          // Official @app/lib/i18n call: translated by official upstream runtime
+          return;
+        }
+        if (binding && !binding.path.isImportSpecifier() && !['t', '__t'].includes(calleeName)) {
+          // Local variable or parameter, not i18n
+          follow(callee);
+          return;
+        }
+        if (['t', '__t'].includes(calleeName) || isFork) {
+          const args = path.get('arguments') as AstPath[];
+          let ctx = '';
+          for (const arg of args.slice(1)) {
+            if (arg.isStringLiteral()) ctx = arg.node.value;
+            if (!arg.isObjectExpression()) continue;
+            for (const prop of arg.get('properties') as AstPath[]) {
+              if (
+                !prop.isObjectProperty() ||
+                prop.node.key.type !== 'Identifier' ||
+                prop.node.key.name !== 'context'
+              )
+                continue;
+              const contextValue = prop.get('value') as AstPath;
+              if (contextValue.isStringLiteral()) ctx = contextValue.node.value;
+            }
+          }
+          value(args[0], field, true, ctx, seen);
+        } else {
+          follow(callee);
+        }
       } else if (
         callee.isMemberExpression() &&
         callee.node.object.type === 'Identifier' &&

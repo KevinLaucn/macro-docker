@@ -5,6 +5,7 @@ import { DocumentBlockContainer } from '@core/component/DocumentBlockContainer';
 import { toast } from '@core/component/Toast/Toast';
 import { useShareModal } from '@core/component/TopBar/shareModal';
 import { fileTypeToBlockName } from '@core/constant/allBlocks';
+import { enableAiEditor, isFeatureEnabled } from '@core/constant/featureFlags';
 import { blockMetadataSignal } from '@core/signal/load';
 import { useGetPermissions } from '@core/signal/permissions';
 import {
@@ -63,6 +64,11 @@ function BlockUnknownContent() {
   const fileName = useBlockDocumentName();
   const downloadName = useBlockDocumentDownloadName();
   const blockId = useBlockId();
+  const { openWithSplit } = useSplitLayout();
+  const canOpenAiEditor = () => isFeatureEnabled(enableAiEditor);
+  const handleOpenAiEditor = () => {
+    openWithSplit({ type: 'ai', id: blockId }, { preferNewSplit: false });
+  };
   const permissions = useGetPermissions();
   const openShare = useShareModal(() => ({
     id: blockId,
@@ -115,6 +121,8 @@ function BlockUnknownContent() {
                     format={format()}
                     fileName={fileName()}
                     getBlob={getBlob}
+                    canOpenEditor={canOpenAiEditor()}
+                    onOpenEditor={handleOpenAiEditor}
                   />
                 )}
               </Show>

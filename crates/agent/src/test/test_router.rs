@@ -106,6 +106,39 @@ fn fireworks_provider_routes_to_chat_completions() {
 }
 
 #[test]
+fn openrouter_provider_routes_to_chat_completions() {
+    let router = test_router().with_openai_client(
+        "openrouter",
+        openai::CompletionsClient::builder()
+            .api_key("test-openrouter-key")
+            .base_url("https://openrouter.ai/api/v1")
+            .build()
+            .unwrap(),
+    );
+
+    let routed = router
+        .route("openrouter/anthropic/claude-sonnet-4.6")
+        .unwrap();
+    assert!(matches!(routed, RoutedModel::OpenAiChatCompletions(_)));
+    assert_eq!(routed.provider(), "openrouter");
+    assert_eq!(routed.model_name(), "anthropic/claude-sonnet-4.6");
+
+    let overridden = router.clone().with_runtime_overrides(
+        false,
+        true,
+        Some("openai/gpt-5.6".to_owned()),
+        Some("openai/gpt-5-mini".to_owned()),
+    );
+    let smart_routed = overridden.route("anthropic/claude-opus-4-8").unwrap();
+    assert_eq!(smart_routed.provider(), "openrouter");
+    assert_eq!(smart_routed.model_name(), "anthropic/claude-opus-4.8");
+
+    let fast_routed = overridden.route("openai/gpt-5.6-mini").unwrap();
+    assert_eq!(fast_routed.provider(), "openrouter");
+    assert_eq!(fast_routed.model_name(), "openai/gpt-5-mini");
+}
+
+#[test]
 fn google_provider_routes_to_native_gemini() {
     let router = test_router().with_gemini_client(
         gemini::Client::builder()

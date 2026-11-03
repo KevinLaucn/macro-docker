@@ -1,5 +1,6 @@
 import { formatDate } from '@core/util/date';
 import { fireAndForget } from '@core/util/fireAndForget';
+import { t } from '@macro/i18n';
 import ArrowUpRightIcon from '@icon/system/regular/arrow-up-right.svg';
 import ArrowsClockwiseIcon from '@icon/system/regular/arrows-clockwise.svg';
 import CaretRightIcon from '@icon/system/regular/caret-right.svg';
@@ -74,8 +75,10 @@ const UPLOAD_PHASES = new Set<ImportPhase>([
   'terminal',
 ]);
 
-const SOURCE_CONFIRMATION =
-  "I confirm this archive belongs to this team's Slack workspace, including when its identity is unknown.";
+const SOURCE_CONFIRMATION = () =>
+  t(
+    "I confirm this archive belongs to this team's Slack workspace, including when its identity is unknown."
+  );
 
 function phaseDisplay(phase: ImportPhase): StatusDisplay {
   const tone = match(phase)
@@ -160,7 +163,7 @@ export function ImportDialog(props: Props): JSX.Element {
       await props.onCompleted(job);
     } catch {
       setRefreshWarning(
-        'Import results are saved, but channel lists could not be refreshed.'
+        t('Import results are saved, but channel lists could not be refreshed.')
       );
     }
   }
@@ -240,7 +243,7 @@ export function ImportDialog(props: Props): JSX.Element {
       setActionError(
         error instanceof Error
           ? error.message
-          : 'The action could not be completed.'
+          : t('The action could not be completed.')
       );
     } finally {
       setBusy(false);
@@ -269,7 +272,7 @@ export function ImportDialog(props: Props): JSX.Element {
       );
     } catch {
       setActionError(
-        'Cancellation was not confirmed. Refresh progress or retry cancel.'
+        t('Cancellation was not confirmed. Refresh progress or retry cancel.')
       );
     } finally {
       setCancelling(false);
@@ -320,14 +323,14 @@ export function ImportDialog(props: Props): JSX.Element {
     ).length ?? 0;
   const archiveSource = (): string => {
     const source = discovery()?.source;
-    return source?.kind === 'known' ? source.sourceId : 'Unknown';
+    return source?.kind === 'known' ? source.sourceId : t('Unknown');
   };
   const boundSource = () => {
     const binding = source.page()?.sourceBinding;
-    if (!binding || binding.kind === 'unbound') return 'Not yet bound';
+    if (!binding || binding.kind === 'unbound') return t('Not yet bound');
     return binding.kind === 'known'
       ? binding.sourceId
-      : 'Previously confirmed unknown workspace';
+      : t('Previously confirmed unknown workspace');
   };
   const upload = () => {
     const current = phase();
@@ -361,7 +364,7 @@ export function ImportDialog(props: Props): JSX.Element {
             )
           }
         >
-          Import selected channels ({selected().size})
+          {t('Import selected channels ({count})', { count: selected().size })}
         </Button>
       );
     }
@@ -380,7 +383,7 @@ export function ImportDialog(props: Props): JSX.Element {
                 )
               }
             >
-              Recover job receipt
+              {t('Recover job receipt')}
             </Button>
           }
         >
@@ -394,7 +397,7 @@ export function ImportDialog(props: Props): JSX.Element {
               )
             }
           >
-            Finalize with skips
+            {t('Finalize with skips')}
           </Button>
         </Show>
       );
@@ -408,7 +411,7 @@ export function ImportDialog(props: Props): JSX.Element {
             fireAndForget(runAction(finalizeHistory), 'slack-import')
           }
         >
-          Finalize with skips
+          {t('Finalize with skips')}
         </Button>
       );
     }
@@ -439,13 +442,13 @@ export function ImportDialog(props: Props): JSX.Element {
             <ActionDialogShell.Header>
               <ActionDialogShell.Title>
                 {choosingMethod()
-                  ? 'Bring Slack to Macro'
-                  : 'Import from Slack'}
+                  ? t('Bring Slack to Macro')
+                  : t('Import from Slack')}
               </ActionDialogShell.Title>
               <ActionDialogShell.Description>
                 {choosingMethod()
-                  ? 'Choose how to get started.'
-                  : 'Upload a Slack export to bring your history with you.'}
+                  ? t('Choose how to get started.')
+                  : t('Upload a Slack export to bring your history with you.')}
               </ActionDialogShell.Description>
             </ActionDialogShell.Header>
 
@@ -472,7 +475,7 @@ export function ImportDialog(props: Props): JSX.Element {
                 <button
                   ref={methodButton}
                   type="button"
-                  aria-label="Import with history"
+                  aria-label={t('Import with history')}
                   class="flex w-full items-center gap-4 rounded-lg border border-edge-muted p-4 text-left hover:bg-ink/4 focus-visible:outline-accent"
                   onClick={() => {
                     setImportSelected(true);
@@ -485,14 +488,15 @@ export function ImportDialog(props: Props): JSX.Element {
                   />
                   <span class="flex-1 space-y-1">
                     <span class="block text-sm font-medium text-ink">
-                      Import with history
+                      {t('Import with history')}
                       <span class="ml-2 rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent">
-                        Recommended
+                        {t('Recommended')}
                       </span>
                     </span>
                     <span class="block text-xs text-ink-muted">
-                      Channels, messages and threads. Requires an export from a
-                      Slack admin.
+                      {t(
+                        'Channels, messages and threads. Requires an export from a Slack admin.'
+                      )}
                     </span>
                   </span>
                   <CaretRightIcon
@@ -514,12 +518,13 @@ export function ImportDialog(props: Props): JSX.Element {
             </Show>
 
             <Show when={!source.page() && !source.error()}>
-              <Notice tone="info">Loading import settings…</Notice>
+              <Notice tone="info">{t('Loading import settings…')}</Notice>
             </Show>
             <Show when={source.error()}>
               <Notice tone="warning">
-                Progress could not be refreshed. Imports already running on the
-                server continue.
+                {t(
+                  'Progress could not be refreshed. Imports already running on the server continue.'
+                )}
               </Notice>
             </Show>
             <Show when={error()}>
@@ -542,14 +547,14 @@ export function ImportDialog(props: Props): JSX.Element {
                     onShowArchived={setShowArchived}
                     onSelect={select}
                   />
-                  <section class="flex flex-col gap-3" aria-label="Options">
-                    <DialogSectionTitle>Options</DialogSectionTitle>
+                  <section class="flex flex-col gap-3" aria-label={t('Options')}>
+                    <DialogSectionTitle>{t('Options')}</DialogSectionTitle>
                     <div class="divide-y divide-edge-divider overflow-hidden rounded-lg border border-edge-muted">
                       <label class="flex items-start gap-3 px-4 py-3">
                         <NativeCheckbox
                           class="mt-0.5"
                           checked={includeHistory()}
-                          aria-label="Include message history"
+                          aria-label={t('Include message history')}
                           aria-describedby="slack-import-history-hint"
                           onChange={(event) =>
                             setIncludeHistory(event.currentTarget.checked)
@@ -557,37 +562,43 @@ export function ImportDialog(props: Props): JSX.Element {
                         />
                         <span class="min-w-0 flex-1">
                           <span class="block text-sm text-ink">
-                            Include message history
+                            {t('Include message history')}
                           </span>
                           <span
                             id="slack-import-history-hint"
                             class="block text-xs text-ink-muted"
                           >
-                            Messages, threads and reactions. Files and
-                            attachments are not imported.
+                            {t(
+                              'Messages, threads and reactions. Files and attachments are not imported.'
+                            )}
                           </span>
                         </span>
                       </label>
                       <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-4 py-3 text-xs">
-                        <dt class="text-ink-muted">Team source</dt>
+                        <dt class="text-ink-muted">{t('Team source')}</dt>
                         <dd class="min-w-0 truncate text-ink">
                           {boundSource()}
                         </dd>
-                        <dt class="text-ink-muted">Archive source</dt>
+                        <dt class="text-ink-muted">{t('Archive source')}</dt>
                         <dd class="min-w-0 truncate text-ink">
                           {archiveSource()}
                         </dd>
-                        <dt class="text-ink-muted">Members</dt>
+                        <dt class="text-ink-muted">{t('Members')}</dt>
                         <dd class="text-ink">
-                          {found().users.length - namedAuthors()} matched by
-                          email · {namedAuthors()} attributed by Slack name
+                          {t(
+                            '{matched} matched by email · {attributed} attributed by Slack name',
+                            {
+                              matched: found().users.length - namedAuthors(),
+                              attributed: namedAuthors(),
+                            }
+                          )}
                         </dd>
                       </dl>
                       <label class="flex items-start gap-3 px-4 py-3">
                         <NativeCheckbox
                           class="mt-0.5"
                           checked={confirmed()}
-                          aria-label={SOURCE_CONFIRMATION}
+                          aria-label={SOURCE_CONFIRMATION()}
                           aria-describedby="slack-import-source-hint"
                           onChange={(event) =>
                             setConfirmed(event.currentTarget.checked)
@@ -595,31 +606,34 @@ export function ImportDialog(props: Props): JSX.Element {
                         />
                         <span class="min-w-0 flex-1">
                           <span class="block text-sm text-ink">
-                            This export belongs to my team's Slack workspace.
+                            {t(
+                              "This export belongs to my team's Slack workspace."
+                            )}
                           </span>
                           <span
                             id="slack-import-source-hint"
                             class="block text-xs text-ink-muted"
                           >
-                            This team can only import from one Slack workspace.
+                            {t(
+                              'This team can only import from one Slack workspace.'
+                            )}
                           </span>
                         </span>
                       </label>
                     </div>
                     <details class="text-xs text-ink-extra-muted">
-                      <summary class="text-ink-muted">How imports work</summary>
+                      <summary class="text-ink-muted">
+                        {t('How imports work')}
+                      </summary>
                       <p class="pt-2">
-                        Only selected conversations are uploaded. Keep this page
-                        open until uploads finish. Encrypted, multi-volume and
-                        ZIP64 archives are not supported.
+                        {t(
+                          'Only selected conversations are uploaded. Keep this page open until uploads finish. Encrypted, multi-volume and ZIP64 archives are not supported.'
+                        )}
                       </p>
                       <p class="pt-2">
-                        Public Slack channels become Team channels with explicit
-                        members, never globally public. Existing channel names,
-                        roles and membership history are preserved. External
-                        email addresses can become channel members; a DM needs
-                        two distinct email-bearing members and never adds you as
-                        a third.
+                        {t(
+                          'Public Slack channels become Team channels with explicit members, never globally public. Existing channel names, roles and membership history are preserved. External email addresses can become channel members; a DM needs two distinct email-bearing members and never adds you as a third.'
+                        )}
                       </p>
                     </details>
                   </section>
@@ -637,9 +651,9 @@ export function ImportDialog(props: Props): JSX.Element {
             </Show>
             <Show when={recoveredUpload()}>
               <Notice tone="warning">
-                Progress was recovered without the archive, and uploads do not
-                resume after a reload. Finalize with skips to process the
-                verified conversations, or cancel and start a new import.
+                {t(
+                  'Progress was recovered without the archive, and uploads do not resume after a reload. Finalize with skips to process the verified conversations, or cancel and start a new import.'
+                )}
               </Notice>
             </Show>
 
@@ -650,7 +664,7 @@ export function ImportDialog(props: Props): JSX.Element {
                 class="text-xs text-ink-muted"
               >
                 <summary class="py-1">
-                  Previous imports
+                  {t('Previous imports')}
                   {source.page()?.jobs.length
                     ? ` (${source.page()!.jobs.length})`
                     : ''}
@@ -673,8 +687,8 @@ export function ImportDialog(props: Props): JSX.Element {
             <div class="flex items-center gap-2">
               <Show when={historyOpen() || showProgress() || source.error()}>
                 <Button
-                  aria-label="Refresh progress"
-                  tooltip="Refresh progress"
+                  aria-label={t('Refresh progress')}
+                  tooltip={t('Refresh progress')}
                   variant="ghost"
                   size="icon-md"
                   disabled={busy()}
@@ -694,7 +708,7 @@ export function ImportDialog(props: Props): JSX.Element {
                   disabled={cancelPending()}
                   onClick={() => fireAndForget(cancel(), 'slack-import')}
                 >
-                  Cancel import
+                  {t('Cancel import')}
                 </Button>
               </Show>
             </div>
@@ -711,7 +725,7 @@ export function ImportDialog(props: Props): JSX.Element {
                     queueMicrotask(() => methodButton?.focus());
                   }}
                 >
-                  Back
+                  {t('Back')}
                 </Button>
               </Show>
               <Show when={canChooseAnother()}>
@@ -720,11 +734,11 @@ export function ImportDialog(props: Props): JSX.Element {
                   disabled={busy() || cancelling()}
                   onClick={resetSession}
                 >
-                  Choose another archive
+                  {t('Choose another archive')}
                 </Button>
               </Show>
               <Button variant="ghost" onClick={() => changeOpen(false)}>
-                Close
+                {t('Close')}
               </Button>
               {primaryAction()}
             </div>
@@ -758,7 +772,7 @@ function ArchivePicker(props: {
         'flex flex-col gap-4',
         !props.archive && 'rounded-xl border border-edge-muted p-5'
       )}
-      aria-label="Archive"
+      aria-label={t('Archive')}
     >
       <div
         class={cn(
@@ -803,7 +817,7 @@ function ArchivePicker(props: {
         />
         <div class="min-w-0 flex-1">
           <div id="slack-import-file-label" class="sr-only">
-            Slack export ZIP
+            {t('Slack export ZIP')}
           </div>
           <div
             id="slack-import-file-hint"
@@ -811,12 +825,12 @@ function ArchivePicker(props: {
           >
             <Show
               when={props.archive}
-              fallback="Drop your Slack export ZIP here"
+              fallback={t('Drop your Slack export ZIP here')}
             >
               {(archive) => (
                 <>
                   {archive().name} · {formatBytes(archive().size)}
-                  {props.reading ? ' · Reading archive…' : ''}
+                  {props.reading ? ` · ${t('Reading archive…')}` : ''}
                 </>
               )}
             </Show>
@@ -824,14 +838,15 @@ function ArchivePicker(props: {
         </div>
         <Show when={!props.disabled}>
           <span class="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-contrast">
-            Choose ZIP file
+            {t('Choose ZIP file')}
           </span>
         </Show>
       </div>
       <Show when={!props.archive}>
         <p class="text-xs text-ink-extra-muted">
-          A Slack workspace owner or admin must provide the export. Files and
-          attachments aren't included.
+          {t(
+            "A Slack workspace owner or admin must provide the export. Files and attachments aren't included."
+          )}
         </p>
         <a
           href="https://slack.com/help/articles/201658943-Export-your-workspace-data"
@@ -839,7 +854,7 @@ function ArchivePicker(props: {
           rel="noopener noreferrer"
           class="mt-auto inline-flex items-center gap-1 text-xs text-link hover:text-link-hover hover:underline"
         >
-          How to export from Slack
+          {t('How to export from Slack')}
           <ArrowUpRightIcon aria-hidden="true" class="size-3" />
         </a>
       </Show>
@@ -865,14 +880,14 @@ function JobHistory(props: {
       receipt.jobId
     );
   return (
-    <section class="flex flex-col gap-3" aria-label="Job history">
+    <section class="flex flex-col gap-3" aria-label={t('Job history')}>
       <Show
         when={props.page?.jobs.length}
         fallback={
           <p class="text-xs text-ink-muted">
             {props.paged
-              ? 'No older imports.'
-              : 'No imports yet for this team.'}
+              ? t('No older imports.')
+              : t('No imports yet for this team.')}
           </p>
         }
       >
@@ -897,14 +912,13 @@ function JobHistory(props: {
                     {when(receipt())} · {humanize(receipt().status)}
                   </span>
                   <span class="shrink-0 text-xs text-ink-muted">
-                    {receipt().conversations.length}{' '}
                     {receipt().conversations.length === 1
-                      ? 'conversation'
-                      : 'conversations'}{' '}
+                      ? t('{count} conversation', { count: receipt().conversations.length })
+                      : t('{count} conversations', { count: receipt().conversations.length })}{' '}
                     ·{' '}
                     {receipt().includeMessageHistory
-                      ? 'With history'
-                      : 'Without history'}
+                      ? t('With history')
+                      : t('Without history')}
                   </span>
                   <CaretRightIcon
                     aria-hidden="true"
@@ -920,12 +934,12 @@ function JobHistory(props: {
         <div class="flex items-center gap-2">
           <Show when={props.paged}>
             <Button variant="secondary" size="sm" onClick={props.onNewest}>
-              Newest imports
+              {t('Newest imports')}
             </Button>
           </Show>
           <Show when={props.page?.nextCursor}>
             <Button variant="secondary" size="sm" onClick={props.onOlder}>
-              Older imports
+              {t('Older imports')}
             </Button>
           </Show>
         </div>

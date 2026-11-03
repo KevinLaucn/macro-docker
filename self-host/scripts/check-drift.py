@@ -106,8 +106,10 @@ email_required_bins = [
     "agent_harness_service",
 ]
 
-# Binaries used only in optional Compose profiles ("full")
-optional_profile_bins: set[str] = set()
+# Binaries used only in optional Compose profiles ("full", "focus")
+optional_profile_bins: set[str] = {
+    "email_focus_worker",
+}
 
 for req_bin in email_required_bins:
     if req_bin not in compose_bins:
@@ -115,6 +117,7 @@ for req_bin in email_required_bins:
 
 fork_compose_bins = {
     "search_upload_local_worker",
+    "email_focus_worker",
 }
 
 # Validate routes and execution for services declared in Compose

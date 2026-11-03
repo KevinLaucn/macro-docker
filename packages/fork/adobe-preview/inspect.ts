@@ -115,7 +115,11 @@ export async function inspectAi(blob: Blob): Promise<AdobePreviewResult> {
 export async function resolveAdobeAttachmentBlockName<T extends string>(
   fileName: string | null | undefined,
   defaultBlockName: T,
-  inspectBlobFn?: () => Promise<Blob | undefined>
+  inspectBlobFn?: () => Promise<Blob | undefined>,
+  options?: {
+    preferEditor?: boolean;
+    enableAiEditor?: boolean;
+  }
 ): Promise<T | 'pdf' | 'unknown'> {
   const format = getAdobeFormatFromFileName(fileName);
   if (!format) return defaultBlockName;
@@ -125,6 +129,9 @@ export async function resolveAdobeAttachmentBlockName<T extends string>(
   }
 
   if (format === 'ai') {
+    if (options?.preferEditor && options?.enableAiEditor) {
+      return defaultBlockName;
+    }
     if (inspectBlobFn) {
       try {
         const blob = await inspectBlobFn();

@@ -184,6 +184,19 @@ services:
           ENABLE_ONBOARDING_V4: "$${ENABLE_ONBOARDING_V4:-true}",
           ENABLE_COGNITION: "$${ENABLE_COGNITION:-true}",
           ENABLE_SCHEDULED_ACTIONS: "$${ENABLE_SCHEDULED_ACTIONS:-true}",
+          ENABLE_CAROUSEL_CREATE_MENU: "$${ENABLE_CAROUSEL_CREATE_MENU:-true}",
+          ENABLE_GANTT: "$${ENABLE_GANTT:-true}",
+          ENABLE_CRM_ACTIVITY: "$${ENABLE_CRM_ACTIVITY:-true}",
+          ENABLE_DATABASES: "$${ENABLE_DATABASES:-true}",
+          ENABLE_FORMS: "$${ENABLE_FORMS:-true}",
+          ENABLE_SPREADSHEETS: "$${ENABLE_SPREADSHEETS:-true}",
+          ENABLE_CHANNEL_TAGS: "$${ENABLE_CHANNEL_TAGS:-true}",
+          ENABLE_GRAPHQL_SOUP: "$${ENABLE_GRAPHQL_SOUP:-false}",
+          ENABLE_GRAPHQL_CALENDAR: "$${ENABLE_GRAPHQL_CALENDAR:-false}",
+          ENABLE_EMAIL_FOCUS: "$${ENABLE_EMAIL_FOCUS:-false}",
+          ENABLE_WHATSAPP_LINKED: "$${ENABLE_WHATSAPP_LINKED:-false}",
+          ENABLE_FIRST_PROMPT_ON_CREATE: "$${ENABLE_FIRST_PROMPT_ON_CREATE:-false}",
+          ENABLE_ROUTINE_CONDITIONS: "$${ENABLE_ROUTINE_CONDITIONS:-false}",
           FEATURES: {
             cognition: $${ENABLE_COGNITION:-true},
             scheduledActions: $${ENABLE_SCHEDULED_ACTIONS:-true},
@@ -471,6 +484,11 @@ services:
       DOCUMENT_STORAGE_SERVICE_AUTH_KEY: ${DOCUMENT_STORAGE_SERVICE_AUTH_KEY:-}
       CURSOR_API_KEY_KMS_KEY_ID: ${CURSOR_API_KEY_KMS_KEY_ID:-alias/macro-selfhost-cursor-api-key}
       CODEX_OAUTH_KMS_KEY_ID: ${CODEX_OAUTH_KMS_KEY_ID:-alias/macro-selfhost-codex-oauth}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      MICROSOFT_TENANT_ID: ${MICROSOFT_TENANT_ID:-}
+      MICROSOFT_TOKEN_KMS_KEY_ID: ${MICROSOFT_TOKEN_KMS_KEY_ID:-}
+      OUTLOOK_CONNECTIONS_ENABLED: ${OUTLOOK_CONNECTIONS_ENABLED:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -625,6 +643,24 @@ services:
         condition: service_healthy
       localstack_reconciler:
         condition: service_healthy
+      email_service:
+        condition: service_started
+    networks:
+      - databases
+      - services
+
+  email_focus_worker:
+    <<: *service
+    profiles: ["focus", "full"]
+    command: ["/app/out/email_focus_worker"]
+    environment:
+      TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
+      FOCUS_ENABLED_EMAIL_DOMAINS: ${FOCUS_ENABLED_EMAIL_DOMAINS:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
       email_service:
         condition: service_started
     networks:

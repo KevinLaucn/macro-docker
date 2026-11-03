@@ -1,4 +1,5 @@
 import { hideImportPromotion } from '@app/features/connector-import/primitives/promotion';
+import { t } from '@macro/i18n';
 import {
   IntegrationRow,
   SettingsSurface,
@@ -56,8 +57,8 @@ export function SlackImport(props: Props): JSX.Element {
                 <SettingsSurface>
                   <IntegrationRow
                     icon={<SlackIcon />}
-                    title="Slack export"
-                    description="Loading Slack import…"
+                    title={t('Slack export')}
+                    description={t('Loading Slack import…')}
                     muted
                   />
                 </SettingsSurface>

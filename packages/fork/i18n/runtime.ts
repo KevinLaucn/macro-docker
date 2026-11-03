@@ -5,15 +5,41 @@ export type SupportedLocale = 'zh-CN' | 'en-US';
 
 const STORAGE_KEY = 'macro_locale';
 
+/**
+ * Maps upstream official language codes to fork's supported locales.
+ * Official resolved language is the primary source of truth:
+ * - 'zh-Hans' (and legacy 'zh-CN') -> 'zh-CN'
+ * - 'en' -> 'en-US'
+ * - Other languages (including 'zh-Hant', 'ja', 'de', etc.) explicitly fall back to 'en-US',
+ *   without faking Simplified Chinese as Traditional Chinese or overwriting official selection.
+ */
+export function mapOfficialLanguageToForkLocale(
+  officialLang?: string | null
+): SupportedLocale {
+  if (!officialLang) return 'en-US';
+  if (officialLang === 'zh-Hans' || officialLang === 'zh-CN') {
+    return 'zh-CN';
+  }
+  return 'en-US';
+}
+
 function getDefaultLocale(): SupportedLocale {
   try {
+    const official = localStorage.getItem('interface-language-v1');
+    if (official) {
+      return mapOfficialLanguageToForkLocale(official);
+    }
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'zh-CN' || saved === 'en-US') {
       return saved;
     }
     if (
       typeof navigator !== 'undefined' &&
-      navigator.language?.startsWith('zh')
+      navigator.language?.startsWith('zh') &&
+      !navigator.language.toLowerCase().includes('tw') &&
+      !navigator.language.toLowerCase().includes('hk') &&
+      !navigator.language.toLowerCase().includes('hant') &&
+      !navigator.language.toLowerCase().includes('mo')
     ) {
       return 'zh-CN';
     }
@@ -27,11 +53,31 @@ export const [locale, setLocaleSignal] = createSignal<SupportedLocale>(
   getDefaultLocale()
 );
 
+/**
+ * Synchronizes the Fork runtime locale from the official resolved interface language.
+ * Avoids bidirectional effect loops and ensures unidirectional reactive synchronization.
+ */
+export function syncForkLocale(officialLang?: string | null): void {
+  const target = mapOfficialLanguageToForkLocale(officialLang);
+  if (locale() !== target) {
+    setLocaleSignal(target);
+  }
+  try {
+    localStorage.setItem(STORAGE_KEY, target);
+  } catch {
+    // ignore
+  }
+}
+
 export function setLocale(newLocale: SupportedLocale) {
   setLocaleSignal(newLocale);
   try {
     localStorage.setItem(STORAGE_KEY, newLocale);
-    document.documentElement.lang = newLocale;
+    const officialTarget = newLocale === 'zh-CN' ? 'zh-Hans' : 'en';
+    localStorage.setItem('interface-language-v1', officialTarget);
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = officialTarget;
+    }
   } catch {
     // ignore
   }
@@ -90,7 +136,10 @@ function injectGlobalI18nStyles() {
 if (typeof document !== 'undefined') {
   injectGlobalI18nStyles();
   const def = getDefaultLocale();
-  document.documentElement.lang = def;
+  const officialTarget = def === 'zh-CN' ? 'zh-Hans' : 'en';
+  if (!document.documentElement.lang) {
+    document.documentElement.lang = officialTarget;
+  }
 }
 
 const dictionaries: Record<SupportedLocale, Record<string, string>> = {

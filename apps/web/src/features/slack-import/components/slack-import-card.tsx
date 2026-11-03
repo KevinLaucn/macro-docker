@@ -1,5 +1,6 @@
 import SlackIcon from '@icon/slack-color.svg';
 import { Button } from '@ui';
+import { t } from '@macro/i18n';
 import type { JSX } from 'solid-js';
 import { IntegrationRow, SettingsSurface } from '../../settings/primitives';
 
@@ -11,15 +12,17 @@ export function SlackImportCard(props: Props): JSX.Element {
     <SettingsSurface>
       <IntegrationRow
         icon={<SlackIcon />}
-        title="Slack export"
-        description="Import your team's channels and message history from a Slack export into Channels."
+        title={t('Slack export')}
+        description={t(
+          "Import your team's channels and message history from a Slack export into Channels."
+        )}
       >
         <Button
           variant="secondary"
           size="sm"
           onClick={(event) => props.onOpen(event.currentTarget)}
         >
-          Import from Slack
+          {t('Import from Slack')}
         </Button>
       </IntegrationRow>
     </SettingsSurface>

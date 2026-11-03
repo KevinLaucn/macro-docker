@@ -1,3 +1,5 @@
+import { Button } from '@ui/components/Button';
+import { t } from '@macro/i18n';
 import { Show } from 'solid-js';
 import type { AdobePreviewResult } from './inspect';
 
@@ -7,6 +9,8 @@ export type AdobePreviewStatusProps = {
     { kind: 'ai-pdf' } | { kind: 'eps-tiff' }
   >;
   fileName?: string;
+  canOpenEditor?: boolean;
+  onOpenEditor?: () => void;
 };
 
 export function AdobePreviewStatus(props: AdobePreviewStatusProps) {
@@ -15,34 +19,42 @@ export function AdobePreviewStatus(props: AdobePreviewStatusProps) {
       case 'source-no-preview':
         if (props.result.format === 'ai') {
           return {
-            title: '无法预览此 AI 文件',
-            description:
-              '文件本身未包含 PDF 兼容预览。请在 Illustrator 保存时启用 “Create PDF Compatible File”。',
-            status: '文件本身缺少预览数据',
+            title: t('Cannot preview this AI file'),
+            description: t(
+              'The file does not contain a PDF-compatible preview stream. Please enable "Create PDF Compatible File" when saving in Illustrator.'
+            ),
+            status: t('Missing Preview Data'),
             badgeClass: 'bg-warning/15 text-warning',
           };
         }
         return {
-          title: '无法预览此 EPS 文件',
-          description: '文件本身未包含可用的内嵌预览。',
-          status: '文件本身缺少预览数据',
+          title: t('Cannot preview this EPS file'),
+          description: t('The file does not contain an embedded preview image.'),
+          status: t('Missing Preview Data'),
           badgeClass: 'bg-warning/15 text-warning',
         };
 
       case 'unsupported-preview':
         return {
-          title: '暂不支持此 EPS 预览格式',
-          description: '文件包含 WMF 预览，但当前轻量预览器暂不支持 WMF。',
-          status: '当前预览器暂不支持',
+          title: t('Preview format not supported'),
+          description: t(
+            'The file contains a WMF preview, which is currently not supported by the lightweight viewer.'
+          ),
+          status: t('Unsupported Preview Format'),
           badgeClass: 'bg-ink-muted/15 text-ink-muted',
         };
 
       case 'load-error':
+        // Technical error is kept in error log rather than exposed directly as raw unmapped string
+        if (props.result.error) {
+          console.warn('Adobe attachment preview load error:', props.result.error);
+        }
         return {
-          title: '预览文件加载失败',
-          description:
-            props.result.error || '无法读取文件二进制流或文件头部校验损坏。',
-          status: '加载失败',
+          title: t('Failed to load preview'),
+          description: t(
+            'Could not read file binary stream or header checksum is corrupted.'
+          ),
+          status: t('Load Failed'),
           badgeClass: 'bg-failure/15 text-failure',
         };
     }
@@ -64,6 +76,13 @@ export function AdobePreviewStatus(props: AdobePreviewStatusProps) {
       <Show when={props.fileName}>
         <div class="text-[11px] text-ink-muted font-mono truncate max-w-xs px-2 py-1 bg-ink-muted/5 rounded border border-ink-muted/8">
           {props.fileName}
+        </div>
+      </Show>
+      <Show when={props.canOpenEditor && props.onOpenEditor}>
+        <div class="mt-4">
+          <Button variant="secondary" size="sm" onClick={props.onOpenEditor}>
+            {t('Open in Illustrator Editor')}
+          </Button>
         </div>
       </Show>
     </div>

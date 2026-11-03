@@ -61,6 +61,67 @@ maybe_env_vars! {
     /// Doppler name is `FIREWORK_API_KEY` (singular), from `shared_ai`.
     struct FireworkApiKey;
     struct GoogleGenerativeAiApiKey;
+    struct OpenrouterApiKey;
+    struct DefaultAiModel;
+    struct FreeDefaultAiModel;
+}
+
+fn is_configured_secret(value: &str) -> bool {
+    let trimmed = value.trim().trim_matches('"');
+    !trimmed.is_empty() && !trimmed.starts_with("unset-") && !trimmed.starts_with("unused-")
+}
+
+fn parse_owned_model(value: &str) -> Option<Model<'static>> {
+    let (provider, name) = value.trim().trim_matches('"').split_once('/')?;
+    if provider.is_empty() || name.is_empty() {
+        return None;
+    }
+    Some(Model {
+        provider: std::borrow::Cow::Owned(provider.to_owned()),
+        name: std::borrow::Cow::Owned(name.to_owned()),
+    })
+}
+
+fn is_fast_predefined_model(model: &Model<'_>) -> bool {
+    matches!(
+        (model.provider(), model.name()),
+        ("anthropic", "claude-haiku-4-5") | ("openai", "gpt-5-mini") | ("openai", "gpt-5.6-mini")
+    )
+}
+
+fn is_synthetic_default_model(model: &Model<'_>) -> bool {
+    matches!(
+        (model.provider(), model.name()),
+        ("anthropic", "claude-opus-4-8")
+            | ("anthropic", "claude-opus-4-7")
+            | ("anthropic", "claude-sonnet-5")
+            | ("anthropic", "claude-sonnet-4-6")
+            | ("openai", "gpt-5.5")
+            | ("openai", "gpt-5.6")
+    )
+}
+
+fn openrouter_equivalent_model(model: &Model<'_>) -> &'static str {
+    match (model.provider(), model.name()) {
+        ("anthropic", "claude-opus-4-8") => "openrouter/anthropic/claude-opus-4.8",
+        ("anthropic", "claude-opus-4-7") => "openrouter/anthropic/claude-opus-4.7",
+        ("anthropic", "claude-opus-5-5") => "openrouter/anthropic/claude-opus-5.5",
+        ("anthropic", "claude-opus-5") => "openrouter/anthropic/claude-opus-5",
+        ("anthropic", "claude-sonnet-5-5") => "openrouter/anthropic/claude-sonnet-5.5",
+        ("anthropic", "claude-sonnet-5") => "openrouter/anthropic/claude-sonnet-5",
+        ("anthropic", "claude-sonnet-4-6") => "openrouter/anthropic/claude-sonnet-4.6",
+        ("anthropic", "claude-haiku-4-5") => "openrouter/anthropic/claude-haiku-4.5",
+        ("anthropic", "claude-haiku-5-5") => "openrouter/anthropic/claude-haiku-5.5",
+        ("openai", "gpt-5.6-mini") | ("openai", "gpt-5-mini") => "openrouter/openai/gpt-5-mini",
+        ("openai", "gpt-5.6") | ("openai", "gpt-5.5") => "openrouter/openai/gpt-5.5",
+        ("google", "gemini-3.8-pro") | ("google", "gemini-3.1-pro-preview") => {
+            "openrouter/google/gemini-3.1-pro-preview"
+        }
+        ("google", "gemini-3.8-flash") | ("google", "gemini-3-flash-preview") => {
+            "openrouter/google/gemini-3.8-flash"
+        }
+        _ => "openrouter/anthropic/claude-sonnet-4.6",
+    }
 }
 
 /// Provider segment for native Anthropic.
@@ -77,6 +138,11 @@ const CEREBRAS_BASE_URL: &str = "https://api.cerebras.ai/v1";
 const FIREWORKS_PROVIDER: &str = "fireworks";
 /// Fireworks inference endpoint (OpenAI-compatible Chat Completions API).
 const FIREWORKS_BASE_URL: &str = "https://api.fireworks.ai/inference/v1";
+/// Provider segment OpenRouter is registered under (OpenAI-compatible Chat
+/// Completions).
+const OPENROUTER_PROVIDER: &str = "openrouter";
+/// OpenRouter inference endpoint (OpenAI-compatible Chat Completions API).
+const OPENROUTER_BASE_URL: &str = "https://openrouter.ai/api/v1";
 /// Provider segment Google Gemini is registered under (native GenerateContent).
 const GOOGLE_PROVIDER: &str = "google";
 /// Output cap for OpenAI-compatible Chat Completions hosts, whose limits
@@ -390,6 +456,10 @@ pub struct ModelRouter<H = ReqwestClient> {
     openai: Arc<openai::Client<H>>,
     gemini: Option<Arc<gemini::Client<H>>>,
     openai_compatible: HashMap<String, Arc<openai::CompletionsClient<H>>>,
+    anthropic_configured: bool,
+    openai_configured: bool,
+    default_model_override: Option<Arc<str>>,
+    fast_model_override: Option<Arc<str>>,
 }
 
 impl<H: HttpClientExt + Clone + 'static> ModelRouter<H> {
@@ -405,7 +475,26 @@ impl<H: HttpClientExt + Clone + 'static> ModelRouter<H> {
             openai: Arc::new(openai),
             gemini: None,
             openai_compatible: HashMap::new(),
+            anthropic_configured: true,
+            openai_configured: true,
+            default_model_override: None,
+            fast_model_override: None,
         }
+    }
+
+    /// Configure provider availability flags and environment model overrides.
+    pub fn with_runtime_overrides(
+        mut self,
+        anthropic_configured: bool,
+        openai_configured: bool,
+        default_model_override: Option<String>,
+        fast_model_override: Option<String>,
+    ) -> Self {
+        self.anthropic_configured = anthropic_configured;
+        self.openai_configured = openai_configured;
+        self.default_model_override = default_model_override.map(Into::into);
+        self.fast_model_override = fast_model_override.map(Into::into);
+        self
     }
 }
 
@@ -417,6 +506,8 @@ impl ModelRouter {
     /// `with_openai_provider` on the returned router to add more.
     pub fn try_from_env() -> Result<ModelRouter<MeteredHttpClient>, AgentError> {
         let env = ApiKeys::new()?;
+        let anthropic_key = env.anthropic_api_key.to_string();
+        let openai_key = env.openai_api_key.to_string();
         // No executions may hide below the financial HTTP boundary.
         let http = ReqwestClient::builder()
             .retry(reqwest::retry::never())
@@ -424,7 +515,7 @@ impl ModelRouter {
             .build()
             .map_err(|error| rig_core::http_client::Error::Instance(Box::new(error)))?;
         let anthropic = anthropic::Client::builder()
-            .api_key(env.anthropic_api_key.to_string())
+            .api_key(anthropic_key.clone())
             .http_client(AnthropicPromptLayout::new(MeteredHttpClient::new(
                 http.clone(),
                 ANTHROPIC_PROVIDER,
@@ -434,7 +525,7 @@ impl ModelRouter {
         // Default base URL is api.openai.com; OpenAI's GPT models use
         // Responses API so reasoning models get max_output_tokens.
         let openai = openai::Client::builder()
-            .api_key(env.openai_api_key.to_string())
+            .api_key(openai_key.clone())
             .http_client(MeteredHttpClient::new(
                 http.clone(),
                 OPENAI_PROVIDER,
@@ -447,9 +538,12 @@ impl ModelRouter {
         // so tool-call thought signatures survive the multi-step tool loop.
         // PRIVATE-HOOK: browser_runtime:optional-model-providers
         let mut router = ModelRouter::new(anthropic, openai);
-        if let Some(key) = GoogleGenerativeAiApiKey::new() {
+        if let Some(key) = GoogleGenerativeAiApiKey::new()
+            .map(|v| v.to_string())
+            .filter(|v| is_configured_secret(v))
+        {
             let gemini = gemini::Client::builder()
-                .api_key(key.to_string())
+                .api_key(key)
                 .http_client(MeteredHttpClient::new(
                     http.clone(),
                     GOOGLE_PROVIDER,
@@ -458,20 +552,41 @@ impl ModelRouter {
                 .build()?;
             router = router.with_gemini_client(gemini);
         }
-        if let Some(key) = CerebrasApiKey::new() {
-            router = router.with_openai_provider(
-                CEREBRAS_PROVIDER,
-                CEREBRAS_BASE_URL,
-                &key.to_string(),
-            )?;
+        if let Some(key) = CerebrasApiKey::new()
+            .map(|v| v.to_string())
+            .filter(|v| is_configured_secret(v))
+        {
+            router = router.with_openai_provider(CEREBRAS_PROVIDER, CEREBRAS_BASE_URL, &key)?;
         }
-        if let Some(key) = FireworkApiKey::new() {
-            router = router.with_openai_provider(
-                FIREWORKS_PROVIDER,
-                FIREWORKS_BASE_URL,
-                &key.to_string(),
-            )?;
+        if let Some(key) = FireworkApiKey::new()
+            .map(|v| v.to_string())
+            .filter(|v| is_configured_secret(v))
+        {
+            router = router.with_openai_provider(FIREWORKS_PROVIDER, FIREWORKS_BASE_URL, &key)?;
         }
+        // PRIVATE-HOOK: model_router:openrouter-provider
+        if let Some(key) = OpenrouterApiKey::new() {
+            let key_str = key.to_string();
+            if is_configured_secret(&key_str) {
+                router = router.with_openai_provider(
+                    OPENROUTER_PROVIDER,
+                    OPENROUTER_BASE_URL,
+                    &key_str,
+                )?;
+            }
+        }
+        let default_override = DefaultAiModel::new()
+            .map(|v| v.to_string())
+            .filter(|v| is_configured_secret(v));
+        let fast_override = FreeDefaultAiModel::new()
+            .map(|v| v.to_string())
+            .filter(|v| is_configured_secret(v));
+        router = router.with_runtime_overrides(
+            is_configured_secret(&anthropic_key),
+            is_configured_secret(&openai_key),
+            default_override,
+            fast_override,
+        );
         Ok(router)
     }
 
@@ -538,6 +653,7 @@ impl ModelRouter<MeteredHttpClient> {
                         )))
                         .build()?,
                 );
+                router.anthropic_configured = true;
             }
             OPENAI_PROVIDER => {
                 router.openai = Arc::new(
@@ -549,6 +665,14 @@ impl ModelRouter<MeteredHttpClient> {
                             WireProtocol::Responses,
                         ))
                         .build()?,
+                );
+                router.openai_configured = true;
+            }
+            OPENROUTER_PROVIDER => {
+                return router.with_openai_provider(
+                    OPENROUTER_PROVIDER,
+                    OPENROUTER_BASE_URL,
+                    api_key,
                 );
             }
             other => return Err(AgentError::UnknownModel(other.to_owned())),
@@ -590,13 +714,75 @@ impl ModelRouter<MeteredHttpClient> {
 }
 
 impl<H: HttpClientExt + Clone + Default + std::fmt::Debug + 'static> ModelRouter<H> {
-    /// Route a `provider/model` id to the provider that serves it.
-    ///
-    /// Returns [`AgentError::UnknownModel`] if no provider claims it (and
-    /// [`AgentError::MalformedModel`] if the id has no `provider/` segment).
-    pub(crate) fn route<'a>(&self, model: &'a str) -> Result<RoutedModel<'a, H>, AgentError> {
-        let parsed = Model::try_from(model)?;
+    fn resolve_override_model<'a>(&self, parsed: Model<'a>) -> Model<'a> {
+        let has_openrouter = self.openai_compatible.contains_key(OPENROUTER_PROVIDER);
+        let provider_unconfigured = (parsed.provider() == ANTHROPIC_PROVIDER
+            && !self.anthropic_configured)
+            || (parsed.provider() == OPENAI_PROVIDER && !self.openai_configured)
+            || (parsed.provider() == GOOGLE_PROVIDER && self.gemini.is_none());
+        let is_nonexistent_openai_id = parsed.provider() == OPENAI_PROVIDER
+            && matches!(parsed.name(), "gpt-5.6-mini" | "gpt-5.6");
 
+        if is_fast_predefined_model(&parsed) {
+            if let Some(override_str) = self
+                .fast_model_override
+                .as_deref()
+                .or(self.default_model_override.as_deref())
+            {
+                let trimmed = override_str.trim().trim_matches('"');
+                if trimmed.starts_with("openrouter/")
+                    || (!has_openrouter && (provider_unconfigured || is_nonexistent_openai_id))
+                {
+                    if let Some(override_model) = parse_owned_model(trimmed) {
+                        return override_model;
+                    }
+                }
+            }
+            if has_openrouter && (provider_unconfigured || is_nonexistent_openai_id) {
+                if let Some(fallback) = parse_owned_model(openrouter_equivalent_model(&parsed)) {
+                    return fallback;
+                }
+            }
+            if is_nonexistent_openai_id {
+                if let Some(fallback) = parse_owned_model("openai/gpt-5-mini") {
+                    return fallback;
+                }
+            }
+        } else if is_synthetic_default_model(&parsed)
+            || provider_unconfigured
+            || is_nonexistent_openai_id
+        {
+            if let Some(override_str) = self.default_model_override.as_deref() {
+                let trimmed = override_str.trim().trim_matches('"');
+                if trimmed.starts_with("openrouter/")
+                    || (!has_openrouter
+                        && (provider_unconfigured || is_nonexistent_openai_id)
+                        && trimmed != "openai/gpt-5.6")
+                {
+                    if let Some(override_model) = parse_owned_model(trimmed) {
+                        return override_model;
+                    }
+                }
+            }
+            if has_openrouter && (provider_unconfigured || is_nonexistent_openai_id) {
+                if let Some(fallback) = parse_owned_model(openrouter_equivalent_model(&parsed)) {
+                    return fallback;
+                }
+            }
+            if is_nonexistent_openai_id {
+                if let Some(fallback) = parse_owned_model("openai/gpt-5.5") {
+                    return fallback;
+                }
+            }
+        }
+        parsed
+    }
+
+    fn route_parsed<'a>(
+        &self,
+        parsed: Model<'a>,
+        raw: &str,
+    ) -> Result<RoutedModel<'a, H>, AgentError> {
         if parsed.provider() == ANTHROPIC_PROVIDER {
             return Ok(RoutedModel::Anthropic(AnthropicModel::new(
                 parsed,
@@ -611,7 +797,7 @@ impl<H: HttpClientExt + Clone + Default + std::fmt::Debug + 'static> ModelRouter
         }
         if parsed.provider() == GOOGLE_PROVIDER {
             let Some(client) = &self.gemini else {
-                return Err(AgentError::UnknownModel(model.to_string()));
+                return Err(AgentError::UnknownModel(raw.to_string()));
             };
             return Ok(RoutedModel::Gemini(GeminiModel::new(
                 parsed,
@@ -624,7 +810,16 @@ impl<H: HttpClientExt + Clone + Default + std::fmt::Debug + 'static> ModelRouter
                 OpenAiChatCompletionsModel::new(parsed, client),
             ));
         }
-        Err(AgentError::UnknownModel(model.to_string()))
+        Err(AgentError::UnknownModel(raw.to_string()))
+    }
+
+    /// Route a `provider/model` id to the provider that serves it.
+    ///
+    /// Returns [`AgentError::UnknownModel`] if no provider claims it (and
+    /// [`AgentError::MalformedModel`] if the id has no `provider/` segment).
+    pub(crate) fn route<'a>(&self, model: &'a str) -> Result<RoutedModel<'a, H>, AgentError> {
+        let parsed = self.resolve_override_model(Model::try_from(model)?);
+        self.route_parsed(parsed, model)
     }
 
     /// Route `model`, falling back to the default model on an unroutable id.
@@ -638,6 +833,29 @@ impl<H: HttpClientExt + Clone + Default + std::fmt::Debug + 'static> ModelRouter
     /// bare api id — `PredefinedModel`'s `Display` is the provider-qualified
     /// routing id, which the Anthropic API rejects as a model name.
     fn default_model(&self) -> RoutedModel<'static, H> {
+        if !self.anthropic_configured {
+            let has_openrouter = self.openai_compatible.contains_key(OPENROUTER_PROVIDER);
+            if let Some(override_str) = self.default_model_override.as_deref() {
+                let trimmed = override_str.trim().trim_matches('"');
+                if trimmed.starts_with("openrouter/") || !has_openrouter {
+                    if let Some(override_model) = parse_owned_model(trimmed) {
+                        let resolved = self.resolve_override_model(override_model);
+                        if let Ok(routed) = self.route_parsed(resolved, trimmed) {
+                            return routed;
+                        }
+                    }
+                }
+            }
+            if has_openrouter {
+                if let Some(fallback) = parse_owned_model("openrouter/anthropic/claude-opus-4.8") {
+                    if let Ok(routed) =
+                        self.route_parsed(fallback, "openrouter/anthropic/claude-opus-4.8")
+                    {
+                        return routed;
+                    }
+                }
+            }
+        }
         RoutedModel::Anthropic(AnthropicModel::new(
             PredefinedModel::Smart.into(),
             self.anthropic.clone(),

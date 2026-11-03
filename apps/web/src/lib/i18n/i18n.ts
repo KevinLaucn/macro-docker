@@ -13,6 +13,7 @@ import type {
 import { formatMessage, lookupMessage, pluralForm } from './dictionary';
 import { browserLanguage, DEFAULT_LANGUAGE, Language } from './languages';
 import en from './locales/en';
+import { syncForkLocale } from '@macro/i18n';
 
 const STORAGE_KEY = 'interface-language-v1';
 
@@ -69,7 +70,12 @@ const [language, setLanguage] = makePersistedState(
           const stored = storedLanguageSchema.safeParse(
             localStorage.getItem(STORAGE_KEY)
           );
-          return stored.success ? stored.data : undefined;
+          if (stored.success) return stored.data;
+          // PRIVATE-HOOK: i18n_sync:restore-legacy-locale
+          const legacy = localStorage.getItem('macro_locale');
+          if (legacy === 'zh-CN') return 'zh-Hans';
+          if (legacy === 'en-US') return 'en';
+          return undefined;
         } catch {
           return undefined;
         }
@@ -100,6 +106,8 @@ let loading: Promise<void> = Promise.resolve();
 export function setInterfaceLanguage(next: Language): void {
   setLanguage(() => next);
   document.documentElement.lang = next;
+  // PRIVATE-HOOK: i18n_sync:sync-fork-locale
+  syncForkLocale(next);
   if (next === 'en') {
     setTranslation({});
     loading = Promise.resolve();

@@ -5,6 +5,7 @@ import LockIcon from '@icon/system/regular/lock.svg';
 import UsersIcon from '@icon/system/regular/users.svg';
 import WarningCircleIcon from '@icon/system/regular/warning-circle.svg';
 import { cn } from '@ui';
+import { t } from '@macro/i18n';
 import { type JSX, splitProps } from 'solid-js';
 import { match } from 'ts-pattern';
 import type { ImportConversation, ImportJobStatus } from '../context/contracts';
@@ -13,7 +14,8 @@ import type { ConversationKind } from '../core/export';
 /** `completed_with_errors` → `Completed with errors`. */
 export function humanize(value: string): string {
   const text = value.replaceAll('_', ' ');
-  return text.charAt(0).toUpperCase() + text.slice(1);
+  const capitalized = text.charAt(0).toUpperCase() + text.slice(1);
+  return t(capitalized);
 }
 
 export function formatBytes(bytes: number): string {

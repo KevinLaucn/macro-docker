@@ -1,5 +1,6 @@
 import { formatDate } from '@core/util/date';
 import ArrowUpRightIcon from '@icon/system/regular/arrow-up-right.svg';
+import { t } from '@macro/i18n';
 import { For, Index, type JSX, Show } from 'solid-js';
 import type {
   ImportConversation,
@@ -59,7 +60,7 @@ function ConversationProgress(
             {conversation().name || conversation().slackChannelId}
           </h4>
           <Show when={conversation().archived}>
-            <span class="shrink-0 text-xs text-ink-extra-muted">Archived</span>
+            <span class="shrink-0 text-xs text-ink-extra-muted">{t('Archived')}</span>
           </Show>
         </div>
         <div class="flex shrink-0 items-center gap-2">
@@ -69,7 +70,7 @@ function ConversationProgress(
                 href={href()}
                 class="inline-flex items-center gap-1 text-xs font-medium text-link outline-none hover:text-link-hover hover:underline focus-visible:underline"
               >
-                Open channel
+                {t('Open channel')}
                 <ArrowUpRightIcon aria-hidden="true" class="size-3" />
               </a>
             )}
@@ -81,14 +82,24 @@ function ConversationProgress(
         </div>
       </div>
       <p class="text-xs text-ink-muted">
-        {conversation().verifiedParts} / {conversation().partCount ?? '?'} parts
-        verified · {counters().processed} processed · {counters().imported}{' '}
-        imported · {counters().duplicates} duplicates · {counters().skipped}{' '}
-        skipped · {counters().reactions} reactions
+        {t(
+          '{verified} / {total} parts verified · {processed} processed · {imported} imported · {duplicates} duplicates · {skipped} skipped · {reactions} reactions',
+          {
+            verified: conversation().verifiedParts,
+            total: conversation().partCount ?? '?',
+            processed: counters().processed,
+            imported: counters().imported,
+            duplicates: counters().duplicates,
+            skipped: counters().skipped,
+            reactions: counters().reactions,
+          }
+        )}
       </p>
       <Show when={conversation().searchStatus !== 'not_needed'}>
         <p class="text-xs text-ink-extra-muted">
-          Search indexing: {humanize(conversation().searchStatus)}
+          {t('Search indexing: {status}', {
+            status: humanize(conversation().searchStatus),
+          })}
         </p>
       </Show>
       <Show when={conversation().error}>
@@ -105,7 +116,7 @@ function ConversationProgress(
       </For>
       <Show when={skippedWithoutReason()}>
         <p class="text-xs text-ink-muted">
-          Skipped by the server without a reason.
+          {t('Skipped by the server without a reason.')}
         </p>
       </Show>
     </li>
@@ -124,8 +135,10 @@ function UploadProgress(props: { upload: ImportUploadProgress }): JSX.Element {
     <div class="flex flex-col gap-1.5">
       <div class="flex items-center justify-between gap-3 text-xs text-ink-muted">
         <label for="slack-upload-progress">
-          Upload: {formatBytes(props.upload.loaded)} of{' '}
-          {formatBytes(props.upload.total)} prepared
+          {t('Upload: {loaded} of {total} prepared', {
+            loaded: formatBytes(props.upload.loaded),
+            total: formatBytes(props.upload.total),
+          })}
         </label>
         <Show when={!props.upload.indeterminate}>
           <span class="tabular-nums">{percent()}%</span>
@@ -138,8 +151,9 @@ function UploadProgress(props: { upload: ImportUploadProgress }): JSX.Element {
         value={props.upload.indeterminate ? undefined : props.upload.loaded}
       />
       <p class="text-xs text-ink-extra-muted">
-        The total grows as history is read. Files and attachments are never
-        uploaded.
+        {t(
+          'The total grows as history is read. Files and attachments are never uploaded.'
+        )}
       </p>
     </div>
   );
@@ -150,21 +164,21 @@ export function ImportProgress(props: Props): JSX.Element {
   const badge = (): StatusDisplay => {
     const current = status();
     if (current) return { tone: jobTone(current), label: humanize(current) };
-    return props.phase ?? { tone: 'neutral', label: 'Idle' };
+    return props.phase ?? { tone: 'neutral', label: t('Idle') };
   };
   const source = () =>
     props.job?.source.kind === 'known'
       ? props.job.source.sourceId
-      : 'Confirmed unknown workspace';
+      : t('Confirmed unknown workspace');
   const cancelled = () => status() === 'cancelling' || status() === 'cancelled';
   const active = () => {
     const current = status();
     return current !== undefined && !TERMINAL_JOB.has(current);
   };
   return (
-    <section class="flex flex-col gap-3" aria-label="Import progress">
+    <section class="flex flex-col gap-3" aria-label={t('Import progress')}>
       <div class="flex items-center justify-between gap-3">
-        <DialogSectionTitle>Progress</DialogSectionTitle>
+        <DialogSectionTitle>{t('Progress')}</DialogSectionTitle>
         <StatusBadge role="status" tone={badge().tone} label={badge().label} />
       </div>
       <Show when={props.upload}>
@@ -174,16 +188,16 @@ export function ImportProgress(props: Props): JSX.Element {
         {(job) => (
           <>
             <p class="text-xs text-ink-muted">
-              {job().conversations.length} selected ·{' '}
+              {t('{count} selected', { count: job().conversations.length })} ·{' '}
               {job().includeMessageHistory
-                ? 'With message history'
-                : 'Without message history'}{' '}
+                ? t('With message history')
+                : t('Without message history')}{' '}
               · {source()}
               <Show when={job().createdAt}>
                 {(createdAt) => (
                   <>
                     {' '}
-                    · Started{' '}
+                    · {t('Started')}{' '}
                     <time dateTime={createdAt()}>
                       {formatDate(createdAt(), { showTime: true })}
                     </time>
@@ -193,9 +207,9 @@ export function ImportProgress(props: Props): JSX.Element {
             </p>
             <Show when={cancelled()}>
               <p class="text-xs text-warning-ink">
-                Cancellation is not rollback. Committed messages and channels
-                remain; running conversations may finish before cancellation
-                settles.
+                {t(
+                  'Cancellation is not rollback. Committed messages and channels remain; running conversations may finish before cancellation settles.'
+                )}
               </p>
             </Show>
             <ul class="divide-y divide-edge-divider overflow-hidden rounded-lg border border-edge-muted">
@@ -210,8 +224,9 @@ export function ImportProgress(props: Props): JSX.Element {
             </ul>
             <Show when={active()}>
               <p class="text-xs text-ink-extra-muted">
-                Cancelling stops future work only. Running conversations may
-                finish, and imported channels and messages are kept.
+                {t(
+                  'Cancelling stops future work only. Running conversations may finish, and imported channels and messages are kept.'
+                )}
               </p>
             </Show>
           </>

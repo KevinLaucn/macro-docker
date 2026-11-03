@@ -1,4 +1,5 @@
 import { ConnectorImportPromotion } from '@app/features/connector-import/connector-import';
+import { t } from '@macro/i18n';
 import {
   allOf,
   flagVerdict,
@@ -56,17 +57,18 @@ export function SlackImportSidebar() {
         alternatives={[
           {
             icon: FileZipIcon,
-            label: 'Import with history',
-            description:
-              'Upload a Slack export from a workspace owner or admin.',
+            label: t('Import with history'),
+            description: t(
+              'Upload a Slack export from a workspace owner or admin.'
+            ),
             onSelect: (opener) => {
               if (opener) openHistory?.(opener);
             },
           },
         ]}
-        actionLabel="Import Slack"
+        actionLabel={t('Import Slack')}
         secondaryAction={{
-          label: 'New channel',
+          label: t('New channel'),
           onClick: () => openNewChannelModal(),
         }}
       />

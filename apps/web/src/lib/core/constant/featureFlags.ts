@@ -595,6 +595,7 @@ export const enableMultiInbox = defineFlag({
 
 export const enableSoupGroupBy = defineFlag({
   key: 'enable-soup-group-by',
+  env: 'ENABLE_SOUP_GROUP_BY',
   default: onInDev,
 });
 
@@ -607,6 +608,7 @@ export const enableSoupFilterPersistence = defineFlag({
 
 export const enableTaskDuplicates = defineFlag({
   key: 'enable-task-duplicates',
+  env: 'ENABLE_TASK_DUPLICATES',
   default: onInDev,
 });
 

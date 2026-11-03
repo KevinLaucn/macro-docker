@@ -4,13 +4,41 @@ import {
   formatBoolean,
   formatDate,
   locale,
+  mapOfficialLanguageToForkLocale,
   setLocale,
+  syncForkLocale,
   t,
 } from './runtime';
 
 describe('i18n runtime test suite', () => {
   beforeEach(() => {
     setLocale('en-US');
+  });
+
+  test('mapOfficialLanguageToForkLocale maps zh-Hans to zh-CN and others to fallback en-US', () => {
+    expect(mapOfficialLanguageToForkLocale('zh-Hans')).toBe('zh-CN');
+    expect(mapOfficialLanguageToForkLocale('zh-CN')).toBe('zh-CN');
+    expect(mapOfficialLanguageToForkLocale('en')).toBe('en-US');
+    // Traditional Chinese must NOT be faked as Simplified Chinese
+    expect(mapOfficialLanguageToForkLocale('zh-Hant')).toBe('en-US');
+    expect(mapOfficialLanguageToForkLocale('de')).toBe('en-US');
+    expect(mapOfficialLanguageToForkLocale('ja')).toBe('en-US');
+    expect(mapOfficialLanguageToForkLocale(null)).toBe('en-US');
+    expect(mapOfficialLanguageToForkLocale(undefined)).toBe('en-US');
+  });
+
+  test('syncForkLocale reactively synchronizes locale from official language', () => {
+    expect(locale()).toBe('en-US');
+    syncForkLocale('zh-Hans');
+    expect(locale()).toBe('zh-CN');
+    expect(t('Settings')).toBe('设置');
+
+    syncForkLocale('en');
+    expect(locale()).toBe('en-US');
+    expect(t('Settings')).toBe('Settings');
+
+    syncForkLocale('zh-Hant');
+    expect(locale()).toBe('en-US');
   });
 
   test('locale switching works reactively', () => {

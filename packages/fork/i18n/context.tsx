@@ -15,6 +15,8 @@ import {
   locale,
   type SupportedLocale,
   setLocale,
+  mapOfficialLanguageToForkLocale,
+  syncForkLocale,
   type TOptions,
   t,
 } from './runtime';
@@ -30,6 +32,8 @@ export {
   locale,
   type SupportedLocale,
   setLocale,
+  mapOfficialLanguageToForkLocale,
+  syncForkLocale,
   type TOptions,
   t,
 };
@@ -50,7 +54,10 @@ export const I18nProvider: ParentComponent = (props) => {
   createEffect(() => {
     const current = locale();
     try {
-      document.documentElement.lang = current;
+      const target = current === 'zh-CN' ? 'zh-Hans' : 'en';
+      if (!document.documentElement.lang || document.documentElement.lang === 'zh-CN' || document.documentElement.lang === 'en-US') {
+        document.documentElement.lang = target;
+      }
     } catch {
       // ignore
     }

@@ -1,5 +1,6 @@
 import MagnifyingGlassIcon from '@icon/system/regular/magnifying-glass.svg';
 import { InputGroup } from '@ui';
+import { t } from '@macro/i18n';
 import { createUniqueId, For, type JSX, onMount, Show } from 'solid-js';
 import type {
   ArchiveDiscovery,
@@ -100,9 +101,9 @@ export function ConversationPicker(props: Props): JSX.Element {
     selectable().map((conversation) => conversation.slackChannelId);
 
   return (
-    <section class="flex flex-col gap-3" aria-label="Conversations">
+    <section class="flex flex-col gap-3" aria-label={t('Conversations')}>
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <DialogSectionTitle>Conversations</DialogSectionTitle>
+        <DialogSectionTitle>{t('Conversations')}</DialogSectionTitle>
         <label class="flex items-center gap-2 text-xs text-ink-muted">
           <NativeCheckbox
             checked={props.showArchived}
@@ -110,7 +111,7 @@ export function ConversationPicker(props: Props): JSX.Element {
               props.onShowArchived(event.currentTarget.checked)
             }
           />
-          Show archived conversations
+          {t('Show archived conversations')}
         </label>
       </div>
 
@@ -121,8 +122,8 @@ export function ConversationPicker(props: Props): JSX.Element {
         <InputGroup.Input
           ref={search}
           type="search"
-          aria-label="Filter conversations"
-          placeholder="Filter conversations"
+          aria-label={t('Filter conversations')}
+          placeholder={t('Filter conversations')}
           class="text-sm"
           value={props.filter}
           onInput={(event) => props.onFilter(event.currentTarget.value)}
@@ -142,17 +143,19 @@ export function ConversationPicker(props: Props): JSX.Element {
                 props.onSelect(selectableIds(), event.currentTarget.checked)
               }
             />
-            Select all visible conversations
+            {t('Select all visible conversations')}
           </label>
           <div class="flex items-center gap-3 text-xs">
-            <span class="text-ink-muted">{props.selected.size} selected</span>
+            <span class="text-ink-muted">
+              {t('{count} selected', { count: props.selected.size })}
+            </span>
             <button
               type="button"
               class="font-medium text-link outline-none hover:text-link-hover hover:underline focus-visible:underline disabled:pointer-events-none disabled:opacity-50"
               disabled={!anyVisibleSelected()}
               onClick={() => props.onSelect(selectableIds(), false)}
             >
-              Clear visible selection
+              {t('Clear visible selection')}
             </button>
           </div>
         </div>
@@ -161,7 +164,7 @@ export function ConversationPicker(props: Props): JSX.Element {
             when={visible().length}
             fallback={
               <p class="px-4 py-6 text-center text-sm text-ink-muted">
-                No matching conversations.
+                {t('No matching conversations.')}
               </p>
             }
           >
@@ -182,8 +185,9 @@ export function ConversationPicker(props: Props): JSX.Element {
         </div>
       </div>
       <p class="text-xs text-ink-extra-muted">
-        Filtering never clears your selection. Message counts are available
-        after import.
+        {t(
+          'Filtering never clears your selection. Message counts are available after import.'
+        )}
       </p>
     </section>
   );
@@ -203,10 +207,10 @@ function ConversationGroup(
           id={headingId}
           class="sticky top-0 z-10 flex items-center gap-1.5 bg-surface px-4 pt-3 pb-1 text-xs font-medium text-ink-muted"
         >
-          {props.label}
+          {t(props.label)}
           <Show when={props.target !== props.label}>
             <span class="font-normal text-ink-extra-muted">
-              → {props.target}
+              → {t(props.target)}
             </span>
           </Show>
         </div>
@@ -233,13 +237,16 @@ function ConversationGroup(
                   </span>
                   <span class="block truncate text-xs text-ink-muted">
                     {conversation.slackChannelId} ·{' '}
-                    {conversation.memberIds.length} source members
-                    {conversation.archived ? ' · Archived' : ''}
+                    {t('{count} source members', {
+                      count: conversation.memberIds.length,
+                    })}
+                    {conversation.archived ? ` · ${t('Archived')}` : ''}
                   </span>
                   <Show when={unsupported()}>
                     <span class="block text-xs text-warning-ink">
-                      Unavailable: a DM needs exactly two distinct members with
-                      email addresses.
+                      {t(
+                        'Unavailable: a DM needs exactly two distinct members with email addresses.'
+                      )}
                     </span>
                   </Show>
                 </span>

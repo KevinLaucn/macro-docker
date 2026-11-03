@@ -97,4 +97,26 @@ describe('UI field audit', () => {
       )
     ).toEqual([]);
   });
+
+  test('ignores official @app/lib/i18n namespace keys and does not report them as missing', () => {
+    expect(
+      auditFields(
+        `import { t } from '@app/lib/i18n';
+        const View = () => <><p>{t('viewMenus.close')}</p><p>{t('entityActions.delete')}</p></>;`,
+        'view.tsx',
+        {}
+      )
+    ).toEqual([]);
+  });
+
+  test('supports aliased fork t imports and ignores non-i18n functions named t', () => {
+    const findings = auditFields(
+      `import { t as tFork } from '@macro/i18n';
+      const t = (x: number) => x * 2;
+      const View = () => <><p>{tFork('Download File')}</p><p>{t(42)}</p></>;`,
+      'view.tsx',
+      { 'Download File': '下载文件' }
+    );
+    expect(findings).toEqual([]);
+  });
 });

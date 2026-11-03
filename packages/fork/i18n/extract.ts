@@ -123,11 +123,35 @@ async function run() {
       // Map imported local identifiers to external module file paths and imported symbol names
       const importedSymbols = new Map<string, { modulePath: string; importedName: string }>();
       const localConstants = new Map<string, string>();
+      const forkTNames = new Set<string>();
+      const officialTNames = new Set<string>();
 
       // Pre-pass: collect imports and top-level const definitions for symbol resolution
       for (const statement of ast.program.body) {
         if (statement.type === 'ImportDeclaration') {
           const importSource = statement.source.value;
+          const isForkI18n =
+            importSource === '@macro/i18n' ||
+            importSource.startsWith('@macro/i18n/') ||
+            importSource.includes('packages/fork/i18n');
+          const isOfficialI18n =
+            importSource === '@app/lib/i18n' ||
+            importSource.startsWith('@app/lib/i18n/') ||
+            importSource.includes('src/lib/i18n');
+
+          for (const spec of statement.specifiers) {
+            if (spec.type === 'ImportSpecifier') {
+              const importedName =
+                spec.imported.type === 'Identifier'
+                  ? spec.imported.name
+                  : spec.imported.value;
+              if (importedName === 't' || importedName === '__t') {
+                if (isForkI18n) forkTNames.add(spec.local.name);
+                else if (isOfficialI18n) officialTNames.add(spec.local.name);
+              }
+            }
+          }
+
           const resolvedPath = resolveModulePath(importSource, file, webSrcDir);
           if (resolvedPath) {
             for (const spec of statement.specifiers) {
@@ -176,12 +200,24 @@ async function run() {
       traverse(ast, {
         CallExpression(p: any) {
           const callee = p.node.callee;
+          const calleeName =
+            callee.type === 'Identifier'
+              ? callee.name
+              : callee.type === 'MemberExpression' &&
+                  callee.property?.type === 'Identifier'
+                ? callee.property.name
+                : undefined;
+
+          // Never extract calls bound to official upstream @app/lib/i18n
+          if (calleeName && officialTNames.has(calleeName)) {
+            return;
+          }
+
           const isT =
-            (callee.type === 'Identifier' &&
-              (callee.name === 't' || callee.name === '__t')) ||
-            (callee.type === 'MemberExpression' &&
-              callee.property?.type === 'Identifier' &&
-              (callee.property.name === 't' || callee.property.name === '__t'));
+            calleeName &&
+            (forkTNames.has(calleeName) ||
+              ((calleeName === 't' || calleeName === '__t') &&
+                !officialTNames.has(calleeName)));
 
           if (isT && p.node.arguments.length > 0) {
             const firstArg = p.node.arguments[0];
@@ -193,6 +229,13 @@ async function run() {
               firstArg.type === 'TemplateLiteral' &&
               firstArg.quasis.length === 1
             ) {
+              rawKey = firstArg.quasis[0].value.raw;
+            }
+
+            // Exclude official namespace keys (e.g. viewMenus.xxx, entityActions.xxx)
+            if (rawKey && /^[a-z]+[A-Za-z0-9]*\.[a-zA-Z0-9_.-]+$/.test(rawKey)) {
+              return;
+            }
               rawKey = firstArg.quasis[0].value.raw;
             }
 

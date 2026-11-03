@@ -583,6 +583,8 @@ customizations:
       - apps/web/src/lib/i18n/locales/zh-Hans.ts
       - apps/web/src/lib/i18n/locales/zh-Hant.ts
       - apps/web/src/lib/i18n/locales/translated-from.json
+      - apps/web/src/lib/i18n/i18n.ts
+      - apps/web/src/features/slack-import/**
     owned_paths:
       - apps/web/src/features/email-compose/primitives/email-send-schedule.ts
       - apps/web/src/lib/core/component/AI/component/tool/email/DraftComposer.tsx
@@ -619,6 +621,15 @@ customizations:
       - apps/web/src/lib/i18n/locales/zh-Hans.ts
       - apps/web/src/lib/i18n/locales/zh-Hant.ts
       - apps/web/src/lib/i18n/locales/translated-from.json
+      - apps/web/src/lib/i18n/i18n.ts
+      - apps/web/src/features/slack-import/components/conversation-picker.tsx
+      - apps/web/src/features/slack-import/components/import-progress.tsx
+      - apps/web/src/features/slack-import/components/import-ui.tsx
+      - apps/web/src/features/slack-import/components/slack-connect-card.tsx
+      - apps/web/src/features/slack-import/components/slack-import-card.tsx
+      - apps/web/src/features/slack-import/slack-import-sidebar.tsx
+      - apps/web/src/features/slack-import/slack-import.tsx
+      - apps/web/src/features/slack-import/views/import-dialog.tsx
     tests:
       - conventions
       - i18n

@@ -1,4 +1,6 @@
 import { LoadingSpinner } from '@core/component/LoadingSpinner';
+import { Button } from '@ui/components/Button';
+import { t } from '@macro/i18n';
 import { createResource, Show } from 'solid-js';
 import { AdobePreviewStatus } from './AdobePreviewStatus';
 import { EpsCanvasPreview } from './EpsCanvasPreview';
@@ -13,6 +15,8 @@ export type AdobePreviewContainerProps = {
   format: AdobeFormat;
   fileName: string;
   getBlob: () => Promise<Blob>;
+  canOpenEditor?: boolean;
+  onOpenEditor?: () => void;
 };
 
 export function AdobePreviewContainer(props: AdobePreviewContainerProps) {
@@ -41,7 +45,9 @@ export function AdobePreviewContainer(props: AdobePreviewContainerProps) {
         <div class="flex flex-col items-center justify-center gap-3">
           <LoadingSpinner />
           <span class="text-xs text-ink-muted font-sans">
-            正在解析 {props.format.toUpperCase()} 预览...
+            {t('Parsing {format} preview...', {
+              format: props.format.toUpperCase(),
+            })}
           </span>
         </div>
       </Show>
@@ -57,19 +63,37 @@ export function AdobePreviewContainer(props: AdobePreviewContainerProps) {
             // Note: AI with PDF stream is normally dispatched directly to PDF viewer.
             // If it lands here, it can notify or indicate it is PDF-compatible.
             return (
-              <div class="text-center p-6">
+              <div class="text-center p-6 max-w-md mx-auto">
                 <p class="text-sm font-medium text-ink mb-2">
-                  已检测到 PDF 兼容画板
+                  {t('PDF compatible artboard detected')}
                 </p>
-                <p class="text-xs text-ink-muted">
-                  可在右侧或新标签页中通过 PDF 阅读器直接浏览完整画板。
+                <p class="text-xs text-ink-muted leading-relaxed">
+                  {t(
+                    'You can view the full artboard in the PDF reader or open in editor.'
+                  )}
                 </p>
+                <Show when={props.canOpenEditor && props.onOpenEditor}>
+                  <div class="mt-4">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={props.onOpenEditor}
+                    >
+                      {t('Open in Illustrator Editor')}
+                    </Button>
+                  </div>
+                </Show>
               </div>
             );
           }
 
           return (
-            <AdobePreviewStatus result={result} fileName={props.fileName} />
+            <AdobePreviewStatus
+              result={result}
+              fileName={props.fileName}
+              canOpenEditor={props.canOpenEditor}
+              onOpenEditor={props.onOpenEditor}
+            />
           );
         }}
       </Show>

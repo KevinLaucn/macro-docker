@@ -377,6 +377,46 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
+- file: apps/web/src/features/slack-import/components/conversation-picker.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/slack-import/components/import-progress.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/slack-import/components/import-ui.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/slack-import/components/slack-connect-card.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/slack-import/components/slack-import-card.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/slack-import/slack-import-sidebar.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/slack-import/slack-import.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/features/slack-import/views/import-dialog.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
 - file: apps/web/src/index.css
   owners:
   - READ-RECEIPTS-001
@@ -445,6 +485,13 @@ diffs:
   - BROWSER-RUNTIME-COMPAT-001
   hooks:
   - browser_runtime_keyless_event
+  override: false
+- file: apps/web/src/lib/i18n/i18n.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks:
+  - i18n_sync_restore_legacy_locale
+  - i18n_sync_sync_fork_locale
   override: false
 - file: apps/web/src/lib/i18n/locales/translated-from.json
   owners:
@@ -576,6 +623,7 @@ diffs:
   - BROWSER-RUNTIME-COMPAT-001
   hooks:
   - browser_runtime_optional_model_providers
+  - model_router_openrouter_provider
   override: false
 - file: crates/agent/src/test/test_router.rs
   owners:

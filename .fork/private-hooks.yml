@@ -9,6 +9,11 @@ hooks:
     file: crates/agent/src/model/router.rs
     marker: "// PRIVATE-HOOK: browser_runtime:optional-model-providers"
     expected: "let mut router = ModelRouter::new(anthropic, openai);"
+  - id: model_router_openrouter_provider
+    customization: BROWSER-RUNTIME-COMPAT-001
+    file: crates/agent/src/model/router.rs
+    marker: "// PRIVATE-HOOK: model_router:openrouter-provider"
+    expected: "if let Some(key) = OpenrouterApiKey::new() {"
   - id: browser_runtime_recommendation_title
     customization: BROWSER-RUNTIME-COMPAT-001
     file: apps/web/src/lib/queries/ai/homeRecommendations.ts
@@ -598,3 +603,22 @@ hooks:
     expected: "PredefinedModel::Gpt5Mini"
     context:
       - "Chat Rename must use the same OpenAI provider"
+
+  - id: i18n_sync_restore_legacy_locale
+    customization: I18N-ZH-CN-001
+    file: apps/web/src/lib/i18n/i18n.ts
+    marker: "// PRIVATE-HOOK: i18n_sync:restore-legacy-locale"
+    expected: "const legacy = localStorage.getItem('macro_locale');"
+    context:
+      - "restore: () => {"
+      - "if (stored.success) return stored.data;"
+
+  - id: i18n_sync_sync_fork_locale
+    customization: I18N-ZH-CN-001
+    file: apps/web/src/lib/i18n/i18n.ts
+    marker: "// PRIVATE-HOOK: i18n_sync:sync-fork-locale"
+    expected: "syncForkLocale(next);"
+    context:
+      - "export function setInterfaceLanguage(next: Language): void {"
+      - "document.documentElement.lang = next;"
+
