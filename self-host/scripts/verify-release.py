@@ -27,6 +27,7 @@ REQUIRED_IMAGES = [
 ]
 
 REQUIRED_BUNDLE_PATHS = [
+    ".env.example",
     "docker-compose.yml",
     "Caddyfile",
     "macroctl",
@@ -61,7 +62,7 @@ def verify_caddyfile(caddy_text: str) -> list[str]:
 
     return errors
 
-def verify_compose(compose_text: str, caddy_text: str) -> list[str]:
+def verify_compose(compose_text: str, caddy_text: str, env_example: str) -> list[str]:
     errors = []
     agents_match = re.search(r'^  agent_harness_service:\n(.*?)(?=^  \w|\Z)', compose_text, re.M | re.S)
     if not agents_match:
@@ -75,7 +76,6 @@ def verify_compose(compose_text: str, caddy_text: str) -> list[str]:
         for alias in ("agent-harness-service", "document-cognition-service", "scheduled-action-service"):
             if alias not in agents_body:
                 errors.append(f"agent_harness_service missing network alias '{alias}'")
-    env_example = (SELF_HOST / ".env.example").read_text()
     if re.search(r'^DEV_DANGEROUS_LOCAL_CONTAINERS=true', env_example, re.M):
         errors.append(".env.example must keep DEV_DANGEROUS_LOCAL_CONTAINERS=false in production")
     # Find all reverse_proxy targets in Caddyfile: host:port
@@ -306,7 +306,7 @@ def main():
 
     errors = []
     errors.extend(verify_caddyfile(caddy_text))
-    errors.extend(verify_compose(compose_text, caddy_text))
+    errors.extend(verify_compose(compose_text, caddy_text, (base_dir / ".env.example").read_text()))
     if args.web_assets_dir:
         errors.extend(verify_web_assets(args.web_assets_dir))
 
