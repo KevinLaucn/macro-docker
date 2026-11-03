@@ -383,6 +383,7 @@ services:
       # a release directory must never carry a second, path-dependent copy.
       - localstack_data:/var/lib/localstack
       - localstack_data:/persisted-data
+      - ./init/localstack-jsonpickle-snapshot.sh:/etc/localstack/init/boot.d/10-jsonpickle-snapshot.sh:ro
     networks:
       databases:
         aliases:

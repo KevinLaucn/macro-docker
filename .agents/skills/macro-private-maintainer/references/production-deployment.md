@@ -57,3 +57,15 @@
 2. **Kafka 消费者积压**：服务重启或历史数据大量 backfill 时，若发生消息积压，需观察 Broker GC 停顿与消费者组心跳（`docker logs --tail 100 macro-selfhost-kafka-1`）。
 3. **LocalStack 上限监控**：大批量附件并发上传 S3 时，观察 LocalStack 是否逼近 750M 保护上限（`docker stats macro-selfhost-localstack-1`）。
 4. **禁止过度再压**：坚决不再进行 `Kafka 256M / OpenSearch 256M / FusionAuth 256M / LocalStack 600M` 等极限挤压操作，避免用稳定性换取微小的边际收益。
+
+### LocalStack SQS 持久化
+
+`gresau/localstack-persist:4.14.0` 在队列并发变化时可能报
+`RuntimeError: dictionary changed size during iteration`，健康检查通过不能证明队列落盘成功。
+Compose 挂载 `init/localstack-jsonpickle-snapshot.sh`，启动时将 jsonpickle 的字典遍历改为快照，
+并先写临时文件、同步后原子替换，避免服务中断时覆盖上一份完整快照；保留原有持久化格式。
+升级镜像修复这两个问题后移除此 hook，并复核队列恢复。
+
+热修复前备份 SQS 持久化文件，短暂停止队列客户端写入；确认保存成功后再重启 LocalStack。
+重启前后核对全部队列及可见、处理中、延迟消息总数，并确认持久化文件继续更新且没有保存错误。
+用镜像虚拟环境运行 `scripts/test_localstack_persistence.py` 验证并发遍历和序列化引用一致性。
