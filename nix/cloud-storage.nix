@@ -66,11 +66,16 @@
         builtins.match ".*\\.(md|html|txt|json|jsonl|canvas|sql|sh|bop|ttf|xml|graphql|mjs|proto)$" path != null;
       # Rust local HTTP clients embed only the public proxy CA, never its keys.
       localCaFilter = path: _type: pkgs.lib.hasSuffix "/infra/local/certs/ca.pem" (toString path);
+      # Test and local identity fixture keys embedded via `include_str!` in crates and tooling.
+      fixturePemFilter =
+        path: _type:
+        builtins.match ".*(crates/|tooling/).*\\.pem$" path != null;
       binFilter = path: _type: builtins.match ".*\\.bin$" path != null;
       srcFilter =
         path: type:
         (sqlxFilter path type)
         || (localCaFilter path type)
+        || (fixturePemFilter path type)
         || (pdfiumFilter path type)
         || (assetFilter path type)
         || (binFilter path type)
@@ -1031,6 +1036,7 @@
           migratorSrc = selfHostEmailPrunedDeploySrc "source-check-macro-db-migrator" "macro_db_migrator";
           authenticationSrc = selfHostEmailPrunedDeploySrc "source-check-authentication" "authentication_service";
           documentStorageSrc = selfHostEmailPrunedDeploySrc "source-check-document-storage" "document_storage_service";
+          xtaskLocalSrc = crateDirSrc "tooling/xtask/crates/xtask_local";
           syncServiceSrc = crateDirSrc "services/sync-service";
           agentFoldSrc = crateDirSrc "crates/folds/agent_fold";
           codingAgentWorkerSrc = crateDirSrc "crates/coding_agent_worker";
@@ -1047,6 +1053,8 @@
           test -f ${selfHostEmailPrunedDeploySrc "source-check-email-db-client" "email_db_client"}/packages/fork/read-receipts/backend/db/mod.rs
           test -f ${documentStorageSrc}/services/document_storage_service/src/api/documents/template/canvas_template.canvas
           test -f ${documentStorageSrc}/static_assets/markdown-golden.1.bin
+          test -f ${xtaskLocalSrc}/src/local/identity/macro-api-token.local.public.pem
+          test -f ${xtaskLocalSrc}/src/local/identity/macro-api-token.local.private.pem
           test -f ${syncServiceSrc}/bebop/schema.bop
           test -f ${agentFoldSrc}/fixtures/turn.jsonl
           test -f ${codingAgentWorkerSrc}/default.macrod.toml
