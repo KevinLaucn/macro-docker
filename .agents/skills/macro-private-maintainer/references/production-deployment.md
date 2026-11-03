@@ -14,6 +14,7 @@
   - `agent_harness_service` 已合并承载 `document_cognition_service`（`/cognition`）、`scheduled_action_service`（`/scheduled-action`）、`preview`（`/preview`）及 `public_mcp`（`/mcp`）。
   - Caddy 对 `/cognition`、`/scheduled-action`、`/preview`、`/mcp` 必须使用不剥离前缀的 `handle`（匹配裸路径与 `/*` 子路径），对 `/agent-harness/*` 使用 `handle_path`。
   - 生产环境 `agent_harness_service` 保持常驻（无 `agents` profile 门控），强制 `DEV_DANGEROUS_LOCAL_CONTAINERS=false`、非 `root` 运行且禁止挂载宿主机 `/var/run/docker.sock`。
+  - 合并服务通过 `auth` 网络访问 FusionAuth；`MCP_OAUTH_KMS_KEY_ID` 使用原生目录创建的 `alias/macro-local-mcp-oauth`。沿用 `ENVIRONMENT=local` 的本地凭据模式时，预览使用 `preview.localhost`；不得误用应用子域名或将本地配置宣称为可用的外网预览。
   - `/calendar/*` 路由由独立的 `calendar_service` 容器承载（不再由 `email_service` 承载）。
 - **反向代理与 SSL**：基于 1Panel / OpenResty 或 Nginx / Caddy 托管，负责公网 SSL 终结、请求限流与反向代理路由。
 - **配置分离**：业务配置和敏感环境变量落盘于生产主路径下的 `.env`，模板见 `self-host/.env.example`。

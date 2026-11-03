@@ -61,7 +61,7 @@ x-service: &service
     PIPEDREAM_CLIENT_SECRET: ${PIPEDREAM_CLIENT_SECRET:-unset-pipedream-secret}
     PIPEDREAM_PROJECT_ID: ${PIPEDREAM_PROJECT_ID:-unset-pipedream-project}
     HARNESS_BOT_ID: ${HARNESS_BOT_ID:-00000000-0000-0000-0000-00000000a9e7}
-    PREVIEW_DOMAIN: ${PREVIEW_DOMAIN:-preview.${MACRO_DOMAIN}}
+    PREVIEW_DOMAIN: ${PREVIEW_DOMAIN:-preview.localhost}
     PREVIEW_SSH_HOST: ${PREVIEW_SSH_HOST:-127.0.0.1}
     PREVIEW_SSH_PROXY_HOST: ${PREVIEW_SSH_PROXY_HOST:-agent-harness-service}
     PREVIEW_SSH_PUBLIC_PORT: ${PREVIEW_SSH_PUBLIC_PORT:-2222}
@@ -739,6 +739,7 @@ services:
       OVERRIDE_AGENT_HARNESS_SERVICE_URL: http://agent-harness-service:8080
       OVERRIDE_AGENT_HARNESS_EGRESS_URL: http://agent-harness-service:8102
       CODEX_OAUTH_KMS_KEY_ID: ${CODEX_OAUTH_KMS_KEY_ID:-alias/macro-selfhost-codex-oauth}
+      MCP_OAUTH_KMS_KEY_ID: ${MCP_OAUTH_KMS_KEY_ID:-alias/macro-local-mcp-oauth}
     depends_on:
       postgres:
         condition: service_healthy
@@ -757,6 +758,7 @@ services:
       localstack_reconciler:
         condition: service_healthy
     networks:
+      auth:
       databases:
       services:
         aliases:
