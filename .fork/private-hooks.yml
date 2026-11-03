@@ -48,14 +48,14 @@ hooks:
     customization: READ-RECEIPTS-001
     file: apps/web/src/lib/queries/email/thread.ts
     marker: "// PRIVATE-HOOK: read_receipts:sent-import"
-    expected: "import { handleReadReceiptSentMessage } from '@macro/fork-read-receipts/queries';"
+    expected: "import { handleReadReceiptQueuedMessage } from '@macro/fork-read-receipts/queries';"
     context:
       - "export function useSendMessageMutation("
   - id: email_read_receipts_send_completion
     customization: READ-RECEIPTS-001
     file: apps/web/src/lib/queries/email/thread.ts
     marker: "// PRIVATE-HOOK: read_receipts:send-completion"
-    expected: "handleReadReceiptSentMessage(data.message, queryClient);"
+    expected: "handleReadReceiptQueuedMessage(data.message, queryClient);"
     context:
       - "onSuccess: (data, vars) => {"
   - id: email_identity_participants
@@ -203,7 +203,7 @@ hooks:
     customization: READ-RECEIPTS-001
     file: apps/web/src/features/email-compose/primitives/prepare-email-body.ts
     marker: "// PRIVATE-HOOK: read_receipts:strip-own-pixels"
-    expected: "return replyingTo.is_sent ? stripOwnTrackingPixelsFromHtml(html) : html;"
+    expected: "return stripOwnTrackingPixelsFromHtml(html);"
     context:
       - "function getComposerQuotedBodyHtml("
   - id: email_read_receipts_strip_sent_render_pixel_import

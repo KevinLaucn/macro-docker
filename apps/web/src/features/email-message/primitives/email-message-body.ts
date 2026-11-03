@@ -60,11 +60,11 @@ export function createEmailMessageBody(
       // PRIVATE-HOOK: email_translation:body-render-source
       html: stripOwnPixel(
         props.translatedHtml ?? props.message.body_html_sanitized,
-        props.message.is_sent
+        props.message.is_sent || !props.showReadReceiptPixel
       ),
       replylessHtml: stripOwnPixel(
         props.translatedReplylessHtml ?? props.message.body_replyless,
-        props.message.is_sent
+        props.message.is_sent || !props.showReadReceiptPixel
       ),
       text: props.message.body_text,
       macro: props.message.body_macro,

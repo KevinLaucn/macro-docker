@@ -173,7 +173,7 @@ function getComposerQuotedBodyHtml(
   const html = replyingTo.body_html_sanitized?.toString();
   if (!html) return undefined;
   // PRIVATE-HOOK: read_receipts:strip-own-pixels
-  return replyingTo.is_sent ? stripOwnTrackingPixelsFromHtml(html) : html;
+  return stripOwnTrackingPixelsFromHtml(html);
 }
 
 /**

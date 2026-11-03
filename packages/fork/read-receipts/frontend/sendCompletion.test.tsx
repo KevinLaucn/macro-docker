@@ -3,13 +3,10 @@ import { mountEmailMutation } from '@queries/email/tests/mutation';
 import { useSendMessageMutation } from '@queries/email/thread';
 import { QueryClientProvider } from '@tanstack/solid-query';
 import { err, ok } from 'neverthrow';
-import type { JSX } from 'solid-js';
+import { createSignal, type JSX } from 'solid-js';
 import { render } from 'solid-js/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type {
-  ReadReceiptStatusData,
-  ThreadReadReceiptStatusData,
-} from './client';
+import { readReceiptsClient } from './client';
 import { handleReadReceiptOpenedEvent } from './queries';
 import {
   ReadReceiptStatus,
@@ -38,12 +35,6 @@ vi.mock('@queries/email/graphql/thread', () => ({
   fetchGraphqlEmailThread: vi.fn(),
   mapGraphqlThreadError: vi.fn(),
 }));
-vi.mock('@core/context/user', () => ({
-  useEmail: () => () => 'sender@example.com',
-}));
-vi.mock('@queries/email/link', () => ({
-  useEmailLinksQuery: () => ({ isSuccess: false }),
-}));
 vi.mock('@ui', () => ({
   cn: (...classes: (string | undefined)[]) => classes.filter(Boolean).join(' '),
   Tooltip: (props: { children: JSX.Element }) => props.children,
@@ -52,35 +43,160 @@ vi.mock('@ui', () => ({
 const messageKey = ['email', 'read-receipt', 'reply'];
 const threadKey = ['email', 'read-receipt-thread', 'thread'];
 const response = {
-  message: { db_id: 'reply', thread_db_id: 'thread', link_id: 'inbox' },
+  message: {
+    db_id: 'reply',
+    thread_db_id: 'thread',
+    link_id: 'inbox',
+    draft_generation: 1,
+    subject: 'Reply',
+    send_time: '2026-11-04T00:00:00Z',
+  },
 };
 
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.refetch.mockResolvedValue(undefined);
+  vi.spyOn(readReceiptsClient, 'getStatuses').mockResolvedValue(
+    ok({ statuses: [] })
+  );
 });
-afterEach(() => queryClient.clear());
+afterEach(() => {
+  queryClient.clear();
+  vi.restoreAllMocks();
+});
 
-describe('upstream send mutation → fork receipt cache', () => {
-  it('shows a sent-message check even while thread metadata still describes its draft', async () => {
+describe('queue acceptance → authoritative delivery → receipt', () => {
+  it('keeps queued, cancelled and failed messages unchecked after HTTP success', async () => {
     const host = document.createElement('div');
+    const [message, setMessage] = createSignal({
+      db_id: 'reply',
+      is_draft: true,
+      is_sent: false,
+    });
     const dispose = render(
       () => (
         <QueryClientProvider client={queryClient}>
-          <ReadReceiptStatus
-            message={{ db_id: 'reply', is_draft: true, is_sent: false }}
-            showIconOnly
-          />
+          <ReadReceiptStatus message={message()} showIconOnly />
         </QueryClientProvider>
       ),
       host
     );
     try {
-      expect(host.querySelector('svg')).toBeNull();
+      const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
       mocks.send.mockResolvedValue(ok(response));
       const mutation = mountEmailMutation(useSendMessageMutation);
       await mutation.mutateAsync({ message: { subject: 'Reply' } });
+      expect(host.querySelector('svg')).toBeNull();
+      expect(queryClient.getQueryData(messageKey)).toBeUndefined();
+      expect(queryClient.getQueryData(threadKey)).toBeUndefined();
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: messageKey });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: threadKey });
+      // Cancellation or provider failure never supplies a confirmed sent state.
+      setMessage({ db_id: 'reply', is_draft: true, is_sent: false });
+      await Promise.resolve();
+      expect(host.querySelector('svg')).toBeNull();
+      // A real delivery refresh makes the check visible without reloading.
+      setMessage({ db_id: 'reply', is_draft: false, is_sent: true });
       await vi.waitFor(() => expect(host.querySelector('svg')).not.toBeNull());
+      expect(host.querySelector('span')?.className).not.toContain(
+        'text-orange'
+      );
+      await vi.waitFor(() => {
+        expect(readReceiptsClient.getStatuses).toHaveBeenCalled();
+        expect(queryClient.isFetching({ queryKey: messageKey })).toBe(0);
+      });
+      handleReadReceiptOpenedEvent(
+        { messageId: 'reply', openCount: 1 },
+        queryClient
+      );
+      await vi.waitFor(() =>
+        expect(host.querySelector('span')?.className).toContain('text-orange')
+      );
+    } finally {
+      dispose();
+    }
+  });
+
+  it.each([
+    { db_id: 'reply', from: { email: 'sender@example.com' } },
+    { db_id: 'reply', is_sent: null, is_draft: false },
+    { db_id: 'reply', is_sent: false, is_draft: false },
+    { db_id: 'reply', is_sent: true, is_draft: true },
+  ])(
+    'ignores sender inference and stale local confirmations: %j',
+    (message) => {
+      queryClient.setQueryData(['email', 'read-receipt-sent', 'reply'], true);
+      const host = document.createElement('div');
+      const dispose = render(
+        () => (
+          <QueryClientProvider client={queryClient}>
+            <ReadReceiptStatus message={message} showIconOnly />
+          </QueryClientProvider>
+        ),
+        host
+      );
+      try {
+        expect(host.querySelector('svg')).toBeNull();
+      } finally {
+        dispose();
+      }
+    }
+  );
+
+  it('updates thread checks only on authoritative latest-sent refresh, then matching opens', async () => {
+    const old = {
+      thread_id: 'thread',
+      latest_sent_message_id: 'old',
+      latest_message_id: 'old',
+      is_last_message_sent: true,
+      is_opened: true,
+      open_count: 4,
+      first_opened_at: null,
+      last_opened_at: null,
+    };
+    const next = {
+      ...old,
+      latest_sent_message_id: 'reply',
+      latest_message_id: 'reply',
+      is_opened: false,
+      open_count: 0,
+    };
+    let delivered = false;
+    vi.spyOn(readReceiptsClient, 'getThreadStatuses').mockImplementation(
+      async () => ok({ statuses: [delivered ? next : old] })
+    );
+    queryClient.setQueryData(threadKey, old);
+    const host = document.createElement('div');
+    const dispose = render(
+      () => (
+        <QueryClientProvider client={queryClient}>
+          <ThreadReadReceiptStatus threadId="thread" showIconOnly />
+        </QueryClientProvider>
+      ),
+      host
+    );
+    try {
+      mocks.send.mockResolvedValue(ok(response));
+      const mutation = mountEmailMutation(useSendMessageMutation);
+      await mutation.mutateAsync({ message: { subject: 'Reply' } });
+      await vi.waitFor(() =>
+        expect(queryClient.isFetching({ queryKey: threadKey })).toBe(0)
+      );
+      expect(queryClient.getQueryData(threadKey)).toMatchObject({
+        latest_sent_message_id: 'old',
+      });
+      delivered = true;
+      await queryClient.invalidateQueries({ queryKey: threadKey });
+      await vi.waitFor(() =>
+        expect(host.querySelector('span')?.className).not.toContain(
+          'text-orange'
+        )
+      );
+      expect(host.querySelector('svg')).not.toBeNull();
+      handleReadReceiptOpenedEvent(
+        { messageId: 'old', openCount: 5 },
+        queryClient
+      );
       expect(host.querySelector('span')?.className).not.toContain(
         'text-orange'
       );
@@ -95,106 +211,33 @@ describe('upstream send mutation → fork receipt cache', () => {
       dispose();
     }
   });
-  it('renders a check after reply completion and a double check after opening, without remount or reload', async () => {
+
+  it('preserves earlier opens without attributing them to a queued reply', async () => {
     queryClient.setQueryData(threadKey, {
-      thread_id: 'thread',
-      latest_sent_message_id: '',
-      is_opened: false,
-      open_count: 0,
-    });
-    const host = document.createElement('div');
-    const dispose = render(
-      () => (
-        <QueryClientProvider client={queryClient}>
-          <ThreadReadReceiptStatus threadId="thread" showIconOnly />
-        </QueryClientProvider>
-      ),
-      host
-    );
-    try {
-      expect(host.querySelector('svg')).toBeNull();
-      mocks.send.mockResolvedValue(ok(response));
-      const mutation = mountEmailMutation(useSendMessageMutation);
-      await mutation.mutateAsync({ message: { subject: 'Reply' } });
-      await vi.waitFor(() => expect(host.querySelector('svg')).not.toBeNull());
-      const singleCheck = host.querySelector('svg')?.innerHTML;
-      handleReadReceiptOpenedEvent(
-        { messageId: 'reply', openCount: 1 },
-        queryClient
-      );
-      await vi.waitFor(() => {
-        expect(host.querySelector('span')?.className).toContain('text-orange');
-        expect(host.querySelector('svg')?.innerHTML).not.toBe(singleCheck);
-      });
-    } finally {
-      dispose();
-    }
-  });
-  it('publishes the reply receipt immediately and replaces the previous opened message', async () => {
-    queryClient.setQueryData(threadKey, {
-      thread_id: 'thread',
       latest_sent_message_id: 'old',
       is_opened: true,
       open_count: 4,
     });
+    handleReadReceiptOpenedEvent(
+      { messageId: 'reply', openCount: 2 },
+      queryClient
+    );
     mocks.send.mockResolvedValue(ok(response));
-    const mutation = mountEmailMutation(useSendMessageMutation);
-    await mutation.mutateAsync({
-      message: { subject: 'Reply', thread_db_id: 'thread' },
-    });
-
-    expect(
-      queryClient.getQueryData<ReadReceiptStatusData>(messageKey)?.open_count
-    ).toBe(0);
-    expect(
-      queryClient.getQueryData<ThreadReadReceiptStatusData>(threadKey)
-    ).toMatchObject({
-      latest_sent_message_id: 'reply',
-      is_opened: false,
-      open_count: 0,
-    });
-    handleReadReceiptOpenedEvent(
-      { messageId: 'old', openCount: 5 },
-      queryClient
-    );
-    expect(
-      queryClient.getQueryData<ThreadReadReceiptStatusData>(threadKey)
-        ?.is_opened
-    ).toBe(false);
-    handleReadReceiptOpenedEvent(
-      { messageId: 'reply', openCount: 1 },
-      queryClient
-    );
-    expect(
-      queryClient.getQueryData<ThreadReadReceiptStatusData>(threadKey)
-        ?.is_opened
-    ).toBe(true);
-  });
-
-  it('preserves an open event arriving before the successful send response', async () => {
-    mocks.send.mockImplementation(async () => {
-      handleReadReceiptOpenedEvent(
-        { messageId: 'reply', openCount: 2 },
-        queryClient
-      );
-      return ok(response);
-    });
     const mutation = mountEmailMutation(useSendMessageMutation);
     await mutation.mutateAsync({
       message: { subject: 'Reply' },
       skipSoupRefetch: true,
     });
-    expect(
-      queryClient.getQueryData<ReadReceiptStatusData>(messageKey)?.open_count
-    ).toBe(2);
-    expect(
-      queryClient.getQueryData<ThreadReadReceiptStatusData>(threadKey)
-        ?.is_opened
-    ).toBe(true);
+    expect(queryClient.getQueryData(messageKey)).toMatchObject({
+      open_count: 2,
+    });
+    expect(queryClient.getQueryData(threadKey)).toMatchObject({
+      latest_sent_message_id: 'old',
+    });
     expect(mocks.refetch).not.toHaveBeenCalled();
   });
 
-  it('never publishes a sent receipt when sending fails', async () => {
+  it('never publishes a sent receipt when enqueueing fails', async () => {
     mocks.send.mockResolvedValue(
       err([{ code: 'SERVER_ERROR', message: 'Offline' }])
     );
@@ -204,8 +247,5 @@ describe('upstream send mutation → fork receipt cache', () => {
     ).rejects.toThrow();
     expect(queryClient.getQueryData(messageKey)).toBeUndefined();
     expect(queryClient.getQueryData(threadKey)).toBeUndefined();
-    expect(
-      queryClient.getQueryData(['email', 'read-receipt-sent', 'reply'])
-    ).toBeUndefined();
   });
 });

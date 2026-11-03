@@ -1,11 +1,8 @@
-import { useEmail } from '@core/context/user';
 import CheckIcon from '@phosphor-icons/core/bold/check-bold.svg?component-solid';
 import ChecksIcon from '@phosphor-icons/core/bold/checks-bold.svg?component-solid';
-import { useEmailLinksQuery } from '@queries/email/link';
 import { cn, Tooltip } from '@ui';
 import { createMemo, Show } from 'solid-js';
 import {
-  useReadReceiptSentConfirmation,
   useReadReceiptStatusQuery,
   useThreadReadReceiptStatusQuery,
 } from './queries';
@@ -24,27 +21,11 @@ export interface ReadReceiptStatusProps {
 }
 
 export function ReadReceiptStatus(props: ReadReceiptStatusProps) {
-  const viewerEmail = useEmail();
-  const accounts = useEmailLinksQuery();
-  const sentConfirmed = useReadReceiptSentConfirmation(
-    () => props.message.db_id
-  );
-
-  const isSent = () => {
-    if (props.message.is_sent != null) return Boolean(props.message.is_sent);
-    const fromEmail = props.message.from?.email?.toLowerCase();
-    if (!fromEmail) return false;
-    if (viewerEmail()?.toLowerCase() === fromEmail) return true;
-    const links = accounts.isSuccess ? accounts.data?.links : undefined;
-    return Boolean(
-      links?.some((acc) => acc.email_address?.toLowerCase() === fromEmail)
-    );
-  };
-
   const isEligible = () => {
     return Boolean(
       props.message.db_id &&
-        (sentConfirmed() || (isSent() && !props.message.is_draft))
+        props.message.is_sent === true &&
+        !props.message.is_draft
     );
   };
 

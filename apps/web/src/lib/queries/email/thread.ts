@@ -8,7 +8,7 @@ import {
 import { DEFAULT_THREAD_MESSAGES_LIMIT } from '@core/constant/pagination';
 import { catchToResult, throwOnErr } from '@core/util/result';
 // PRIVATE-HOOK: read_receipts:sent-import
-import { handleReadReceiptSentMessage } from '@macro/fork-read-receipts/queries';
+import { handleReadReceiptQueuedMessage } from '@macro/fork-read-receipts/queries';
 import ArrowCounterClockwise from '@icon/system/regular/arrow-counter-clockwise.svg?component-solid';
 import { Telemetry } from '@macro-inc/observability';
 import { emailClient } from '@service-email/client';
@@ -656,7 +656,7 @@ export function useSendMessageMutation(
       {
         onSuccess: (data, vars) => {
           // PRIVATE-HOOK: read_receipts:send-completion
-          handleReadReceiptSentMessage(data.message, queryClient);
+          handleReadReceiptQueuedMessage(data.message, queryClient);
           try {
             analytics.track('email_message_sent');
           } catch (error) {

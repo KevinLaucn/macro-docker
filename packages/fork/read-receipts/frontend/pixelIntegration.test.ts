@@ -12,13 +12,18 @@ const html = `<p>History</p><img src="${pixel}" width="1" height="1"><img src="$
 afterEach(() => vi.unstubAllGlobals());
 
 describe('upstream renderer/composer → pixel side-effect exclusions', () => {
-  it.each(['reply', 'forward'] as const)(
-    'removes historical pixels from a real %s body',
-    (replyType) => {
+  it.each([
+    { replyType: 'reply' as const, isSent: true },
+    { replyType: 'forward' as const, isSent: true },
+    { replyType: 'reply' as const, isSent: false },
+    { replyType: 'forward' as const, isSent: false },
+  ])(
+    'removes historical pixels from $replyType (sent: $isSent)',
+    ({ replyType, isSent }) => {
       const prepared = prepareEmailBodyFromHtml('<p>New content</p>', {
         replyType,
         replyingTo: message('original', {
-          is_sent: true,
+          is_sent: isSent,
           body_html_sanitized: html,
         }),
       });
@@ -29,9 +34,17 @@ describe('upstream renderer/composer → pixel side-effect exclusions', () => {
     }
   );
 
-  it.each([false, true])(
-    'keeps Sent rendering free of our own pixels (full body: %s)',
-    async (showFullContent) => {
+  it.each([
+    { showFullContent: false, isSent: true, showReadReceiptPixel: false },
+    { showFullContent: true, isSent: true, showReadReceiptPixel: false },
+    { showFullContent: false, isSent: false, showReadReceiptPixel: false },
+    { showFullContent: true, isSent: false, showReadReceiptPixel: false },
+    { showFullContent: true, isSent: false, showReadReceiptPixel: undefined },
+    { showFullContent: true, isSent: false, showReadReceiptPixel: true },
+  ])(
+    'protects sender/unknown copies and permits recipients: %j',
+    async ({ showFullContent, isSent, showReadReceiptPixel }) => {
+      const permitsPixel = !isSent && showReadReceiptPixel === true;
       vi.stubGlobal(
         'ResizeObserver',
         class {
@@ -40,14 +53,16 @@ describe('upstream renderer/composer → pixel side-effect exclusions', () => {
         }
       );
       const resolveImages = vi.fn(async (root: ParentNode) => {
-        expect(root.querySelector(`img[src="${pixel}"]`)).toBeNull();
+        expect(Boolean(root.querySelector(`img[src="${pixel}"]`))).toBe(
+          permitsPixel
+        );
       });
       const root = createRoot((dispose) => ({
         dispose,
         body: createEmailMessageBody(
           {
             message: message('sent', {
-              is_sent: true,
+              is_sent: isSent,
               body_html_sanitized: html,
               body_replyless: html,
             }),
@@ -57,6 +72,7 @@ describe('upstream renderer/composer → pixel side-effect exclusions', () => {
             setFocusedMessageId() {},
             isFocused: false,
             showFullContent,
+            showReadReceiptPixel,
           },
           {
             theme: () => ({
@@ -75,8 +91,10 @@ describe('upstream renderer/composer → pixel side-effect exclusions', () => {
       try {
         await Promise.resolve();
         expect(
-          root.body.host()?.shadowRoot?.querySelector(`img[src="${pixel}"]`)
-        ).toBeNull();
+          Boolean(
+            root.body.host()?.shadowRoot?.querySelector(`img[src="${pixel}"]`)
+          )
+        ).toBe(permitsPixel);
         expect(
           root.body.host()?.shadowRoot?.querySelector(`img[src="${ordinary}"]`)
         ).not.toBeNull();
