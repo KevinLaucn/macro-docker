@@ -94,15 +94,17 @@ hooks:
     customization: CRM-MULTI-INBOX-001
     file: services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
     marker: "// PRIVATE-HOOK: crm_backfill:populate_all_inboxes"
-    expected: "let links = email_db_client::links::get::fetch_inboxes_for_macro_id(&ctx.db, macro_id_str)"
+    expected: "let mut links = email_db_client::links::get::fetch_inboxes_for_macro_id(&ctx.db, macro_id_str)"
     context:
+      - "links.retain(|link| link.macro_id.as_ref() == macro_id_str);"
       - "for link in links {"
   - id: crm_backfill_depopulate_all_inboxes
     customization: CRM-MULTI-INBOX-001
     file: services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
     marker: "// PRIVATE-HOOK: crm_backfill:depopulate_all_inboxes"
-    expected: "let links = email_db_client::links::get::fetch_inboxes_for_macro_id(&ctx.db, macro_id_str)"
+    expected: "let mut links = email_db_client::links::get::fetch_inboxes_for_macro_id(&ctx.db, macro_id_str)"
     context:
+      - "links.retain(|link| link.macro_id.as_ref() == macro_id_str);"
       - "for link in links {"
   - id: email_read_receipts_features
     customization: READ-RECEIPTS-001
