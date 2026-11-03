@@ -3,8 +3,8 @@
 ## 0. 当前生产环境默认入口
 
 - **默认生产主机**：腾讯云 SG 2H8G，SSH 别名 `marc-sg-2h8g`。
-- **生产主路径**：`/home/ubuntu/marco/`。
-- **默认操作规则**：凡用户说“生产环境”“线上”“部署”“生产 Docker Compose”“生产日志/容器”且未指定其它主机时，直接连接 `marc-sg-2h8g`，并在 `/home/ubuntu/marco/` 下操作。
+- **生产主路径**：`/opt/macro/current` 指向当前发布目录；共享配置位于 `/etc/macro/macro.env`。`/home/ubuntu/marco/` 仅为旧部署入口。
+- **默认操作规则**：凡用户说“生产环境”“线上”“部署”“生产 Docker Compose”“生产日志/容器”且未指定其它主机时，直接连接 `marc-sg-2h8g`，先核对 `/opt/macro/current` 实际指向的发布目录。
 - **历史环境状态**：飞牛 OS 与美国 VPS 均视为历史/备用环境；只有用户明确提到 `fnOS`、飞牛、美国 VPS、`tencent-us2h8g`、旧 VPS 或指定对应主机时才连接。
 
 ## 1. 生产环境拓扑
@@ -17,7 +17,7 @@
   - 合并服务通过 `auth` 网络访问 FusionAuth；`MCP_OAUTH_KMS_KEY_ID` 使用原生目录创建的 `alias/macro-local-mcp-oauth`。沿用 `ENVIRONMENT=local` 的本地凭据模式时，预览使用 `preview.localhost`；不得误用应用子域名或将本地配置宣称为可用的外网预览。
   - `/calendar/*` 路由由独立的 `calendar_service` 容器承载（不再由 `email_service` 承载）。
 - **反向代理与 SSL**：基于 1Panel / OpenResty 或 Nginx / Caddy 托管，负责公网 SSL 终结、请求限流与反向代理路由。
-- **配置分离**：业务配置和敏感环境变量落盘于生产主路径下的 `.env`，模板见 `self-host/.env.example`。
+- **配置分离**：业务配置和敏感环境变量落盘于 `/etc/macro/macro.env`，模板见 `self-host/.env.example`。
 
 ## 2. 生产镜像发布与 Profile 体系
 
@@ -35,7 +35,7 @@
 
 - **容器状态核查**：`ssh marc-sg-2h8g "docker ps -a"`
 - **服务健康与实时日志**：`ssh marc-sg-2h8g "docker logs --tail 100 <service_name>"`
-- **单服务优雅更新**：`ssh marc-sg-2h8g "cd /home/ubuntu/marco && docker compose pull <service_name> && docker compose up -d --force-recreate <service_name>"`
+- **单服务优雅更新**：在 `/opt/macro/current` 下设置 `MACRO_SHARED_ENV_FILE=/etc/macro/macro.env`，用 `docker compose --env-file /etc/macro/macro.env` 执行 `pull <service_name>` 和 `up -d --no-deps --wait <service_name>`；发布包固定镜像 digest，更新版本须先准备并校验新发布包。
 - **真实连接凭据**：详细主机 IP、端口与专用 SSH 密钥路径请直接查阅被本地 `.gitignore` 保护的 `.agents/skills/macro-private-maintainer/.local-production.md`。
 
 ## 4. 单用户/低资源生产环境推荐基线与排障规范 (Personal Self-Host Profile)
