@@ -14,6 +14,7 @@ import os, sys, json, subprocess
 script_dir = os.path.dirname(os.path.abspath(__file__))
 repo_dir = os.path.dirname(script_dir)
 candidate_env_paths = [
+    os.environ.get("MACRO_SHARED_ENV_FILE", "/etc/macro/macro.env"),
     os.path.join(repo_dir, ".env"),
     os.path.join(os.path.dirname(repo_dir), ".env"),
     os.path.join(os.getcwd(), ".env"),

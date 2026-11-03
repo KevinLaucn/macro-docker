@@ -28,6 +28,7 @@
   - 数据库迁移镜像：`ghcr.io/kevinlaucn/macro-init-email:$VERSION`
 - **构建原则**：生产主机禁止承担任何高负载编译任务，镜像统一由独立专用编译机或 GitHub Actions 预构建发布后 pull 拉取。
 - **独立发布包校验**：`verify-release.py` 必须读取当前发布包自带的 `.env.example`，不得依赖生产机存在源码 checkout。
+- **生产诊断配置**：`doctor.py` 优先读取 `MACRO_SHARED_ENV_FILE`，默认 `/etc/macro/macro.env`，不要求发布目录另放 `.env`。
 
 ## 3. 运维标准指令范式 (命令模板)
 
