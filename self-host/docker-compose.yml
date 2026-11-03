@@ -710,6 +710,7 @@ services:
           - image-proxy-service
     healthcheck:
       <<: *healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
 
   # Consolidated service hosting agent-harness, document-cognition (/cognition),
   # scheduled-action (/scheduled-action), preview (/preview), and public MCP (/mcp).
