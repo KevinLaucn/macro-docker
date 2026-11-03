@@ -177,7 +177,7 @@ customizations:
 
   - id: CRM-MULTI-INBOX-001
     title: CRM backfill multi-inbox compatibility patch
-    rationale: The upstream CRM backfill targets one macro-id email; this small compatibility patch fans out only across the user's accessible inboxes and must be retired when upstream PR #6370 provides the same behavior.
+    rationale: The upstream CRM backfill targets one macro-id email; this small compatibility patch fans out across the user's owned inboxes, excludes delegated inboxes, and must be retired when upstream PR #6370 provides the same behavior.
     risk: medium
     paths:
       - services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
