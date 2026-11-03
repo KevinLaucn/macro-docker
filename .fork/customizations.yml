@@ -570,6 +570,9 @@ customizations:
       - apps/web/src/features/contacts/Contact/**
       - apps/web/src/features/drive-view/core/types.ts
       - apps/web/src/features/email-view/constants.ts
+      - apps/web/src/features/email-view/components/EmailSidebar.tsx
+      - apps/web/src/features/email-view/components/EmailHeader.tsx
+      - apps/web/src/features/email-view/components/EmailControls.tsx
       - apps/web/src/features/home/components/HomeTabs.tsx
       - apps/web/src/features/notifications/notification-event-catalog.ts
       - apps/web/src/features/property/utils/errorHandling.ts
@@ -577,6 +580,9 @@ customizations:
       - apps/web/src/lib/core/component/TopBar/linkShare.ts
       - apps/web/src/lib/core/constant/PaywallState.tsx
       - apps/web/vite.base.ts
+      - apps/web/src/lib/i18n/locales/zh-Hans.ts
+      - apps/web/src/lib/i18n/locales/zh-Hant.ts
+      - apps/web/src/lib/i18n/locales/translated-from.json
     owned_paths:
       - apps/web/src/features/email-compose/primitives/email-send-schedule.ts
       - apps/web/src/lib/core/component/AI/component/tool/email/DraftComposer.tsx
@@ -607,6 +613,12 @@ customizations:
       - apps/web/vite.base.ts
       - sgconfig.yml
       - apps/web/src/features/crm/views/contact-sharing-section.tsx
+      - apps/web/src/features/email-view/components/EmailSidebar.tsx
+      - apps/web/src/features/email-view/components/EmailHeader.tsx
+      - apps/web/src/features/email-view/components/EmailControls.tsx
+      - apps/web/src/lib/i18n/locales/zh-Hans.ts
+      - apps/web/src/lib/i18n/locales/zh-Hant.ts
+      - apps/web/src/lib/i18n/locales/translated-from.json
     tests:
       - conventions
       - i18n

@@ -1,129 +1,268 @@
 {
-  "Signal": [
-    "features/next-soup/soup-view/tab-lists.ts",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/home/components/HomeTabs.tsx"
-  ],
-  "Noise": [
-    "features/next-soup/soup-view/tab-lists.ts",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/home/components/HomeTabs.tsx"
-  ],
-  "All": [
-    "features/next-soup/soup-view/tab-lists.ts",
+  "viewMenus.unassigned": [
+    "features/next-soup/soup-view/filters-bar/mobile-filter-drawer.tsx",
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/channels-view/components/rail/ExpandedChannelsRail.tsx"
+    "features/next-soup/soup-view/filters-bar/use-filter-refinements.tsx"
   ],
-  "Calendar": [
-    "features/next-soup/soup-view/tab-lists.ts",
+  "viewMenus.assignee": [
+    "features/next-soup/soup-view/filters-bar/mobile-filter-drawer.tsx",
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/notifications/notification-event-catalog.ts",
-    "components/app/app-sidebar/sidebar.tsx",
-    "lib/core/constant/settingsTabsConfig.tsx"
+    "features/next-soup/soup-view/filters-bar/use-filter-refinements.tsx"
   ],
-  "Attachments": [
-    "features/next-soup/soup-view/tab-lists.ts",
+  "viewMenus.searchAssignees": [
+    "features/next-soup/soup-view/filters-bar/mobile-filter-drawer.tsx",
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/channel/Channel/channel-tabs.ts"
+    "features/next-soup/soup-view/filters-bar/use-filter-refinements.tsx"
   ],
-  "Recent": [
-    "features/next-soup/soup-view/tab-lists.ts",
-    "features/drive-view/core/types.ts",
-    "features/channels-view/components/rail/ExpandedChannelsRail.tsx",
-    "features/channels-view/components/ChannelsMobileView.tsx",
-    "components/app/app-sidebar/sidebar.tsx"
-  ],
-  "Type": [
+  "viewMenus.createdBy": [
+    "features/next-soup/soup-view/filters-bar/mobile-filter-drawer.tsx",
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/next-soup/soup-view/group-options.ts"
+    "features/next-soup/soup-view/filters-bar/use-filter-refinements.tsx"
   ],
-  "Agents": [
+  "viewMenus.searchCreators": [
+    "features/next-soup/soup-view/filters-bar/mobile-filter-drawer.tsx",
     "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "components/app/app-sidebar/sidebar.tsx",
-    "lib/core/constant/settingsTabsConfig.tsx"
+    "features/next-soup/soup-view/filters-bar/use-filter-refinements.tsx"
   ],
-  "Tasks": [
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/notifications/notification-event-catalog.ts",
-    "components/app/app-sidebar/sidebar.tsx"
+  "entityActions.toastMoveToFolderFailed": [
+    "features/next-soup/actions/make-move-to-project-action.ts",
+    "features/next-soup/actions/folder-drop-zone.tsx",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
   ],
-  "Status": [
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/next-soup/soup-view/group-options.ts",
-    "features/tasks-view/constants.ts"
+  "entityActions.markDoneCommand": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/entity/extractors-notification/notification-row.tsx",
+    "features/entity/extractors-notification/notification-stacks.tsx"
   ],
-  "Documents": [
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/notifications/notification-event-catalog.ts",
-    "components/app/app-sidebar/sidebar.tsx"
+  "entityActions.unfavorite": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/drive-view/drive-folder-actions.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
   ],
-  "Completed": [
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/entity/composed/list-entity/foreign.tsx"
+  "entityActions.favorite": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/drive-view/drive-folder-actions.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
   ],
-  "Priority": [
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/next-soup/soup-view/group-options.ts",
-    "features/tasks-view/constants.ts"
+  "entityActions.snoozeNotifications": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/drive-view/drive-folder-actions.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
   ],
-  "Canvas": [
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+  "entityActions.unmuteNotifications": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/drive-view/drive-folder-actions.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "entityActions.muteNotifications": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/drive-view/drive-folder-actions.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "entityActions.moveToFolder": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/drive-view/drive-folder-actions.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "entityActions.copyLinkCommand": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/reviews-view/components/ReviewContextMenu.tsx"
+  ],
+  "entityActions.copyId": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/projects/components/project-row-menu.tsx",
+    "features/drive-view/drive-folder-actions.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "entityActions.remindMe": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "entityActions.share": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/projects/components/project-row-menu.tsx",
+    "features/drive-view/drive-folder-actions.tsx",
+    "features/soup/createSoupEntityActions.ts"
+  ],
+  "entityActions.setPriority": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/projects/components/project-row-menu.tsx",
+    "features/soup/createSoupEntityActions.ts"
+  ],
+  "entityActions.setAssignee": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/soup/createSoupEntityActions.ts"
+  ],
+  "entityActions.setStatus": [
+    "features/next-soup/actions/use-entity-action-hotkeys.ts",
+    "features/next-soup/actions/use-block-entity-commands.ts",
+    "features/projects/components/project-row-menu.tsx",
+    "features/soup/createSoupEntityActions.ts"
+  ],
+  "entityActions.toastRenamed": [
+    "features/next-soup/actions/make-rename-action.ts",
+    "features/drive-view/drive-folder-actions.tsx",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "Disabled": [
+    "features/settings/Email.tsx",
+    "features/settings/connections/PipedreamAiProvider.tsx",
+    "features/extensions/TagSelectorDropdown.tsx"
+  ],
+  "Reconnect": [
+    "features/settings/Email.tsx",
+    "features/auth/GithubReauthenticationPrompt.tsx",
+    "features/auth/GmailReauthenticationPrompt.tsx"
+  ],
+  "entityActions.openInNewSplit": [
+    "features/reviews-view/components/ReviewContextMenu.tsx",
+    "features/reviews-view/components/ReviewsSidebar.tsx",
+    "features/entity/bulk-edit/moved-to-folder-toast.ts",
+    "features/projects/components/project-row-menu.tsx",
+    "features/favorites/FavoriteContextMenu.tsx",
+    "features/soup/createSoupEntityActions.ts"
+  ],
+  "entityActions.openOnGitHub": [
+    "features/reviews-view/components/ReviewContextMenu.tsx",
+    "features/block-pr/primitives/pr-file-operations.ts",
+    "features/soup/createSoupEntityActions.ts"
+  ],
+  "viewMenus.savedViews": [
+    "features/saved-views/components/saved-view-picker.tsx",
+    "features/saved-views/components/saved-view-list.tsx",
+    "features/tasks-view/views/task-saved-views.tsx"
+  ],
+  "entityActions.markDone": [
+    "features/entity/extractors-notification/notification-row.tsx",
+    "features/entity/extractors-notification/notification-stacks.tsx",
+    "features/soup/createSoupEntityActions.ts"
+  ],
+  "entityActions.markRead": [
+    "features/entity/extractors-notification/notification-row.tsx",
+    "features/entity/extractors-notification/notification-stacks.tsx",
+    "features/soup/createSoupEntityActions.ts"
+  ],
+  "entityActions.copyLink": [
+    "features/entity/extractors-notification/notification-row.tsx",
+    "features/entity/extractors-notification/notification-stacks.tsx",
+    "features/projects/components/project-row-menu.tsx",
+    "features/drive-view/drive-folder-actions.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "create.folderLabel": [
+    "features/entity/components/ProjectBreadCrumb.tsx",
     "features/command/Launcher.tsx",
     "features/block-project/component/ProjectCreateMenu.tsx"
   ],
-  "Spreadsheet": [
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
+  "entityActions.rename": [
+    "features/projects/components/project-row-menu.tsx",
+    "features/drive-view/drive-folder-actions.tsx",
+    "features/channels-view/components/rail/ChannelLabelRows.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitLabel.tsx",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "entityActions.delete": [
+    "features/projects/components/project-row-menu.tsx",
+    "features/drive-view/drive-folder-actions.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "entityActions.duplicate": [
+    "features/drive-view/drive-folder-actions.tsx",
+    "features/soup/createSoupEntityActions.ts",
+    "components/app/split-layout/components/SplitFileMenu.tsx"
+  ],
+  "channelSections.newSection": [
+    "features/channels-view/components/ConversationsCreateMenu.tsx",
+    "features/channels-view/components/rail/next/SectionDialog.tsx",
+    "features/channels-view/components/rail/next/ChannelLabelRows.tsx"
+  ],
+  "create.create": [
+    "features/command/sidebar/sidebar-create-menu.tsx",
     "features/command/Launcher.tsx",
     "features/block-project/component/ProjectCreateMenu.tsx"
   ],
-  "Tags": [
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "lib/core/constant/settingsTabsConfig.tsx"
-  ],
-  "Assignee": [
-    "features/next-soup/soup-view/filters-bar/unified-filter-dropdown.tsx",
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/next-soup/soup-view/group-options.ts",
-    "features/tasks-view/constants.ts"
-  ],
-  "Channels": [
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/channels-view/components/ChannelsMobileView.tsx",
-    "features/notifications/notification-event-catalog.ts",
-    "components/app/app-sidebar/sidebar.tsx"
+  "create.taskLabel": [
+    "features/command/Launcher.tsx",
+    "features/tasks-view/components/TasksCreateMenu.tsx",
+    "features/block-project/component/ProjectCreateMenu.tsx"
   ],
   "Email": [
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/command/Launcher.tsx",
     "features/notifications/notification-event-catalog.ts",
     "features/email-view/components/EmailSidebar.tsx",
-    "features/email-view/components/EmailHeader.tsx",
+    "features/email-view/components/EmailHeader.tsx"
+  ],
+  "New email": [
+    "features/notifications/notification-event-catalog.ts",
+    "features/email-view/components/EmailSidebar.tsx",
+    "features/email-view/components/EmailHeader.tsx"
+  ],
+  "nav.search": [
     "components/app/app-sidebar/sidebar.tsx",
-    "lib/core/constant/settingsTabsConfig.tsx"
+    "components/app/app-sidebar/sidebar-search-menu.tsx",
+    "components/app/mobile/MobileDockRow.tsx",
+    "components/app/sidebar-next/search-bar-button.tsx"
   ],
-  "Calls": [
-    "features/next-soup/soup-view/filters-bar/search/search-facets.tsx",
-    "features/channel/Channel/channel-tabs.ts",
-    "components/app/app-sidebar/sidebar.tsx"
+  "nav.agents": [
+    "components/app/app-sidebar/sidebar.tsx",
+    "components/app/mobile/mobile-dock-views.ts",
+    "components/app/sidebar-next/nav-items.ts"
   ],
-  "None": [
-    "features/next-soup/soup-view/group-options.ts",
-    "features/tasks-view/constants.ts",
-    "lib/core/component/TopBar/linkShare.ts"
+  "nav.email": [
+    "components/app/app-sidebar/sidebar.tsx",
+    "components/app/mobile/mobile-dock-views.ts",
+    "components/app/sidebar-next/nav-items.ts"
   ],
-  "Date": [
-    "features/next-soup/soup-view/group-options.ts",
-    "features/block-spreadsheet/core/toolbar-types.ts",
-    "features/tasks-view/constants.ts"
+  "nav.tasks": [
+    "components/app/app-sidebar/sidebar.tsx",
+    "components/app/mobile/mobile-dock-views.ts",
+    "components/app/sidebar-next/nav-items.ts"
+  ],
+  "nav.calendar": [
+    "components/app/app-sidebar/sidebar.tsx",
+    "components/app/mobile/mobile-dock-views.ts",
+    "components/app/sidebar-next/nav-items.ts"
+  ],
+  "nav.calls": [
+    "components/app/app-sidebar/sidebar.tsx",
+    "components/app/mobile/mobile-dock-views.ts",
+    "components/app/sidebar-next/nav-items.ts"
+  ],
+  "nav.customers": [
+    "components/app/app-sidebar/sidebar.tsx",
+    "components/app/mobile/mobile-dock-views.ts",
+    "components/app/sidebar-next/nav-items.ts"
+  ],
+  "nav.reviews": [
+    "components/app/app-sidebar/sidebar.tsx",
+    "components/app/mobile/mobile-dock-views.ts",
+    "components/app/sidebar-next/nav-items.ts"
+  ],
+  "nav.external": [
+    "components/app/app-sidebar/sidebar.tsx",
+    "components/app/mobile/mobile-dock-views.ts",
+    "components/app/sidebar-next/nav-items.ts"
   ]
 }

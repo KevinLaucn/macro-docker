@@ -12,6 +12,7 @@ import { useSplitLayout } from '@components/app/split-layout/layout';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { registerHotkey } from '@core/hotkey/hotkeys';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
+import { t } from '@macro/i18n';
 import { Tabs } from '@ui';
 import { tourTarget } from '@ui/components/Tour';
 import { createSignal, Show } from 'solid-js';
@@ -39,8 +40,8 @@ export function EmailViewBreadcrumbItem() {
   const tabTitle = () =>
     tagViewTitle() ??
     (inboxSelected()
-      ? 'Inbox'
-      : (EMAIL_TABS.find((tab) => tab.id === state.tab)?.label ?? 'Email'));
+      ? t('Inbox')
+      : t(EMAIL_TABS.find((tab) => tab.id === state.tab)?.label ?? 'Email'));
 
   return (
     <ViewBreadcrumbs.Item
@@ -55,7 +56,7 @@ export function EmailViewBreadcrumbItem() {
               {tabTitle()}
             </span>
             <span class="hidden @max-[720px]/view-shell:inline">
-              {inboxSelected() ? 'Inbox' : 'Email'}
+              {inboxSelected() ? t('Inbox') : t('Email')}
             </span>
           </>
         );
@@ -91,13 +92,13 @@ export function EmailHeader(props: EmailHeaderProps) {
   const inboxTabs = () =>
     EMAIL_INBOX_TAB_IDS.filter(isVisible).map((id) => ({
       value: id,
-      label: EMAIL_TAB_LABELS[id],
+      label: t(EMAIL_TAB_LABELS[id]),
     }));
   const selectedTabLabel = () =>
     tagViewTitle() ??
     (inboxSelected()
-      ? 'Inbox'
-      : (EMAIL_TABS.find((tab) => tab.id === state.tab)?.label ?? 'Email'));
+      ? t('Inbox')
+      : t(EMAIL_TABS.find((tab) => tab.id === state.tab)?.label ?? 'Email'));
 
   const runSearch = () => {
     focusSearch?.();
@@ -157,7 +158,7 @@ export function EmailHeader(props: EmailHeaderProps) {
           <Show when={inboxSelected()}>
             <Tabs
               ref={tourTarget(EMAIL_TOUR.signalNoise)}
-              aria-label="Inbox view"
+              aria-label={t('Inbox view')}
               size="md"
               class="shrink-0"
               options={inboxTabs()}
@@ -176,14 +177,14 @@ export function EmailHeader(props: EmailHeaderProps) {
       </Show>
       <div class="contents @max-[640px]/split-header:hidden">
         <ViewCreateButton
-          aria-label="New email"
+          aria-label={t('New email')}
           onClick={() => composeEmail(openWithSplit, state.inboxIds)}
         />
       </div>
       <Show when={state.tab !== 'reminders' && state.tab !== 'scheduled'}>
         <ListHeaderSearch
           ref={searchTarget}
-          label="Search email"
+          label={t('Search email')}
           value={state.search}
           onValueChange={(search) => setState('search', search)}
           onEscape={props.onSearchEscape}

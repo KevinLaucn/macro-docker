@@ -226,14 +226,25 @@ diffs:
 - file: apps/web/src/features/email-view/components/EmailControls.tsx
   owners:
   - EMAIL-TRANSLATION-001
+  - I18N-ZH-CN-001
   hooks:
   - email_translation_email_list_toolbar
+  override: false
+- file: apps/web/src/features/email-view/components/EmailHeader.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
   override: false
 - file: apps/web/src/features/email-view/components/EmailList.tsx
   owners:
   - EMAIL-TRANSLATION-001
   hooks:
   - email_translation_email_list_keyboard
+  override: false
+- file: apps/web/src/features/email-view/components/EmailSidebar.tsx
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
   override: false
 - file: apps/web/src/features/email-view/email-view.tsx
   owners:
@@ -434,6 +445,21 @@ diffs:
   - BROWSER-RUNTIME-COMPAT-001
   hooks:
   - browser_runtime_keyless_event
+  override: false
+- file: apps/web/src/lib/i18n/locales/translated-from.json
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/lib/i18n/locales/zh-Hans.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
+  override: false
+- file: apps/web/src/lib/i18n/locales/zh-Hant.ts
+  owners:
+  - I18N-ZH-CN-001
+  hooks: []
   override: false
 - file: apps/web/src/lib/queries/agent-session/warm.ts
   owners:

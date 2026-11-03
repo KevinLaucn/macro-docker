@@ -20,6 +20,7 @@ import TrayIcon from '@icon/system/regular/tray.svg';
 import UsersThreeIcon from '@icon/system/regular/users-three.svg';
 import SignalIcon from '@icon/system/regular/wave-sine.svg';
 import NoiseIcon from '@icon/system/regular/waveform.svg';
+import { t } from '@macro/i18n';
 import { SidebarTagsSection } from '@property/tags/SidebarTagsSection';
 import type { TagScope } from '@service-properties/generated/schemas/tagScope';
 import { pressHandlers } from '@ui';
@@ -89,7 +90,9 @@ function Tab(props: { id: EmailTab; label?: string; onNavigate?: () => void }) {
       <ViewSidebar.Icon>
         <Dynamic component={TAB_ICONS[props.id]} class="size-4" />
       </ViewSidebar.Icon>
-      <span class="truncate">{props.label ?? EMAIL_TAB_LABELS[props.id]}</span>
+      <span class="truncate">
+        {t(props.label ?? EMAIL_TAB_LABELS[props.id])}
+      </span>
     </ViewSidebar.Item>
   );
 }
@@ -136,25 +139,25 @@ export function EmailNavigation(props: { onNavigate?: () => void }) {
           <ViewSidebar.Icon>
             <TrayIcon class="size-4" />
           </ViewSidebar.Icon>
-          <span class="truncate">Inbox</span>
+          <span class="truncate">{t('Inbox')}</span>
         </ViewSidebar.Item>
         <For each={PRIMARY_TAB_IDS.filter(isVisible)}>
           {(id) => <Tab id={id} onNavigate={props.onNavigate} />}
         </For>
       </ViewSidebar.Nav>
-      <section aria-label="Library" class="shrink-0">
+      <section aria-label={t('Library')} class="shrink-0">
         <h2 class="flex h-(--sidebar-row-height) items-center px-(--sidebar-item-inset) text-xs font-medium text-ink-muted">
-          Library
+          {t('Library')}
         </h2>
         <ViewSidebar.Nav
-          aria-label="Email library"
+          aria-label={t('Email library')}
           class="pt-(--sidebar-section-content-gap)"
         >
           <For each={LIBRARY_TAB_IDS}>
             {(id) => (
               <Tab
                 id={id}
-                label={id === 'all' ? 'All mail' : undefined}
+                label={id === 'all' ? t('All mail') : undefined}
                 onNavigate={props.onNavigate}
               />
             )}
@@ -199,14 +202,14 @@ export function EmailSidebar() {
   });
 
   return (
-    <ViewSidebar.Root aria-label="Email navigation">
+    <ViewSidebar.Root aria-label={t('Email navigation')}>
       <Show when={!isTouchDevice()}>
         <ViewSidebar.Header
-          searchLabel="Search email"
+          searchLabel={t('Search email')}
           search={() => (
             <SearchBar
-              label="Search email"
-              placeholder="Search email"
+              label={t('Search email')}
+              placeholder={t('Search email')}
               value={state.search}
               onValueChange={(search) => setState('search', search)}
             />
@@ -214,7 +217,7 @@ export function EmailSidebar() {
         >
           <div class="flex min-w-0 items-center gap-1">
             <ViewSidebar.CloseButton class="shrink-0" />
-            <ViewSidebar.Title>Email</ViewSidebar.Title>
+            <ViewSidebar.Title>{t('Email')}</ViewSidebar.Title>
           </div>
         </ViewSidebar.Header>
       </Show>
@@ -222,7 +225,7 @@ export function EmailSidebar() {
       <Show when={!isTouchDevice()}>
         <ViewSidebar.Primary>
           <SidebarCreateButton
-            label="New email"
+            label={t('New email')}
             onCreate={() => composeEmail(openWithSplit, state.inboxIds)}
           />
         </ViewSidebar.Primary>
@@ -233,7 +236,7 @@ export function EmailSidebar() {
 
         <Show when={isTouchDevice()}>
           <SidebarCreateButton
-            label="New email"
+            label={t('New email')}
             onCreate={() => composeEmail(openWithSplit, state.inboxIds)}
           />
         </Show>

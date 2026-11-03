@@ -5,9 +5,9 @@ import {
 import { HeaderActionGroup } from '@components/app/HeaderActionGroup';
 import { TOKENS } from '@core/hotkey/tokens';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
+import ColumnsIcon from '@icon/system/regular/columns.svg';
 import { SoupListTranslateButton } from '@macro/email-translation';
 import { t } from '@macro/i18n';
-import ColumnsIcon from '@icon/system/regular/columns.svg';
 import { ButtonGroup } from '@ui';
 import { Show } from 'solid-js';
 import { EMAIL_FOCUS_SORT_OPTIONS } from '../constants';
@@ -15,19 +15,22 @@ import { useEmailView } from '../email-view-context';
 import { useEmailFilters } from '../filters/use-email-filters';
 import { EmailInboxMenu } from './EmailInboxSelector';
 
-const FOCUS_SORT_OPTIONS = EMAIL_FOCUS_SORT_OPTIONS.map((option) => ({
-  id: option.id,
-  label: option.label,
-  content:
-    option.description === undefined
-      ? undefined
-      : () => (
-          <span class="flex flex-col">
-            <span>{option.label}</span>
-            <span class="text-xs text-ink-muted">{option.description}</span>
-          </span>
-        ),
-}));
+const focusSortOptions = () =>
+  EMAIL_FOCUS_SORT_OPTIONS.map((option) => ({
+    id: option.id,
+    label: t(option.label),
+    content:
+      option.description === undefined
+        ? undefined
+        : () => (
+            <span class="flex flex-col">
+              <span>{t(option.label)}</span>
+              <span class="text-xs text-ink-muted">
+                {t(option.description)}
+              </span>
+            </span>
+          ),
+  }));
 
 export type EmailControlsProps = {
   /** Controlled filter-menu state, so the header's `f` hotkey can open it. */
@@ -74,7 +77,7 @@ export function EmailControls(props: EmailControlsProps) {
             size="icon-md"
             label="Sort Focus"
             value={state.focusSort}
-            options={FOCUS_SORT_OPTIONS}
+            options={focusSortOptions()}
             onChange={setFocusSort}
           />
         </Show>
