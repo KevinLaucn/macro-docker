@@ -37,11 +37,8 @@ pub async fn populate_crm_for_user(
     }
 
     // PRIVATE-HOOK: crm_backfill:populate_all_inboxes
-    // Resolve all inboxes the user can access via their macro_id.
-    // In self-host setups, the login email (e.g. foxmail) often differs from the
-    // connected mailboxes (e.g. etsy@..., hello@...), so we must populate from all
-    // accessible inboxes.
-    let links = email_db_client::links::get::fetch_inboxes_for_macro_id(&ctx.db, macro_id_str)
+    // Include every owned inbox, excluding delegated inboxes owned by others.
+    let mut links = email_db_client::links::get::fetch_inboxes_for_macro_id(&ctx.db, macro_id_str)
         .await
         .map_err(|e| {
             ProcessingError::Retryable(DetailedError {
@@ -49,6 +46,8 @@ pub async fn populate_crm_for_user(
                 source: e.context("Failed to fetch inboxes for macro_id"),
             })
         })?;
+
+    links.retain(|link| link.macro_id.as_ref() == macro_id_str);
 
     if links.is_empty() {
         tracing::debug!("User has no email link; skipping CRM fan-out");

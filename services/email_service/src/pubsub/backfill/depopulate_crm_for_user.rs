@@ -27,7 +27,7 @@ pub async fn depopulate_crm_for_user(
     // PRIVATE-HOOK: crm_backfill:depopulate_all_inboxes
     // Must resolve all links populate_crm_for_user seeded from, so teardown
     // targets every link that was actually populated.
-    let links = email_db_client::links::get::fetch_inboxes_for_macro_id(&ctx.db, macro_id_str)
+    let mut links = email_db_client::links::get::fetch_inboxes_for_macro_id(&ctx.db, macro_id_str)
         .await
         .map_err(|e| {
             ProcessingError::Retryable(DetailedError {
@@ -35,6 +35,8 @@ pub async fn depopulate_crm_for_user(
                 source: e.context("Failed to fetch inboxes for macro_id"),
             })
         })?;
+
+    links.retain(|link| link.macro_id.as_ref() == macro_id_str);
 
     if links.is_empty() {
         tracing::debug!("User has no email link; skipping CRM teardown");
