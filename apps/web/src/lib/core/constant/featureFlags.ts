@@ -658,7 +658,7 @@ export const enableSupportedSoupForeignEntities = defineFlag({
 export const enableInboxNotifiedSort = defineFlag({
   key: 'enable-inbox-notified-sort',
   env: 'ENABLE_INBOX_NOTIFIED_SORT',
-  default: onInDev,
+  default: false,
 });
 
 export const enableGraphqlSoup = defineFlag({

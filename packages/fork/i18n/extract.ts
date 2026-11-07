@@ -236,8 +236,6 @@ async function run() {
             if (rawKey && /^[a-z]+[A-Za-z0-9]*\.[a-zA-Z0-9_.-]+$/.test(rawKey)) {
               return;
             }
-              rawKey = firstArg.quasis[0].value.raw;
-            }
 
             if (rawKey) {
               const key = normalizeKey(rawKey);
@@ -329,8 +327,8 @@ async function run() {
             }
           }
 
-          const calleeName = callee.type === 'Identifier' ? callee.name : '';
-          const isErrorSetter = /^set(?:Error|.*Error)$/.test(calleeName);
+          const isErrorSetter =
+            calleeName !== undefined && /^set(?:Error|.*Error)$/.test(calleeName);
           if (isErrorSetter && p.node.arguments.length > 0) {
             const firstArg = p.node.arguments[0];
             let rawErrorText: string | undefined;

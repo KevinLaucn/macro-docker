@@ -1,5 +1,5 @@
 import type { EmailThreadKeyboardHandlers } from '@app/features/email-thread/core/thread-keyboard';
-import { t } from '@app/lib/i18n';
+import { t as tUpstream } from '@app/lib/i18n';
 import { registerHotkey } from '@core/hotkey/hotkeys';
 import { TOKENS } from '@core/hotkey/tokens';
 import { t } from '@macro/i18n';
@@ -32,7 +32,7 @@ export function registerEmailHotkeys(
     registerHotkey({
       hotkey: 'b',
       scopeId,
-      description: () => t('commands.createEventFromEmail'),
+      description: () => tUpstream('commands.createEventFromEmail'),
       keyDownHandler: handlers.createEvent,
       hotkeyToken: TOKENS.email.createEvent,
       displayPriority: 7,
