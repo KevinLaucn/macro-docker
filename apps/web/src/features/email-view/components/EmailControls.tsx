@@ -22,14 +22,17 @@ const focusSortOptions = () =>
     content:
       option.description === undefined
         ? undefined
-        : () => (
-            <span class="flex flex-col">
-              <span>{t(option.label)}</span>
-              <span class="text-xs text-ink-muted">
-                {t(option.description)}
+        : () => {
+            const desc = option.description;
+            return (
+              <span class="flex flex-col">
+                <span>{t(option.label)}</span>
+                <span class="text-xs text-ink-muted">
+                  {desc ? t(desc) : null}
+                </span>
               </span>
-            </span>
-          ),
+            );
+          },
   }));
 
 export type EmailControlsProps = {

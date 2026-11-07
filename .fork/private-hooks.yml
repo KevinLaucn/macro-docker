@@ -204,6 +204,14 @@ hooks:
     expected: "<ReadReceiptStatus message={props.message} showIconOnly />"
     context:
       - "props.message.internal_date_ts"
+  - id: email_read_receipts_map_is_sent
+    customization: READ-RECEIPTS-001
+    file: apps/web/src/features/email-thread/queries/thread-source.ts
+    marker: "// PRIVATE-HOOK: read_receipts:map-is-sent"
+    expected: "is_sent: message.is_sent,"
+    context:
+      - "export function toEmailThread(thread: ApiThread): EmailThread {"
+      - "is_read: message.is_read,"
   - id: email_read_receipts_strip_own_pixels
     customization: READ-RECEIPTS-001
     file: apps/web/src/features/email-compose/primitives/prepare-email-body.ts
@@ -342,6 +350,42 @@ hooks:
     expected: "return getEmailCollapsedSnippet(props.message);"
     context:
       - "const snippet = createMemo(() => {"
+  - id: email_translation_cognition_module
+    customization: EMAIL-TRANSLATION-001
+    file: services/agent_harness_service/src/cognition/mod.rs
+    marker: "// PRIVATE-HOOK: email_translation:cognition-module"
+    expected: "#[path = \"../../../../packages/fork/email-translation/backend/mod.rs\"]"
+    context:
+      - "pub mod email_translation;"
+  - id: email_translation_cognition_router
+    customization: EMAIL-TRANSLATION-001
+    file: services/agent_harness_service/src/cognition/api.rs
+    marker: "// PRIVATE-HOOK: email_translation:cognition-router"
+    expected: ".nest("
+    context:
+      - "\"/email-translation\","
+      - "crate::cognition::email_translation::router(),"
+  - id: email_translation_thread_title
+    customization: EMAIL-TRANSLATION-001
+    file: apps/web/src/features/email-thread/views/email-thread.tsx
+    marker: "// PRIVATE-HOOK: email_translation:thread-title"
+    expected: "title={getTranslatedThreadTitle(props.threadId(), title()) ?? ''}"
+    context:
+      - "<EmailThreadTitle"
+  - id: email_translation_thread
+    customization: EMAIL-TRANSLATION-001
+    file: apps/web/src/features/email-thread/views/email-thread.tsx
+    marker: "{/* PRIVATE-HOOK: email_translation:thread */}"
+    expected: "<EmailThreadTranslateButton"
+    context:
+      - "<EmailParticipants />"
+  - id: email_translation_mobile_thread_title
+    customization: EMAIL-TRANSLATION-001
+    file: apps/web/src/features/email-thread/views/message-list.tsx
+    marker: "// PRIVATE-HOOK: email_translation:mobile-thread-title"
+    expected: "title={getTranslatedThreadTitle(context.thread()?.db_id, title()) ?? ''}"
+    context:
+      - "<EmailThreadTitle"
   - id: self_host_health_permissions_extractor
     customization: SELFHOST-HEALTH-001
     file: services/authentication_service/src/api.rs

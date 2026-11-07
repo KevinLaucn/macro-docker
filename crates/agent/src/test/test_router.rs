@@ -131,7 +131,7 @@ fn openrouter_provider_routes_to_chat_completions() {
     );
     let smart_routed = overridden.route("anthropic/claude-opus-4-8").unwrap();
     assert_eq!(smart_routed.provider(), "openrouter");
-    assert_eq!(smart_routed.model_name(), "anthropic/claude-opus-4.8");
+    assert_eq!(smart_routed.model_name(), "openai/gpt-5-mini");
 
     let fast_routed = overridden.route("openai/gpt-5.6-mini").unwrap();
     assert_eq!(fast_routed.provider(), "openrouter");

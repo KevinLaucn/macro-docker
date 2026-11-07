@@ -6,28 +6,20 @@ import {
   useReadReceiptStatusQuery,
   useThreadReadReceiptStatusQuery,
 } from './queries';
-import { formatReadReceiptStatus } from './utils';
+import {
+  formatReadReceiptStatus,
+  isConfirmedSentMessage,
+  type SentMessageCandidate,
+} from './utils';
 
 export interface ReadReceiptStatusProps {
-  message: {
-    db_id?: string | null;
-    is_sent?: boolean | null;
-    is_draft?: boolean | null;
-    sent_at?: string | null;
-    from?: { email?: string | null } | null;
-  };
+  message: SentMessageCandidate;
   class?: string;
   showIconOnly?: boolean;
 }
 
 export function ReadReceiptStatus(props: ReadReceiptStatusProps) {
-  const isEligible = () => {
-    return Boolean(
-      props.message.db_id &&
-        props.message.is_sent === true &&
-        !props.message.is_draft
-    );
-  };
+  const isEligible = () => isConfirmedSentMessage(props.message);
 
   const query = useReadReceiptStatusQuery(
     () => props.message.db_id,

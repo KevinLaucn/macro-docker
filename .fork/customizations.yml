@@ -126,6 +126,7 @@ customizations:
       - apps/web/src/lib/queries/email/thread.ts
       - services/email_service/src/server.rs
       - apps/web/src/features/email-message/**
+      - apps/web/src/features/email-thread/queries/thread-source.ts
       - apps/web/src/features/email-compose/**
       - packages/email-renderer/**
       - apps/web/src/lib/queries/email/**
@@ -151,6 +152,7 @@ customizations:
       - apps/web/src/features/email-message/components/collapsed-message.tsx
       - apps/web/src/features/email-message/components/email-message-top-bar.tsx
       - apps/web/src/features/email-message/primitives/email-message-body.ts
+      - apps/web/src/features/email-thread/queries/thread-source.ts
       - apps/web/src/features/email-view/queries/use-email-query.ts
       - apps/web/src/features/entity/extractors/entity-icon.tsx
       - apps/web/src/features/notifications/notification-platform.ts
@@ -635,15 +637,26 @@ customizations:
       - i18n
 
   - id: EMAIL-TRANSLATION-001
-    title: Isolated browser email translation
-    rationale: Preserve on-device email translation behavior while keeping upstream email UI files limited to registered hooks.
+    title: Isolated AI email translation and PostgreSQL persistence
+    rationale: Provide unified AI email translation with permanent PostgreSQL persistence while keeping upstream email UI and cognition service files limited to registered hooks.
     risk: high
+    contracts:
+      upstream_dependencies:
+        - agent_harness_service cognition router & ModelRouter completion
+        - email_messages / email_threads / email_links schema & access permissions
+        - email message body renderer & tracking pixel filter
+      failure_mode: Translation button disabled/noop; unpersisted translations lost on refresh; tracking pixel self-trigger
+      verification_gate: Fork Contract Gate
     paths:
       - packages/fork/email-translation/**
+      - crates/macro_db_client/migrations/20261106233639_email_translations.sql
+      - services/agent_harness_service/src/cognition/mod.rs
+      - services/agent_harness_service/src/cognition/api.rs
       - apps/web/src/features/email-message/components/email-message-top-bar.tsx
       - apps/web/src/features/email-message/primitives/email-message-body.ts
       - apps/web/src/features/email-message/views/email-message-body.tsx
       - apps/web/src/features/email-thread/primitives/thread-navigation.ts
+      - apps/web/src/features/email-thread/views/email-thread.tsx
       - apps/web/src/features/email-thread/views/message-list.tsx
       - apps/web/src/features/entity/composed/list-entity/email.tsx
       - apps/web/src/features/extensions/Extensions.tsx
@@ -656,10 +669,14 @@ customizations:
       - .fork/private-hooks.yml
       - apps/web/src/features/email-message/components/collapsed-message.tsx
     owned_paths:
+      - services/agent_harness_service/src/cognition/mod.rs
+      - services/agent_harness_service/src/cognition/api.rs
       - apps/web/src/features/email-message/components/email-message-top-bar.tsx
       - apps/web/src/features/email-message/primitives/email-message-body.ts
       - apps/web/src/features/email-message/views/email-message-body.tsx
       - apps/web/src/features/email-thread/primitives/thread-navigation.ts
+      - apps/web/src/features/email-thread/views/email-thread.tsx
+      - apps/web/src/features/email-thread/views/message-list.tsx
       - apps/web/src/features/email-view/components/EmailControls.tsx
       - apps/web/src/features/email-view/components/EmailList.tsx
       - apps/web/src/features/email-view/email-view.tsx

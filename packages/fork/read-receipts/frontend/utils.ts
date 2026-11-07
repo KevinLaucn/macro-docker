@@ -127,8 +127,11 @@ export function stripBlockedTrackingPixelsFromHtml(html: string): string {
     }
 
     // Block Macro tracking pixels (official domains, same-origin, or configured email-service)
-    // or URLs containing a standard 36-char tracking token.
-    if (isMacroTrackingPixelUrl(src) || /\/t\/o\/[0-9a-fA-F-]{36}/.test(src)) {
+    // or URLs containing a standard tracking token under /t/o/ or /opens/.
+    if (
+      isMacroTrackingPixelUrl(src) ||
+      /\/(?:t\/o|opens)\/[0-9a-zA-Z_-]{8,}/.test(src)
+    ) {
       img.remove();
       continue;
     }
@@ -157,25 +160,37 @@ export function stripBlockedTrackingPixelsFromHtml(html: string): string {
 }
 
 export const OPEN_TRACKING_PATH = '/t/o/';
+export const OFFICIAL_OPEN_TRACKING_PATH = '/opens/';
+
+function hasMacroPixelPath(value: string): boolean {
+  return (
+    value.includes(OPEN_TRACKING_PATH) ||
+    value.includes(OFFICIAL_OPEN_TRACKING_PATH)
+  );
+}
 
 export function isMacroTrackingPixelUrl(
   src: string,
   configuredEmailServiceUrl?: string
 ): boolean {
-  if (!src || !src.includes(OPEN_TRACKING_PATH)) return false;
+  if (!src || !hasMacroPixelPath(src)) return false;
   try {
     const baseOrigin =
       typeof window !== 'undefined' ? window.location.origin : undefined;
-    const url = new URL(src, baseOrigin);
-    if (!url.pathname.includes(OPEN_TRACKING_PATH)) return false;
+    const url = new URL(src, baseOrigin ?? 'https://macro.local');
+    if (!hasMacroPixelPath(url.pathname)) return false;
 
-    // 1. Official Macro hosts
-    if (/^email-service[a-z0-9.-]*\.macro\.com$/.test(url.hostname)) {
+    // 1. Official Macro hosts (email-service*.macro.com or *gateway.macro.com)
+    if (
+      /^(?:email-service[a-z0-9.-]*|(?:dev-)?gateway)\.macro\.com$/.test(
+        url.hostname
+      )
+    ) {
       return true;
     }
 
-    // 2. Same-origin self-host
-    if (baseOrigin && url.origin === baseOrigin) {
+    // 2. Same-origin self-host or relative path
+    if (!baseOrigin || url.origin === baseOrigin || url.origin === 'https://macro.local') {
       return true;
     }
 
@@ -213,4 +228,56 @@ export function stripOwnTrackingPixelsFromHtml(html: string): string {
   template.innerHTML = html;
   removeOwnTrackingPixels(template.content);
   return template.innerHTML;
+}
+
+export interface SentMessageCandidate {
+  db_id?: string | null;
+  is_sent?: boolean | null;
+  is_draft?: boolean | null;
+  is_read?: boolean | null;
+  sent_at?: string | null;
+  scheduled_send_time?: string | null;
+  scheduled_send_status?:
+    | 'pending'
+    | 'sending'
+    | 'failed'
+    | 'unconfirmed'
+    | string
+    | null;
+  operation?: {
+    state?: string | null;
+    issue?: string | null;
+  } | null;
+  from?: { email?: string | null } | null;
+}
+
+/**
+ * Determines whether a message is confirmed sent and eligible for read receipt status.
+ * Never infers sent status from sender identity or `is_read`, and excludes drafts,
+ * queued/submitting/cancelled/failed operations, and scheduled unsent messages.
+ */
+export function isConfirmedSentMessage(message: SentMessageCandidate): boolean {
+  if (!message.db_id || message.is_sent !== true || Boolean(message.is_draft)) {
+    return false;
+  }
+
+  if (
+    message.scheduled_send_status === 'pending' ||
+    message.scheduled_send_status === 'sending' ||
+    message.scheduled_send_status === 'failed' ||
+    message.scheduled_send_status === 'unconfirmed'
+  ) {
+    return false;
+  }
+
+  if (message.scheduled_send_time && !message.sent_at) {
+    return false;
+  }
+
+  const opState = message.operation?.state;
+  if (opState && opState !== 'SENT' && opState !== 'SYNCHRONIZED') {
+    return false;
+  }
+
+  return true;
 }

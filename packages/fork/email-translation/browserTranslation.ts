@@ -1,11 +1,8 @@
-import { toast } from '@core/component/Toast/Toast';
-import { t } from '@macro/i18n';
-
 /**
- * The browser owns the native page-translation surface. Web pages cannot open
- * Chrome's translation popup through a public API, so keep the app action as a
- * lightweight affordance that points the user to that control.
+ * Legacy export kept only for backward compatibility of barrel exports.
+ * Email translation now runs exclusively through the unified AI translation pipeline;
+ * browser address-bar translation prompts are permanently retired.
  */
 export function requestBrowserTranslation(): void {
-  toast.success(t('请点击浏览器地址栏中的翻译按钮'));
+  // No-op: browser translation prompts are retired in favor of AI email translation.
 }

@@ -7,9 +7,17 @@
 
 import { logTranslationDebug } from './debugLog';
 import { splitLanguageRuns } from './languageRuns';
-import { detectProtectedSpans, restoreProtectedSpans } from './tokenProtection';
+import {
+  detectProtectedSpans,
+  type ProtectedSpan,
+  restoreProtectedSpans,
+} from './tokenProtection';
 import { getCachedText, setCachedText } from './translationCache';
-import { getTargetLanguage, translateRawText } from './translatorClient';
+import {
+  type BatchSegmentInput,
+  getTargetLanguage,
+  translateSegmentsBatch,
+} from './translatorClient';
 
 export interface TextTranslationOptions {
   targetLang?: string;
@@ -41,12 +49,22 @@ export async function planAndTranslateTextDetailed(
     return { text, partial: false };
   }
 
-  // Translate each run according to its decision
-  const translatedParts: string[] = [];
+  const resolvedParts = new Map<number, string>();
+  const pendingMeta = new Map<
+    string,
+    {
+      index: number;
+      originalText: string;
+      sourceLang: string;
+      confidence: number;
+      spanMap: Map<string, ProtectedSpan>;
+    }
+  >();
+  const batchInputs: BatchSegmentInput[] = [];
   let partial = false;
 
   for (let i = 0; i < runs.length; i++) {
-    const run = runs[i];
+    const run = runs[i]!;
     if (options?.signal?.aborted) return { text, partial: false };
 
     if (run.decision === 'KEEP') {
@@ -57,50 +75,75 @@ export async function planAndTranslateTextDetailed(
         confidence: run.confidence,
         decision: 'KEEP',
       });
-      translatedParts.push(run.text);
+      resolvedParts.set(i, run.text);
       continue;
     }
 
-    // Check cache with sourceLang included in key
     const cached = getCachedText(run.text.trim(), run.detectedLang, targetLang);
     if (cached !== undefined) {
-      translatedParts.push(cached);
+      resolvedParts.set(i, cached);
       continue;
     }
 
-    // Protect non-translatable entities before sending to translator
     const { protectedText, spanMap } = detectProtectedSpans(run.text);
+    const segId = `text-run-${i}`;
+    pendingMeta.set(segId, {
+      index: i,
+      originalText: run.text,
+      sourceLang: run.detectedLang,
+      confidence: run.confidence,
+      spanMap,
+    });
+    batchInputs.push({
+      id: segId,
+      text: protectedText,
+      sourceLang: run.detectedLang,
+    });
+  }
 
-    try {
-      const translated = await translateRawText(
-        protectedText,
-        run.detectedLang,
-        targetLang
+  if (batchInputs.length > 0 && !options?.signal?.aborted) {
+    const { translations, failedIds } = await translateSegmentsBatch(
+      batchInputs,
+      targetLang
+    );
+
+    for (const [segId, meta] of pendingMeta.entries()) {
+      if (failedIds.has(segId) || !translations.has(segId)) {
+        partial = true;
+        resolvedParts.set(meta.index, meta.originalText);
+        continue;
+      }
+
+      const translated = translations.get(segId)!;
+      const restored = restoreProtectedSpans(
+        translated,
+        meta.originalText,
+        meta.spanMap
       );
-      const restored = restoreProtectedSpans(translated, run.text, spanMap);
 
       logTranslationDebug({
-        segmentId: `text-run-${i}`,
-        originalText: run.text,
-        detectedLanguage: run.detectedLang,
-        confidence: run.confidence,
+        segmentId: segId,
+        originalText: meta.originalText,
+        detectedLanguage: meta.sourceLang,
+        confidence: meta.confidence,
         decision: 'TRANSLATE',
-        translatorPair: `${run.detectedLang}->${targetLang}`,
+        translatorPair: `${meta.sourceLang}->${targetLang}`,
         translatedText: restored,
       });
 
-      // Cache with sourceLang
-      setCachedText(run.text.trim(), run.detectedLang, targetLang, restored);
-      translatedParts.push(restored);
-    } catch (err) {
-      console.warn(
-        `[EmailTranslation] Failed to translate text run "${run.text}":`,
-        err
+      setCachedText(
+        meta.originalText.trim(),
+        meta.sourceLang,
+        targetLang,
+        restored
       );
-      // Fallback: keep original text for this run
-      partial = true;
-      translatedParts.push(run.text);
+      resolvedParts.set(meta.index, restored);
     }
+  }
+
+  const translatedParts: string[] = [];
+  for (let i = 0; i < runs.length; i++) {
+    translatedParts.push(resolvedParts.get(i) ?? runs[i]!.text);
   }
 
   return { text: translatedParts.join(''), partial };

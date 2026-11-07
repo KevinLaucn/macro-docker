@@ -1,7 +1,6 @@
-import type { EmailEntity } from '@entity';
+import type { EmailEntity } from '@app/features/entity/types/entity';
 import { type Accessor, createEffect } from 'solid-js';
 import {
-  clearAllRowTranslations,
   emailTranslationEnabled,
   getRowTranslation,
   isEmailListTranslated,
@@ -15,19 +14,28 @@ export function useEmailRowTranslation(
   entity: Accessor<EmailEntity>,
   options: { autoTranslate?: boolean } = {}
 ) {
-  const rowTranslation = () => getRowTranslation(entity().id);
-  const isTranslated = () =>
-    isEmailListTranslated() && rowTranslation()?.status === 'translated';
+  const rowTranslation = () => {
+    const e = entity();
+    return getRowTranslation(e.id, e.name, e.snippet);
+  };
+  const isTranslated = () => {
+    const status = rowTranslation()?.status;
+    return (
+      isEmailListTranslated() &&
+      (status === 'translated' || status === 'partial')
+    );
+  };
 
   if (options.autoTranslate) {
     createEffect(() => {
+      const e = entity();
       if (
         emailTranslationEnabled() &&
         isTranslationSupported() &&
         isEmailListTranslated() &&
         !rowTranslation()
       ) {
-        void toggleRowTranslation(entity().id, entity().name, entity().snippet);
+        void toggleRowTranslation(e.id, e.name, e.snippet);
       }
     });
   }
@@ -52,11 +60,7 @@ export function createEmailListTranslationHotkey(options: {
       options.emailItems().length > 0 &&
       !isEmailListTranslating(),
     keyDownHandler: () => {
-      if (isEmailListTranslated()) {
-        clearAllRowTranslations();
-      } else {
-        void toggleGlobalListTranslation(options.emailItems());
-      }
+      void toggleGlobalListTranslation(options.emailItems());
       return true;
     },
   };

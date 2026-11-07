@@ -36,7 +36,7 @@ export function createHomeRecommendations(
   const enabled = () => args.enabled?.() ?? true;
 
   const isPremium = useHasPermission(PERMISSION_IDS.READ_PROFESSIONAL_FEATURES);
-  const smartEnabled = () => enabled() && isPremium();
+  const smartEnabled = () => false && enabled() && isPremium();
 
   const fast = createAIProjection(() => ({
     id: 'home/recommended-fast',

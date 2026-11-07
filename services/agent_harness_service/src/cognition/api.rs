@@ -113,6 +113,11 @@ fn api_router(api_context: ApiContext) -> Router {
             post(database_query::generate_database_query),
         )
         .nest("/attachments", attachments::router())
+        // PRIVATE-HOOK: email_translation:cognition-router
+        .nest(
+            "/email-translation",
+            crate::cognition::email_translation::router(),
+        )
         .nest("/citations", citations::router())
         .nest("/preview", preview::router())
         .nest("/id_mapping", id_mapping::router())

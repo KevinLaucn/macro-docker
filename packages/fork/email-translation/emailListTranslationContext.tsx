@@ -1,10 +1,13 @@
+import { useUserInfo } from '@core/context/user';
 import {
   createContext,
+  createEffect,
   createSignal,
   type FlowComponent,
   useContext,
 } from 'solid-js';
 import type { EmailListTranslationItem } from './emailListTranslation';
+import { setEmailTranslationAccountScope } from './emailTranslationState';
 
 type EmailListTranslationContextValue = {
   items: () => EmailListTranslationItem[];
@@ -16,6 +19,24 @@ const EmailListTranslationContext =
 
 export const EmailListTranslationProvider: FlowComponent = (props) => {
   const [items, setItems] = createSignal<EmailListTranslationItem[]>([]);
+
+  try {
+    const userInfo = useUserInfo();
+    createEffect(() => {
+      const user = userInfo();
+      if (!user || !user.authenticated) {
+        setEmailTranslationAccountScope(null);
+        return;
+      }
+      const userId =
+        (user as { id?: string; userId?: string }).id ??
+        (user as { id?: string; userId?: string }).userId ??
+        null;
+      setEmailTranslationAccountScope(userId);
+    });
+  } catch {
+    // UserContext may not be mounted in isolated unit tests.
+  }
 
   const setItemsIfChanged = (nextItems: EmailListTranslationItem[]) => {
     setItems((previousItems) => {
@@ -52,4 +73,8 @@ export function useEmailListTranslationContext() {
     );
   }
   return context;
+}
+
+export function useMaybeEmailListTranslationContext() {
+  return useContext(EmailListTranslationContext);
 }

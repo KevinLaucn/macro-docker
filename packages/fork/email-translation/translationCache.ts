@@ -2,8 +2,23 @@ const MEMORY_CACHE = new Map<string, string>();
 const SESSION_STORAGE_PREFIX = 'macro.trans.cache.';
 const MAX_SESSION_KEYS = 500;
 
+let activeCacheScope = 'default';
+
+export function setTranslationCacheScope(scope: string | undefined | null): void {
+  const nextScope = scope?.trim().toLowerCase() || 'default';
+  if (nextScope !== activeCacheScope) {
+    clearTranslationCache();
+    activeCacheScope = nextScope;
+  }
+}
+
+export function getTranslationCacheScope(): string {
+  return activeCacheScope;
+}
+
 /**
- * Cache key now includes sourceLang to prevent cross-language collisions.
+ * Cache key includes activeCacheScope + sourceLang + targetLang to prevent
+ * cross-account and cross-language collisions.
  * e.g. "Gift" (en: 礼物, de: 毒物) must not share a cache entry.
  */
 function getCacheKey(
@@ -11,7 +26,7 @@ function getCacheKey(
   sourceLang: string,
   targetLang: string
 ): string {
-  return `${sourceLang}:${targetLang}:${text.trim()}`;
+  return `${activeCacheScope}:${sourceLang}:${targetLang}:${text.trim()}`;
 }
 
 export function getCachedText(

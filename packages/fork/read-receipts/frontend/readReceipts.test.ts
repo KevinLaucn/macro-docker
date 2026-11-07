@@ -54,7 +54,7 @@ describe('formatSeenLabel', () => {
 });
 
 describe('isMacroTrackingPixelUrl', () => {
-  it('recognizes official macro.com tracking URLs', () => {
+  it('recognizes official macro.com tracking URLs (both /t/o/ and /opens/)', () => {
     expect(
       isMacroTrackingPixelUrl(`https://email-service.macro.com/t/o/${TOKEN}`)
     ).toBe(true);
@@ -63,11 +63,18 @@ describe('isMacroTrackingPixelUrl', () => {
         `https://email-service-dev.macro.com/t/o/${TOKEN}`
       )
     ).toBe(true);
+    expect(
+      isMacroTrackingPixelUrl(`https://email-service.macro.com/opens/${TOKEN}`)
+    ).toBe(true);
+    expect(
+      isMacroTrackingPixelUrl(`https://gateway.macro.com/opens/${TOKEN}`)
+    ).toBe(true);
   });
 
-  it('recognizes same-origin tracking URLs', () => {
+  it('recognizes same-origin tracking URLs (both /t/o/ and /opens/)', () => {
     const origin = window.location.origin;
     expect(isMacroTrackingPixelUrl(`${origin}/t/o/${TOKEN}`)).toBe(true);
+    expect(isMacroTrackingPixelUrl(`${origin}/opens/${TOKEN}`)).toBe(true);
   });
 
   it('recognizes configured cross-origin self-host tracking URLs', () => {

@@ -103,10 +103,10 @@ fn is_synthetic_default_model(model: &Model<'_>) -> bool {
 
 fn openrouter_equivalent_model(model: &Model<'_>) -> &'static str {
     match (model.provider(), model.name()) {
-        ("anthropic", "claude-opus-4-8") => "openrouter/anthropic/claude-opus-4.8",
-        ("anthropic", "claude-opus-4-7") => "openrouter/anthropic/claude-opus-4.7",
-        ("anthropic", "claude-opus-5-5") => "openrouter/anthropic/claude-opus-5.5",
-        ("anthropic", "claude-opus-5") => "openrouter/anthropic/claude-opus-5",
+        ("anthropic", "claude-opus-4-8")
+        | ("anthropic", "claude-opus-4-7")
+        | ("anthropic", "claude-opus-5-5")
+        | ("anthropic", "claude-opus-5") => "openrouter/openai/gpt-5-mini",
         ("anthropic", "claude-sonnet-5-5") => "openrouter/anthropic/claude-sonnet-5.5",
         ("anthropic", "claude-sonnet-5") => "openrouter/anthropic/claude-sonnet-5",
         ("anthropic", "claude-sonnet-4-6") => "openrouter/anthropic/claude-sonnet-4.6",
@@ -120,7 +120,7 @@ fn openrouter_equivalent_model(model: &Model<'_>) -> &'static str {
         ("google", "gemini-3.8-flash") | ("google", "gemini-3-flash-preview") => {
             "openrouter/google/gemini-3.8-flash"
         }
-        _ => "openrouter/anthropic/claude-sonnet-4.6",
+        _ => "openrouter/openai/gpt-5-mini",
     }
 }
 
@@ -847,9 +847,8 @@ impl<H: HttpClientExt + Clone + Default + std::fmt::Debug + 'static> ModelRouter
                 }
             }
             if has_openrouter {
-                if let Some(fallback) = parse_owned_model("openrouter/anthropic/claude-opus-4.8") {
-                    if let Ok(routed) =
-                        self.route_parsed(fallback, "openrouter/anthropic/claude-opus-4.8")
+                if let Some(fallback) = parse_owned_model("openrouter/openai/gpt-5-mini") {
+                    if let Ok(routed) = self.route_parsed(fallback, "openrouter/openai/gpt-5-mini")
                     {
                         return routed;
                     }

@@ -1,11 +1,24 @@
+import { stripOwnTrackingPixelsFromHtml } from '@macro/fork-read-receipts/utils';
 import { createSignal } from 'solid-js';
-import { createStore } from 'solid-js/store';
+import { createStore, reconcile } from 'solid-js/store';
 import { translateTextDetailed } from './translateText';
+import {
+  clearTranslationCache,
+  setTranslationCacheScope,
+} from './translationCache';
+import {
+  emailTranslationClient,
+  getEmailTranslationTransport,
+  getTargetLanguage,
+  hasBrowserTranslatorMock,
+} from './translatorClient';
 import type {
+  EmailTranslationButtonState,
   MessageTranslationData,
   MessageTranslationOverride,
   RowTranslationData,
   ThreadTitleTranslationData,
+  TranslationAction,
   TranslationStatus,
 } from './types';
 
@@ -19,6 +32,98 @@ function loadStoredEnabled(): boolean {
   } catch {
     return true;
   }
+}
+
+// 0. Account scope & in-flight deduplication
+const [accountScope, setAccountScopeSignal] = createSignal<string>('default');
+const inflightRequests = new Map<string, Promise<unknown>>();
+
+export function getEmailTranslationAccountScope(): string {
+  return accountScope();
+}
+
+export function runDeduplicatedTranslationTask<T>(
+  key: string,
+  task: () => Promise<T>
+): Promise<T> {
+  const scopedKey = `${accountScope()}:${key}`;
+  const existing = inflightRequests.get(scopedKey) as Promise<T> | undefined;
+  if (existing) {
+    return existing;
+  }
+  const promise = task().finally(() => {
+    inflightRequests.delete(scopedKey);
+  });
+  inflightRequests.set(scopedKey, promise);
+  return promise;
+}
+
+function makeScopedKey(id: string, targetLang?: string): string {
+  const lang = targetLang || getTargetLanguage();
+  return `${accountScope()}:${lang}:${id}`;
+}
+
+/**
+ * Normalizes HTML/text before computing a client-side source fingerprint so that:
+ * - read status, labels, updated_at are ignored;
+ * - tracking pixels (/t/o/ and /opens/) are stripped;
+ * - ephemeral presigned URL query parameters are stripped.
+ */
+export function normalizeSourceForFingerprint(raw: string | null | undefined): string {
+  if (!raw) return '';
+  let cleaned = stripOwnTrackingPixelsFromHtml(String(raw));
+  cleaned = cleaned.replace(
+    /https?:\/\/[^\s"'<>)+]+/gi,
+    (urlStr) => {
+      try {
+        const u = new URL(urlStr);
+        const ephemeralParams = [
+          'x-amz-algorithm',
+          'x-amz-credential',
+          'x-amz-date',
+          'x-amz-expires',
+          'x-amz-signedheaders',
+          'x-amz-signature',
+          'x-amz-security-token',
+          'signature',
+          'expires',
+          'token',
+          'sig',
+        ];
+        for (const k of Array.from(u.searchParams.keys())) {
+          if (ephemeralParams.includes(k.toLowerCase())) {
+            u.searchParams.delete(k);
+          }
+        }
+        return u.toString();
+      } catch {
+        return urlStr;
+      }
+    }
+  );
+  return cleaned.replace(/\s+/g, ' ').trim();
+}
+
+export function computeMessageSourceFingerprint(message: {
+  body_html_sanitized?: string | null;
+  body_replyless?: string | null;
+  body_macro?: string | null;
+  body_text?: string | null;
+}): string {
+  const html = normalizeSourceForFingerprint(message.body_html_sanitized);
+  const replyless = normalizeSourceForFingerprint(message.body_replyless);
+  const macro = normalizeSourceForFingerprint(message.body_macro);
+  const text = normalizeSourceForFingerprint(message.body_text);
+  return `m|${html}|${replyless}|${macro}|${text}`;
+}
+
+export function computeRowSourceFingerprint(
+  name?: string | null,
+  snippet?: string | null
+): string {
+  const normName = normalizeSourceForFingerprint(name);
+  const normSnippet = normalizeSourceForFingerprint(snippet);
+  return `r|${normName}|${normSnippet}`;
 }
 
 // 1. Feature switch
@@ -46,7 +151,7 @@ const [rowTranslations, setRowTranslations] = createStore<
   Record<string, RowTranslationData>
 >({});
 
-// 2.1 Global list translation state
+// 2.1 Global list translation display state (separated from cached rowTranslations)
 const [isListTranslated, setListTranslated] = createSignal<boolean>(false);
 const [isListTranslating, setListTranslating] = createSignal<boolean>(false);
 
@@ -54,26 +159,166 @@ export function isEmailListTranslated(): boolean {
   return isListTranslated();
 }
 
+export function setEmailListTranslated(translated: boolean): void {
+  setListTranslated(translated);
+}
+
 export function isEmailListTranslating(): boolean {
   return isListTranslating();
 }
 
 export function clearAllRowTranslations(): void {
-  setRowTranslations({});
+  setRowTranslations(reconcile({}));
   setListTranslated(false);
 }
 
 export function getRowTranslation(
-  threadId: string
+  threadId: string,
+  expectedName?: string,
+  expectedSnippet?: string,
+  targetLang?: string
 ): RowTranslationData | undefined {
-  return rowTranslations[threadId];
+  const key = makeScopedKey(threadId, targetLang);
+  const entry = rowTranslations[key];
+  if (!entry) return undefined;
+  if (
+    (expectedName !== undefined || expectedSnippet !== undefined) &&
+    entry.sourceFingerprint
+  ) {
+    const currentFp = computeRowSourceFingerprint(expectedName, expectedSnippet);
+    if (entry.sourceFingerprint !== currentFp) {
+      return undefined;
+    }
+  }
+  return entry;
 }
 
 export function setRowTranslation(
   threadId: string,
-  data: RowTranslationData
+  data: RowTranslationData,
+  targetLang?: string
 ): void {
-  setRowTranslations(threadId, data);
+  const lang = targetLang || data.targetLang || getTargetLanguage();
+  const key = makeScopedKey(threadId, lang);
+  setRowTranslations(key, {
+    ...data,
+    targetLang: lang,
+  });
+}
+
+function shouldUseBackendForThread(): boolean {
+  if (getEmailTranslationTransport()) return true;
+  if (hasBrowserTranslatorMock()) return false;
+  return true;
+}
+
+export async function translateRowItem(
+  threadId: string,
+  name?: string,
+  snippet?: string,
+  action: TranslationAction = 'translate',
+  targetLang?: string
+): Promise<RowTranslationData> {
+  const lang = targetLang || getTargetLanguage();
+  const fp = computeRowSourceFingerprint(name, snippet);
+  const existing = getRowTranslation(threadId, name, snippet, lang);
+  if (
+    action === 'translate' &&
+    existing &&
+    existing.status === 'translated' &&
+    existing.sourceFingerprint === fp
+  ) {
+    return existing;
+  }
+
+  return await runDeduplicatedTranslationTask(
+    `row:${threadId}:${lang}:${action}:${fp}`,
+    async () => {
+      setRowTranslation(
+        threadId,
+        {
+          status: 'loading',
+          sourceFingerprint: fp,
+          targetLang: lang,
+        },
+        lang
+      );
+
+      try {
+        if (shouldUseBackendForThread()) {
+          const response = await emailTranslationClient.requestThreads({
+            thread_ids: [threadId],
+            content_type: 'thread_summary',
+            target_lang: lang,
+            action,
+          });
+          const item = response.results.find((r) => r.thread_id === threadId);
+          if (item && (item.status === 'translated' || item.status === 'partial')) {
+            const nextData: RowTranslationData = {
+              status: item.status,
+              translatedName: item.translated_subject ?? name,
+              translatedSnippet: item.translated_snippet ?? snippet,
+              sourceHash: item.source_hash,
+              sourceFingerprint: fp,
+              targetLang: lang,
+              saved: Boolean(item.saved),
+              fromCache: Boolean(item.from_cache),
+              model: item.model,
+            };
+            setRowTranslation(threadId, nextData, lang);
+            return nextData;
+          }
+          if (item && item.status === 'none' && action === 'get') {
+            const idleData: RowTranslationData = {
+              status: 'idle',
+              sourceFingerprint: fp,
+              targetLang: lang,
+            };
+            setRowTranslation(threadId, idleData, lang);
+            return idleData;
+          }
+          throw new Error('Thread summary translation was not completed');
+        }
+
+        const [translatedName, translatedSnippet] = await Promise.all([
+          name
+            ? translateTextDetailed(name, { targetLang: lang })
+            : Promise.resolve(undefined),
+          snippet
+            ? translateTextDetailed(snippet, { targetLang: lang })
+            : Promise.resolve(undefined),
+        ]);
+
+        const nextData: RowTranslationData = {
+          status:
+            translatedName?.partial || translatedSnippet?.partial
+              ? 'partial'
+              : 'translated',
+          translatedName: translatedName?.text ?? name,
+          translatedSnippet: translatedSnippet?.text ?? snippet,
+          sourceFingerprint: fp,
+          targetLang: lang,
+          saved: true,
+        };
+        setRowTranslation(threadId, nextData, lang);
+        return nextData;
+      } catch (err) {
+        console.error(
+          `[EmailTranslation] Failed to translate row ${threadId}:`,
+          err
+        );
+        const errData: RowTranslationData = {
+          status: 'error',
+          sourceFingerprint: fp,
+          targetLang: lang,
+          saved: false,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        };
+        setRowTranslation(threadId, errData, lang);
+        return errData;
+      }
+    }
+  );
 }
 
 export async function toggleRowTranslation(
@@ -81,47 +326,67 @@ export async function toggleRowTranslation(
   name?: string,
   snippet?: string
 ): Promise<void> {
-  const current = rowTranslations[threadId];
-  if (current?.status === 'translated') {
-    // Restore original
-    setRowTranslations(threadId, { status: 'idle' });
+  const current = getRowTranslation(threadId, name, snippet);
+  if (current?.status === 'translated' && isListTranslated()) {
     return;
   }
+  const action: TranslationAction =
+    current?.status === 'error' || current?.status === 'partial'
+      ? 'retry'
+      : 'translate';
+  await translateRowItem(threadId, name, snippet, action);
+}
 
-  setRowTranslations(threadId, { status: 'loading' });
+export function getListTranslationButtonState(
+  items: Array<{ id: string; name?: string; snippet?: string }>
+): EmailTranslationButtonState {
+  if (isListTranslating()) return 'loading';
+  if (items.length === 0) return 'idle';
 
-  try {
-    const [translatedName, translatedSnippet] = await Promise.all([
-      name ? translateTextDetailed(name) : Promise.resolve(undefined),
-      snippet ? translateTextDetailed(snippet) : Promise.resolve(undefined),
-    ]);
-
-    setRowTranslations(threadId, {
-      status:
-        translatedName?.partial || translatedSnippet?.partial
-          ? 'partial'
-          : 'translated',
-      translatedName: translatedName?.text ?? name,
-      translatedSnippet: translatedSnippet?.text ?? snippet,
-    });
-  } catch (err) {
-    console.error(
-      `[EmailTranslation] Failed to translate row ${threadId}:`,
-      err
-    );
-    setRowTranslations(threadId, { status: 'error' });
+  const rowStates = items.map((item) =>
+    getRowTranslation(item.id, item.name, item.snippet)
+  );
+  const anyErrorOrPartial = rowStates.some(
+    (r) => r?.status === 'error' || r?.status === 'partial'
+  );
+  if (anyErrorOrPartial) {
+    return 'retry';
   }
+
+  const allTranslated =
+    rowStates.length > 0 &&
+    rowStates.every((r) => r?.status === 'translated');
+
+  if (isListTranslated() && allTranslated) {
+    return 'show_original';
+  }
+  if (!isListTranslated() && allTranslated) {
+    return 'show_translated';
+  }
+  if (isListTranslated()) {
+    return 'show_original';
+  }
+  return 'idle';
 }
 
 export async function toggleGlobalListTranslation(
   items: Array<{ id: string; name?: string; snippet?: string }>
 ): Promise<void> {
-  if (isListTranslated()) {
-    // 恢复原文：只需将全局列表翻译开关置为 false
-    // 保留现有 rowTranslations 缓存，下次开启时立即可用，避免重新翻译
+  const btnState = getListTranslationButtonState(items);
+
+  if (btnState === 'show_original') {
+    // 仅改变显示模式为原文，绝不清空已经取得的 rowTranslations 缓存
     setListTranslated(false);
     return;
   }
+
+  if (btnState === 'show_translated') {
+    // 所有当前列表项已有匹配译文缓存，直接切换显示译文，不请求 AI
+    setListTranslated(true);
+    return;
+  }
+
+  const action: TranslationAction = btnState === 'retry' ? 'retry' : 'translate';
 
   setListTranslating(true);
   setListTranslated(true);
@@ -132,12 +397,20 @@ export async function toggleGlobalListTranslation(
       const batch = items.slice(i, i + batchSize);
       await Promise.all(
         batch.map((item) => {
-          // 如果当前行已经翻译过，则无需重新请求
-          const current = rowTranslations[item.id];
+          const current = getRowTranslation(item.id, item.name, item.snippet);
           if (current?.status === 'translated') {
             return Promise.resolve();
           }
-          return toggleRowTranslation(item.id, item.name, item.snippet);
+          const itemAction: TranslationAction =
+            current?.status === 'error' || current?.status === 'partial'
+              ? 'retry'
+              : action;
+          return translateRowItem(
+            item.id,
+            item.name,
+            item.snippet,
+            itemAction
+          );
         })
       );
     }
@@ -146,31 +419,70 @@ export async function toggleGlobalListTranslation(
   }
 }
 
-// 3. Thread-level state
+// 3. Thread-level state (separated into data status and display mode)
 const [threadStatuses, setThreadStatuses] = createStore<
   Record<string, TranslationStatus>
+>({});
+const [threadDisplayModes, setThreadDisplayModes] = createStore<
+  Record<string, boolean>
 >({});
 const [threadTitleTranslations, setThreadTitleTranslations] = createStore<
   Record<string, ThreadTitleTranslationData>
 >({});
 
 export function getThreadTranslationStatus(
-  threadId: string
+  threadId: string,
+  targetLang?: string
 ): TranslationStatus {
-  return threadStatuses[threadId] ?? 'idle';
+  const key = makeScopedKey(threadId, targetLang);
+  return threadStatuses[key] ?? 'idle';
 }
 
 export function setThreadTranslationStatus(
   threadId: string,
-  status: TranslationStatus
+  status: TranslationStatus,
+  targetLang?: string
 ): void {
-  setThreadStatuses(threadId, status);
+  const key = makeScopedKey(threadId, targetLang);
+  setThreadStatuses(key, status);
+  if (status === 'translated' || status === 'partial') {
+    setThreadDisplayModes(key, true);
+  } else if (status === 'idle') {
+    setThreadDisplayModes(key, false);
+  }
+}
+
+export function isThreadDisplayingTranslation(
+  threadId: string,
+  targetLang?: string
+): boolean {
+  const key = makeScopedKey(threadId, targetLang);
+  const status = threadStatuses[key] ?? 'idle';
+  if (threadDisplayModes[key] !== undefined) {
+    return Boolean(threadDisplayModes[key]);
+  }
+  return status === 'translated' || status === 'partial';
+}
+
+export function setThreadDisplayingTranslation(
+  threadId: string,
+  showTranslated: boolean,
+  messageIds: string[] = [],
+  targetLang?: string
+): void {
+  const key = makeScopedKey(threadId, targetLang);
+  setThreadDisplayModes(key, showTranslated);
+  for (const mid of messageIds) {
+    setMessageOverride(mid, showTranslated ? 'inherit' : 'original', targetLang);
+  }
 }
 
 export function getThreadTitleTranslation(
-  threadId: string
+  threadId: string,
+  targetLang?: string
 ): ThreadTitleTranslationData | undefined {
-  return threadTitleTranslations[threadId];
+  const key = makeScopedKey(threadId, targetLang);
+  return threadTitleTranslations[key];
 }
 
 export function getTranslatedThreadTitle(
@@ -180,14 +492,29 @@ export function getTranslatedThreadTitle(
   if (!threadId || !emailTranslationEnabled()) return originalTitle;
   const status = getThreadTranslationStatus(threadId);
   if (status !== 'translated' && status !== 'partial') return originalTitle;
-  return getThreadTitleTranslation(threadId)?.translatedTitle ?? originalTitle;
+  if (!isThreadDisplayingTranslation(threadId)) return originalTitle;
+  const titleData = getThreadTitleTranslation(threadId);
+  if (
+    originalTitle !== undefined &&
+    titleData?.sourceFingerprint &&
+    titleData.sourceFingerprint !== normalizeSourceForFingerprint(originalTitle)
+  ) {
+    return originalTitle;
+  }
+  return titleData?.translatedTitle ?? originalTitle;
 }
 
 export function setThreadTitleTranslation(
   threadId: string,
-  data: ThreadTitleTranslationData
+  data: ThreadTitleTranslationData,
+  targetLang?: string
 ): void {
-  setThreadTitleTranslations(threadId, data);
+  const lang = targetLang || data.targetLang || getTargetLanguage();
+  const key = makeScopedKey(threadId, lang);
+  setThreadTitleTranslations(key, {
+    ...data,
+    targetLang: lang,
+  });
 }
 
 // 4. Message-level override: 'inherit' | 'translated' | 'original'
@@ -196,56 +523,137 @@ const [messageOverrides, setMessageOverrides] = createStore<
 >({});
 
 export function getMessageOverride(
-  messageId: string
+  messageId: string,
+  targetLang?: string
 ): MessageTranslationOverride {
-  return messageOverrides[messageId] ?? 'inherit';
+  const key = makeScopedKey(messageId, targetLang);
+  return messageOverrides[key] ?? 'inherit';
 }
 
 export function setMessageOverride(
   messageId: string,
-  override: MessageTranslationOverride
+  override: MessageTranslationOverride,
+  targetLang?: string
 ): void {
-  setMessageOverrides(messageId, override);
+  const key = makeScopedKey(messageId, targetLang);
+  setMessageOverrides(key, override);
 }
 
-// 5. Message body translation cache
+// 5. Message body translation cache (persisted data cache separated from view display state)
 const [cachedMessageBodies, setCachedMessageBodies] = createStore<
   Record<string, MessageTranslationData>
 >({});
 
 export function getCachedMessageTranslation(
-  messageId: string
+  messageId: string | undefined | null,
+  targetLang?: string,
+  expectedSourceFingerprint?: string
 ): MessageTranslationData | undefined {
-  return cachedMessageBodies[messageId];
+  if (!messageId) return undefined;
+  const key = makeScopedKey(messageId, targetLang);
+  const entry = cachedMessageBodies[key];
+  if (!entry) return undefined;
+  if (
+    expectedSourceFingerprint &&
+    entry.sourceFingerprint &&
+    entry.sourceFingerprint !== expectedSourceFingerprint
+  ) {
+    return undefined;
+  }
+  return entry;
 }
 
 export function setCachedMessageTranslation(
   messageId: string,
-  data: MessageTranslationData
+  data: MessageTranslationData,
+  targetLang?: string
 ): void {
-  setCachedMessageBodies(messageId, data);
+  const lang = targetLang || data.targetLang || getTargetLanguage();
+  const key = makeScopedKey(messageId, lang);
+  setCachedMessageBodies(key, {
+    ...data,
+    targetLang: lang,
+  });
 }
 
-// 6. Evaluated message translation state
+// 6. Evaluated message translation display state
 export function isMessageTranslated(
-  threadId: string,
-  messageId: string
+  threadId: string | undefined | null,
+  messageId: string | undefined | null,
+  targetLang?: string
 ): boolean {
-  const override = getMessageOverride(messageId);
+  if (!messageId) return false;
+  const override = getMessageOverride(messageId, targetLang);
   if (override === 'original') return false;
   if (override === 'translated') return true;
-  const threadStatus = getThreadTranslationStatus(threadId);
-  return threadStatus === 'translated' || threadStatus === 'partial';
+  if (!threadId) return false;
+  const threadStatus = getThreadTranslationStatus(threadId, targetLang);
+  if (threadStatus !== 'translated' && threadStatus !== 'partial') return false;
+  return isThreadDisplayingTranslation(threadId, targetLang);
+}
+
+export function getMessageTranslationButtonState(
+  message: {
+    db_id?: string | null;
+    thread_db_id?: string | null;
+    body_html_sanitized?: string | null;
+    body_replyless?: string | null;
+    body_macro?: string | null;
+    body_text?: string | null;
+  },
+  targetLang?: string
+): EmailTranslationButtonState {
+  const mid = message.db_id;
+  if (!mid) return 'idle';
+  const fp = computeMessageSourceFingerprint(message);
+  const cached = getCachedMessageTranslation(mid, targetLang, fp);
+  if (cached?.status === 'loading') return 'loading';
+  if (cached?.status === 'error' || cached?.status === 'partial') return 'retry';
+  const displaying = isMessageTranslated(message.thread_db_id, mid, targetLang);
+  if (cached?.status === 'translated') {
+    return displaying ? 'show_original' : 'show_translated';
+  }
+  return 'idle';
 }
 
 // 7. Clear/reset thread state & message overrides
 export function clearThreadTranslation(
   threadId: string,
-  messageIds: string[] = []
+  messageIds: string[] = [],
+  targetLang?: string
 ): void {
-  setThreadStatuses(threadId, 'idle');
-  setThreadTitleTranslations(threadId, { status: 'idle' });
+  const key = makeScopedKey(threadId, targetLang);
+  setThreadStatuses(key, 'idle');
+  setThreadDisplayModes(key, false);
+  setThreadTitleTranslations(key, { status: 'idle' });
   for (const mid of messageIds) {
-    setMessageOverrides(mid, 'inherit');
+    setMessageOverride(mid, 'inherit', targetLang);
   }
+}
+
+/**
+ * Switches account scope or logs out: clears all client-side caches and display states
+ * while leaving server-side PostgreSQL translations intact.
+ */
+export function setEmailTranslationAccountScope(
+  nextScope: string | undefined | null
+): void {
+  const normalized = nextScope?.trim().toLowerCase() || 'default';
+  if (normalized === accountScope()) return;
+  clearClientTranslationStateOnLogout();
+  setAccountScopeSignal(normalized);
+  setTranslationCacheScope(normalized);
+}
+
+export function clearClientTranslationStateOnLogout(): void {
+  inflightRequests.clear();
+  setRowTranslations(reconcile({}));
+  setThreadStatuses(reconcile({}));
+  setThreadDisplayModes(reconcile({}));
+  setThreadTitleTranslations(reconcile({}));
+  setMessageOverrides(reconcile({}));
+  setCachedMessageBodies(reconcile({}));
+  setListTranslated(false);
+  setListTranslating(false);
+  clearTranslationCache();
 }

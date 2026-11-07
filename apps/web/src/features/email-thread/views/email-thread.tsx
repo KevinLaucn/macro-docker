@@ -3,6 +3,10 @@ import { observeDraftRestoration } from '@app/features/email-compose/primitives/
 import { EmailComposeView } from '@app/features/email-compose/views/email-compose';
 import { CustomScrollbar } from '@core/component/CustomScrollbar';
 import { createScrollTopFade } from '@core/util/createScrollTopFade';
+import {
+  EmailThreadTranslateButton,
+  getTranslatedThreadTitle,
+} from '@macro/email-translation';
 import type { JSX } from 'solid-js';
 import { type Accessor, Match, Show, Switch } from 'solid-js';
 import { EmailThreadTitle } from '../components/email-thread-title';
@@ -144,7 +148,8 @@ export function EmailThreadView(props: EmailThreadViewProps) {
                       <div class="macro-message-width macro-message-padding w-full pt-2 pb-3.5">
                         <EmailThreadTitle
                           onCopy={viewContext.copySubject}
-                          title={title()}
+                          // PRIVATE-HOOK: email_translation:thread-title
+                          title={getTranslatedThreadTitle(props.threadId(), title()) ?? ''}
                           copyReveal="hover"
                           trailing={props.titleTrailing}
                           class="text-2xl"
@@ -153,8 +158,14 @@ export function EmailThreadView(props: EmailThreadViewProps) {
                         {/* Bounded so a long expanded list scrolls instead of
                             crowding out the messages; the padding keeps focus
                             rings unclipped. */}
-                        <div class="-m-1 max-h-34 overflow-y-auto p-1">
+                        <div class="-m-1 max-h-34 overflow-y-auto p-1 flex items-center justify-between gap-2">
                           <EmailParticipants />
+                          {/* PRIVATE-HOOK: email_translation:thread */}
+                          <EmailThreadTranslateButton
+                            threadId={props.threadId()}
+                            title={title()}
+                            messages={context.messages.unfiltered()}
+                          />
                         </div>
                       </div>
                     </div>

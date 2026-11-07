@@ -1,9 +1,16 @@
-import { t } from '@macro/i18n';
+import CircleNotch from '@phosphor/circle-notch.svg';
 import TranslateIcon from '@phosphor/translate.svg';
 import { Button, cn, Tooltip } from '@ui';
-import { Show } from 'solid-js';
-import { requestBrowserTranslation } from './browserTranslation';
+import { createEffect, Show } from 'solid-js';
+import { resolveTranslationButtonLabel } from './EmailTranslateButton';
+import { emailTranslationEnabled } from './emailTranslationState';
 import type { TranslatableMessage } from './translateMessage';
+import {
+  getThreadTranslationButtonState,
+  prefetchSavedThreadTranslation,
+  toggleThreadTranslation,
+} from './translateThread';
+import { isTranslationSupported } from './translatorClient';
 
 export interface EmailThreadTranslateButtonProps {
   threadId?: string;
@@ -16,21 +23,73 @@ export interface EmailThreadTranslateButtonProps {
 export function EmailThreadTranslateButton(
   props: EmailThreadTranslateButtonProps
 ) {
-  const label = () => t('Translate with browser');
+  const isAvailable = () =>
+    emailTranslationEnabled() && isTranslationSupported();
+
+  const msgs = () => props.messages ?? [];
+  const hasMessages = () => msgs().length > 0 || Boolean(props.title);
+
+  createEffect(() => {
+    if (isAvailable() && props.threadId) {
+      prefetchSavedThreadTranslation(props.threadId, msgs(), props.title);
+    }
+  });
+
+  const buttonState = () =>
+    getThreadTranslationButtonState(props.threadId, msgs(), props.title);
+
+  const isLoading = () => buttonState() === 'loading';
+  const isActive = () => buttonState() === 'show_original';
+  const isRetry = () => buttonState() === 'retry';
+
+  const label = () => resolveTranslationButtonLabel(buttonState());
+
+  const handleClick = () => {
+    if (!props.threadId || isLoading()) return;
+    void toggleThreadTranslation(props.threadId, msgs(), props.title);
+  };
 
   return (
-    <Show when={props.threadId}>
-      <Tooltip label={label()}>
+    <Show when={isAvailable() && props.threadId}>
+      <Tooltip
+        shortcut={
+          props.threadId && hasMessages() && !isLoading() ? 'q' : undefined
+        }
+        label={label()}
+      >
         <Button
           variant="secondary"
           size="sm"
-          onClick={requestBrowserTranslation}
-          class={cn('bg-surface transition-colors shrink-0', props.class)}
+          disabled={!hasMessages() || isLoading()}
+          onClick={handleClick}
+          data-translation-state={buttonState()}
+          class={cn(
+            'bg-surface transition-colors shrink-0',
+            isActive() && 'text-accent border-accent/40',
+            isRetry() && 'text-danger border-danger/40',
+            props.class
+          )}
           aria-label={label()}
         >
-          <TranslateIcon class="size-3.5 text-ink-muted" />
+          <Show
+            when={isLoading()}
+            fallback={
+              <TranslateIcon
+                class={cn(
+                  'size-3.5',
+                  isActive()
+                    ? 'text-accent'
+                    : isRetry()
+                      ? 'text-danger'
+                      : 'text-ink-muted'
+                )}
+              />
+            }
+          >
+            <CircleNotch class="size-3.5 animate-spin text-ink-placeholder" />
+          </Show>
           <Show when={!props.hideLabel}>
-            <span>{t('Translate')}</span>
+            <span>{label()}</span>
           </Show>
         </Button>
       </Tooltip>

@@ -1,5 +1,6 @@
 import { StaticMarkdownContext } from '@core/component/LexicalMarkdown/component/core/StaticMarkdown';
 import { fireAndForget } from '@core/util/fireAndForget';
+import { getTranslatedThreadTitle } from '@macro/email-translation';
 import { Key } from '@solid-primitives/keyed';
 import { cn, Layer } from '@ui';
 import { CollapseTransition } from '@ui/components/CollapseTransition';
@@ -133,7 +134,8 @@ export function MessageList(props: MessageListProps) {
             <div class="macro-message-width macro-message-padding w-full pt-6 pb-3">
               <EmailThreadTitle
                 onCopy={viewContext.copySubject}
-                title={title()}
+                // PRIVATE-HOOK: email_translation:mobile-thread-title
+                title={getTranslatedThreadTitle(context.thread()?.db_id, title()) ?? ''}
                 copyReveal="always"
                 class="text-xl pt-1 pb-0"
               />

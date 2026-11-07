@@ -13,3 +13,8 @@ overrides:
     search: "model: FREE_DEFAULT_MODEL,"
     replace: "model: Model.gpt56Mini,"
     expected_count: 1
+  - id: home_recommendations_disable_smart_duplicate
+    file: apps/web/src/lib/queries/ai/createHomeRecommendations.ts
+    search: "const smartEnabled = () => enabled() && isPremium();"
+    replace: "const smartEnabled = () => false && enabled() && isPremium();"
+    expected_count: 1

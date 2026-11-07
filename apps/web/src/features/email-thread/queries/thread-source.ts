@@ -83,6 +83,8 @@ export function toEmailThread(thread: ApiThread): EmailThread {
           }
         : undefined,
       is_read: message.is_read,
+      // PRIVATE-HOOK: read_receipts:map-is-sent
+      is_sent: message.is_sent,
       labels: message.labels.map((label) => ({
         name: label.name,
         provider_label_id: label.provider_label_id,

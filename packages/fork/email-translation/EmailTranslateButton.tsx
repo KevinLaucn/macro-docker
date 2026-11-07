@@ -3,27 +3,50 @@ import CircleNotch from '@phosphor/circle-notch.svg';
 import TranslateIcon from '@phosphor/translate.svg';
 import { Button, cn } from '@ui';
 import { Match, Switch } from 'solid-js';
-import type { TranslationStatus } from './types';
+import type { EmailTranslationButtonState, TranslationStatus } from './types';
 
 export interface EmailTranslateButtonProps {
   state: TranslationStatus;
+  buttonState?: EmailTranslationButtonState;
   scope: 'row' | 'thread' | 'message';
   onClick: (e: MouseEvent) => void;
   disabled?: boolean;
   class?: string;
 }
 
+export function resolveTranslationButtonLabel(
+  buttonState: EmailTranslationButtonState
+): string {
+  switch (buttonState) {
+    case 'loading':
+      return t('翻译中');
+    case 'show_original':
+      return t('显示原文');
+    case 'show_translated':
+      return t('显示译文');
+    case 'retry':
+      return t('失败重试');
+    case 'idle':
+    default:
+      return t('AI翻译');
+  }
+}
+
 export function EmailTranslateButton(props: EmailTranslateButtonProps) {
-  const isPartial = () => props.state === 'partial';
-  const isTranslated = () => props.state === 'translated' || isPartial();
-  const isLoading = () => props.state === 'loading';
+  const effectiveButtonState = (): EmailTranslationButtonState => {
+    if (props.buttonState) return props.buttonState;
+    if (props.state === 'loading') return 'loading';
+    if (props.state === 'error' || props.state === 'partial') return 'retry';
+    if (props.state === 'translated') return 'show_original';
+    return 'idle';
+  };
+
+  const isLoading = () => effectiveButtonState() === 'loading';
+  const isActive = () => effectiveButtonState() === 'show_original';
+  const isRetry = () => effectiveButtonState() === 'retry';
 
   const tooltipLabel = () =>
-    isPartial()
-      ? t('Partial translation failed. Original text was kept.')
-      : isTranslated()
-        ? t('Show original')
-        : t('Translate');
+    resolveTranslationButtonLabel(effectiveButtonState());
 
   return (
     <Button
@@ -31,6 +54,7 @@ export function EmailTranslateButton(props: EmailTranslateButtonProps) {
       size="icon-sm"
       disabled={props.disabled || isLoading()}
       aria-label={tooltipLabel()}
+      data-translation-state={effectiveButtonState()}
       onClick={(e: MouseEvent) => {
         e.stopPropagation();
         e.preventDefault();
@@ -42,7 +66,8 @@ export function EmailTranslateButton(props: EmailTranslateButtonProps) {
       }}
       class={cn(
         'transition-colors',
-        isTranslated() && 'text-accent hover:text-accent/80',
+        isActive() && 'text-accent hover:text-accent/80',
+        isRetry() && 'text-danger hover:text-danger/80',
         props.class
       )}
     >
@@ -54,7 +79,11 @@ export function EmailTranslateButton(props: EmailTranslateButtonProps) {
           <TranslateIcon
             class={cn(
               'size-3.5',
-              isTranslated() ? 'text-accent' : 'text-ink-muted'
+              isActive()
+                ? 'text-accent'
+                : isRetry()
+                  ? 'text-danger'
+                  : 'text-ink-muted'
             )}
           />
         </Match>
