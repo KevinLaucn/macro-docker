@@ -132,7 +132,6 @@ export function EmailNarrowBody(props: {
           </Show>
         </span>
       </span>
-      </span>
     </Entity.Slot>
   );
 }

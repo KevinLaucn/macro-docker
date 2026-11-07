@@ -5,7 +5,7 @@
 use crate::cognition::service::structured_completion::{
     ToolFreeCompletion, ToolFreeCompletionError, ToolFreeRequest,
 };
-use agent::structured_output::DynamicSchema;
+use agent::structured_output::{CompletionThinking, DynamicSchema};
 use ai_billing::AiAdmissionService;
 use ai_usage::AiFeature;
 use macro_user_id::user_id::MacroUserIdStr;
@@ -407,6 +407,7 @@ impl<S: EmailTranslationStore> EmailTranslationService<S> {
                         system_prompt: system_prompt.clone(),
                         prompt,
                         schema: translation_output_schema(),
+                        thinking: CompletionThinking::Low,
                     },
                 )
                 .await;

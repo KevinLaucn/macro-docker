@@ -256,32 +256,40 @@ impl CodeRunner for DenoRunner {
 
 /// Apply the per-process limits to a child that has just started.
 fn limit(child: &Child, limits: &Limits) -> Result<(), ExecutionFailure> {
-    let pid = child
-        .id()
-        .and_then(|id| i32::try_from(id).ok())
-        .and_then(rustix::process::Pid::from_raw)
-        .ok_or_else(|| internal("child has no pid"))?;
-    if let Some(cpu) = limits.max_cpu {
-        // The soft limit sends SIGXCPU, which stops Deno; the hard limit a
-        // second later is the kernel's SIGKILL backstop.
-        let seconds = cpu.as_secs();
-        rustix::process::prlimit(
-            Some(pid),
-            rustix::process::Resource::Cpu,
-            rustix::process::Rlimit {
-                current: Some(seconds),
-                maximum: Some(seconds + 1),
-            },
-        )
-        .map_err(internal)?;
+    #[cfg(target_os = "linux")]
+    {
+        let pid = child
+            .id()
+            .and_then(|id| i32::try_from(id).ok())
+            .and_then(rustix::process::Pid::from_raw)
+            .ok_or_else(|| internal("child has no pid"))?;
+        if let Some(cpu) = limits.max_cpu {
+            // The soft limit sends SIGXCPU, which stops Deno; the hard limit a
+            // second later is the kernel's SIGKILL backstop.
+            let seconds = cpu.as_secs();
+            rustix::process::prlimit(
+                Some(pid),
+                rustix::process::Resource::Cpu,
+                rustix::process::Rlimit {
+                    current: Some(seconds),
+                    maximum: Some(seconds + 1),
+                },
+            )
+            .map_err(internal)?;
+        }
+        if limits.background {
+            rustix::process::setpriority_process(Some(pid), BACKGROUND_NICENESS).map_err(internal)?;
+        }
     }
-    if limits.background {
-        rustix::process::setpriority_process(Some(pid), BACKGROUND_NICENESS).map_err(internal)?;
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (child, limits);
     }
     Ok(())
 }
 
 /// Niceness of background programs: below the host, above idle work.
+#[cfg(target_os = "linux")]
 const BACKGROUND_NICENESS: i32 = 10;
 
 async fn reap(child: &mut Child) {

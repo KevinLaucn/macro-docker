@@ -1007,7 +1007,6 @@ export default {
     'record-files': '文件',
     'record-tasks': '任务',
     'record-calls': '通话',
-    'record-databases': '数据库',
     projectSections: '项目分块',
     'project-overview': '概览',
     'project-tasks': '任务',

@@ -182,13 +182,11 @@ customizations:
     rationale: The upstream CRM backfill targets one macro-id email; this small compatibility patch fans out across the user's owned inboxes, excludes delegated inboxes, and must be retired when upstream PR #6370 provides the same behavior.
     risk: medium
     paths:
-      - services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
       - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
       - .fork/private-hooks.yml
       - .fork/retirements.yml
     owned_paths:
       - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
-      - services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
     tests:
       - conventions
       - email-rust
@@ -484,7 +482,6 @@ customizations:
       - services/email_service/src/config.rs
       - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
       - services/email_service/src/pubsub/backfill/error_handlers.rs
-      - services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
       - services/email_service/src/pubsub/backfill/process.rs
       - services/email_service/src/pubsub/context.rs
       - services/email_service/src/pubsub/inbox_sync/operations/upsert_message.rs
@@ -551,14 +548,11 @@ customizations:
       - apps/web/src/features/settings/Email.tsx
       - apps/web/src/features/settings/SignatureEditor.tsx
       - apps/web/src/features/settings/SignatureEditor.css
-      - apps/web/src/features/auth/CalendarPermissionPrompt.tsx
       - apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
       - apps/web/src/features/settings/connections/capability-row.ts
       - apps/web/src/features/block-agent/component/AgentMessage.tsx
       - rules/ast-grep/**
       - sgconfig.yml
-      - apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
-      - apps/web/src/features/auth/GmailReauthenticationPrompt.tsx
       - apps/web/src/features/block-email/component/TopBar.tsx
       - apps/web/src/features/block-email/util/emailHotkeys.ts
       - apps/web/src/features/block-spreadsheet/core/toolbar-types.ts
@@ -596,12 +590,9 @@ customizations:
       - apps/web/src/features/settings/Email.tsx
       - apps/web/src/features/settings/SignatureEditor.tsx
       - apps/web/src/features/settings/SignatureEditor.css
-      - apps/web/src/features/auth/CalendarPermissionPrompt.tsx
       - apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
       - apps/web/src/features/settings/connections/capability-row.ts
       - apps/web/src/features/block-agent/component/AgentMessage.tsx
-      - apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
-      - apps/web/src/features/auth/GmailReauthenticationPrompt.tsx
       - apps/web/src/features/block-email/component/TopBar.tsx
       - apps/web/src/features/block-email/util/emailHotkeys.ts
       - apps/web/src/features/block-spreadsheet/core/toolbar-types.ts

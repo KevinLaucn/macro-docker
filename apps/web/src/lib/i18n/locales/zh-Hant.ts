@@ -1014,7 +1014,6 @@ export default {
     'record-files': '文件',
     'record-tasks': '任務',
     'record-calls': '通話',
-    'record-databases': '資料庫',
     projectSections: '專案區塊',
     'project-overview': '總覽',
     'project-tasks': '任務',

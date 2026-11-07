@@ -1,6 +1,6 @@
 ---
 version: 2
-upstream_sha: 4c5ba447f66c3ed8dcc202c3244689101126d608
+upstream_sha: 1feb36c68dd04f3b44092717467a6b1d2dd2d22a
 diffs:
 - file: ".github/actions/setup-nix/action.yml"
   owners:
@@ -51,21 +51,6 @@ diffs:
   - BROWSER-RUNTIME-COMPAT-001
   hooks:
   - browser_runtime_split_keyless_event
-  override: false
-- file: apps/web/src/features/auth/CalendarPermissionPrompt.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/auth/GithubReauthenticationPrompt.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/auth/GmailReauthenticationPrompt.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
   override: false
 - file: apps/web/src/features/block-agent/component/AgentMessage.tsx
   owners:
@@ -218,6 +203,25 @@ diffs:
   hooks:
   - email_translation_thread_keyboard
   override: false
+- file: apps/web/src/features/email-thread/queries/thread-source.ts
+  owners:
+  - READ-RECEIPTS-001
+  hooks:
+  - email_read_receipts_map_is_sent
+  override: false
+- file: apps/web/src/features/email-thread/views/email-thread.tsx
+  owners:
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_thread
+  - email_translation_thread_title
+  override: false
+- file: apps/web/src/features/email-thread/views/message-list.tsx
+  owners:
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_mobile_thread_title
+  override: false
 - file: apps/web/src/features/email-view/components/EmailControls.tsx
   owners:
   - EMAIL-TRANSLATION-001
@@ -235,11 +239,6 @@ diffs:
   - EMAIL-TRANSLATION-001
   hooks:
   - email_translation_email_list_keyboard
-  override: false
-- file: apps/web/src/features/email-view/components/EmailSidebar.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
   override: false
 - file: apps/web/src/features/email-view/email-view.tsx
   owners:
@@ -728,6 +727,18 @@ diffs:
   - SELFHOST-MEDIA-001
   hooks: []
   override: false
+- file: services/agent_harness_service/src/cognition/api.rs
+  owners:
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_cognition_router
+  override: false
+- file: services/agent_harness_service/src/cognition/mod.rs
+  owners:
+  - EMAIL-TRANSLATION-001
+  hooks:
+  - email_translation_cognition_module
+  override: false
 - file: services/agent_harness_service/src/cognition/service/chat_renamer.rs
   owners:
   - AI-MODEL-POLICY-001
@@ -900,13 +911,6 @@ diffs:
   owners:
   - EMAIL-SELFHOST-001
   hooks: []
-  override: false
-- file: services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
-  owners:
-  - CRM-MULTI-INBOX-001
-  - EMAIL-SELFHOST-001
-  hooks:
-  - crm_backfill_populate_all_inboxes
   override: false
 - file: services/email_service/src/pubsub/backfill/process.rs
   owners:
