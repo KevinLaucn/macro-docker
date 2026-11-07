@@ -296,6 +296,7 @@ customizations:
       - self-host/**
       - docker/**
       - nix/**
+      - nix-support/**
       - crates/macro_db_migrator/**
       - tooling/xtask/crates/xtask_local/**
       - tooling/just/**
@@ -322,6 +323,7 @@ customizations:
       - docker/sync-service.Dockerfile
       - docker/websocket-service.Dockerfile
       - nix/cloud-storage.nix
+      - nix-support/node_modules-hashes.json
       - services/sync-service/wrangler.docker.toml
       - tooling/just/check.just
       - tooling/just/ci.just

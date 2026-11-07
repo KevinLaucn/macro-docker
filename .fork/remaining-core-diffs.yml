@@ -716,6 +716,11 @@ diffs:
   - SELFHOST-RUNTIME-001
   hooks: []
   override: false
+- file: nix-support/node_modules-hashes.json
+  owners:
+  - SELFHOST-RUNTIME-001
+  hooks: []
+  override: false
 - file: nix/cloud-storage.nix
   owners:
   - SELFHOST-RUNTIME-001
