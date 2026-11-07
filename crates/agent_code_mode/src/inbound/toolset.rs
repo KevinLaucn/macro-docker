@@ -49,6 +49,8 @@ pub struct UserCodeModeToolContext {
     /// Who the authenticated request came from; the adapter builds a context
     /// per call, so there is no default.
     pub caller: ai_toolset::ToolCaller,
+    /// Session provenance verified by the managed MCP bearer middleware.
+    pub session: Option<uuid::Uuid>,
 }
 
 /// Code mode for clients outside agent sessions, such as the public MCP.
@@ -73,12 +75,12 @@ enum CodeHost {
 #[serde(deny_unknown_fields)]
 #[schemars(
     title = "ExecuteCode",
-    description = concat!(
+    description = format!(
+        "{}\n{}\n{}\nPresentView schema; execution.views.present(view) takes its view property:\n{}\n",
         include_str!("toolset/session/execute_code.md"),
-        "\n",
         include_str!("toolset/shared/program.md"),
-        "\n",
-        include_str!("toolset/shared/runtime.md")
+        include_str!("toolset/shared/runtime.md"),
+        dynamic_ui::present_view_schema(),
     )
 )]
 pub struct ExecuteCode {
@@ -95,7 +97,7 @@ pub struct ExecuteCode {
     pub turn_id: macro_uuid::Uuid,
     /// A JavaScript ES module, with imports and an exported async main function.
     #[schemars(
-        description = "JavaScript module, at most 64 KiB. Import { Macro } from '@macro-inc/sdk' and Handlebars from 'handlebars'. Export async function main({token, hosts}) { const macro = new Macro({token, hosts}); return {data: ...}; }. The optional reviews array defaults to empty. Dependencies are preinstalled; no TypeScript syntax or package downloads. The token and hosts are supplied by the runner; never return or log the token."
+        description = "JavaScript module, at most 64 KiB. Import { Macro } from '@macro-inc/sdk' and Handlebars from 'handlebars'. Export async function main({token, hosts, webAppUrl}) { const macro = new Macro({token, hosts, webAppUrl}); return {data: ...}; }. The optional reviews array defaults to empty. Dependencies are preinstalled; no TypeScript syntax or package downloads. The token, hosts and webAppUrl are supplied by the runner; never return or log the token."
     )]
     pub source: String,
     /// Deadline including queueing and API calls.
@@ -188,6 +190,7 @@ impl AsyncTool<UserCodeModeToolContext> for UserExecuteCode {
             .execute(
                 &request.user_id,
                 &context.caller,
+                context.session,
                 ExecuteRequest {
                     source: self.source.clone(),
                     timeout_ms: self.timeout_ms,
@@ -234,14 +237,15 @@ pub enum CodeGuideTopic {
     Ai,
     /// Local Handlebars rendering.
     Templates,
-    /// Worked examples, including email triage and structured extraction.
+    /// Worked examples: check-then-create in one execution, email triage, extraction.
     Examples,
 }
 
 impl CodeGuideTopic {
     fn markdown(self) -> &'static str {
         match self {
-            Self::Search => include_str!("toolset/guides/search.md"),
+            // The search guide is the `core` entity's `@agent` guidance.
+            Self::Search => crate::domain::search_guide(),
             Self::Ai => include_str!("toolset/guides/ai.md"),
             Self::Templates => include_str!("toolset/guides/templates.md"),
             Self::Examples => include_str!("../../SKILL.md"),
@@ -380,6 +384,7 @@ impl DescribeCodeTools {
                 .iter()
                 .map(|doc| CodeToolDescription {
                     index: None,
+                    guide: None,
                     ..doc.clone()
                 })
                 .collect()

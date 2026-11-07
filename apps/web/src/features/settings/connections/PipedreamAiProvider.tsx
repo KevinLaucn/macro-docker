@@ -1,8 +1,12 @@
+import { useFeatureFlag } from '@app/lib/analytics/posthog';
+import { linkGithubAccount } from '@core/auth/authorize-github';
 import { toast } from '@core/component/Toast/Toast';
+import { macroConnect } from '@core/constant/featureFlags';
 import { createPipedreamCatalogConnect } from '@core/pipedream/catalog';
 import { connectSlugForPipedreamApp } from '@core/pipedream/slugs';
 import { fireAndForget } from '@core/util/fireAndForget';
 import { t } from '@macro/i18n';
+import { useDeleteGithubLinkMutation } from '@queries/auth';
 import {
   useDeletePipedreamConnectionMutation,
   useUpdatePipedreamConnectionMutation,
@@ -96,13 +100,14 @@ export function PipedreamAiProvider(props: {
     );
   const status = () => row()?.status ?? 'not-connected';
   const indicator = () => statusIndicator(status());
-  const aiFacts = () => {
-    const cap = row();
-    return cap ? capabilityFacts(cap) : t('Powered by Pipedream');
-  };
+  const macroConnectFlag = useFeatureFlag(macroConnect);
+  const aiFacts = () => capabilityFacts(row(), macroConnectFlag().enabled);
   const update = useUpdatePipedreamConnectionMutation();
   const remove = useDeletePipedreamConnectionMutation();
   const native = useNativeMcpActions();
+  // The GitHub account link authorizes GitHub's MCP server.
+  const unlinkGithub = useDeleteGithubLinkMutation();
+  const linksGithub = () => props.provider === 'github';
   const { connect, busy } = createPipedreamCatalogConnect({
     entry: () => ({
       app_slug: connectSlugForPipedreamApp(props.provider),
@@ -140,6 +145,22 @@ export function PipedreamAiProvider(props: {
     if (cap.mechanism === 'native-mcp') {
       const url = cap.sourceUrl;
       if (!url) return;
+      if (linksGithub()) {
+        setDisconnect({
+          title: 'Disconnect from Macro',
+          body: 'Disconnect GitHub? This unlinks your GitHub account from Macro, which pull request features also use.',
+          onConfirm: () =>
+            unlinkGithub.mutate(undefined, {
+              onSuccess: () => {
+                // Any GitHub server added before the link went with it.
+                native.remove.mutate({ url });
+                toast.success('Disconnected GitHub from Macro');
+              },
+              onError: () => toast.failure('Failed to disconnect'),
+            }),
+        });
+        return;
+      }
       setDisconnect({
         title: t('Disconnect from Macro'),
         body: t('Disconnect {name}?', { name: copy.name }),
@@ -177,6 +198,13 @@ export function PipedreamAiProvider(props: {
   const reconnect = () => {
     const cap = row();
     if (!cap) return;
+    if (linksGithub()) {
+      fireAndForget(
+        linkGithubAccount('Failed to connect GitHub'),
+        'connections-settings'
+      );
+      return;
+    }
     if (cap.mechanism === 'native-mcp') {
       const url = cap.sourceUrl;
       if (!url) return;
@@ -197,7 +225,9 @@ export function PipedreamAiProvider(props: {
       connectBusy={busy()}
       authPending={native.authorize.isPending}
       updatePending={native.update.isPending || update.isPending}
-      removePending={native.remove.isPending || remove.isPending}
+      removePending={
+        native.remove.isPending || remove.isPending || unlinkGithub.isPending
+      }
     />
   );
 

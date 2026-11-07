@@ -87,6 +87,7 @@ pub trait TeamRepository: Clone + Send + Sync + 'static {
         team_id: &uuid::Uuid,
         invited_by: &MacroUserIdStr<'_>,
         invites: non_empty::NonEmpty<&[Email<Lowercase<'_>>]>,
+        is_agent: bool,
     ) -> impl Future<Output = Result<Vec<TeamInvite<'_>>, InviteUsersToTeamError>> + Send;
 
     /// Compares the list of users you are trying to invite to ones already invited
@@ -231,6 +232,12 @@ pub trait TeamRepository: Clone + Send + Sync + 'static {
         team_id: &uuid::Uuid,
     ) -> impl Future<Output = Result<String, TeamError>> + Send;
 
+    /// Gets a user's display name (first and last name). `None` when they have not set one.
+    fn get_user_display_name(
+        &self,
+        user_id: &MacroUserIdStr<'_>,
+    ) -> impl Future<Output = Result<Option<String>, TeamError>> + Send;
+
     /// Updates a team
     fn patch_team(
         &self,
@@ -351,11 +358,19 @@ pub trait TeamRepository: Clone + Send + Sync + 'static {
     ) -> impl Future<Output = Result<Option<TeamInviteLinkToken>, TeamError>> + Send;
 
     /// Sets the team's invite link to `token`, replacing any existing link.
+    /// `created_by` is rewarded when someone joins through it.
     fn set_team_invite_link(
         &self,
         team_id: &uuid::Uuid,
         token: &TeamInviteLinkToken,
+        created_by: &MacroUserIdStr<'_>,
     ) -> impl Future<Output = Result<(), TeamError>> + Send;
+
+    /// Who created the invite link with `token`, if it exists and is known.
+    fn get_team_invite_link_creator(
+        &self,
+        token: &TeamInviteLinkToken,
+    ) -> impl Future<Output = Result<Option<MacroUserIdStr<'static>>, TeamError>> + Send;
 
     /// Removes the team's invite link. A no-op when the team has none.
     fn delete_team_invite_link(
@@ -411,6 +426,7 @@ pub trait TeamService: Clone + Send + Sync + 'static {
         &self,
         entity_access_receipt: EntityAccessReceipt<MemberTeamRole>,
         invites: non_empty::NonEmpty<&[Email<Lowercase<'_>>]>,
+        is_agent: bool,
     ) -> impl Future<Output = Result<Vec<TeamInvite<'_>>, InviteUsersToTeamError>> + Send;
 
     /// Remove user from a team.
@@ -554,14 +570,9 @@ pub trait TeamService: Clone + Send + Sync + 'static {
         Output = Result<HashSet<roles_and_permissions::domain::model::PermissionId>, TeamError>,
     > + Send;
 
-    /// Enables or disables CRM for a team. On a `false → true`
-    /// transition with `backfill`, fans out a `PopulateCrmForUser`
-    /// enqueue per current team member (best-effort, log-and-swallow);
-    /// without `backfill` the flag flips and the CRM starts empty. On
-    /// any disable call, flips the flag and purges the team's
-    /// `crm_companies` rows in a single transaction — the FK cascade
-    /// clears the rest of the CRM tables. Idempotent in both
-    /// directions.
+    /// Legacy compatibility command. Enabling is a no-op and disabling
+    /// is rejected. Records remain available; email contribution and
+    /// backfill require each member's explicit CRM consent.
     fn set_team_crm_enabled(
         &self,
         entity_access_receipt: EntityAccessReceipt<AdminTeamRole>,

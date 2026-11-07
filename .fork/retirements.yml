@@ -8,12 +8,6 @@ retirements:
   # Upstream reference: https://github.com/macro-inc/macro/pull/6370
   # When this PR (or an equivalent upstream implementation) lands, the gate
   # must fail and the two local CRM hooks must be reviewed for removal.
-  - id: crm-multi-inbox-populate
-    file: services/email_service/src/pubsub/backfill/populate_crm_for_user.rs
-    upstream_pr: https://github.com/macro-inc/macro/pull/6370
-    upstream_old_signature: "fetch_link_by_macro_id_and_email_address"
-    upstream_fix_signature: "let links = email_db_client::links::get::fetch_inboxes_for_macro_id(&ctx.db, macro_id_str)"
-    regression_test: crates/email_db_client/src/links/get/test.rs
   - id: crm-multi-inbox-depopulate
     file: services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
     upstream_pr: https://github.com/macro-inc/macro/pull/6370

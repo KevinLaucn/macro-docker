@@ -89,6 +89,11 @@ export const NOTIFICATION_EVENT_GROUPS: readonly NotificationEventGroup[] = [
         label: 'Message reactions',
         description: 'When someone reacts to one of your messages',
       },
+      {
+        type: 'channel_access_requested',
+        label: 'Requests to join',
+        description: 'When someone asks to join a channel you belong to',
+      },
     ],
   },
   {
@@ -257,6 +262,11 @@ export const NOTIFICATION_EVENT_GROUPS: readonly NotificationEventGroup[] = [
         get description() {
           return t('When someone mentions you in an agent session');
         },
+      },
+      {
+        type: 'routine_run_finished',
+        label: 'Routine runs',
+        description: 'When one of your routines finishes or fails a run',
       },
     ],
   },

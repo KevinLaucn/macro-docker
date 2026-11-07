@@ -4,6 +4,7 @@ import {
   ViewSidebar,
 } from '@app/components/view-shell';
 import { SidebarCreateButton } from '@app/components/view-shell/SidebarCreateButton';
+import { t } from '@app/lib/i18n';
 import { useSplitLayout } from '@components/app/split-layout/layout';
 import { useSplitPanelOrThrow } from '@components/app/split-layout/layoutUtils';
 import { isTouchDevice } from '@core/mobile/isTouchDevice';
@@ -15,12 +16,13 @@ import FocusIcon from '@icon/system/regular/crosshair.svg';
 import EnvelopeIcon from '@icon/system/regular/envelope.svg';
 import FileIcon from '@icon/system/regular/file.svg';
 import PaperPlaneTiltIcon from '@icon/system/regular/paper-plane-tilt.svg';
+import SpamIcon from '@icon/system/regular/prohibit.svg';
 import StarIcon from '@icon/system/regular/star.svg';
+import TrashIcon from '@icon/system/regular/trash.svg';
 import TrayIcon from '@icon/system/regular/tray.svg';
 import UsersThreeIcon from '@icon/system/regular/users-three.svg';
 import SignalIcon from '@icon/system/regular/wave-sine.svg';
 import NoiseIcon from '@icon/system/regular/waveform.svg';
-import { t } from '@macro/i18n';
 import { SidebarTagsSection } from '@property/tags/SidebarTagsSection';
 import type { TagScope } from '@service-properties/generated/schemas/tagScope';
 import { pressHandlers } from '@ui';
@@ -29,6 +31,7 @@ import { type Component, For, Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { composeEmail } from '../compose-email';
 import {
+  canSearchEmailTab,
   EMAIL_INBOX_TAB_IDS,
   EMAIL_TAB_IDS,
   EMAIL_TAB_LABELS,
@@ -54,6 +57,8 @@ const LIBRARY_TAB_IDS = [
   'all',
   'archived',
   'shared',
+  'spam',
+  'trash',
 ] as const satisfies readonly EmailTab[];
 const DESKTOP_TAB_IDS = [
   'important',
@@ -74,6 +79,8 @@ const TAB_ICONS: Record<EmailTab, Component<{ class?: string }>> = {
   archived: ArchiveIcon,
   all: EnvelopeIcon,
   focus: FocusIcon,
+  spam: SpamIcon,
+  trash: TrashIcon,
 };
 
 function Tab(props: { id: EmailTab; label?: string; onNavigate?: () => void }) {
@@ -90,9 +97,7 @@ function Tab(props: { id: EmailTab; label?: string; onNavigate?: () => void }) {
       <ViewSidebar.Icon>
         <Dynamic component={TAB_ICONS[props.id]} class="size-4" />
       </ViewSidebar.Icon>
-      <span class="truncate">
-        {t(props.label ?? EMAIL_TAB_LABELS[props.id])}
-      </span>
+      <span class="truncate">{props.label ?? EMAIL_TAB_LABELS[props.id]}</span>
     </ViewSidebar.Item>
   );
 }
@@ -139,25 +144,25 @@ export function EmailNavigation(props: { onNavigate?: () => void }) {
           <ViewSidebar.Icon>
             <TrayIcon class="size-4" />
           </ViewSidebar.Icon>
-          <span class="truncate">{t('Inbox')}</span>
+          <span class="truncate">{t('viewMenus.inbox')}</span>
         </ViewSidebar.Item>
         <For each={PRIMARY_TAB_IDS.filter(isVisible)}>
           {(id) => <Tab id={id} onNavigate={props.onNavigate} />}
         </For>
       </ViewSidebar.Nav>
-      <section aria-label={t('Library')} class="shrink-0">
+      <section aria-label={t('viewMenus.library')} class="shrink-0">
         <h2 class="flex h-(--sidebar-row-height) items-center px-(--sidebar-item-inset) text-xs font-medium text-ink-muted">
-          {t('Library')}
+          {t('viewMenus.library')}
         </h2>
         <ViewSidebar.Nav
-          aria-label={t('Email library')}
+          aria-label="Email library"
           class="pt-(--sidebar-section-content-gap)"
         >
           <For each={LIBRARY_TAB_IDS}>
             {(id) => (
               <Tab
                 id={id}
-                label={id === 'all' ? t('All mail') : undefined}
+                label={id === 'all' ? 'All mail' : undefined}
                 onNavigate={props.onNavigate}
               />
             )}
@@ -202,22 +207,26 @@ export function EmailSidebar() {
   });
 
   return (
-    <ViewSidebar.Root aria-label={t('Email navigation')}>
+    <ViewSidebar.Root aria-label="Email navigation">
       <Show when={!isTouchDevice()}>
         <ViewSidebar.Header
-          searchLabel={t('Search email')}
-          search={() => (
-            <SearchBar
-              label={t('Search email')}
-              placeholder={t('Search email')}
-              value={state.search}
-              onValueChange={(search) => setState('search', search)}
-            />
-          )}
+          searchLabel="Search email"
+          search={
+            canSearchEmailTab(state.tab)
+              ? () => (
+                  <SearchBar
+                    label="Search email"
+                    placeholder="Search email"
+                    value={state.search}
+                    onValueChange={(search) => setState('search', search)}
+                  />
+                )
+              : undefined
+          }
         >
           <div class="flex min-w-0 items-center gap-1">
             <ViewSidebar.CloseButton class="shrink-0" />
-            <ViewSidebar.Title>{t('Email')}</ViewSidebar.Title>
+            <ViewSidebar.Title>Email</ViewSidebar.Title>
           </div>
         </ViewSidebar.Header>
       </Show>
@@ -225,7 +234,7 @@ export function EmailSidebar() {
       <Show when={!isTouchDevice()}>
         <ViewSidebar.Primary>
           <SidebarCreateButton
-            label={t('New email')}
+            label="New email"
             onCreate={() => composeEmail(openWithSplit, state.inboxIds)}
           />
         </ViewSidebar.Primary>
@@ -236,7 +245,7 @@ export function EmailSidebar() {
 
         <Show when={isTouchDevice()}>
           <SidebarCreateButton
-            label={t('New email')}
+            label="New email"
             onCreate={() => composeEmail(openWithSplit, state.inboxIds)}
           />
         </Show>

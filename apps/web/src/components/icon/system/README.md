@@ -87,7 +87,7 @@ Task statuses use independent `task-status-not-started`, `task-status-in-progres
 `task-status-in-review`, `task-status-completed`, and `task-status-canceled` theme
 tokens for icons and group-header tints. Their defaults are muted gray, blended
 amber, violet, accent, and muted gray respectively. In Progress mixes amber with
-`content-0` in sRGB: 80% amber in dark mode and 50% in light mode, improving contrast
+`content-0` in sRGB: 80% amber in dark mode and 85% in light mode, improving contrast
 without rotating amber toward a tinted foreground's hue. Authored overrides stay
 unchanged.
 Status and Priority option glyphs share a 12 px default, including title property
@@ -100,6 +100,9 @@ flex-shrink. Group-header carets use 16 px; hit targets stay unchanged.
 Prefer one recognizable silhouette and only the detail needed to identify its
 action. Chat variants share one bubble, task variants one checked square,
 people variants two figures. The CRM icon retains its stepped building silhouette.
+The connector plug stands upright: two prongs over a 13-unit rounded body and a
+short cord, filling the same optical area as its navigation neighbors; `plugs`
+shares the drawing.
 Office glyphs use two sparse rows of windows and a baseline to avoid a face-like
 appearance. Keep the selected calendar header open around its binding posts,
 quote heads closed with trailing tails, and the filter recognizable as a funnel.

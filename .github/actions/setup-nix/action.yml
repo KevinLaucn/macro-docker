@@ -43,6 +43,13 @@ inputs:
     description: Whether to fail the step if the S3 cache substituter cannot be verified. Default false.
     required: false
     default: 'false'
+  seed-cache:
+    description: >-
+      Namespace cache name holding a copy of /nix with the dev shell, restored
+      when the volume is empty. Its writers are PR jobs, so only PR check jobs
+      pass this, never jobs that deploy or hold deploy secrets. Empty disables.
+    required: false
+    default: ''
 
 outputs:
   teardown-required:
@@ -63,6 +70,8 @@ runs:
         NIX_CACHE_AWS_SESSION_TOKEN: ${{ inputs.aws-session-token }}
         NIX_CACHE_SIGNING_KEY: ${{ inputs.nix-cache-signing-key }}
         FAIL_ON_CACHE_ERROR: ${{ inputs.fail-on-cache-error }}
+        NIX_SEED_CACHE: ${{ inputs.seed-cache }}
+        NIX_SEED_KEY: ${{ hashFiles('flake.lock', 'flake.nix', 'nix/**', 'rust-toolchain.toml') }}
       run: |
         set -euo pipefail
 
@@ -263,6 +272,10 @@ runs:
             fi
           fi
         }
+
+        if [[ ! -x "$nix_bin" && -n "$NIX_SEED_CACHE" ]]; then
+          "$GITHUB_ACTION_PATH/nix_seed.sh" restore || echo "No Nix seed restored."
+        fi
 
         if [[ -x "$nix_bin" ]]; then
           # Store + profiles persist on the cache volume, but config, build

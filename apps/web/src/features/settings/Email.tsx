@@ -20,6 +20,7 @@ import {
   calendarConsentScopes,
   reconnectScopes,
 } from '@core/email-link/consent';
+import { OutlookBetaBadge } from '@core/email-link/OutlookBetaBadge';
 import type { EmailProvider } from '@core/email-link/ProviderDialog';
 import { fireAndForget } from '@core/util/fireAndForget';
 import { t } from '@macro/i18n';
@@ -73,7 +74,7 @@ export function useConnectInbox(): (provider?: EmailProvider) => void {
           toast.failure('New Outlook connections are temporarily unavailable.');
           return;
         }
-        await startAddInbox({ provider });
+        await span.run(() => startAddInbox({ provider }));
         span.setAttr('email.link.outcome', 'started');
       } finally {
         addingInbox = false;
@@ -289,6 +290,7 @@ export function EmailCard(props: { class?: string } = {}) {
               <IntegrationRow
                 icon={<OutlookIcon />}
                 title={t('Connect an Outlook account')}
+                badge={<OutlookBetaBadge />}
                 description={t('Sync an Outlook.com or Microsoft 365 inbox into Macro Email.')}
               >
                 <ConnectAction
@@ -502,11 +504,15 @@ function InboxRow(props: {
               <Chip label={t('Shared')} />
             </Show>
           </div>
-          <span class="text-xs text-ink-muted">
-            {props.link.provider === 'OUTLOOK'
-              ? 'Outlook / Microsoft 365'
-              : 'Gmail'}
-          </span>
+          <Show
+            when={props.link.provider === 'OUTLOOK'}
+            fallback={<span class="text-xs text-ink-muted">Gmail</span>}
+          >
+            <span class="flex items-center gap-2 text-xs text-ink-muted">
+              Outlook / Microsoft 365
+              <OutlookBetaBadge />
+            </span>
+          </Show>
           <Show when={ENABLE_INBOX_SYNC_STATUS}>
             <Switch
               fallback={

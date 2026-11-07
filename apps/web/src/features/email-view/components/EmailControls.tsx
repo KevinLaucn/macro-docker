@@ -34,7 +34,6 @@ const focusSortOptions = () =>
             );
           },
   }));
-
 export type EmailControlsProps = {
   /** Controlled filter-menu state, so the header's `f` hotkey can open it. */
   filterOpen?: boolean;

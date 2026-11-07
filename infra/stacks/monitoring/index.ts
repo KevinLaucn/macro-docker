@@ -21,12 +21,16 @@ import './goalert';
 import './monitors/ai-editing';
 import './monitors/calls';
 import './monitors/graphql-soup';
+import './monitors/harness-presence';
 import './monitors/macrodb';
+import './monitors/outlook-sync';
 import './monitors/queues';
 import './monitors/redis';
 import './monitors/regressions';
 import './monitors/whatsapp-session';
 import { notificationRetentionDashboard } from './monitors/notification-retention';
+import { webPerformanceDashboard } from './dashboards/web-performance';
 
 export const notificationRetentionDashboardUrl =
   notificationRetentionDashboard.url;
+export const webPerformanceDashboardUrl = webPerformanceDashboard.url;

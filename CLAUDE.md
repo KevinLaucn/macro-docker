@@ -50,12 +50,15 @@ Real files live in `.agents/`; tool-specific directories only symlink to it.
 | --- | --- |
 | Reusing database storage or separating it from an app entity | [Database core skill](.agents/skills/database-core/SKILL.md) |
 | Adding collaborative markdown to a feature | [Collab surface core skill](.agents/skills/collab-surface-core/SKILL.md) |
-| Adding a flow or hot path, or tracing one | `instrumentation` skill |
+| Editing frontend or backend code that adds a flow, view, or hot path, or tracing one | `instrumentation` skill |
+| Finding slow web or desktop app flows in Datadog | `perf-investigation` skill |
+| Adding, reading or removing a feature flag (web or backend) | `feature-flags` skill |
 | Rust code, builds, or tests | [Rust development](docs/development/rust.md) |
 | SQLx queries, migrations, DB tests, or cache errors | [Database development](docs/development/database.md) |
 | Web frontend | [Web agent guide](apps/web/AGENTS.md) |
 | iOS App Store releases, breaking Tauri changes, native build floors | [iOS releases](apps/web/docs/ios-releases.md) |
 | Android Play releases from pull requests | [Android development](docs/development/android.md) |
+| Running CI on a pull request | [CI on pull requests](docs/development/ci.md), `run-ci` skill |
 | Email body rendering or snapshots | [Standalone renderer](packages/email-renderer/README.md) |
 | Running the frontend or backend on a local machine | [Running locally](docs/development/running-locally.md) |
 | Giving the user a local preview link | `local-preview` skill |
@@ -78,6 +81,7 @@ Real files live in `.agents/`; tool-specific directories only symlink to it.
   per-fix confirmation.
 - Keep each feature's development, validation, and local preview on one branch/worktree.
 - Flag real risks; once the user decides, act on it.
+- When the user gives improvement advice that applies beyond the current task, update the agent guidance it belongs in, in the same change (see **Keeping guidance current**).
 - Disagree when they're wrong. No flattery.
 - Answer simple questions directly.
 - For UI work, ask how it should behave on mobile unless that's obvious.
@@ -119,8 +123,11 @@ Real files live in `.agents/`; tool-specific directories only symlink to it.
   reads it too.
 - Open pull requests ready for review. If one is created as a draft, mark it
   ready for review before handing off.
-- Get CI passing before handing off. A pull request whose checks are failing
-  or still running is not done.
+- Run CI deliberately with the `run-ci` label (`run-ci` skill): at a
+  checkpoint, a coherent locally tested chunk you want real CI on before
+  building further, or when you think the PR is done. Never after every push,
+  and never instead of local checks. A PR is done only when `CI gate` passes on
+  its latest commit.
 - Test the affected packages/services individually before committing. Use the
   relevant guide for setup; there is no root `just test` recipe.
 - For code changes, run `just check` (format/lint/code rules scoped to changes).

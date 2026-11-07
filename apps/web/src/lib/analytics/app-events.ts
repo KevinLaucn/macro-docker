@@ -96,15 +96,23 @@ export type AppEvents = {
   onboarding_v4_connector_connected: { connector: string };
   /** What happened on the team step. */
   onboarding_v4_team: {
-    action: 'created' | 'joined_invite' | 'already_on_team';
+    action:
+      | 'created'
+      | 'joined_invite'
+      | 'already_on_team'
+      | 'invite_link_copied'
+      | 'referrals_sent'
+      | 'referral_link_copied';
     invites_sent?: number;
     /** Same-domain teammates the step pre-added to the invite list. */
     invites_prefilled?: number;
     /** How many of those the user removed before creating the team. */
     invites_removed?: number;
     used_domain_suggestion?: boolean;
-    /** Whether people on the work domain may join, which also sends the notice. */
+    /** Whether people on the work domain may join. */
     allow_domain_join?: boolean;
+    /** Whether the domain notice was requested; only with domain join. */
+    notify_domain?: boolean;
   };
   /**
    * The flow finished (free, premium, or plan skipped) with a rollup of
@@ -151,7 +159,8 @@ export type AppEvents = {
   hotkey_use: Record<string, unknown>;
   mentions_menu_use: { itemType: string };
   snippets_menu_use: Record<string, unknown>;
-  split_created: { from: string };
+  /** `side` is where a split opened beside another; absent, it opened at the end. */
+  split_created: { from: string; side?: 'left' | 'right' | 'above' | 'below' };
 
   // --- Entity lifecycle ----------------------------------------------------
   // Fired at data-layer chokepoints (core/util/create.ts, FileList
@@ -253,6 +262,27 @@ export type AppEvents = {
   channel_reaction: {
     emoji: string;
     action: 'add' | 'remove';
+  };
+
+  // In-product tutorial videos (the pinned row at the top of an inbox).
+  tutorial_video: {
+    /** `macro-<id>` for each id in features/video-tutorials/core/tutorial-id.ts. */
+    tutorial:
+      | 'macro-mail'
+      | 'macro-home'
+      | 'macro-chat'
+      | 'macro-tasks'
+      | 'macro-docs'
+      | 'macro-drive'
+      | 'macro-crm'
+      | 'macro-calendar'
+      | 'macro-calls'
+      | 'macro-agents'
+      | 'macro-github'
+      | 'macro-scheduling'
+      | 'macro-whatsapp';
+    /** `support_clicked`: the dialog's "Talk to us" link under the video. */
+    action: 'opened' | 'played' | 'dismissed' | 'support_clicked';
   };
 
   // --- Calls ---------------------------------------------------------------
@@ -365,14 +395,14 @@ export type AppEvents = {
 
   // --- CRM -----------------------------------------------------------------
   crm_company_created: { companyId: string };
-  crm_contact_created: { companyId: string; contactId: string };
+  crm_contact_created: { companyId?: string; contactId: string };
   /**
    * A committed pipeline write: inserted rows are entries added, updated
    * rows include stage moves and other cell edits.
    */
   crm_pipeline_entries_edited: {
     pipelineId: string;
-    recordType?: 'company' | 'contact';
+    recordType?: 'company' | 'contact' | 'generic';
     /** The pipeline editor or the record page's pipeline cards. */
     surface: 'pipeline' | 'record';
     insertedRows: number;
@@ -387,13 +417,14 @@ export type AppEvents = {
     routineId?: string;
     source: 'new' | 'duplicate';
     triggerType: string;
-    targetKind?: 'agent' | 'model';
+    /** A single agent's model or agent, or `steps` for a routine with steps. */
+    targetKind?: 'agent' | 'model' | 'steps';
   };
   /** A manual Run now the server accepted, not the run's outcome. */
   routine_run: {
     routineId: string;
     trigger: 'manual';
-    targetKind?: 'agent' | 'model';
+    targetKind?: 'agent' | 'model' | 'steps';
   };
 };
 

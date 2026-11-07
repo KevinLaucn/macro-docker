@@ -78,10 +78,7 @@ fn other_user() -> MacroUserIdStr<'static> {
 
 async fn create_routine(actions: &TestService) -> Uuid {
     actions
-        .create_action(
-            &CreationPrincipal::User(user()),
-            CreateScheduledAction::Canonical(configuration(false)),
-        )
+        .create_action(&CreationPrincipal::User(user()), configuration(false))
         .await
         .unwrap()
         .id
@@ -122,12 +119,41 @@ async fn sharing_snapshots_the_routine_and_activation_points_back_at_it() {
         .activate_template(
             &CreationPrincipal::User(other_user()),
             id,
-            CreateScheduledAction::Canonical(configuration(false)),
+            configuration(false),
         )
         .await
         .unwrap();
     assert_eq!(activated.template_id, Some(id));
     assert!(activated.owner.is_user(&other_user()));
+}
+
+#[tokio::test]
+async fn a_shared_routine_never_operates_as_whoever_activates_it() {
+    let actions = service(false);
+    let templates = templates(&actions);
+    let mut routine = configuration(false);
+    routine.task = serde_json::json!({
+        "steps": [{ "type": "agent", "model": "model", "instructions": "Summarize" }],
+        "dangerously_operate_as_user": true,
+    });
+    let id = actions
+        .create_action(&CreationPrincipal::User(user()), routine)
+        .await
+        .unwrap()
+        .id
+        .unwrap();
+
+    let shared = templates
+        .share_template(owner_receipt(user(), id), share_input())
+        .await
+        .unwrap();
+
+    assert_eq!(
+        shared.task,
+        serde_json::json!({
+            "steps": [{ "type": "agent", "model": "model", "instructions": "Summarize" }],
+        })
+    );
 }
 
 #[tokio::test]
@@ -178,7 +204,7 @@ async fn activating_an_unshared_routine_creates_nothing() {
         .activate_template(
             &CreationPrincipal::User(other_user()),
             id,
-            CreateScheduledAction::Canonical(configuration(false)),
+            configuration(false),
         )
         .await
         .unwrap_err();
@@ -233,7 +259,7 @@ async fn disabled_missing_or_failed_flags_block_templates_but_preserve_routines_
             .activate_template(
                 &CreationPrincipal::User(other_user()),
                 id,
-                CreateScheduledAction::Canonical(configuration(false)),
+                configuration(false),
             )
             .await
             .unwrap();
@@ -256,7 +282,7 @@ async fn disabled_missing_or_failed_flags_block_templates_but_preserve_routines_
                 .activate_template(
                     &CreationPrincipal::User(other_user()),
                     id,
-                    CreateScheduledAction::Canonical(configuration(false)),
+                    configuration(false),
                 )
                 .await
                 .unwrap_err(),
@@ -327,7 +353,7 @@ async fn templates_use_the_viewer_and_activating_users_rollout() {
                     user: other_user()
                 },
                 id,
-                CreateScheduledAction::Canonical(configuration(false)),
+                configuration(false),
             )
             .await
             .is_err()

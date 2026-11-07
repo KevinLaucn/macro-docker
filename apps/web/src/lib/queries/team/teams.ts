@@ -17,7 +17,7 @@ import { TeamRole } from '@service-auth/generated/schemas/teamRole';
 import type { TeamWithMembers } from '@service-auth/generated/schemas/teamWithMembers';
 import type { ToggleAutoJoinDomainResponse } from '@service-auth/generated/schemas/toggleAutoJoinDomainResponse';
 import type { ToggleNonAdminInvitesResponse } from '@service-auth/generated/schemas/toggleNonAdminInvitesResponse';
-import { useMutation, useQuery } from '@tanstack/solid-query';
+import { queryOptions, useMutation, useQuery } from '@tanstack/solid-query';
 import type { Accessor } from 'solid-js';
 import { authKeys } from '../auth';
 import { queryClient } from '../client';
@@ -33,11 +33,14 @@ function fetchTeam() {
   return throwOnErr(() => authServiceClient.getTeam());
 }
 
-export function useUserTeamsQuery() {
-  return useQuery(() => ({
+export const userTeamsQueryOptions = () =>
+  queryOptions({
     queryKey: teamKeys.userTeams.queryKey,
     queryFn: fetchUserTeams,
-  }));
+  });
+
+export function useUserTeamsQuery() {
+  return useQuery(userTeamsQueryOptions);
 }
 
 export function useTeamQuery(teamId: Accessor<string>) {
@@ -60,18 +63,19 @@ export function useCurrentTeamQuery(enabled?: Accessor<boolean>) {
 
 /**
  * Reactive boolean: true iff the current user has admin or owner team
- * role. Drives admin-gated UI (e.g. the companies → hidden tab and the
- * detail-page Hide button).
+ * role. When a team id is supplied, it must match that team. Drives
+ * admin-gated UI (e.g. the companies → hidden tab and detail-page Hide button).
  */
-export function useIsTeamAdmin(): Accessor<boolean> {
+export function useIsTeamAdmin(): (teamId?: string) => boolean {
   const userId = useUserId();
   const teamQuery = useCurrentTeamQuery();
-  return () => {
+  return (teamId) => {
     const uid = userId();
     if (!uid) return false;
     if (!queryReadyGate(teamQuery)) return false;
     const team = teamQuery.data;
     if (!team) return false;
+    if (teamId !== undefined && team.team.id !== teamId) return false;
     const member = team.members.find((m) => m.user_id === uid);
     return member?.role === TeamRole.admin || member?.role === TeamRole.owner;
   };
@@ -358,12 +362,30 @@ export function useDeleteTeamMutation(callbacks?: DeleteTeamCallbacks) {
 type CreateTeamWithInvitesArgs = {
   name: string;
   invites?: { email: string }[];
-  /** Whether people on the owner's work domain join automatically. When
-   * explicitly `true`, the owner's same-domain contacts are also told the
-   * team exists. Omitted keeps the server default without the notice. */
+  /** Whether people on the owner's work domain join automatically. Omitted
+   * keeps the server default. */
   allowDomainJoin?: boolean;
+  /** Whether to email the owner's same-domain contacts that the team exists.
+   * Sent only when `allowDomainJoin` is also `true` and the team got an
+   * auto-join domain; the server sends nothing to a team without one. */
+  notifyDomain?: boolean;
 };
 type CreateTeamWithInvitesContext = { previousTeams: Team[] | undefined };
+
+/** The domain notice goes out only when both domain join and the notice were
+ * explicitly chosen and the server gave the team an auto-join domain (a
+ * personal email domain gets none). The server also sends nothing without
+ * one; checking here skips a request that can't send anything. */
+export function shouldSendDomainNotice(
+  args: Pick<CreateTeamWithInvitesArgs, 'allowDomainJoin' | 'notifyDomain'>,
+  team: Pick<Team, 'auto_join_domain'>
+): boolean {
+  return (
+    args.allowDomainJoin === true &&
+    args.notifyDomain === true &&
+    !!team.auto_join_domain
+  );
+}
 type CreateTeamWithInvitesCallbacks = MutationCallbacks<
   Team,
   Error,
@@ -379,6 +401,7 @@ export function useCreateTeamWithInvitesMutation(
       name,
       invites,
       allowDomainJoin,
+      notifyDomain,
     }: CreateTeamWithInvitesArgs) => {
       const team = await throwOnErr(() =>
         authServiceClient.createTeam({
@@ -393,7 +416,7 @@ export function useCreateTeamWithInvitesMutation(
 
       // After the invites, so invitees aren't also sent the notice. The
       // team already exists, so a failed notice doesn't fail creation.
-      if (allowDomainJoin === true && team.auto_join_domain) {
+      if (shouldSendDomainNotice({ allowDomainJoin, notifyDomain }, team)) {
         const notice = await catchToResult(() =>
           throwOnErr(() => authServiceClient.sendTeamDomainNotice())
         );

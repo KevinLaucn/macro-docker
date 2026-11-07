@@ -18,7 +18,8 @@ const session: AgentSessionResponse = {
   model: 'claude-sonnet',
   modifiedAt: '2026-08-24T12:00:00Z',
   name: 'Agent Session',
-  isArchived: false,
+  archivedBy: null,
+  archivedAt: null,
   ownerId: 'macro|owner@example.com',
   sandboxSize: 'default',
   status: { kind: 'no_messages' },
@@ -167,7 +168,7 @@ describe('AgentSession', () => {
           .status(),
     ]) {
       await expect(read()).rejects.toMatchObject({
-        name: 'MacroApiError',
+        name: 'MacroForbiddenError',
         status: 403,
         data: { message: 'Forbidden' },
       });
@@ -215,8 +216,49 @@ describe('AgentSession', () => {
       `https://agent.example.test/agent-sessions/${sessionId}/archived`,
       `https://agent.example.test/agent-sessions/${sessionId}/archived`,
     ]);
-    await expect(requests[0]?.json()).resolves.toEqual({ isArchived: true });
-    await expect(requests[1]?.json()).resolves.toEqual({ isArchived: false });
+    await expect(requests[0]?.json()).resolves.toEqual({ archived: true });
+    await expect(requests[1]?.json()).resolves.toEqual({ archived: false });
+  });
+
+  test('registers, unregisters, and lists work as entity handles', async () => {
+    const registration = {
+      id: '0198a4cc-e138-7670-a308-a6b766602702',
+      accountId: 'macro|agent@example.com',
+      agentSessionId: sessionId,
+      registeredAt: '2026-08-24T12:00:00Z',
+    };
+    const requests: Request[] = [];
+    globalThis.fetch = (async (input) => {
+      const request = input instanceof Request ? input : new Request(input);
+      requests.push(request);
+      if (request.method === 'DELETE') {
+        return new Response(null, { status: 204 });
+      }
+      return Response.json(
+        request.method === 'PUT' ? registration : [registration],
+      );
+    }) as typeof fetch;
+    const macro = new Macro({
+      token: 'user-token',
+      hosts: { 'agent-harness': 'https://agent.example.test' },
+    });
+    const agentSession = macro.agentSessions.byId(sessionId);
+
+    const registered = await agentSession.registerAsWork();
+    await agentSession.unregisterAsWork();
+    const [listed] = await macro.agentSessions.registeredWork();
+
+    expect(registered.session.id).toBe(sessionId);
+    expect(registered.account.id).toBe('macro|agent@example.com');
+    expect(registered.registeredAt).toBe('2026-08-24T12:00:00Z');
+    expect(listed?.session.id).toBe(sessionId);
+    expect(
+      requests.map((request) => `${request.method} ${request.url}`),
+    ).toEqual([
+      `PUT https://agent.example.test/agent-sessions/${sessionId}/work-registration`,
+      `DELETE https://agent.example.test/agent-sessions/${sessionId}/work-registration`,
+      'GET https://agent.example.test/agent-work-registrations',
+    ]);
   });
 
   test('resizes a session sandbox through the agent-harness service', async () => {
@@ -384,7 +426,12 @@ describe('AgentSession', () => {
     });
 
     const created = await macro.agentSessions.createManaged({
+      agent: macro.agents.byId(session.botId),
       prompt: 'Fix it',
+      instructions: 'Prefer small diffs.',
+      model: 'claude-sonnet',
+      repoUrl: 'https://github.com/org/project',
+      repoBranch: 'main',
     });
     await expect(created.name()).resolves.toBe('Agent Session');
     await expect(created.control({ type: 'stop' })).resolves.toEqual({
@@ -400,6 +447,89 @@ describe('AgentSession', () => {
       'GET',
       'DELETE',
     ]);
+    await expect(requests[0]?.json()).resolves.toEqual({
+      botId: session.botId,
+      prompt: 'Fix it',
+      instructions: 'Prefer small diffs.',
+      model: 'claude-sonnet',
+      repoUrl: 'https://github.com/org/project',
+      repoBranch: 'main',
+    });
+  });
+
+  test('createManaged omits botId when no persona is named', async () => {
+    let body: unknown;
+    globalThis.fetch = (async (input) => {
+      const request = input instanceof Request ? input : new Request(input);
+      if (
+        request.method === 'POST' &&
+        request.url.endsWith('/agent-sessions')
+      ) {
+        body = await request.json();
+        return Response.json({ session }, { status: 201 });
+      }
+      return new Response(null, { status: 200 });
+    }) as typeof fetch;
+    const macro = new Macro({
+      token: 'user-token',
+      hosts: { 'agent-harness': 'https://agent.example.test' },
+    });
+
+    await macro.agentSessions.createManaged({
+      prompt: 'Fix it',
+      repoUrl: 'https://github.com/org/project',
+    });
+
+    expect(body).toEqual({
+      prompt: 'Fix it',
+      repoUrl: 'https://github.com/org/project',
+    });
+  });
+
+  test('names the reason a create was refused', async () => {
+    globalThis.fetch = (async (_input) =>
+      new Response(
+        'repoUrl needs a Cursor coding agent; choose a Cursor agent persona or omit repoUrl',
+        { status: 422, headers: { 'content-type': 'text/plain' } },
+      )) as typeof fetch;
+    const macro = new Macro({
+      token: 'user-token',
+      hosts: { 'agent-harness': 'https://agent.example.test' },
+    });
+
+    await expect(
+      macro.agentSessions.createManaged({
+        agent: macro.agents.byId(session.botId),
+        repoUrl: 'https://github.com/macro-inc/macro',
+      }),
+    ).rejects.toMatchObject({
+      name: 'MacroApiError',
+      status: 422,
+      message:
+        'Macro API error 422: repoUrl needs a Cursor coding agent; choose a Cursor agent persona or omit repoUrl',
+    });
+  });
+
+  test('a created session serializes with its web app link', async () => {
+    globalThis.fetch = (async (_input) =>
+      Response.json({ session }, { status: 201 })) as typeof fetch;
+    const macro = new Macro({
+      token: 'user-token',
+      hosts: { 'agent-harness': 'https://agent.example.test' },
+      webAppUrl: 'https://app.example.test',
+    });
+
+    const created = await macro.agentSessions.createManaged({
+      prompt: 'Fix it',
+    });
+
+    expect(created.webUrl()).toBe(
+      'https://app.example.test/app/agent/0198a4cc-e138-7670-a308-a6b766602700',
+    );
+    expect(JSON.parse(JSON.stringify(created))).toMatchObject({
+      id: '0198a4cc-e138-7670-a308-a6b766602700',
+      url: 'https://app.example.test/app/agent/0198a4cc-e138-7670-a308-a6b766602700',
+    });
   });
 
   test('prompt is sugar over control and reports queueing', async () => {
@@ -441,6 +571,7 @@ describe('AgentSession', () => {
     const messages: FoldedMessage[] = [
       {
         agentSessionId: sessionId,
+        key: '0:agent',
         turn: 0,
         author: { kind: 'agent' },
         requestId: null,
@@ -532,4 +663,65 @@ describe('AgentSession', () => {
       `https://agent.example.test/agent-sessions/${sessionId}/queue/${actionId}`,
     );
   });
+});
+
+test('session activity keeps invocation filters and lazily advances its cursor', async () => {
+  const requests: URL[] = [];
+  const invocationId = '0198a4cc-e138-7670-a308-a6b766602709';
+  const timestamp = '2026-11-05T12:00:00Z';
+  globalThis.fetch = (async (input) => {
+    const request = input instanceof Request ? input : new Request(input);
+    requests.push(new URL(request.url));
+    return Response.json({
+      activities: [
+        {
+          id: `row-${requests.length}`,
+          agent_correlation_id: invocationId,
+          actor_id: 'bot|0198a4cc-e138-7670-a308-a6b766602701',
+          subject_id: 'macro|owner@example.com',
+          entity_type: 'document',
+          entity_id: 'document-fixture',
+          action: 'edited',
+          action_payload: null,
+          occurred_at: timestamp,
+        },
+      ],
+      nextCursor:
+        requests.length === 1 ? { occurredAt: timestamp, id: 'row-1' } : null,
+    });
+  }) as typeof fetch;
+  const macro = new Macro({
+    token: 'fixture',
+    hosts: { 'agent-harness': 'https://agent.example.test' },
+  });
+  const session = macro.agentSessions.byId(sessionId);
+  const invocation = session.invocations.byId(invocationId);
+  const activity = invocation.activity({ limit: 1 });
+  expect(requests).toHaveLength(0);
+  const first = await activity.next();
+  expect(first.value?.invocation?.id).toBe(invocationId);
+  expect(requests).toHaveLength(1);
+  const second = await activity.next();
+  expect(second.value?.snapshot.id).toBe('row-2');
+  expect((await activity.next()).done).toBe(true);
+  expect(requests).toHaveLength(2);
+  expect(
+    requests.every(
+      (url) => url.searchParams.get('agentCorrelationId') === invocationId,
+    ),
+  ).toBe(true);
+  expect(requests[1].searchParams.get('beforeAt')).toBe(timestamp);
+  expect(requests[1].searchParams.get('beforeId')).toBe('row-1');
+  expect(JSON.stringify(invocation)).not.toContain('fixture');
+});
+
+test('session activity rejects another session invocation without a request', () => {
+  const macro = new Macro({ token: 'fixture' });
+  const session = macro.agentSessions.byId(sessionId);
+  const foreign = macro.agentSessions
+    .byId('other')
+    .invocations.byId('invocation');
+  expect(() => session.activity({ invocation: foreign })).toThrow(
+    'must belong to this session',
+  );
 });

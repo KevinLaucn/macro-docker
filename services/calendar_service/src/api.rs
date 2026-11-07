@@ -25,12 +25,19 @@ const GATEWAY_PATH_PREFIX: &str = "/calendar";
 pub async fn setup_and_serve(state: ApiContext) -> anyhow::Result<()> {
     let env = state.config.environment;
     let port = state.config.port;
-    let traced_api = api_router(state.clone()).with_state(state).layer(
-        ServiceBuilder::new()
-            .layer(TraceLayer::new_for_http())
-            .layer(macro_cors::cors_layer())
-            .layer(CompressionLayer::new().gzip(true)),
-    );
+    let correlation = state.correlation.clone();
+    let traced_api = api_router(state.clone())
+        .with_state(state)
+        .layer(axum::middleware::from_fn_with_state(
+            correlation,
+            agent_correlation::inbound::propagate,
+        ))
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http())
+                .layer(macro_cors::cors_layer())
+                .layer(CompressionLayer::new().gzip(true)),
+        );
     let health = crate::health::router();
     let app = mount_at_root_and_prefix(traced_api.merge(health)).merge(swagger_ui());
 
@@ -64,13 +71,6 @@ fn swagger_ui() -> Router {
 }
 
 fn api_router(state: ApiContext) -> Router<ApiContext> {
-    let notes = calendar_events::inbound::notes_router::notes_router(
-        calendar_events::inbound::notes_router::NotesRouterState::new(
-            state.calendar_notes.clone(),
-            state.note_access.clone(),
-            state.authorization_state.clone(),
-        ),
-    );
     let team_settings = calendar_events::inbound::team_router::team_calendar_settings_router(
         calendar_events::inbound::team_router::CalendarTeamRouterState::new(
             state.calendar_team_service.clone(),
@@ -81,7 +81,6 @@ fn api_router(state: ApiContext) -> Router<ApiContext> {
     // provider write would never be reflected locally.
     if state.config.calendar_sync_enabled {
         calendar_watch::router()
-            .merge(notes)
             .merge(team_settings)
             .nest(
                 "/scheduling",
@@ -104,6 +103,6 @@ fn api_router(state: ApiContext) -> Router<ApiContext> {
                 state.authorization_state.clone(),
             )))
     } else {
-        calendar_watch::router().merge(team_settings).merge(notes)
+        calendar_watch::router().merge(team_settings)
     }
 }

@@ -1,7 +1,9 @@
 import '@fontsource-variable/inter';
 import '../../../../index.css';
+import { ComposerAddDrawer } from '@app/features/channel/Input/ComposerAddMenu';
 import { MobileSettingsSheet } from '@app/features/settings/MobileSettingsSheet';
 import { SettingsPage, SettingsRow } from '@app/features/settings/primitives';
+import { t } from '@app/lib/i18n';
 import { toast } from '@core/component/Toast/Toast';
 import { ToastRegion } from '@core/component/Toast/ToastRegion';
 import type { SettingsTab } from '@core/constant/SettingsState';
@@ -315,6 +317,38 @@ function DiscardScenario() {
   );
 }
 
+/** The composer's +, the sheet the focus ring was reported on. */
+function MenuScenario() {
+  const [open, setOpen] = createSignal(true);
+  let editor: HTMLDivElement | undefined;
+  const item = (id: string, label: string) => ({
+    id,
+    label,
+    icon: <span aria-hidden="true">+</span>,
+    onSelect: () => press(label),
+  });
+  return (
+    <>
+      <div ref={editor} contenteditable class="fixed bottom-2 left-4 text-xs" />
+      <ComposerAddDrawer
+        open={open()}
+        onOpenChange={setOpen}
+        getEditor={() => editor}
+        groups={[
+          {
+            items: [
+              { ...item('mention', 'Mention'), focusesEditor: true },
+              item('files', 'Attach files'),
+              item('gif', 'GIF'),
+            ],
+          },
+          { items: [item('task', 'New task'), item('poll', 'New poll')] },
+        ]}
+      />
+    </>
+  );
+}
+
 /**
  * Shaped like a task's Properties sheet: rows down to its bottom edge, where
  * the phone prompt sits, and a picker stacked on it, searching from the same
@@ -326,7 +360,10 @@ function PersistentPromptScenario() {
   onMount(() => {
     toast.custom(
       {
-        title: 'Enable Browser Notifications',
+        title: 'Enable notifications',
+        dismissLabel: t('common.notNow'),
+        content: () =>
+          'Get notified about new messages, mentions, comments, and emails.',
         actions: [{ label: 'Enable', onClick: () => press('Enable') }],
       },
       { persistent: true, region: 'mobile-prompt-region' }
@@ -381,6 +418,71 @@ function PersistentPromptScenario() {
   );
 }
 
+/** Shaped like the repository picker: a sheet opened to type a search into. */
+function TypingScenario() {
+  const [open, setOpen] = createSignal(true);
+  return (
+    <MobileDrawer side="bottom" open={open()} onOpenChange={setOpen}>
+      <MobileDrawer.Portal>
+        <MobileDrawer.Overlay />
+        <MobileDrawer.Content aria-label="Choose a repository">
+          <MobileDrawer.Handle />
+          <input
+            aria-label="Search repositories"
+            class="mx-4 mb-2 h-9 bg-transparent outline-none"
+          />
+          <MobileDrawer.ScrollBody>
+            <MobileDrawer.Section class="flex flex-col">
+              <MobileDrawer.Item onClick={() => press('macro')}>
+                macro
+              </MobileDrawer.Item>
+            </MobileDrawer.Section>
+          </MobileDrawer.ScrollBody>
+        </MobileDrawer.Content>
+      </MobileDrawer.Portal>
+    </MobileDrawer>
+  );
+}
+
+/** Shaped like the model picker: the field it opens for is named explicitly. */
+function SearchScenario() {
+  const [open, setOpen] = createSignal(true);
+  const [search, setSearch] = createSignal<HTMLInputElement>();
+  return (
+    <MobileDrawer
+      side="bottom"
+      open={open()}
+      onOpenChange={setOpen}
+      initialFocusEl={search()}
+    >
+      <MobileDrawer.Portal>
+        <MobileDrawer.Overlay />
+        <MobileDrawer.Content aria-label="Choose a model">
+          <MobileDrawer.Handle />
+          {/* Behind the Back row, so only the named target can focus it. */}
+          <div class="flex items-center gap-2 px-4 pb-2">
+            <Button variant="ghost" onClick={() => press('Back')}>
+              Back
+            </Button>
+            <input
+              ref={setSearch}
+              aria-label="Search models"
+              class="h-9 min-w-0 flex-1 bg-transparent outline-none"
+            />
+          </div>
+          <MobileDrawer.ScrollBody>
+            <MobileDrawer.Section class="flex flex-col">
+              <MobileDrawer.Item onClick={() => press('Sonnet')}>
+                Sonnet
+              </MobileDrawer.Item>
+            </MobileDrawer.Section>
+          </MobileDrawer.ScrollBody>
+        </MobileDrawer.Content>
+      </MobileDrawer.Portal>
+    </MobileDrawer>
+  );
+}
+
 function Fixture() {
   const scenario = new URLSearchParams(location.search).get('scenario');
   return (
@@ -409,6 +511,15 @@ function Fixture() {
         </Match>
         <Match when={scenario === 'uncontrolled'}>
           <UncontrolledScenario />
+        </Match>
+        <Match when={scenario === 'menu'}>
+          <MenuScenario />
+        </Match>
+        <Match when={scenario === 'typing'}>
+          <TypingScenario />
+        </Match>
+        <Match when={scenario === 'search'}>
+          <SearchScenario />
         </Match>
       </Switch>
       <ImperativeDialogHost />

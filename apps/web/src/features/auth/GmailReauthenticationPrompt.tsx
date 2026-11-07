@@ -1,15 +1,18 @@
+import { t } from '@app/lib/i18n';
 import { useKeyedPersistentToasts } from '@core/component/Toast/useKeyedPersistentToasts';
 import { useAddInboxFlow } from '@core/email-link';
 import { reconnectScopes } from '@core/email-link/consent';
 import { fireAndForget } from '@core/util/fireAndForget';
-import { t } from '@macro/i18n';
+import ArrowCounterClockwise from '@icon/system/regular/arrow-counter-clockwise.svg?component-solid';
+import CalendarIcon from '@icon/system/regular/calendar.svg';
+import EnvelopeIcon from '@icon/system/regular/envelope.svg';
 import {
   useEmailLinksQuery,
   useInboxHealthProbeQuery,
 } from '@queries/email/link';
 
 /**
- * Surfaces a per-inbox "Reconnect Gmail" prompt for every linked inbox whose grant
+ * Surfaces a scope-specific reconnect prompt for every linked inbox whose grant
  * has died, driven by `needs_reauth` from the (already polled) links list. Because
  * the links list includes delegated/shared inboxes, a shared inbox's prompt fans
  * out to every sharer automatically. Replaces the old mount-once, primary-only
@@ -32,14 +35,22 @@ export function GmailReauthenticationPrompt() {
     toast: (link, dismiss) => ({
       title:
         reconnectScopes(link) === 'gmail_and_calendar'
-          ? t('Reconnect email and calendar')
-          : t('Reconnect inbox'),
+          ? 'Reconnect email and calendar'
+          : 'Reconnect inbox',
+      icon:
+        reconnectScopes(link) === 'gmail_and_calendar'
+          ? CalendarIcon
+          : EnvelopeIcon,
+      color: 'var(--color-failure)',
+      titleColor: 'var(--color-failure)',
+      dismissLabel: t('common.maybeLater'),
       content(): string {
         return `Sync stopped for ${link.email_address}. Reconnect to restore ${reconnectScopes(link) === 'gmail_and_calendar' ? 'email and calendar' : 'email'} sync.`;
       },
       actions: [
         {
-          label: t('Reconnect'),
+          label: 'Reconnect',
+          icon: ArrowCounterClockwise,
           onClick: () => {
             // Suppress re-prompting until the inbox recovers; on native the page
             // stays mounted while the OAuth flow runs.

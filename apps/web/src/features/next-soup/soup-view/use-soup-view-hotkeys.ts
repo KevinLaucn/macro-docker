@@ -4,7 +4,6 @@ import { CommandState } from '@app/features/command/state';
 import { VIEW_TAB_PRESETS } from '@app/features/next-soup/sidebar/soup-filter-presets';
 import {
   markChannelNotificationsSeenOnOpen,
-  markRowNotificationsSeenOnOpen,
   openEntityInSplitFromUnifiedList,
 } from '@app/features/next-soup/utils';
 import { useAnalytics } from '@app/lib/analytics/analytics-context';
@@ -26,6 +25,7 @@ import {
 import { createEmailListTranslationHotkey } from '@macro/email-translation';
 import { Telemetry } from '@macro-inc/observability';
 import { openSingleStackNotification } from '@notifications';
+import { markRowNotificationsSeenOnOpen } from '@notifications/mark-row-seen';
 import { type Accessor, onCleanup } from 'solid-js';
 import type { VirtualizerHandle } from 'virtua/solid';
 import type { SoupState } from '../create-soup-state';

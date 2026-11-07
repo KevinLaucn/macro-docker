@@ -59,7 +59,9 @@ may import a block package, `@core/block`, or block-related signal modules.
   supplied contexts. It imports no production entry point for a nested
   message or composer.
 - `email-compose/email-compose.tsx` supplies the production compose context and split-host
-  callbacks to `views/email-compose.tsx`. Inline replies use
+  callbacks to `views/email-compose.tsx`. Desktop mounts it in the Email view's
+  `mail-compose` route (`email-view/components/EmailComposeRouteView.tsx`);
+  touch keeps the `email-compose` component split. Inline replies use
   `views/reply-input.tsx` with explicit capabilities and a reply session.
   `email-thread/views/thread-reply-input.tsx` owns the keyed reply lifetime;
   `email-compose/primitives/reply-composer.ts` owns the compose workflow.
@@ -551,7 +553,13 @@ and permits restoration. Timeouts, mixed/nested errors, and later status rejecti
 never provide that proof. Retry backoff and authentication
 pauses do not discard approval. `email-send-restoration.ts` restores content,
 fences the prior local lifetime, and retires send authority atomically. Newer
-local edits and file bytes survive restoration. Sign-out retains approved sends
+local edits and file bytes survive restoration. Removing a sent intent keeps the
+working-copy generation and revision it carried under the draft's IDs. A composer
+in another tab that sees the draft sent compares that version with its own last
+local write: text the send carried or a committed save holds goes with the sent
+draft, and anything newer is kept as a new draft. A send from another device
+carries no such version, so only text the server acknowledged counts. A composer
+that opened no working copy cannot overwrite one another tab wrote. Sign-out retains approved sends
 under their original account and stops dispatch; ordinary drafts retain their
 existing sign-out policy.
 Signing into another account without signing out ends the previous account's
@@ -643,3 +651,24 @@ The format-4 browser cache starts a separate physical database. Old nonempty
 general mutation queues are retained but are not imported into it; verify their
 recovery separately during the cache rollout. The email journal is independent
 of these cache files and retains its draft working copies and send attempts.
+
+## Agent program sends
+
+An agent's program (a code-mode run, marked by `x-macro-code-execution`, or a
+token with agent attribution; `macro_authorization::is_agent_run`) never sends
+an email the user has not seen. The REST send (`POST /email/messages`) answers
+it 403. It sends through a session review (`execution.reviews.create({kind:
+'email'})`), whose card the user submits, or, for a prompt from a channel or
+document thread, on the user's quoted approval:
+
+- `macro.email.sendConfirmed` and `EmailMessage.forwardConfirmed` call the
+  harness's `POST /cognition/email/send-confirmed`, which runs the
+  `SendConfirmedEmail` tool with its Markdown rendering, inbox choice, reply
+  threading and document attachments. A forward is a new email quoting the
+  message under the forwarded-message header, with the message's attachments
+  as their Macro documents (`EmailMessage.forwardDraft` builds it, also for a
+  review).
+- `EmailDraft.send` and `EmailDraft.schedule` call the schedule route
+  (`PUT /email/drafts/scheduled/{id}`), which admits a program only with a
+  non-blank `user_confirmation`. `send` schedules a few seconds ahead, so the
+  scheduled sender delivers the saved draft within about a minute.

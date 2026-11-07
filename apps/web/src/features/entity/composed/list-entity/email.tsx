@@ -91,45 +91,47 @@ export function EmailNarrowBody(props: {
   chars: number;
   showHitSnippet: boolean;
   setContainerRef: (el: HTMLElement) => void;
+  previewLeading?: JSX.Element;
 }) {
   // PRIVATE-HOOK: email_translation:narrow-row
   const translation = useEmailRowTranslation(() => props.entity);
 
   return (
     <Entity.Slot placement="body" class="flex flex-col pb-2 min-h-[2lh] pr-4">
-      <div class="flex items-center gap-1.5 min-w-0">
-        <AwaitingReplyTag entity={props.entity} />
-        <Show
-          when={
-            translation.isTranslated() &&
-            translation.rowTranslation()?.translatedName
-          }
-          fallback={<Entity.Title entity={props.entity} />}
-        >
-          <span class="font-medium truncate">
-            {translation.rowTranslation()!.translatedName}
-          </span>
-        </Show>
-      </div>
-      <span
-        ref={props.setContainerRef}
-        class="text-ink/50 font-medium truncate"
+      <Show
+        when={
+          translation.isTranslated() &&
+          translation.rowTranslation()?.translatedName
+        }
+        fallback={<Entity.Title entity={props.entity} />}
       >
-        <Show
-          when={
-            translation.isTranslated() &&
-            translation.rowTranslation()?.translatedSnippet
-          }
-          fallback={
-            <EmailSnippet
-              entity={props.entity}
-              showHitSnippet={props.showHitSnippet}
-              chars={props.chars}
-            />
-          }
+        <span class="font-medium truncate">
+          {translation.rowTranslation()!.translatedName}
+        </span>
+      </Show>
+      <span class="flex min-w-0 items-center gap-1.5">
+        {props.previewLeading}
+        <span
+          ref={props.setContainerRef}
+          class="min-w-0 flex-1 truncate font-medium text-ink/50"
         >
-          <span>{translation.rowTranslation()!.translatedSnippet}</span>
-        </Show>
+          <Show
+            when={
+              translation.isTranslated() &&
+              translation.rowTranslation()?.translatedSnippet
+            }
+            fallback={
+              <EmailSnippet
+                entity={props.entity}
+                showHitSnippet={props.showHitSnippet}
+                chars={props.chars}
+              />
+            }
+          >
+            <span>{translation.rowTranslation()!.translatedSnippet}</span>
+          </Show>
+        </span>
+      </span>
       </span>
     </Entity.Slot>
   );
@@ -141,18 +143,24 @@ export function EmailNarrowSnippet(props: {
   chars: number;
   showHitSnippet: boolean;
   setContainerRef: (el: HTMLElement) => void;
+  previewLeading?: JSX.Element;
 }) {
   return (
     <Entity.Slot
       placement="body"
-      ref={props.setContainerRef}
-      class="ph-no-capture min-w-0 truncate pr-3 pb-2.5 text-ink/50"
+      class="ph-no-capture flex min-w-0 items-center gap-1.5 pr-3 pb-2.5"
     >
-      <EmailSnippet
-        entity={props.entity}
-        showHitSnippet={props.showHitSnippet}
-        chars={props.chars}
-      />
+      {props.previewLeading}
+      <span
+        ref={props.setContainerRef}
+        class="min-w-0 flex-1 truncate text-ink/50"
+      >
+        <EmailSnippet
+          entity={props.entity}
+          showHitSnippet={props.showHitSnippet}
+          chars={props.chars}
+        />
+      </span>
     </Entity.Slot>
   );
 }

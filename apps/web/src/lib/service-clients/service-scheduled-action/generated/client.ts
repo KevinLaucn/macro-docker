@@ -6,9 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 import type {
+  ActionConfiguration,
+  ActionConfigurationUpdate,
   ActionExecutionRecord,
   AiAdmissionErrorBody,
-  CreateScheduledAction,
+  CodeUpgrade,
+  Draft,
+  DraftRoutineRequest,
   EmptyResponse,
   InProgressExecution,
   ListScheduledActionsParams,
@@ -16,7 +20,7 @@ import type {
   ScheduledActionResponse,
   SetScheduledActionEnabled,
   ShareRoutineTemplate,
-  UpdateScheduledAction,
+  StarterRoutine,
 } from './schemas';
 
 export type scheduledActionHealthResponse200 = {
@@ -178,14 +182,14 @@ export const getCreateScheduledActionUrl = () => {
 };
 
 export const createScheduledAction = async (
-  createScheduledAction: CreateScheduledAction,
+  actionConfiguration: ActionConfiguration,
   options?: RequestInit
 ): Promise<createScheduledActionResponse> => {
   const res = await fetch(getCreateScheduledActionUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createScheduledAction),
+    body: JSON.stringify(actionConfiguration),
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
@@ -198,6 +202,125 @@ export const createScheduledAction = async (
     status: res.status,
     headers: res.headers,
   } as createScheduledActionResponse;
+};
+
+export type routineCodeStartersResponse200 = {
+  data: StarterRoutine[];
+  status: 200;
+};
+
+export type routineCodeStartersResponse401 = {
+  data: string;
+  status: 401;
+};
+
+export type routineCodeStartersResponseSuccess =
+  routineCodeStartersResponse200 & {
+    headers: Headers;
+  };
+export type routineCodeStartersResponseError =
+  routineCodeStartersResponse401 & {
+    headers: Headers;
+  };
+
+export type routineCodeStartersResponse =
+  | routineCodeStartersResponseSuccess
+  | routineCodeStartersResponseError;
+
+export const getRoutineCodeStartersUrl = () => {
+  return `/scheduled-actions/code/starters`;
+};
+
+export const routineCodeStarters = async (
+  options?: RequestInit
+): Promise<routineCodeStartersResponse> => {
+  const res = await fetch(getRoutineCodeStartersUrl(), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: routineCodeStartersResponse['data'] = body
+    ? JSON.parse(body)
+    : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as routineCodeStartersResponse;
+};
+
+export type draftRoutineResponse200 = {
+  data: Draft;
+  status: 200;
+};
+
+export type draftRoutineResponse400 = {
+  data: string;
+  status: 400;
+};
+
+export type draftRoutineResponse401 = {
+  data: string;
+  status: 401;
+};
+
+export type draftRoutineResponse402 = {
+  data: AiAdmissionErrorBody;
+  status: 402;
+};
+
+export type draftRoutineResponse500 = {
+  data: string;
+  status: 500;
+};
+
+export type draftRoutineResponse503 = {
+  data: AiAdmissionErrorBody;
+  status: 503;
+};
+
+export type draftRoutineResponseSuccess = draftRoutineResponse200 & {
+  headers: Headers;
+};
+export type draftRoutineResponseError = (
+  | draftRoutineResponse400
+  | draftRoutineResponse401
+  | draftRoutineResponse402
+  | draftRoutineResponse500
+  | draftRoutineResponse503
+) & {
+  headers: Headers;
+};
+
+export type draftRoutineResponse =
+  | draftRoutineResponseSuccess
+  | draftRoutineResponseError;
+
+export const getDraftRoutineUrl = () => {
+  return `/scheduled-actions/drafts`;
+};
+
+export const draftRoutine = async (
+  draftRoutineRequest: DraftRoutineRequest,
+  options?: RequestInit
+): Promise<draftRoutineResponse> => {
+  const res = await fetch(getDraftRoutineUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(draftRoutineRequest),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: draftRoutineResponse['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as draftRoutineResponse;
 };
 
 export type getScheduledActionResponse200 = {
@@ -313,14 +436,14 @@ export const getUpdateScheduledActionUrl = (id: string) => {
 
 export const updateScheduledAction = async (
   id: string,
-  updateScheduledAction: UpdateScheduledAction,
+  actionConfigurationUpdate: ActionConfigurationUpdate,
   options?: RequestInit
 ): Promise<updateScheduledActionResponse> => {
   const res = await fetch(getUpdateScheduledActionUrl(id), {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateScheduledAction),
+    body: JSON.stringify(actionConfigurationUpdate),
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
@@ -394,6 +517,67 @@ export const deleteScheduledAction = async (
     status: res.status,
     headers: res.headers,
   } as deleteScheduledActionResponse;
+};
+
+export type listScheduledActionCodeUpgradesResponse200 = {
+  data: CodeUpgrade[];
+  status: 200;
+};
+
+export type listScheduledActionCodeUpgradesResponse401 = {
+  data: string;
+  status: 401;
+};
+
+export type listScheduledActionCodeUpgradesResponse404 = {
+  data: string;
+  status: 404;
+};
+
+export type listScheduledActionCodeUpgradesResponse500 = {
+  data: string;
+  status: 500;
+};
+
+export type listScheduledActionCodeUpgradesResponseSuccess =
+  listScheduledActionCodeUpgradesResponse200 & {
+    headers: Headers;
+  };
+export type listScheduledActionCodeUpgradesResponseError = (
+  | listScheduledActionCodeUpgradesResponse401
+  | listScheduledActionCodeUpgradesResponse404
+  | listScheduledActionCodeUpgradesResponse500
+) & {
+  headers: Headers;
+};
+
+export type listScheduledActionCodeUpgradesResponse =
+  | listScheduledActionCodeUpgradesResponseSuccess
+  | listScheduledActionCodeUpgradesResponseError;
+
+export const getListScheduledActionCodeUpgradesUrl = (id: string) => {
+  return `/scheduled-actions/${id}/code-upgrades`;
+};
+
+export const listScheduledActionCodeUpgrades = async (
+  id: string,
+  options?: RequestInit
+): Promise<listScheduledActionCodeUpgradesResponse> => {
+  const res = await fetch(getListScheduledActionCodeUpgradesUrl(id), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: listScheduledActionCodeUpgradesResponse['data'] = body
+    ? JSON.parse(body)
+    : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as listScheduledActionCodeUpgradesResponse;
 };
 
 export type setScheduledActionEnabledResponse200 = {
@@ -864,14 +1048,14 @@ export const getActivateScheduledActionTemplateUrl = (id: string) => {
 
 export const activateScheduledActionTemplate = async (
   id: string,
-  createScheduledAction: CreateScheduledAction,
+  actionConfiguration: ActionConfiguration,
   options?: RequestInit
 ): Promise<activateScheduledActionTemplateResponse> => {
   const res = await fetch(getActivateScheduledActionTemplateUrl(id), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createScheduledAction),
+    body: JSON.stringify(actionConfiguration),
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();

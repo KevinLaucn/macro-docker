@@ -73,6 +73,8 @@ workspace-members = [
     # anyhow, either, nom, tracing, thiserror - is contributed by dozens of
     # other members anyway, so the deploy dependency layers are unchanged.
     "agent_fold",
+    # dynamic_ui: the view types the fold's tool details and activity cards hold.
+    "dynamic_ui",
     "graphql_soup_filter_input",
     "item_filters",
     # Shared notification state is also consumed by the browser-side filter model.
@@ -99,6 +101,9 @@ workspace-members = [
     # models_databases: the typed write ops the SQL engine will emit, so it
     # joins database_sql in the browser and must stay wasm-safe too.
     "models_databases",
+    # natural_time: date phrases are read in the browser's date fields as well
+    # as in services, so it must stay wasm-safe.
+    "natural_time",
     # pptx_engine: the presentation engine runs in the browser (a wasm32
     # module in the editor's worker) as well as in the AI tools, so it must
     # stay wasm-safe.

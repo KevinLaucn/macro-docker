@@ -15,14 +15,11 @@ import type {
   OutOfOfficeProperties,
   UpdateCalendarEventRequest,
 } from '../../../generated/calendar/types.gen';
-import type { CalendarOccurrence } from '../../../generated/storage/types.gen';
 import { MacroError, unwrap } from '../../utils';
 import type { MacroClient } from '../../utils/client';
-import type { Document } from '../documents/document';
+import type { Channel } from '../channels/channel';
 import { MacroEntity } from '../entity';
-import type { Team } from '../teams/team';
 import { Calendar } from './calendar';
-import { CalendarNote } from './note';
 import { CalendarReplacement } from './replacement';
 
 /** Fields to change on an event; omitted fields are left untouched. */
@@ -135,43 +132,6 @@ export interface RsvpEventOptions {
  * mutations, but reading a field on it throws.
  */
 export class CalendarEvent extends MacroEntity<CalendarEventRecord> {
-  /** Notes linked to a specific occurrence returned by `calendar.occurrences()`. */
-  async notes(occurrence: CalendarOccurrence): Promise<CalendarNote[]> {
-    this.requireOwnOccurrence(occurrence);
-    const notes = unwrap(
-      await this.client.calendar.eventNotes({
-        path: { event_id: this.id },
-        query: { occurrenceKey: occurrence.occurrenceKey },
-      }),
-    );
-    return notes.map((note) =>
-      CalendarNote.fromRecord(this.client, this, occurrence, note),
-    );
-  }
-
-  /** Link a markdown document you own. Meeting-detail viewers gain read access;
-   * an optional team gains read access too. Editing and other sharing are preserved. */
-  async linkNote(
-    document: Document,
-    occurrence: CalendarOccurrence,
-    options: { team?: Team } = {},
-  ): Promise<CalendarNote> {
-    this.requireOwnOccurrence(occurrence);
-    unwrap(
-      await this.client.calendar.linkEventNote({
-        path: { event_id: this.id, document_id: document.id },
-        query: { occurrenceKey: occurrence.occurrenceKey },
-        body: { teamId: options.team?.id ?? null },
-      }),
-    );
-    return CalendarNote.forDocument(this.client, this, occurrence, document);
-  }
-
-  private requireOwnOccurrence(occurrence: CalendarOccurrence) {
-    if (occurrence.eventId !== this.id)
-      throw new MacroError('The occurrence belongs to a different event');
-  }
-
   protected async fetch(): Promise<CalendarEventRecord> {
     throw new MacroError(
       `calendar event ${this.id} has no fetch-by-id endpoint; read the record ` +
@@ -377,6 +337,21 @@ export class CalendarEvent extends MacroEntity<CalendarEventRecord> {
       }),
     );
     return CalendarEvent.fromRecord(this.client, record);
+  }
+
+  /** Share the event with a channel's current members, as posting it in the
+   * channel does: they can then preview it, export it with {@link ics}, add it
+   * to their calendar with {@link addToCalendar} and ask to join. The caller
+   * must be in the channel and hold the event on their own calendar; private
+   * and confidential events are refused with a 403. Sharing again changes
+   * nothing. */
+  async shareWithChannel(channel: Channel): Promise<void> {
+    unwrap(
+      await this.client.storage.shareWithChannel({
+        path: { channel_id: channel.id },
+        body: { entityType: 'calendar_event', entityId: this.id },
+      }),
+    );
   }
 
   /** The event as an iCalendar (`.ics`) document: its series, title,

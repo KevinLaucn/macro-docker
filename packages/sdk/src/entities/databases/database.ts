@@ -36,6 +36,7 @@ import {
   queryDatabases,
 } from './query';
 import type { DatabaseRow } from './row';
+import { SavedQuery, type SaveQueryOptions } from './saved-query';
 import { DatabaseTable } from './table';
 import type { DatabaseView } from './view';
 import { DatabaseWebhook } from './webhook';
@@ -265,6 +266,16 @@ export class Database extends MacroEntity<DatabaseDetail> {
       throw new MacroError(`${part} does not belong to database ${this.id}`);
   }
 
+  /** The database's URL in the Macro web app; hand it to users as the link. */
+  webUrl(): string {
+    return `${this.client.webAppUrl}/app/database/${this.id}`;
+  }
+
+  /** Identity, loaded detail and {@link webUrl}, so serialized handles carry their link. */
+  override toJSON() {
+    return { ...super.toJSON(), url: this.webUrl() };
+  }
+
   /** A handle to a database by id. Details load on first access. */
   static byId(client: MacroClient, id: string): Database {
     return new Database(client, id);
@@ -279,6 +290,24 @@ export class Database extends MacroEntity<DatabaseDetail> {
       await client.storage.createDatabase({ body: { name: options.name } }),
     );
     return new Database(client, record.id);
+  }
+
+  /**
+   * Copy the database into a new one the caller owns, with its tables,
+   * columns, views and rows. Its sharing, forms, webhooks and history stay
+   * with this one. Viewing it is enough.
+   */
+  async duplicate(options?: {
+    /** The copy's name; by default, "<name> copy". */
+    name?: string;
+  }): Promise<Database> {
+    const record = unwrap(
+      await this.client.storage.duplicateDatabase({
+        path: { id: this.id },
+        body: { name: options?.name },
+      }),
+    );
+    return new Database(this.client, record.id);
   }
 
   /** The databases the caller can see, each with the caller's access level. */
@@ -296,6 +325,26 @@ export class Database extends MacroEntity<DatabaseDetail> {
       ...options,
       database: this,
     });
+  }
+
+  /**
+   * Save a `SELECT` as a live question and get its answer's block. Answer
+   * a question about the data, or a request for a chart, with this: run the
+   * SQL with {@link query} first, then save exactly that SQL. The server
+   * refuses anything but one `SELECT` that compiles here, and chart columns
+   * the `SELECT` does not return. Put {@link SavedQuery.toBlock} in a
+   * document verbatim; it re-runs for whoever views it, with their
+   * permissions. Pass `table` when the question is about one table.
+   */
+  async saveQuery(
+    options: SaveQueryOptions & {
+      /** The table the question is about. */
+      table?: DatabaseTable;
+    },
+  ): Promise<SavedQuery> {
+    const { table, ...save } = options;
+    if (table) this.assertOwns(`table ${table.id}`, table.database);
+    return SavedQuery.save(this.client, { database: this, table }, save);
   }
 
   /** @internal Drop the schema snapshot after a successful SQL write. */

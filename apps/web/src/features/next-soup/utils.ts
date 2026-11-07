@@ -1,7 +1,5 @@
 import { isListViewID } from '@app/constants/list-views';
-import { markAgentSessionNotificationsSeenOnOpen } from '@app/features/block-agent/mark-session-notifications-seen';
 import { getPreferredCalendarPeriodView } from '@app/features/calendar/calendar-preferences';
-import { markCalendarNotificationSeenOnOpen } from '@app/features/calendar/mark-event-notifications-seen';
 import { openCalendarView } from '@app/features/calendar-view/calendar-navigation';
 import {
   type CalendarEventTime,
@@ -26,6 +24,7 @@ import {
   scopeChannelNotificationsForEntity,
 } from '@app/features/soup/entity-notifications';
 import { replacePaneSearchParams } from '@app/lib/split-router';
+import { beginInteraction } from '@app/observability/flow';
 import { globalSplitManager } from '@app/signal/splitLayout';
 import { CALENDAR_BLOCK_ID } from '@block-calendar/types';
 import {
@@ -99,7 +98,6 @@ import { hydrateChannelNotificationSelection } from '@queries/channel/notificati
 import { queryClient } from '@queries/client';
 import { updateEmailThreadState } from '@queries/email/cache-cleanup';
 import {
-  archiveEmailThread,
   archiveEmailThreads,
   type EmailArchiveDisposition,
 } from '@queries/email/integration';
@@ -629,6 +627,22 @@ export const openEntityInSplitFromUnifiedList = async (
   entity: EntityData,
   options: OpenEntityOptions
 ): Promise<void> => {
+  // From the row action to the opened view's paint: the navigation it commits
+  // and the view it mounts join this interaction.
+  const interaction = beginInteraction('list.open', {
+    attributes: { 'entity.type': entity.type },
+  });
+  try {
+    await openEntity(entity, options);
+  } finally {
+    interaction.end();
+  }
+};
+
+const openEntity = async (
+  entity: EntityData,
+  options: OpenEntityOptions
+): Promise<void> => {
   const { allowDuplicate, openInNewSplit, splitHandle, mergeHistory } = options;
   let { location } = options;
 
@@ -765,29 +779,36 @@ export const openEntityInSplitFromUnifiedList = async (
     splitContent = withListNavigationSource(splitContent, splitHandle);
   }
 
-  const hydrateNotificationsAndMarkSeen = async (
+  const hydrateNotificationsAndMarkSeen = (
     channel: ChannelEntity,
     notificationSource: NotificationSource
-  ) => {
-    try {
-      const hydrated = await hydrateChannelNotificationSelection(
-        channel,
-        notificationSource.withLocalOverrides
-      );
-      const view = splitManager.findOpenView(content);
-      // A late response must not mark a closed conversation or a mobile pane
-      // that the user has already left. Hydration never reopens or retargets it.
-      if (!view || (isTouchDevice() && !view.topLevelSplit?.isActive())) return;
-      markChannelNotificationsSeenOnOpen(hydrated, notificationSource, {
-        channelReadScope: options.channelReadScope,
-      });
-    } catch (error) {
-      console.error('Failed to load conversation notifications after opening', {
-        channelId: channel.id,
-        error,
-      });
-    }
-  };
+  ) =>
+    Telemetry.span('channel.open.notifications', async (span) => {
+      span.setAttr('channel.id', channel.id);
+      try {
+        const hydrated = await hydrateChannelNotificationSelection(
+          channel,
+          notificationSource.withLocalOverrides
+        );
+        const view = splitManager.findOpenView(content);
+        // A late response must not mark a closed conversation or a mobile pane
+        // that the user has already left. Hydration never reopens or retargets it.
+        if (!view || (isTouchDevice() && !view.topLevelSplit?.isActive())) {
+          span.setAttr('channel.open.outcome', 'left');
+          return;
+        }
+        markChannelNotificationsSeenOnOpen(hydrated, notificationSource, {
+          channelReadScope: options.channelReadScope,
+        });
+        span.setAttr('channel.open.outcome', 'loaded');
+      } catch (error) {
+        span.setAttr('channel.open.outcome', 'failed');
+        console.error(
+          'Failed to load conversation notifications after opening',
+          { channelId: channel.id, error }
+        );
+      }
+    });
 
   let markedNotifications = false;
   const markNotificationsSeen = () => {
@@ -886,18 +907,6 @@ export function markChannelNotificationsSeenOnOpen(
   void notificationSource.bulkMarkAsRead(notifications).catch((error) => {
     console.error('Failed to mark channel notifications as read', error);
   });
-}
-
-/**
- * Clear the dots of rows whose opened view has no block that marks the row's
- * loaded notifications read: calendar events and agent sessions.
- */
-export function markRowNotificationsSeenOnOpen(
-  entity: EntityWithRawNotifications<EntityData>,
-  notificationSource: NotificationSource
-) {
-  markCalendarNotificationSeenOnOpen(entity, notificationSource);
-  markAgentSessionNotificationsSeenOnOpen(entity, notificationSource);
 }
 
 /**
@@ -1004,68 +1013,6 @@ function getEntitySplitContent(entity: EntityData) {
         return { type: entity.type, id: entity.id };
       })
   );
-}
-
-async function _archiveEmail(
-  id: string,
-  options: { archive: boolean; optimisticallyExclude?: boolean }
-) {
-  await queryClient.cancelQueries({ queryKey: queryKeys.all.email });
-
-  const previousEmail = queryClient.getQueriesData<{
-    pages: { items: EntityData[] }[];
-  }>({
-    queryKey: queryKeys.all.email,
-  });
-
-  const current = getSoupEntityById(id);
-  const soupTxn = options.optimisticallyExclude
-    ? removeSoupEntities(new Set([id]))
-    : optimisticUpdateSoupEntity({
-        tag: 'emailThread',
-        data: { id, inboxVisible: false },
-        frecency_score: current?.frecency_score ?? 0,
-      });
-
-  // Optimistic update for email queries
-  const applyEmailOptimistic = (data?: {
-    pages: { items: EntityData[] }[];
-  }) => {
-    if (!data) return data;
-
-    return {
-      ...data,
-      pages: data.pages.map((page) => ({
-        ...page,
-        items: options.optimisticallyExclude
-          ? page.items.filter((item) => item.id !== id)
-          : page.items.map((item) =>
-              item.id === id ? { ...item, inboxVisible: false } : item
-            ),
-      })),
-    };
-  };
-
-  for (const [key, data] of previousEmail) {
-    queryClient.setQueryData(key, applyEmailOptimistic(data));
-  }
-
-  let disposition: EmailArchiveDisposition | undefined;
-  try {
-    disposition = await archiveEmailThread({ value: options.archive, id });
-  } catch (_err) {
-    soupTxn.rollback();
-    for (const [key, data] of previousEmail) {
-      queryClient.setQueryData(key, data);
-    }
-  } finally {
-    if (disposition !== 'queued') {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.all.email }),
-        invalidateSoupEntity(id),
-      ]);
-    }
-  }
 }
 
 type TrashEmailsHandle = {

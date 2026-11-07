@@ -996,6 +996,13 @@ const shortcutSections: ShortcutSection[] = [
           return t('Create a split');
         },
       },
+      {
+        keys: ['|'],
+        codes: ['ShiftLeft', 'Backslash'],
+        get description() {
+          return t('Create a split below');
+        },
+      },
     ],
   },
   {

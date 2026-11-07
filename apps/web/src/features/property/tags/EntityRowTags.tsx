@@ -7,6 +7,7 @@ import PlusIcon from '@icon/system/regular/plus.svg';
 import { useInFlightEntityPropertyOptions } from '@queries/properties/in-flight-options';
 import { EntityType } from '@service-properties/generated/schemas/entityType';
 import type { SoupProperty } from '@service-storage/generated/schemas/soupProperty';
+import { Key } from '@solid-primitives/keyed';
 import {
   type BadgeSize,
   type BadgeVariant,
@@ -199,12 +200,19 @@ function TagChip(props: {
   withClickBlock: boolean;
   onActiveChange: (active: boolean) => void;
 }) {
-  const [pickerOpen, setPickerOpen] = createSignal(false);
+  const [pickerActive, setPickerActive] = createSignal(false);
+  const onActiveChange = (active: boolean) => {
+    setPickerActive(active);
+    props.onActiveChange(active);
+  };
+  onCleanup(() => {
+    if (pickerActive()) props.onActiveChange(false);
+  });
   return (
     <Layer depth={2}>
       <HoverCard
         placement="bottom-start"
-        disabled={pickerOpen()}
+        disabled={pickerActive()}
         content={
           <TagHoverContent
             tag={props.tag}
@@ -218,8 +226,7 @@ function TagChip(props: {
           createDocTags={props.createDocTags}
           class="max-w-[14ch]"
           dotClass="size-2"
-          onOpenChange={setPickerOpen}
-          onActiveChange={props.onActiveChange}
+          onActiveChange={onActiveChange}
           withClickBlock={props.withClickBlock}
         />
       </HoverCard>
@@ -236,7 +243,14 @@ function TagOverflow(props: {
   withClickBlock: boolean;
   onActiveChange: (active: boolean) => void;
 }) {
-  const [pickerOpen, setPickerOpen] = createSignal(false);
+  const [pickerActive, setPickerActive] = createSignal(false);
+  const onActiveChange = (active: boolean) => {
+    setPickerActive(active);
+    props.onActiveChange(active);
+  };
+  onCleanup(() => {
+    if (pickerActive()) props.onActiveChange(false);
+  });
   const dots = () => props.tags.slice(0, MAX_OVERFLOW_DOTS);
   const count = () =>
     `${props.visibleCount > 0 ? '+' : ''}${props.tags.length} ${props.tags.length === 1 ? 'tag' : 'tags'}`;
@@ -245,7 +259,7 @@ function TagOverflow(props: {
     <Layer depth={2}>
       <HoverCard
         placement="bottom-end"
-        disabled={pickerOpen()}
+        disabled={pickerActive()}
         content={
           <div class="flex flex-col gap-0.5">
             <For each={props.tags}>
@@ -265,11 +279,11 @@ function TagOverflow(props: {
           triggerClass={badgeTriggerClasses({
             variant: 'outline',
             size: 'xs',
-            class: 'max-w-[14ch] gap-1.5 touch:min-h-0',
+            class:
+              'max-w-[14ch] gap-1.5 border-edge bg-surface-2 touch:min-h-0',
           })}
           triggerLabel="Edit tags"
-          onOpenChange={setPickerOpen}
-          onActiveChange={props.onActiveChange}
+          onActiveChange={onActiveChange}
           withClickBlock={props.withClickBlock}
         >
           <span class="flex items-center">
@@ -277,7 +291,10 @@ function TagOverflow(props: {
               {(tag, index) => (
                 <TagDot
                   color={tag.color}
-                  class={cn('size-2 ring ring-surface', index() > 0 && '-ml-1')}
+                  class={cn(
+                    'size-2 ring ring-surface-2',
+                    index() > 0 && '-ml-1'
+                  )}
                 />
               )}
             </For>
@@ -314,6 +331,7 @@ export function EntityRowTags(props: {
   const createDocTags = () =>
     useSoupDocTags(props.entityId, props.entityType, () => props.properties);
   const [pickerActive, setPickerActive] = createSignal(false);
+  const [activeChipId, setActiveChipId] = createSignal<string>();
   const [visibleLimit, setVisibleLimit] = createSignal(Infinity);
   const id = createUniqueId();
   const limit = createMemo(() =>
@@ -345,8 +363,30 @@ export function EntityRowTags(props: {
       );
     }
   });
-  const visible = () => appliedTags().slice(0, maxVisible());
-  const hidden = () => appliedTags().slice(maxVisible());
+  const visible = () => {
+    const tags = appliedTags();
+    const count = maxVisible();
+    const activeId = activeChipId();
+    if (
+      !activeId ||
+      count === 0 ||
+      !tags.some((tag) => tag.optionId === activeId)
+    ) {
+      return tags.slice(0, count);
+    }
+    const selected = new Set(
+      tags
+        .filter((tag) => tag.optionId !== activeId)
+        .slice(0, Math.max(0, count - 1))
+        .map((tag) => tag.optionId)
+    );
+    selected.add(activeId);
+    return tags.filter((tag) => selected.has(tag.optionId));
+  };
+  const hidden = () => {
+    const visibleIds = new Set(visible().map((tag) => tag.optionId));
+    return appliedTags().filter((tag) => !visibleIds.has(tag.optionId));
+  };
   const [editingTag, setEditingTag] = createSignal<ResolvedTag>();
 
   return (
@@ -359,18 +399,21 @@ export function EntityRowTags(props: {
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <For each={visible()}>
+        <Key each={visible()} by="optionId">
           {(tag) => (
             <TagChip
-              tag={tag}
+              tag={tag()}
               createDocTags={createDocTags}
               onFilterByTag={props.onFilterByTag}
               onEdit={setEditingTag}
-              onActiveChange={setPickerActive}
+              onActiveChange={(active) => {
+                setActiveChipId(active ? tag().optionId : undefined);
+                setPickerActive(active);
+              }}
               withClickBlock
             />
           )}
-        </For>
+        </Key>
         <Show when={hidden().length > 0}>
           <TagOverflow
             tags={hidden()}
@@ -472,13 +515,16 @@ function InlineTagsPillFace(props: {
 }
 
 function inlineTagsTriggerClass(props: InlineTagsPillProps, count: number) {
+  const variant = props.variant ?? 'outline';
   return badgeTriggerClasses({
-    variant: props.variant ?? 'outline',
+    variant,
     size: props.size ?? 'xs',
     class: cn(
       // Capped so a long tag label truncates instead of squeezing
       // whatever shares the row with the pill (e.g. a task title).
       'min-w-0 max-w-35 gap-1.5 text-left touch:min-h-0',
+      // Outline tag pills share the email participant pill's softer frame.
+      variant === 'outline' && 'border-edge bg-surface-2',
       count === 0 && !props.showAddButton && 'text-ink-extra-muted',
       props.class
     ),

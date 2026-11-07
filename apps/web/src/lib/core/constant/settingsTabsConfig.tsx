@@ -24,6 +24,7 @@ import AgentIcon from '@icon/system/regular/sparkle.svg';
 import SwatchesIcon from '@icon/system/regular/swatches.svg';
 import TagIcon from '@icon/system/regular/tag-simple.svg';
 import UserIconPhosphor from '@icon/system/regular/user.svg';
+import UserGearIcon from '@icon/system/regular/user-gear.svg';
 import UsersIcon from '@icon/system/regular/users.svg';
 import UsersThreeIcon from '@icon/system/regular/users-three.svg';
 import { type Component, createMemo } from 'solid-js';
@@ -31,7 +32,7 @@ import { useHasPermission } from '../context/user';
 import { isMobile } from '../mobile/isMobile';
 import { isNativeMobilePlatform } from '../mobile/isNativeMobilePlatform';
 import { isTouchDevice } from '../mobile/isTouchDevice';
-import { isPlatform } from '../util/platform';
+import { isDesktopPlatform, isPlatform } from '../util/platform';
 import {
   botManagement,
   DEV_MODE_ENV,
@@ -264,6 +265,11 @@ export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
         icon: KeyIcon,
         keywords: ['api', 'key', 'token', 'authentication'],
       }),
+      tabItem('tabAccountManagers', {
+        tab: 'Account Managers',
+        icon: UserGearIcon,
+        keywords: ['agent', 'manager', 'token', 'revoke', 'access'],
+      }),
       tabItem('tabBots', {
         tab: 'Bots',
         icon: BotIcon,
@@ -298,6 +304,7 @@ export const SETTINGS_TAB_GROUPS: SettingsTabGroup[] = [
 const SETTINGS_TAB_SLUGS: Record<SettingsTab, string> = {
   Account: 'account',
   'API Keys': 'api-keys',
+  'Account Managers': 'account-managers',
   Notifications: 'notifications',
   Usage: 'usage',
   Billing: 'billing',
@@ -382,6 +389,9 @@ export const useSettingsTabAvailable = () => {
       // good place for a one-time secret.
       case 'API Keys':
         return !isMobile();
+      // Cutting off a manager can't wait for a desktop.
+      case 'Account Managers':
+        return true;
       case 'Team':
       case 'Team Members':
       case 'Tags':
@@ -404,10 +414,10 @@ export const useSettingsTabAvailable = () => {
         );
       case 'Agent':
         return !isNativeMobilePlatform();
-      // Configurable agents are still rolling out; keep both tabs behind the
-      // same enable-chat-v3-agents gate as the channel mention surfaces, so
-      // settings never advertises agents to a user who cannot mention one.
+      // The bundled desktop runtime can be set up from Home even while the
+      // configurable Agents view is still rolling out.
       case 'Harness':
+        return isDesktopPlatform() || chatV3AgentsFlag().enabled;
       case 'Agents':
         return chatV3AgentsFlag().enabled;
       // Touch hides the Agents sidebar that lists Routines on desktop, so

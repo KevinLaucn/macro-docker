@@ -70,16 +70,6 @@ pub struct Config {
     #[macro_config_default(true)]
     pub notifications_enabled: bool,
 
-    /// Use Apollo.io for CRM company enrichment. When `false`, fall back
-    /// to the unfurl-based resolver.
-    #[macro_config_default(false)]
-    pub use_apollo_crm_enrichment: bool,
-
-    /// Apollo.io API key for CRM enrichment. Locally this is the key
-    /// itself; in deployed envs it's the name of the Secrets Manager
-    /// secret holding it (resolved at startup). Empty disables enrichment.
-    pub apollo_api_key: LocalOrRemoteSecret<ApolloApiKey>,
-
     /// The queue max messages per poll
     #[macro_config_default(10)]
     pub queue_max_messages: i32,

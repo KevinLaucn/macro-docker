@@ -11,7 +11,7 @@ use macro_user_id::user_id::MacroUserIdStr;
 use model_entity::Entity;
 use models_pagination::PaginatedOpaqueCursor;
 use models_soup::{
-    agent_session::{AgentPullRequestState, SoupAgentSession},
+    agent_session::{AgentPullRequestState, AgentSessionArchiveCause, SoupAgentSession},
     calendar_event::SoupCalendarEvent,
     call_record::{SoupCallRecord, SoupCallRecordGuest, SoupCallRecordParticipant},
     chat::SoupChat,
@@ -1171,6 +1171,13 @@ impl<E: SoupEntityEdges> GraphqlSoupDatabaseRow<E> {
 /// GraphQL agent session entity.
 pub struct GraphqlSoupAgentSession<E: SoupEntityEdges>(SoupAgentSession<()>, E, Option<f64>);
 
+impl<E: SoupEntityEdges> GraphqlSoupAgentSession<E> {
+    /// Whether the session is archived, for adapters that must not return archived sessions.
+    pub fn archived(&self) -> bool {
+        self.0.archived_by.is_some()
+    }
+}
+
 /// Last synchronized state of a session's linked GitHub pull request.
 #[derive(async_graphql::Enum, Copy, Clone, Eq, PartialEq)]
 pub enum GraphqlAgentPullRequestState {
@@ -1191,6 +1198,27 @@ impl From<AgentPullRequestState> for GraphqlAgentPullRequestState {
             AgentPullRequestState::Draft => Self::Draft,
             AgentPullRequestState::Closed => Self::Closed,
             AgentPullRequestState::Merged => Self::Merged,
+        }
+    }
+}
+
+/// Who or what archived an agent session.
+#[derive(async_graphql::Enum, Copy, Clone, Eq, PartialEq)]
+pub enum GraphqlAgentSessionArchiveCause {
+    /// A person archived it.
+    User,
+    /// Every pull request linked to it closed, with at least one merged.
+    PullRequestMerged,
+    /// The runtime session backing it was deliberately closed.
+    RuntimeClosed,
+}
+
+impl From<AgentSessionArchiveCause> for GraphqlAgentSessionArchiveCause {
+    fn from(cause: AgentSessionArchiveCause) -> Self {
+        match cause {
+            AgentSessionArchiveCause::User => Self::User,
+            AgentSessionArchiveCause::PullRequestMerged => Self::PullRequestMerged,
+            AgentSessionArchiveCause::RuntimeClosed => Self::RuntimeClosed,
         }
     }
 }
@@ -1244,8 +1272,20 @@ where
     }
 
     /// Whether the session is archived and read-only.
+    #[graphql(deprecation = "Use archivedBy. Remove after 2026-12-03.")]
     async fn is_archived(&self) -> bool {
-        self.0.is_archived
+        self.0.archived_by.is_some()
+    }
+
+    /// Who or what archived the session, or null while it is active. An archived session is
+    /// read-only.
+    async fn archived_by(&self) -> Option<GraphqlAgentSessionArchiveCause> {
+        self.0.archived_by.map(Into::into)
+    }
+
+    /// When the session was archived, or null while it is active.
+    async fn archived_at(&self) -> Option<String> {
+        self.0.archived_at.map(|at| at.to_rfc3339())
     }
 
     /// The principal identifier of the owner.

@@ -115,15 +115,30 @@ export type OnboardingContext = {
   configureGithubRepositories(): void;
   createTeamDirectory(): TeamDirectorySource;
   /** Rejects on failure; the capability reports its own errors. */
-  /** `allowDomainJoin` lets people on the owner's work domain join, and
-   * tells the owner's same-domain contacts the team exists. */
+  /** `allowDomainJoin` lets people on the owner's work domain join.
+   * `notifyDomain` also emails the owner's same-domain contacts that the team
+   * exists; the server sends it only to a team with an auto-join domain. */
   createTeam(input: {
     name: string;
     invites: string[];
     allowDomainJoin: boolean;
+    notifyDomain: boolean;
   }): Promise<void>;
   /** Rejects on failure; the capability reports its own errors. */
   joinTeam(inviteId: string): Promise<void>;
+  /**
+   * Copies the viewer's team invite link, creating the link when the team has
+   * none. Rejects on failure; the capability reports its own result.
+   */
+  copyTeamInviteLink(): Promise<void>;
+  /**
+   * Sends a referral invite to each address; no team is involved. Rejects
+   * when none was sent; the capability reports its own result.
+   */
+  sendReferralInvites(emails: string[]): Promise<void>;
+  /** Copies the viewer's referral sign-up link. Rejects on failure; the
+   * capability reports its own result. */
+  copyReferralLink(): Promise<void>;
   /** The invite promotion the account holds; null when it has none. */
   createInviteOffer(): Accessor<Loadable<InviteOffer | null>>;
   createTrialEligibility(): {

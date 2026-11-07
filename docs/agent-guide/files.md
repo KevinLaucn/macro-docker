@@ -15,6 +15,7 @@ viewer identity is available, document inserts into Shared are rejected.
 
 Files opens **Drive** using the same shell as Tasks, on desktop and touch
 devices alike.
+The top of Drive's My Files, Recent and Shared lists (not folders) holds the Drive `TutorialRow`, outside the virtualized rows, and the top of Drive's sidebar (the overlay sidebar on phones) holds the Docs `TutorialSidebarItem` (both from `features/video-tutorials`, each once its video is in the catalog).
 
 The document header's **Copy Share Link** and the Share dialog's **Copy Link**
 copy a standalone link to the selected file, not the current browser URL.
@@ -43,15 +44,28 @@ With `enable-databases` enabled, **My Files** includes owned databases and
 also includes accessible databases owned by others. **Search Drive** matches
 database names and **Filter → Type → Database** narrows the list. **New →
 Database** creates and opens a database from file tabs or the folder overview;
-it is absent inside a folder because databases have no folder membership yet.
+it is absent inside a folder because a new database starts at the root; move
+it in afterwards.
 Database rows open their database block, including Enter and Open in new split.
 Right-click (or long-press) a database for the same entity actions as other
 Drive rows: Open in new split, Rename (edit or owner), Favorite, Copy Link,
-Copy ID, Share, and Delete (owner). Duplicate and Move to folder stay omitted
-because databases have no folder membership and no duplicate API.
-Databases have no view history and do not appear in **Recent**, folder contents,
-or **Email attachments**. Creation time orders them when the selected sort has
-no corresponding database timestamp.
+Copy ID, Share, Move to folder and Remove from folder (owner), and Delete
+(owner). Duplicate stays omitted because databases have no duplicate API.
+The owner can also drag a database or form row onto a folder (a sidebar folder
+or a folder row), or pick **Move to folder** from the database page's ⋯ menu or
+the form's title menu. A filed database or form appears in that folder's
+contents for everyone who can open it, inherits the folder's sharing like a
+document, and stays in the file tabs. Verify moving one into a nested folder
+shared with another user, that user opening it from the folder, and moving it
+back to root, by **Remove from folder** or a drop on the sidebar's **Drive**
+row. Each move toasts success once: databases and forms have no Soup record, so
+the move's result carries no cache patch for them. Deleting a folder trashes the
+documents and chats inside it but returns its databases and forms (and those in
+its subfolders) to the root, without the sharing the folder passed down; they show
+no folder chip, even after a reload, and restoring the folder does not file them
+again. Databases have no view history and do not appear in **Recent** or
+**Email attachments**. Creation time orders them when the selected sort has no
+corresponding database timestamp.
 
 On touch devices (phones and tablets), the Drive header is a scrollable pill
 strip — **Recent**, **My Files**, **Shared with me**, and **Folders** — with a

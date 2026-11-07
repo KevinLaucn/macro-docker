@@ -111,11 +111,6 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
-- file: apps/web/src/features/crm/views/contact-sharing-section.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/drive-view/core/types.ts
   owners:
   - I18N-ZH-CN-001

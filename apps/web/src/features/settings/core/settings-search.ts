@@ -168,6 +168,12 @@ const SETTINGS: Setting[] = [
   },
   {
     tab: 'Notifications',
+    title: 'Quiet hours',
+    target: 'Quiet hours',
+    keywords: 'schedule do not disturb dnd silence mute night timezone',
+  },
+  {
+    tab: 'Notifications',
     title: 'Snoozed items',
     target: 'Snoozed items',
     keywords: 'pause resume notifications',
@@ -324,6 +330,11 @@ const SETTINGS: Setting[] = [
     tab: 'API Keys',
     title: 'Create and revoke API keys',
     keywords: 'token secret developer authentication',
+  },
+  {
+    tab: 'Account Managers',
+    title: 'See and revoke the agents managing your account',
+    keywords: 'agent manager token access revoke',
   },
   {
     tab: 'Desktop App',

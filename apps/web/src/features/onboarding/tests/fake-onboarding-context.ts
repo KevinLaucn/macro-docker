@@ -55,10 +55,14 @@ export type FakeOnboardingWorld = {
   failures: Partial<
     Record<
       | 'emailAccounts'
+      | 'record'
       | 'teams'
       | 'catalog'
       | 'createTeam'
       | 'joinTeam'
+      | 'teamInviteLink'
+      | 'referralInvites'
+      | 'referralLink'
       | 'planCatalog'
       | 'trialEligibility'
       | 'checkout'
@@ -131,6 +135,14 @@ export function defaultFakeWorld(): FakeOnboardingWorld {
     accent: undefined,
     failures: {},
   };
+}
+
+/** How a recorded createTeam call marks domain join: `:closed` without it,
+ * `:quiet` with it but no notice, nothing when both are on. */
+function domainSuffix(allowDomainJoin: boolean, notifyDomain: boolean) {
+  if (!allowDomainJoin) return ':closed';
+  if (!notifyDomain) return ':quiet';
+  return '';
 }
 
 /**
@@ -206,8 +218,7 @@ export function createFakeOnboarding(
         });
       return viewerState();
     },
-    createOnboardingRecord: () => () =>
-      settled() ? { t: 'ready', value: world.record } : { t: 'loading' },
+    createOnboardingRecord: () => () => loadable('record', () => world.record),
     createEmailAccounts: () => ({
       accounts: () => loadable('emailAccounts', () => world.emailAccounts),
       refresh: async () => {},
@@ -305,9 +316,9 @@ export function createFakeOnboarding(
       contacts: () => ({ t: 'ready', value: world.contacts }),
       retry: () => call('retryTeams'),
     }),
-    createTeam: async ({ name, invites, allowDomainJoin }) => {
+    createTeam: async ({ name, invites, allowDomainJoin, notifyDomain }) => {
       call(
-        `createTeam:${name}:${invites.join(',')}${allowDomainJoin ? '' : ':closed'}`
+        `createTeam:${name}:${invites.join(',')}${domainSuffix(allowDomainJoin, notifyDomain)}`
       );
       fail('createTeam');
       update((draft) => {
@@ -322,6 +333,18 @@ export function createFakeOnboarding(
         draft.invites = draft.invites.filter((item) => item.id !== inviteId);
         if (invite) draft.teams = [{ name: `${invite.invitedBy}'s team` }];
       });
+    },
+    copyTeamInviteLink: async () => {
+      call('copyTeamInviteLink');
+      fail('teamInviteLink');
+    },
+    sendReferralInvites: async (emails) => {
+      call(`sendReferralInvites:${emails.join(',')}`);
+      fail('referralInvites');
+    },
+    copyReferralLink: async () => {
+      call('copyReferralLink');
+      fail('referralLink');
     },
     createInviteOffer: () => () => ({ t: 'ready', value: world.inviteOffer }),
     createTrialEligibility: () => ({
