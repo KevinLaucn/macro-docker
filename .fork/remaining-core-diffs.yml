@@ -630,6 +630,11 @@ diffs:
   hooks:
   - ai_model_policy_free_tier_models
   override: false
+- file: crates/code_execution/src/outbound/deno.rs
+  owners:
+  - BROWSER-RUNTIME-COMPAT-001
+  hooks: []
+  override: false
 - file: crates/email/Cargo.toml
   owners:
   - EMAIL-SELFHOST-001
@@ -725,6 +730,11 @@ diffs:
 - file: packages/email-renderer/src/core/resource-policy.ts
   owners:
   - SELFHOST-MEDIA-001
+  hooks: []
+  override: false
+- file: services/agent_harness_service/Cargo.toml
+  owners:
+  - EMAIL-TRANSLATION-001
   hooks: []
   override: false
 - file: services/agent_harness_service/src/cognition/api.rs

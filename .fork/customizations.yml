@@ -14,6 +14,7 @@ customizations:
       - apps/web/src/components/app/split-layout/**
       - crates/agent/src/model/router.rs
       - crates/agent/src/test/test_router.rs
+      - crates/code_execution/src/outbound/deno.rs
       - apps/web/src/lib/queries/ai/homeRecommendations.ts
       - apps/web/src/lib/queries/ai/tests/homeRecommendations.test.ts
       - apps/web/src/lib/core/hotkey/utils.ts
@@ -22,6 +23,7 @@ customizations:
     owned_paths:
       - crates/agent/src/model/router.rs
       - crates/agent/src/test/test_router.rs
+      - crates/code_execution/src/outbound/deno.rs
       - apps/web/src/lib/queries/ai/homeRecommendations.ts
       - apps/web/src/lib/queries/ai/tests/homeRecommendations.test.ts
       - apps/web/src/lib/core/hotkey/utils.ts
@@ -639,6 +641,7 @@ customizations:
     paths:
       - packages/fork/email-translation/**
       - crates/macro_db_client/migrations/20261106233639_email_translations.sql
+      - services/agent_harness_service/Cargo.toml
       - services/agent_harness_service/src/cognition/mod.rs
       - services/agent_harness_service/src/cognition/api.rs
       - apps/web/src/features/email-message/components/email-message-top-bar.tsx
@@ -658,6 +661,7 @@ customizations:
       - .fork/private-hooks.yml
       - apps/web/src/features/email-message/components/collapsed-message.tsx
     owned_paths:
+      - services/agent_harness_service/Cargo.toml
       - services/agent_harness_service/src/cognition/mod.rs
       - services/agent_harness_service/src/cognition/api.rs
       - apps/web/src/features/email-message/components/email-message-top-bar.tsx
