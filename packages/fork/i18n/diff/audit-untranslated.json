@@ -43484,6 +43484,20 @@
     "raw": "Couldn't confirm your Pro offer."
   },
   {
+    "file": "features/block-email/util/emailHotkeys.ts",
+    "line": 145,
+    "type": "ObjectProperty(description)",
+    "snippet": "Expand or collapse message",
+    "raw": "Expand or collapse message"
+  },
+  {
+    "file": "features/block-email/util/emailHotkeys.ts",
+    "line": 153,
+    "type": "ObjectProperty(description)",
+    "snippet": "Expand all messages",
+    "raw": "Expand all messages"
+  },
+  {
     "file": "features/block-email/component/EmailThreadHeaderActions.tsx",
     "line": 20,
     "type": "JSXAttribute(label)",
