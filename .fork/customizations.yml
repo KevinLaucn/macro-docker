@@ -484,6 +484,7 @@ customizations:
       - services/email_service/src/api/swagger.rs
       - services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
       - services/email_service/src/config.rs
+      - services/email_service/src/outbound/attachment_access.rs
       - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
       - services/email_service/src/pubsub/backfill/error_handlers.rs
       - services/email_service/src/pubsub/backfill/process.rs
@@ -720,10 +721,12 @@ customizations:
       - services/document_storage_service/**
       - crates/s3_key/**
       - apps/web/src/features/block-pdf/definition.ts
+      - apps/web/src/features/block-pdf/util/pdf-file-actions.ts
       - apps/web/tsconfig.json
       - apps/web/vite.base.ts
       - .fork/private-hooks.yml
     owned_paths:
+      - apps/web/src/features/block-pdf/util/pdf-file-actions.ts
       - apps/web/src/features/block-unknown/component/Block.tsx
       - apps/web/src/features/email-message/attachment-action-adapter.ts
       - apps/web/src/features/email-message/components/attachment-pill.tsx

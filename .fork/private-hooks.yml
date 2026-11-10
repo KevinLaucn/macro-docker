@@ -543,6 +543,21 @@ hooks:
       } from '@macro/adobe-preview';
     context:
       - "export default function BlockUnknown() {"
+  - id: adobe_preview_pdf_download_original_import
+    customization: ADOBE-ATTACHMENT-PREVIEW-001
+    file: apps/web/src/features/block-pdf/util/pdf-file-actions.ts
+    marker: "// PRIVATE-HOOK: adobe_preview:pdf_download_original_import"
+    expected: "import { downloadOriginalAdobeDocument } from '@macro/adobe-preview';"
+    context:
+      - "import { toast } from '@core/component/Toast/Toast';"
+  - id: adobe_preview_pdf_download_original
+    customization: ADOBE-ATTACHMENT-PREVIEW-001
+    file: apps/web/src/features/block-pdf/util/pdf-file-actions.ts
+    marker: "// PRIVATE-HOOK: adobe_preview:pdf_download_original_action"
+    expected: "if (await downloadOriginalAdobeDocument(auth.documentId, auth.fileName)) {"
+    context:
+      - "export async function downloadPdfDocument("
+      - "if (!requireAuth(auth)) return;"
   - id: email_read_receipts_list_envelope
     customization: READ-RECEIPTS-001
     file: apps/web/src/features/entity/extractors/entity-icon.tsx

@@ -1,3 +1,10 @@
+import { isInBlock } from '@core/block';
+import { toast } from '@core/component/Toast/Toast';
+import { blockMetadataSignal } from '@core/signal/load';
+import { downloadFile } from '@filesystem/download';
+import { fetchBinaryDocumentData } from '@queries/storage/binary-document';
+import { formatDocumentName } from '@service-storage/util/filename';
+
 export type AdobeFormat = 'ai' | 'eps';
 
 export type AdobePreviewResult =
@@ -233,4 +240,70 @@ export function getAdobeFormatFromFileName(
   if (ext === 'ai') return 'ai';
   if (ext === 'eps') return 'eps';
   return null;
+}
+
+/**
+ * Downloads the original Adobe document (AI or EPS) directly from document storage.
+ * If the current document is an Adobe file, this preserves the original file format,
+ * extension, and binary contents, bypassing derivative PDF preview downloads.
+ * Returns true if handled (or failed), false if this is a standard PDF.
+ */
+export async function downloadOriginalAdobeDocument(
+  documentId: string,
+  fallbackFileName?: string
+): Promise<boolean> {
+  let metaFileType: string | undefined;
+  if (isInBlock()) {
+    try {
+      const [meta] = blockMetadataSignal;
+      metaFileType = meta()?.fileType?.toLowerCase();
+    } catch {}
+  }
+
+  const formatFromMeta =
+    metaFileType === 'ai' || metaFileType === 'eps' ? metaFileType : null;
+  const formatFromName = getAdobeFormatFromFileName(fallbackFileName);
+
+  if (!formatFromMeta && !formatFromName) {
+    return false;
+  }
+
+  try {
+    const docResult = await fetchBinaryDocumentData(documentId);
+    if (docResult.isErr()) {
+      toast.failure('Unable to download original file');
+      return true;
+    }
+
+    const { blobUrl, documentMetadata } = docResult.value;
+    const actualFileType =
+      documentMetadata.fileType?.toLowerCase() ||
+      formatFromMeta ||
+      formatFromName;
+
+    if (actualFileType !== 'ai' && actualFileType !== 'eps') {
+      return false;
+    }
+
+    const rawName =
+      documentMetadata.documentName || fallbackFileName || 'illustration';
+    const downloadFileName = formatDocumentName(rawName, actualFileType, {
+      caseInsensitiveSuffix: true,
+    });
+
+    const response = await fetch(blobUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const finalMime = 'application/postscript';
+
+    await downloadFile(new Blob([blob], { type: finalMime }), downloadFileName);
+    return true;
+  } catch (error) {
+    console.error('Failed to download original Adobe document:', error);
+    toast.failure('Unable to download original file');
+    return true;
+  }
 }

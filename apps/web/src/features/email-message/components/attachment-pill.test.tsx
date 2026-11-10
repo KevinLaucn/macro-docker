@@ -114,4 +114,61 @@ it('downloads from the split button without opening the attachment', async () =>
     view.unmount();
   }
 });
+
+it('downloadOriginalAdobeDocument intercepts AI and EPS files to download original binary and ignores standard PDF', async () => {
+  const { downloadOriginalAdobeDocument } = await import(
+    '@macro/adobe-preview'
+  );
+
+  // 1. Regular PDF: should NOT intercept, returns false so PDF viewer handles it
+  const isPdfHandled = await downloadOriginalAdobeDocument(
+    'doc-pdf-id',
+    'report.pdf'
+  );
+  expect(isPdfHandled).toBe(false);
+
+  // 2. AI file: should intercept, fetch original binary and invoke downloadFile with .ai
+  const mockAiBytes = new Uint8Array([
+    0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37,
+  ]);
+  const fetchMock = vi.fn(
+    async () => new Response(mockAiBytes, { status: 200 })
+  );
+  vi.stubGlobal('fetch', fetchMock);
+
+  vi.spyOn(
+    await import('@queries/storage/binary-document'),
+    'fetchBinaryDocumentData'
+  ).mockResolvedValue({
+    isOk: () => true,
+    isErr: () => false,
+    value: {
+      blobUrl: 'https://storage.macro.com/original-artwork.ai',
+      documentMetadata: {
+        documentId: 'doc-ai-id',
+        documentName: 'artwork',
+        fileType: 'ai',
+        documentVersionId: 1,
+        owner: 'user-1',
+      },
+    },
+  } as any);
+
+  const downloadFileSpy = vi
+    .spyOn(await import('@filesystem/download'), 'downloadFile')
+    .mockResolvedValue({ saved: true });
+
+  const isAiHandled = await downloadOriginalAdobeDocument(
+    'doc-ai-id',
+    'artwork.ai'
+  );
+  expect(isAiHandled).toBe(true);
+  expect(downloadFileSpy).toHaveBeenCalledWith(
+    expect.any(Blob),
+    'artwork.ai'
+  );
+  const downloadedBlob = downloadFileSpy.mock.calls[0][0];
+  expect(downloadedBlob.type).toBe('application/postscript');
+
+  vi.unstubAllGlobals();
 });

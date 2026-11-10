@@ -1,5 +1,7 @@
 import { toast } from '@core/component/Toast/Toast';
 import { downloadFile } from '@filesystem/download';
+// PRIVATE-HOOK: adobe_preview:pdf_download_original_import
+import { downloadOriginalAdobeDocument } from '@macro/adobe-preview';
 import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
 import { fetchExportedDocx } from '../queries/export-docx';
 import { exportPdf } from '../websocket/export';
@@ -40,6 +42,11 @@ export async function downloadPdfDocument(
   }
 ) {
   if (!requireAuth(auth)) return;
+
+  // PRIVATE-HOOK: adobe_preview:pdf_download_original_action
+  if (await downloadOriginalAdobeDocument(auth.documentId, auth.fileName)) {
+    return;
+  }
 
   const proxy = auth.documentProxy;
   if (!proxy) return toast.failure('Unable to download file');
