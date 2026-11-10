@@ -98,7 +98,8 @@ function flushPrefetchBatch(): void {
         action: 'get',
       })
       .then((res) => {
-        for (const item of res.results) {
+        const items = res.results || (res as any).translations || [];
+        for (const item of items) {
           const msg = msgMap.get(item.message_id);
           if (!msg) continue;
           if (item.status === 'translated' || item.status === 'partial') {
@@ -179,7 +180,8 @@ export async function translateSingleMessage(
           action,
           link_id: options?.linkId ?? message.link_id ?? undefined,
         });
-        const item = res.results.find((r) => r.message_id === mid);
+        const items = res.results || (res as any).translations || [];
+        const item = items.find((r: MessageTranslationApiItem) => r.message_id === mid);
         if (!item) {
           throw new Error(`Missing translation response for message ${mid}`);
         }
@@ -259,14 +261,17 @@ export async function translateSingleMessage(
             : translatedReplylessHtml.html;
           partial ||= translatedReplylessHtml.partial;
         }
-      } else if (message.body_macro) {
+      }
+
+      // 无论是否有 body_html_sanitized，只要有 body_macro（如自己发出的邮件），都必须翻译 text/markdown 并提供给展开视图
+      if (message.body_macro) {
         const translatedText = await translateTextDetailed(
           message.body_macro.toString(),
           { targetLang: lang }
         );
         result.translatedText = translatedText.text;
         partial ||= translatedText.partial;
-      } else if (message.body_text) {
+      } else if (!message.body_html_sanitized && message.body_text) {
         const translatedText = await translateTextDetailed(
           message.body_text.toString(),
           { targetLang: lang }

@@ -66,7 +66,8 @@ export function prefetchSavedThreadTranslation(
       action: 'get',
     })
     .then((res) => {
-      const item = res.results.find((r) => r.thread_id === threadId);
+      const items = res.results || (res as any).translations || [];
+      const item = items.find((r: any) => r.thread_id === threadId);
       if (item && (item.status === 'translated' || item.status === 'partial')) {
         setThreadTitleTranslation(
           threadId,
@@ -225,7 +226,8 @@ export async function translateThread(
                 target_lang: lang,
                 action,
               });
-              const item = res.results.find((r) => r.thread_id === threadId);
+              const items = res.results || (res as any).translations || [];
+              const item = items.find((r: any) => r.thread_id === threadId);
               if (
                 item &&
                 (item.status === 'translated' || item.status === 'partial') &&
@@ -341,8 +343,9 @@ export async function translateThread(
                 target_lang: lang,
                 action,
               });
+              const items = res.results || (res as any).translations || [];
               const byId = new Map(
-                res.results.map((item) => [item.message_id, item])
+                items.map((item: any) => [item.message_id, item])
               );
               for (const msg of pendingMessages) {
                 const fp = computeMessageSourceFingerprint(msg);

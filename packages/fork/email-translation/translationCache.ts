@@ -7,7 +7,11 @@ let activeCacheScope = 'default';
 export function setTranslationCacheScope(scope: string | undefined | null): void {
   const nextScope = scope?.trim().toLowerCase() || 'default';
   if (nextScope !== activeCacheScope) {
-    clearTranslationCache();
+    // Only flush cache on actual account logout or switching between two distinct real users,
+    // never flush during initial cold-start bind from 'default' to current user
+    if (activeCacheScope !== 'default') {
+      clearTranslationCache();
+    }
     activeCacheScope = nextScope;
   }
 }

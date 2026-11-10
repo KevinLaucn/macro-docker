@@ -340,10 +340,30 @@ impl<S: EmailTranslationStore> EmailTranslationService<S> {
         existing_translations: &HashMap<String, String>,
     ) -> Result<(HashMap<String, String>, bool), TranslationServiceError> {
         let mut resolved = existing_translations.clone();
-        let missing: Vec<&ProtectedSegment> = all_segments
-            .iter()
-            .filter(|seg| !resolved.contains_key(&seg.id))
-            .collect();
+
+        // 1. Intra-message cache reuse: if any existing translation had identical masked_text, reuse it
+        let mut text_to_raw_translation: HashMap<String, String> = HashMap::new();
+        for seg in all_segments {
+            if let Some(trans) = resolved.get(&seg.id) {
+                if seg.tokens.is_empty() {
+                    text_to_raw_translation.insert(seg.masked_text.clone(), trans.clone());
+                }
+            }
+        }
+
+        let mut missing: Vec<&ProtectedSegment> = Vec::new();
+        for seg in all_segments {
+            if resolved.contains_key(&seg.id) {
+                continue;
+            }
+            if let Some(raw) = text_to_raw_translation.get(&seg.masked_text) {
+                if let Some(restored) = restore_protected_tokens(raw, &seg.tokens) {
+                    resolved.insert(seg.id.clone(), restored);
+                    continue;
+                }
+            }
+            missing.push(seg);
+        }
 
         if missing.is_empty() {
             return Ok((resolved, true));
@@ -358,11 +378,22 @@ impl<S: EmailTranslationStore> EmailTranslationService<S> {
                 message: error.to_string(),
             })?;
 
+        // 2. Deduplicate missing segments by masked_text to dramatically reduce tokens and avoid AI cost limits
+        let mut unique_segments: Vec<&ProtectedSegment> = Vec::new();
+        let mut text_to_all_segs: HashMap<String, Vec<&ProtectedSegment>> = HashMap::new();
+        for seg in missing {
+            let entry = text_to_all_segs.entry(seg.masked_text.clone()).or_default();
+            if entry.is_empty() {
+                unique_segments.push(seg);
+            }
+            entry.push(seg);
+        }
+
         let mut batches: Vec<Vec<&ProtectedSegment>> = Vec::new();
         let mut current_batch: Vec<&ProtectedSegment> = Vec::new();
         let mut current_chars = 0usize;
 
-        for seg in missing {
+        for seg in unique_segments {
             let seg_len = seg.masked_text.len() + seg.id.len() + 16;
             if !current_batch.is_empty()
                 && (current_batch.len() >= MAX_SEGMENTS_PER_AI_BATCH
@@ -423,12 +454,17 @@ impl<S: EmailTranslationStore> EmailTranslationService<S> {
                         for seg in batch {
                             if let Some(raw_translated) = by_id.get(&seg.id) {
                                 let trimmed = raw_translated.trim();
-                                if !trimmed.is_empty()
-                                    && let Some(restored) =
-                                        restore_protected_tokens(trimmed, &seg.tokens)
-                                {
-                                    resolved.insert(seg.id.clone(), restored);
-                                    any_batch_succeeded = true;
+                                if !trimmed.is_empty() {
+                                    if let Some(all_matching) = text_to_all_segs.get(&seg.masked_text) {
+                                        for target_seg in all_matching {
+                                            if let Some(restored) =
+                                                restore_protected_tokens(trimmed, &target_seg.tokens)
+                                            {
+                                                resolved.insert(target_seg.id.clone(), restored);
+                                                any_batch_succeeded = true;
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

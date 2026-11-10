@@ -420,6 +420,43 @@ export async function toggleGlobalListTranslation(
 }
 
 // 3. Thread-level state (separated into data status and display mode)
+const THREAD_STATUS_PREFIX = 'macro.trans.thread.';
+const THREAD_MODE_PREFIX = 'macro.trans.thmode.';
+
+function readSessionThreadStatus(key: string): TranslationStatus | undefined {
+  if (typeof window === 'undefined' || !window.sessionStorage) return undefined;
+  try {
+    const val = window.sessionStorage.getItem(THREAD_STATUS_PREFIX + key);
+    return val as TranslationStatus | undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeSessionThreadStatus(key: string, status: TranslationStatus): void {
+  if (typeof window === 'undefined' || !window.sessionStorage) return;
+  try {
+    window.sessionStorage.setItem(THREAD_STATUS_PREFIX + key, status);
+  } catch {}
+}
+
+function readSessionThreadMode(key: string): boolean | undefined {
+  if (typeof window === 'undefined' || !window.sessionStorage) return undefined;
+  try {
+    const val = window.sessionStorage.getItem(THREAD_MODE_PREFIX + key);
+    return val !== null ? val === 'true' : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeSessionThreadMode(key: string, mode: boolean): void {
+  if (typeof window === 'undefined' || !window.sessionStorage) return;
+  try {
+    window.sessionStorage.setItem(THREAD_MODE_PREFIX + key, String(mode));
+  } catch {}
+}
+
 const [threadStatuses, setThreadStatuses] = createStore<
   Record<string, TranslationStatus>
 >({});
@@ -435,7 +472,14 @@ export function getThreadTranslationStatus(
   targetLang?: string
 ): TranslationStatus {
   const key = makeScopedKey(threadId, targetLang);
-  return threadStatuses[key] ?? 'idle';
+  const mem = threadStatuses[key];
+  if (mem !== undefined) return mem;
+  const stored = readSessionThreadStatus(key);
+  if (stored !== undefined) {
+    setThreadStatuses(key, stored);
+    return stored;
+  }
+  return 'idle';
 }
 
 export function setThreadTranslationStatus(
@@ -445,10 +489,13 @@ export function setThreadTranslationStatus(
 ): void {
   const key = makeScopedKey(threadId, targetLang);
   setThreadStatuses(key, status);
+  writeSessionThreadStatus(key, status);
   if (status === 'translated' || status === 'partial') {
     setThreadDisplayModes(key, true);
+    writeSessionThreadMode(key, true);
   } else if (status === 'idle') {
     setThreadDisplayModes(key, false);
+    writeSessionThreadMode(key, false);
   }
 }
 
@@ -457,9 +504,14 @@ export function isThreadDisplayingTranslation(
   targetLang?: string
 ): boolean {
   const key = makeScopedKey(threadId, targetLang);
-  const status = threadStatuses[key] ?? 'idle';
+  const status = getThreadTranslationStatus(threadId, targetLang);
   if (threadDisplayModes[key] !== undefined) {
     return Boolean(threadDisplayModes[key]);
+  }
+  const storedMode = readSessionThreadMode(key);
+  if (storedMode !== undefined) {
+    setThreadDisplayModes(key, storedMode);
+    return storedMode;
   }
   return status === 'translated' || status === 'partial';
 }
@@ -472,6 +524,7 @@ export function setThreadDisplayingTranslation(
 ): void {
   const key = makeScopedKey(threadId, targetLang);
   setThreadDisplayModes(key, showTranslated);
+  writeSessionThreadMode(key, showTranslated);
   for (const mid of messageIds) {
     setMessageOverride(mid, showTranslated ? 'inherit' : 'original', targetLang);
   }
@@ -518,6 +571,26 @@ export function setThreadTitleTranslation(
 }
 
 // 4. Message-level override: 'inherit' | 'translated' | 'original'
+const MSG_OVERRIDE_PREFIX = 'macro.trans.override.';
+const MSG_BODY_CACHE_PREFIX = 'macro.trans.msgbody.';
+
+function readSessionOverride(key: string): MessageTranslationOverride | undefined {
+  if (typeof window === 'undefined' || !window.sessionStorage) return undefined;
+  try {
+    const val = window.sessionStorage.getItem(MSG_OVERRIDE_PREFIX + key);
+    return val as MessageTranslationOverride | undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeSessionOverride(key: string, override: MessageTranslationOverride): void {
+  if (typeof window === 'undefined' || !window.sessionStorage) return;
+  try {
+    window.sessionStorage.setItem(MSG_OVERRIDE_PREFIX + key, override);
+  } catch {}
+}
+
 const [messageOverrides, setMessageOverrides] = createStore<
   Record<string, MessageTranslationOverride>
 >({});
@@ -527,7 +600,14 @@ export function getMessageOverride(
   targetLang?: string
 ): MessageTranslationOverride {
   const key = makeScopedKey(messageId, targetLang);
-  return messageOverrides[key] ?? 'inherit';
+  const mem = messageOverrides[key];
+  if (mem !== undefined) return mem;
+  const stored = readSessionOverride(key);
+  if (stored !== undefined) {
+    setMessageOverrides(key, stored);
+    return stored;
+  }
+  return 'inherit';
 }
 
 export function setMessageOverride(
@@ -537,9 +617,30 @@ export function setMessageOverride(
 ): void {
   const key = makeScopedKey(messageId, targetLang);
   setMessageOverrides(key, override);
+  writeSessionOverride(key, override);
 }
 
 // 5. Message body translation cache (persisted data cache separated from view display state)
+function readSessionMessageBody(key: string): MessageTranslationData | undefined {
+  if (typeof window === 'undefined' || !window.sessionStorage) return undefined;
+  try {
+    const raw = window.sessionStorage.getItem(MSG_BODY_CACHE_PREFIX + key);
+    if (!raw) return undefined;
+    return JSON.parse(raw) as MessageTranslationData;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeSessionMessageBody(key: string, data: MessageTranslationData): void {
+  if (typeof window === 'undefined' || !window.sessionStorage) return;
+  try {
+    if (data.status === 'translated' || data.status === 'partial') {
+      window.sessionStorage.setItem(MSG_BODY_CACHE_PREFIX + key, JSON.stringify(data));
+    }
+  } catch {}
+}
+
 const [cachedMessageBodies, setCachedMessageBodies] = createStore<
   Record<string, MessageTranslationData>
 >({});
@@ -551,7 +652,14 @@ export function getCachedMessageTranslation(
 ): MessageTranslationData | undefined {
   if (!messageId) return undefined;
   const key = makeScopedKey(messageId, targetLang);
-  const entry = cachedMessageBodies[key];
+  let entry = cachedMessageBodies[key];
+  if (!entry) {
+    const stored = readSessionMessageBody(key);
+    if (stored) {
+      setCachedMessageBodies(key, stored);
+      entry = stored;
+    }
+  }
   if (!entry) return undefined;
   if (
     expectedSourceFingerprint &&
@@ -571,6 +679,10 @@ export function setCachedMessageTranslation(
   const lang = targetLang || data.targetLang || getTargetLanguage();
   const key = makeScopedKey(messageId, lang);
   setCachedMessageBodies(key, {
+    ...data,
+    targetLang: lang,
+  });
+  writeSessionMessageBody(key, {
     ...data,
     targetLang: lang,
   });
@@ -626,6 +738,8 @@ export function clearThreadTranslation(
   setThreadStatuses(key, 'idle');
   setThreadDisplayModes(key, false);
   setThreadTitleTranslations(key, { status: 'idle' });
+  writeSessionThreadStatus(key, 'idle');
+  writeSessionThreadMode(key, false);
   for (const mid of messageIds) {
     setMessageOverride(mid, 'inherit', targetLang);
   }
@@ -640,9 +754,12 @@ export function setEmailTranslationAccountScope(
 ): void {
   const normalized = nextScope?.trim().toLowerCase() || 'default';
   if (normalized === accountScope()) return;
-  clearClientTranslationStateOnLogout();
+  const prev = accountScope();
   setAccountScopeSignal(normalized);
   setTranslationCacheScope(normalized);
+  if (prev !== 'default') {
+    clearClientTranslationStateOnLogout();
+  }
 }
 
 export function clearClientTranslationStateOnLogout(): void {
@@ -656,4 +773,18 @@ export function clearClientTranslationStateOnLogout(): void {
   setListTranslated(false);
   setListTranslating(false);
   clearTranslationCache();
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < window.sessionStorage.length; i++) {
+        const k = window.sessionStorage.key(i);
+        if (k?.startsWith('macro.trans.')) {
+          keysToRemove.push(k);
+        }
+      }
+      for (const k of keysToRemove) {
+        window.sessionStorage.removeItem(k);
+      }
+    } catch {}
+  }
 }

@@ -35,6 +35,8 @@ pub struct MessagesTranslationRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessagesTranslationResponse {
     pub translations: Vec<MessageTranslationDto>,
+    #[serde(default)]
+    pub results: Vec<MessageTranslationDto>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,6 +52,8 @@ pub struct ThreadsTranslationRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreadsTranslationResponse {
     pub translations: Vec<ThreadTranslationDto>,
+    #[serde(default)]
+    pub results: Vec<ThreadTranslationDto>,
 }
 
 #[derive(Debug, Serialize)]
@@ -172,6 +176,7 @@ pub async fn messages_handler(
     )?;
     if req.message_ids.is_empty() {
         return Ok(Json(MessagesTranslationResponse {
+            results: Vec::new(),
             translations: Vec::new(),
         }));
     }
@@ -262,7 +267,10 @@ pub async fn messages_handler(
         ));
     }
 
-    Ok(Json(MessagesTranslationResponse { translations }))
+    Ok(Json(MessagesTranslationResponse {
+        results: translations.clone(),
+        translations,
+    }))
 }
 
 #[tracing::instrument(
@@ -292,6 +300,7 @@ pub async fn threads_handler(
     )?;
     if req.thread_ids.is_empty() {
         return Ok(Json(ThreadsTranslationResponse {
+            results: Vec::new(),
             translations: Vec::new(),
         }));
     }
@@ -380,5 +389,8 @@ pub async fn threads_handler(
         ));
     }
 
-    Ok(Json(ThreadsTranslationResponse { translations }))
+    Ok(Json(ThreadsTranslationResponse {
+        results: translations.clone(),
+        translations,
+    }))
 }

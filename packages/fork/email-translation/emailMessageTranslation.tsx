@@ -136,10 +136,32 @@ export function useEmailMessageTranslation(message: () => EmailMessage) {
       isTranslated()
         ? sanitizeOwnSentPixels(cachedTranslation()?.translatedReplylessHtml)
         : undefined,
-    translatedText: () =>
-      isTranslated() && usesPlainTextView()
-        ? cachedTranslation()?.translatedText
-        : undefined,
+    translatedText: () => {
+      if (!isTranslated()) return undefined;
+      const cached = cachedTranslation();
+      if (cached?.translatedText) return cached.translatedText;
+      if (
+        usesPlainTextView() &&
+        (cached?.translatedReplylessHtml || cached?.translatedHtml)
+      ) {
+        const rawHtml = cached.translatedReplylessHtml || cached.translatedHtml;
+        if (rawHtml) {
+          const stripped = rawHtml
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/p>/gi, '\n\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&#39;/g, "'")
+            .replace(/&quot;/g, '"')
+            .trim();
+          if (stripped) return stripped;
+        }
+      }
+      return undefined;
+    },
   };
 }
 

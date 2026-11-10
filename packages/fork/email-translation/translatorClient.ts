@@ -20,6 +20,7 @@ export interface EmailTranslationMessagesRequest {
 
 export interface EmailTranslationMessagesResponse {
   results: MessageTranslationApiItem[];
+  translations?: MessageTranslationApiItem[];
 }
 
 export interface EmailTranslationThreadsRequest {
@@ -32,6 +33,7 @@ export interface EmailTranslationThreadsRequest {
 
 export interface EmailTranslationThreadsResponse {
   results: ThreadTranslationApiItem[];
+  translations?: ThreadTranslationApiItem[];
 }
 
 export interface EmailTranslationTransport {
@@ -84,8 +86,8 @@ export const emailTranslationClient: EmailTranslationTransport = {
     if (customTransport) {
       return await customTransport.requestMessages(req);
     }
-    return await throwOnErr(() =>
-      fetchWithToken<EmailTranslationMessagesResponse>(
+    const raw = await throwOnErr(() =>
+      fetchWithToken<any>(
         `${getCognitionHost()}/email-translation/messages`,
         {
           method: 'POST',
@@ -94,6 +96,8 @@ export const emailTranslationClient: EmailTranslationTransport = {
         }
       )
     );
+    const items = (raw?.results || raw?.translations || []) as MessageTranslationApiItem[];
+    return { results: items, translations: items };
   },
 
   async requestThreads(
@@ -102,8 +106,8 @@ export const emailTranslationClient: EmailTranslationTransport = {
     if (customTransport) {
       return await customTransport.requestThreads(req);
     }
-    return await throwOnErr(() =>
-      fetchWithToken<ThreadTranslationApiResponseCompat>(
+    const raw = await throwOnErr(() =>
+      fetchWithToken<any>(
         `${getCognitionHost()}/email-translation/threads`,
         {
           method: 'POST',
@@ -112,6 +116,8 @@ export const emailTranslationClient: EmailTranslationTransport = {
         }
       )
     );
+    const items = (raw?.results || raw?.translations || []) as ThreadTranslationApiItem[];
+    return { results: items, translations: items };
   },
 };
 
