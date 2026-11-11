@@ -46,9 +46,25 @@ check.call("frontend attachment API seams",
   integration.include?("emailClient.getOrCreateAttachmentDocumentId({ id })") &&
   opener.include?("await getEmailAttachmentDocument(dbId)"))
 
+attachment_access = read.call("services/email_service/src/outbound/attachment_access.rs")
+caddyfile = read.call("self-host/Caddyfile")
+check.call("self-host S3 attachment download path",
+  attachment_access.include?("macro_aws_config::is_local_aws()") &&
+  caddyfile.include?("handle_path /macro-email-attachments/* {") &&
+  caddyfile.include?("rewrite * /macro-email-attach{path}"))
+
+pdf_actions = read.call("apps/web/src/features/block-pdf/util/pdf-file-actions.ts")
+adobe_inspect = read.call("packages/fork/adobe-preview/inspect.ts")
+check.call("adobe original attachment download protection",
+  pdf_actions.include?("PRIVATE-HOOK: adobe_preview:pdf_download_original_action") &&
+  pdf_actions.include?("downloadOriginalAdobeDocument(auth.documentId, auth.fileName)") &&
+  adobe_inspect.include?("export async function downloadOriginalAdobeDocument(") &&
+  adobe_inspect.include?("await fetchBinaryDocumentData(documentId)") &&
+  adobe_inspect.include?("'application/postscript'"))
+
 if errors.any?
   warn "Email attachment contract failed: #{errors.join('; ')}"
   warn "Review the upstream call paths; do not remove checks to bypass a failure."
   exit 1
 end
-puts "Email attachment source contracts: 4 passed (no build or network)"
+puts "Email attachment source contracts: 6 passed (no build or network)"
