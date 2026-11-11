@@ -245,9 +245,7 @@
 	}
 
 	# Compatibility rewrite: map legacy /macro-email-attachments to active bucket /macro-email-attach
-	@legacy_attachments path /macro-email-attachments/*
-	handle @legacy_attachments {
-		uri strip_prefix /macro-email-attachments
+	handle_path /macro-email-attachments/* {
 		rewrite * /macro-email-attach{path}
 		reverse_proxy localstack:4566
 	}
