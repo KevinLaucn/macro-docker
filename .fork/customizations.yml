@@ -39,6 +39,7 @@ customizations:
   - ".agents/skills/macro-pre-push-gate/**"
   - ".github/scripts/check-core-drift.rb"
   - ".github/scripts/check-private-hooks.rb"
+  - ".github/scripts/check-fork-i18n.rb"
   - tooling/just/check.just
   - docs/FORK_DEVELOPMENT.md
   - ".fork/upstream.yml"
@@ -274,9 +275,6 @@ customizations:
     behavior.
   risk: medium
   paths:
-  - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
-  - crates/ai_projections/src/domain/ai_projection_service.rs
-  - ".fork/overrides/home-recommendations.yml"
   - services/agent_harness_service/src/cognition/service/chat_renamer.rs
   owned_paths:
   - services/agent_harness_service/src/cognition/service/chat_renamer.rs

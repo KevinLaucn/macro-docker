@@ -29,13 +29,18 @@ def fail(msg: str) -> None:
 
 ## --- inventory -------------------------------------------------------------
 inv = (ROOT / "tooling/xtask/crates/xtask_local/src/local/inventory.rs").read_text()
+const_aliases = {
+    "google_emulator::SERVICE": "gmail_emulator",
+    "microsoft_emulator::SERVICE": "outlook_emulator",
+}
 services = []
 for block in re.findall(r"RustService \{(.*?)\n    \},", inv, re.S):
     def field(name):
-        m = re.search(rf'{name}:\s*(?:Some\("([^"]+)"\)|"([^"]+)"|None|(true|false))', block)
+        m = re.search(rf'{name}:\s*(?:Some\("([^"]+)"\)|"([^"]+)"|None|(true|false)|([a-zA-Z0-9_:]+))', block)
         if not m:
             return None
-        return m.group(1) or m.group(2) or m.group(3)
+        val = m.group(1) or m.group(2) or m.group(3) or m.group(4)
+        return const_aliases.get(val, val)
     services.append({
         "compose_name": field("compose_name"),
         "cargo_bin": field("cargo_bin"),

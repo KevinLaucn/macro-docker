@@ -29,13 +29,14 @@ fork-gate:
     bun run --cwd packages/fork/read-receipts test
     just test-email-attachment-recovery
     ruby .github/scripts/check-core-drift.rb --upstream "$base"
+    ruby .github/scripts/check-fork-i18n.rb
     python3 self-host/scripts/check-drift.py
     python3 self-host/scripts/verify-release.py
     just test-browser-runtime
 
 test-browser-runtime:
     python3 -m unittest discover -s self-host/scripts -p 'test_web_assets.py'
-    \cd apps/web && bunx vitest run --config src/lib/queries/vitest.config.ts src/lib/queries/ai/tests/homeRecommendations.test.ts src/lib/queries/agents/models.test.tsx src/lib/queries/agents/capabilities.test.tsx src/lib/queries/agent-session/warm.test.tsx
+    \cd apps/web && bunx vitest run --config src/lib/queries/vitest.config.ts src/lib/queries/agents/models.test.tsx src/lib/queries/agents/capabilities.test.tsx src/lib/queries/agent-session/warm.test.tsx
     \cd apps/web && bunx vitest run --config src/lib/core/vitest.config.ts src/lib/core/hotkey/utils.test.ts
 
 test-email-attachment-recovery:
