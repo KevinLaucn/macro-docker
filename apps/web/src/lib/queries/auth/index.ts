@@ -22,6 +22,7 @@ export {
   type GithubLinkStatus,
   githubLinkAuthorizationUrl,
   invalidateGithubLinkStatus,
+  readGithubLinkStatus,
   useDeleteGithubLinkMutation,
   useGithubLinkStatusQuery,
   useInitGithubLinkMutation,
@@ -43,7 +44,6 @@ export {
 } from './user-language';
 export {
   normalizeUserNameQueryId,
-  userNameQueryOptions,
-  useUserNamesQuery,
+  useUserNames,
 } from './user-names';
 export { invalidateUserQuota } from './user-quota';

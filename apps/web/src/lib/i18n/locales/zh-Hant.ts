@@ -688,8 +688,6 @@ export default {
       other: '已將 {{count}} 個項目中的 {{accepted}} 個標示為未完成',
     },
     toastMarkNotDoneFailed: '無法標示為未完成',
-    toastThreadStaysDone: '這個郵件串沒有收到的郵件，因此會維持完成狀態',
-    toastThreadsStayDone: '這些郵件串沒有收到的郵件，因此會維持完成狀態',
     toastCountNotRestored: {
       other: '有 {{count}} 個項目無法還原。',
     },
@@ -938,7 +936,7 @@ export default {
     tabMobileApp: '行動應用程式',
     tabTags: '標籤',
     tabIntegrations: '整合',
-    tabRuntimes: '執行環境',
+    tabRuntimes: '機器',
     tabMcpServer: 'MCP 伺服器',
     tabApiKeys: 'API 金鑰',
     tabBots: '機器人',

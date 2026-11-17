@@ -1,5 +1,8 @@
 use super::*;
-use crate::domain::{AiFeature, CompletionUsage, SYSTEM_USER_ID, Usage, UsageApiParams};
+use crate::domain::service::UsageServiceImpl;
+use crate::domain::{
+    AiFeature, CompletionUsage, SYSTEM_USER_ID, Usage, UsageApiParams, UsageContext,
+};
 use chrono::Utc;
 use macro_db_migrator::MACRO_DB_MIGRATIONS;
 use sqlx::PgPool;
@@ -10,6 +13,7 @@ fn completion(feature: AiFeature, model: &str, input: u64, output: u64) -> Compl
         user: SYSTEM_USER_ID.clone(),
         entity: None,
         agent_api_key_id: None,
+        agent_session_id: None,
         cost: Usage {
             amount: UsageAmount::Tokens {
                 input,
@@ -137,6 +141,64 @@ async fn usage_references_the_agent_key_that_paid_for_it(pool: PgPool) {
     let rows = repo.query_usage(&UsageApiParams::default()).await.unwrap();
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].agent_api_key_id, None);
+}
+
+/// What an agent session's turns and titles spend is recorded against the
+/// session, so it sums per session; usage outside any session names none.
+#[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
+async fn agent_session_usage_rows_carry_their_session(pool: PgPool) {
+    let service = UsageServiceImpl::new(PgUsageRepo::new(pool.clone()));
+    let owner = MacroUserIdStr::try_from("macro|owner@example.com".to_owned()).unwrap();
+    let session = macro_uuid::generate_uuid_v7();
+    let other_session = macro_uuid::generate_uuid_v7();
+    let one_million_input = UsageAmount::Tokens {
+        input: 1_000_000,
+        output: 0,
+        cache_read: 0,
+        cache_write: 0,
+    };
+    for context in [
+        UsageContext::new(AiFeature::NonBillableAgentSession, owner.clone())
+            .with_agent_session(Some(session)),
+        UsageContext::new(AiFeature::ChatRename, owner.clone())
+            .with_entity(Some(session))
+            .with_agent_session(Some(session)),
+        UsageContext::new(AiFeature::AgentSession, owner.clone())
+            .with_agent_session(Some(other_session)),
+        UsageContext::new(AiFeature::Chat, owner.clone()),
+    ] {
+        service
+            .record_now(context.into_event("claude-opus-5".into(), one_million_input))
+            .await
+            .unwrap();
+    }
+
+    let session_total = sqlx::query_scalar!(
+        r#"SELECT SUM(total) AS "total!" FROM ai_usage WHERE agent_session_id = $1"#,
+        session,
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert!((session_total - 10.0).abs() < 1e-3);
+
+    let mut rows: Vec<_> = PgUsageRepo::new(pool)
+        .query_usage(&UsageApiParams::default())
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|row| (row.feature, row.agent_session_id))
+        .collect();
+    rows.sort();
+    assert_eq!(
+        rows,
+        vec![
+            (AiFeature::Chat, None),
+            (AiFeature::ChatRename, Some(session)),
+            (AiFeature::AgentSession, Some(other_session)),
+            (AiFeature::NonBillableAgentSession, Some(session)),
+        ]
+    );
 }
 
 #[sqlx::test(migrator = "MACRO_DB_MIGRATIONS")]
@@ -514,6 +576,7 @@ async fn cached_token_usage_roundtrips_with_its_cache_rates(pool: PgPool) {
         user: SYSTEM_USER_ID.clone(),
         entity: None,
         agent_api_key_id: None,
+        agent_session_id: None,
         cost: Usage {
             amount,
             model: "claude-opus-5".to_string(),
@@ -559,6 +622,7 @@ async fn repricing_bills_cache_tokens_and_unprices_them_without_a_cache_rate(poo
             user: SYSTEM_USER_ID.clone(),
             entity: None,
             agent_api_key_id: None,
+            agent_session_id: None,
             cost: Usage {
                 amount: UsageAmount::Tokens {
                     input: 1_000_000,
@@ -624,9 +688,13 @@ async fn accelerated_and_long_context_prices_remain_distinct(pool: PgPool) {
     for (model, input, output, cache_read, cache_write) in [
         ("gpt-6.1-sol", 2.0, 10.0, 0.1, 2.5),
         ("gpt-6.1-sol:long", 4.0, 15.0, 0.2, 5.0),
+        ("gpt-6.1-sol:priority", 4.0, 20.0, 0.2, 5.0),
+        ("gpt-6.1-sol:priority:long", 8.0, 30.0, 0.4, 10.0),
         ("gpt-6.1-sol:ultrafast", 12.0, 60.0, 0.6, 15.0),
         ("gpt-6.1-sol:ultrafast:long", 24.0, 90.0, 1.2, 30.0),
         ("gpt-6-astra:long", 20.0, 75.0, 2.0, 25.0),
+        ("gpt-6-astra:priority", 20.0, 100.0, 2.0, 25.0),
+        ("gpt-6-astra:priority:long", 40.0, 150.0, 4.0, 50.0),
         ("gpt-6-astra:ultrafast", 60.0, 300.0, 6.0, 75.0),
         ("gpt-6-astra:ultrafast:long", 120.0, 450.0, 12.0, 150.0),
         ("claude-opus-5-5:fast", 8.0, 40.0, 0.4, 10.0),

@@ -1014,8 +1014,6 @@ export default {
       other: '已将 {{count}} 项中的 {{accepted}} 项标记为未完成',
     },
     toastMarkNotDoneFailed: '标记为未完成失败',
-    toastThreadStaysDone: '此会话没有收到的邮件，因此保持已完成状态',
-    toastThreadsStayDone: '这些会话没有收到的邮件，因此保持已完成状态',
     toastCountNotRestored: {
       other: '{{count}} 项未能恢复。',
     },
@@ -1379,7 +1377,7 @@ export default {
     tabMobileApp: '移动应用',
     tabTags: '标签',
     tabIntegrations: '集成',
-    tabRuntimes: '运行时',
+    tabRuntimes: '机器',
     tabMcpServer: 'MCP 服务器',
     tabApiKeys: 'API 密钥',
     tabAccountManagers: '账户托管',

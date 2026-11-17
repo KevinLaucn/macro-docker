@@ -1,28 +1,16 @@
 import type { EmailThreadKeyboardHandlers } from '@app/features/email-thread/core/thread-keyboard';
-import { t as tUpstream } from '@app/lib/i18n';
+import { t } from '@app/lib/i18n';
 import { registerHotkey } from '@core/hotkey/hotkeys';
 import { TOKENS } from '@core/hotkey/tokens';
-import { t } from '@macro/i18n';
 
 export function registerEmailHotkeys(
   scopeId: string,
   handlers: EmailThreadKeyboardHandlers
 ) {
-  if (handlers.replyAllToFocusedMessage) {
-    registerHotkey({
-      hotkey: 'opt+r',
-      scopeId: scopeId,
-      description: t('Reply all to message', { context: 'email' }),
-      keyDownHandler: handlers.replyAllToFocusedMessage,
-      hotkeyToken: TOKENS.email.replyAll,
-      displayPriority: 8,
-    });
-  }
-
   registerHotkey({
     hotkey: 'r',
     scopeId: scopeId,
-    description: t('Reply to message', { context: 'email' }),
+    description: 'Reply to message',
     keyDownHandler: handlers.replyToFocusedMessage,
     hotkeyToken: TOKENS.email.reply,
     displayPriority: 9,
@@ -32,7 +20,7 @@ export function registerEmailHotkeys(
     registerHotkey({
       hotkey: 'b',
       scopeId,
-      description: () => tUpstream('commands.createEventFromEmail'),
+      description: () => t('commands.createEventFromEmail'),
       keyDownHandler: handlers.createEvent,
       hotkeyToken: TOKENS.email.createEvent,
       displayPriority: 7,
@@ -43,29 +31,15 @@ export function registerEmailHotkeys(
   registerHotkey({
     hotkey: 'f',
     scopeId: scopeId,
-    description: t('Forward message'),
+    description: 'Forward message',
     keyDownHandler: handlers.forwardFocusedMessage,
     hotkeyToken: TOKENS.email.forward,
     displayPriority: 7,
   });
-  const extHandlers = handlers as EmailThreadKeyboardHandlers & {
-    translateThread?: () => boolean;
-  };
-  if (extHandlers.translateThread) {
-    registerHotkey({
-      hotkey: 'q',
-      scopeId,
-      description: t('Translate email thread'),
-      keyDownHandler: extHandlers.translateThread,
-      hotkeyToken: ((TOKENS.email as any).translateThread ??
-        'email.translateThread') as any,
-      displayPriority: 8,
-    });
-  }
   registerHotkey({
     hotkey: 'e',
     scopeId,
-    description: t('Mark done'),
+    description: 'Mark done',
     // Mark done opens the next thread, so a held key would archive thread
     // after thread; auto-repeat is ignored.
     keyDownHandler: (event) => (event?.repeat ? true : handlers.markDone()),
@@ -76,7 +50,7 @@ export function registerEmailHotkeys(
   registerHotkey({
     hotkey: 'shift+e',
     scopeId,
-    description: t('Mark as not done'),
+    description: 'Mark as not done',
     keyDownHandler: (event) => (event?.repeat ? true : handlers.markNotDone()),
     hotkeyToken: TOKENS.entity.action.markNotDone,
     displayPriority: 10,
@@ -85,7 +59,7 @@ export function registerEmailHotkeys(
   registerHotkey({
     hotkey: 'u',
     scopeId,
-    description: t('Mark unread'),
+    description: 'Mark as unread',
     keyDownHandler: handlers.markUnread,
     hotkeyToken: TOKENS.entity.action.markUnread,
     displayPriority: 9,
@@ -94,7 +68,7 @@ export function registerEmailHotkeys(
   registerHotkey({
     hotkey: 'shift+u',
     scopeId,
-    description: t('Mark read'),
+    description: 'Mark as read',
     keyDownHandler: handlers.markRead,
     hotkeyToken: TOKENS.entity.action.markRead,
     displayPriority: 9,
@@ -102,7 +76,7 @@ export function registerEmailHotkeys(
   });
   registerHotkey({
     scopeId: scopeId,
-    description: t('Block sender'),
+    description: 'Block sender',
     keyDownHandler: handlers.blockSender,
     hotkeyToken: TOKENS.email.blockSender,
     displayPriority: 5,
@@ -110,7 +84,7 @@ export function registerEmailHotkeys(
   });
   registerHotkey({
     scopeId: scopeId,
-    description: t('Mark sender as Signal', { context: 'email' }),
+    description: 'Mark sender as Signal',
     keyDownHandler: handlers.markSenderSignal,
     hotkeyToken: TOKENS.email.markSenderSignal,
     displayPriority: 5,
@@ -118,7 +92,7 @@ export function registerEmailHotkeys(
   });
   registerHotkey({
     scopeId: scopeId,
-    description: t('Mark sender as Noise', { context: 'email' }),
+    description: 'Mark sender as Noise',
     keyDownHandler: handlers.markSenderNoise,
     hotkeyToken: TOKENS.email.markSenderNoise,
     displayPriority: 5,
@@ -127,14 +101,14 @@ export function registerEmailHotkeys(
   registerHotkey({
     hotkey: ['arrowup', 'p'],
     scopeId,
-    description: t('Previous message', { context: 'email' }),
+    description: 'Previous message',
     keyDownHandler: handlers.navigateToPreviousMessage,
     hotkeyToken: TOKENS.email.previousMessage,
   });
   registerHotkey({
     hotkey: ['arrowdown', 'n'],
     scopeId,
-    description: t('Next message', { context: 'email' }),
+    description: 'Next message',
     keyDownHandler: handlers.navigateToNextMessage,
     hotkeyToken: TOKENS.email.nextMessage,
   });

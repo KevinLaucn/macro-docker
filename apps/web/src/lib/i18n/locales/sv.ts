@@ -589,10 +589,6 @@ export default {
       other: '{{accepted}} av {{count}} objekt markerade som inte klara',
     },
     toastMarkNotDoneFailed: 'Det gick inte att markera som inte klart',
-    toastThreadStaysDone:
-      'Tråden har inga mottagna meddelanden, så den förblir klar',
-    toastThreadsStayDone:
-      'Trådarna har inga mottagna meddelanden, så de förblir klara',
     toastCountNotRestored: {
       one: '{{count}} kunde inte återställas.',
       other: '{{count}} kunde inte återställas.',
@@ -761,7 +757,7 @@ export default {
     tabMobileApp: 'Mobilapp',
     tabTags: 'Taggar',
     tabIntegrations: 'Integrationer',
-    tabRuntimes: 'Körmiljöer',
+    tabRuntimes: 'Maskiner',
     tabMcpServer: 'MCP-server',
     tabApiKeys: 'API-nycklar',
     tabBots: 'Botar',

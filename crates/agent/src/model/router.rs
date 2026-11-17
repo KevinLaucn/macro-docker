@@ -43,10 +43,11 @@ use super::openai::{CompatibleCompletionModel, OpenAiChatCompletionsModel, OpenA
 use super::types::Model;
 use super::usage_amount::usage_amount;
 use super::{ModelSpeed, PredefinedModel, ReasoningEffort};
-use crate::agent_loop::{SystemPrompt, ToolSearch};
+use crate::agent_loop::ToolSearch;
 use crate::error::AgentError;
 use crate::hook::{BridgeInputs, StreamBridge};
 use crate::stream::{ChatCompletionStream, StreamPart};
+use crate::system_prompt::SystemPrompt;
 use crate::telemetry::{ChatSpanHook, GenAiContext, TracedModel};
 
 env_var! {
@@ -646,11 +647,14 @@ impl ModelRouter<MeteredHttpClient> {
                 router.anthropic = Arc::new(
                     anthropic::Client::builder()
                         .api_key(api_key)
-                        .http_client(AnthropicPromptLayout::new(MeteredHttpClient::new(
-                            http,
-                            ANTHROPIC_PROVIDER,
-                            WireProtocol::Anthropic,
-                        )))
+                        .http_client(AnthropicPromptLayout::new(
+                            MeteredHttpClient::new(
+                                http,
+                                ANTHROPIC_PROVIDER,
+                                WireProtocol::Anthropic,
+                            )
+                            .with_agent_api_key(),
+                        ))
                         .build()?,
                 );
                 router.anthropic_configured = true;
@@ -659,11 +663,10 @@ impl ModelRouter<MeteredHttpClient> {
                 router.openai = Arc::new(
                     openai::Client::builder()
                         .api_key(api_key)
-                        .http_client(MeteredHttpClient::new(
-                            http,
-                            OPENAI_PROVIDER,
-                            WireProtocol::Responses,
-                        ))
+                        .http_client(
+                            MeteredHttpClient::new(http, OPENAI_PROVIDER, WireProtocol::Responses)
+                                .with_agent_api_key(),
+                        )
                         .build()?,
                 );
                 router.openai_configured = true;
@@ -993,6 +996,7 @@ where
     impl StreamLiveness {
         fn new(span: tracing::Span, telemetry: GenAiContext) -> Self {
             telemetry.take_run_first_chunk();
+            telemetry.take_run_model_calls();
             Self {
                 span,
                 telemetry,
@@ -1013,6 +1017,10 @@ where
         // attribute, which every numeric query would then silently miss.
         fn drop(&mut self) {
             self.span.record("agent.stream.items", self.items);
+            self.span.record(
+                "agent.stream.model_calls",
+                self.telemetry.take_run_model_calls(),
+            );
             if let Some((time_to_first_chunk, kind)) = self.telemetry.take_run_first_chunk() {
                 self.span
                     .record("agent.stream.first_chunk_ms", millis(time_to_first_chunk));

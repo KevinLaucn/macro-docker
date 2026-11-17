@@ -20,6 +20,7 @@ fn user() -> MacroUserAuthentication {
         origin: macro_authorization::CredentialOrigin::Session,
         agent_id: None,
         agent_via: None,
+        routine_id: None,
         macro_user_id: user_id(),
         user_context: Default::default(),
     }
@@ -44,7 +45,9 @@ fn harness() -> MacroAuthorization {
     MacroAuthorization::Harness(HarnessAuthentication {
         harness_id: HarnessId::new_from_uuid(Uuid::from_u128(2)),
         token_id: Uuid::from_u128(3),
-        owner: HarnessAuthorizationOwner::Team { team_id: TEAM },
+        owner: HarnessAuthorizationOwner::User {
+            user_id: user().macro_user_id.to_string(),
+        },
         acting_user: user(),
     })
 }

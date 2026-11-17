@@ -44,7 +44,7 @@ import type {
   EmailUndoHandle,
 } from '../context/compose-capabilities';
 import type { EmailReplySession } from '../context/email-form-inputs';
-import { decodeBase64Utf8 } from '../core/decode-base64';
+import { draftEditorHtml } from '../core/draft-editor-html';
 import type { EmailDraft } from '../core/email-draft';
 import { plainTextToHtml } from '../core/plain-text-to-html';
 import {
@@ -640,7 +640,7 @@ export function createReplyComposer(
     const recipients = form.recipients();
     if (
       !hasDraftContent(
-        prepared.bodyText,
+        prepared.hasWrittenContent,
         form.subject(),
         form.attachments.list().length,
         // A forward's recipients are typed in, not derived from the thread,
@@ -860,9 +860,8 @@ export function createReplyComposer(
       form.restoreDraft(draft);
       if (attachments) form.attachments.replace(attachments);
       setIncludeSignature(change.includeSignature !== false);
-      const bodyHtml = draft.body_html_sanitized
-        ? decodeBase64Utf8(draft.body_html_sanitized)
-        : plainTextToHtml(draft.body_text ?? '');
+      const bodyHtml =
+        draftEditorHtml(draft) ?? plainTextToHtml(draft.body_text ?? '');
       setRestoredBodyHtml(bodyHtml);
       const currentEditor = editor();
       if (currentEditor) setEditorStateFromHtml(currentEditor, bodyHtml);
@@ -1216,6 +1215,11 @@ export function createReplyComposer(
     const sendOperation = ++sendOperationVersion;
     const sendGeneration = identityVersion;
     try {
+      // A reply with nothing written has nothing to send, even if an earlier
+      // save gave it draft ids. Refuse before the save, which would drop them.
+      const snapshot = captureSave(willMarkDone);
+      if (!snapshot.draft) return refuseSend(props.notices, 'nothing-to-send');
+
       // Ensure draft is saved before sending so undo-send always has a draft to restore
       const epochBeforeSave = session.epoch();
       try {
@@ -1233,8 +1237,8 @@ export function createReplyComposer(
             ) &&
           (form.attachments.list().length === 0 || session.serverConfirmed())
         )
-          await autosave.saveLocal(captureSave(willMarkDone));
-        else await autosave.save(captureSave(willMarkDone));
+          await autosave.saveLocal(snapshot);
+        else await autosave.save(snapshot);
       } catch (error) {
         props.notices.reportError(error);
         if (session.isStale(epochBeforeSave)) return;

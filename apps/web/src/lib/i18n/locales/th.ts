@@ -562,8 +562,6 @@ export default {
       other: 'ทำเครื่องหมาย {{accepted}} จาก {{count}} รายการว่ายังไม่เสร็จแล้ว',
     },
     toastMarkNotDoneFailed: 'ทำเครื่องหมายว่ายังไม่เสร็จไม่สำเร็จ',
-    toastThreadStaysDone: 'เธรดนี้ไม่มีข้อความที่ได้รับ จึงยังคงสถานะเสร็จแล้ว',
-    toastThreadsStayDone: 'เธรดเหล่านี้ไม่มีข้อความที่ได้รับ จึงยังคงสถานะเสร็จแล้ว',
     toastCountNotRestored: {
       other: 'กู้คืนไม่ได้ {{count}} รายการ',
     },
@@ -724,7 +722,7 @@ export default {
     tabMobileApp: 'แอปบนอุปกรณ์เคลื่อนที่',
     tabTags: 'แท็ก',
     tabIntegrations: 'การผสานรวม',
-    tabRuntimes: 'รันไทม์',
+    tabRuntimes: 'เครื่อง',
     tabMcpServer: 'เซิร์ฟเวอร์ MCP',
     tabApiKeys: 'คีย์ API',
     tabBots: 'บอท',

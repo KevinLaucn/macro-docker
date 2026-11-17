@@ -64,11 +64,11 @@
       assetFilter =
         path: _type:
         builtins.match ".*\\.(md|html|txt|json|jsonl|canvas|sql|sh|bop|ttf|xml|graphql|mjs|proto)$" path != null;
-      # `crates/routine_program` embeds its starter programs with `include_str!`.
+      # `crates/routine_program` embeds its catalog programs with `include_str!`.
       # Only these `.ts` files: matching every `.ts` would pull the web app into
       # the Rust source hash.
-      routineStartersFilter =
-        path: _type: builtins.match ".*/crates/routine_program/src/starters/[^/]*\\.ts$" (toString path) != null;
+      routineCatalogFilter =
+        path: _type: builtins.match ".*/crates/routine_program/src/catalog/[^/]*\\.ts$" (toString path) != null;
       # Rust templates (askama, minijinja) include their stylesheets, such as
       # `services/mcp_auth_proxy/templates/broker_page.css`. Only `templates/`
       # stylesheets under Rust crates and services: matching every `.css` would
@@ -83,6 +83,18 @@
         path: _type:
         builtins.match ".*(crates/|tooling/).*\\.pem$" path != null;
       binFilter = path: _type: builtins.match ".*\\.bin$" path != null;
+      # agent_git embeds the starter agent across the crate boundary, every
+      # file but its installed packages, which are not Cargo sources or
+      # generic assets.
+      starterAgentRoot = toString ../packages/starter-agent;
+      starterAgentFilter =
+        path: _type:
+        pkgs.lib.hasPrefix (starterAgentRoot + "/") (toString path)
+        && !(pkgs.lib.hasPrefix (starterAgentRoot + "/node_modules") (toString path));
+      starterAgentSrc = pkgs.lib.cleanSourceWith {
+        src = ../packages/starter-agent;
+        filter = path: type: starterAgentFilter path type;
+      };
       srcFilter =
         path: type:
         (sqlxFilter path type)
@@ -90,9 +102,10 @@
         || (fixturePemFilter path type)
         || (pdfiumFilter path type)
         || (assetFilter path type)
-        || (routineStartersFilter path type)
+        || (routineCatalogFilter path type)
         || (templateCssFilter path type)
         || (binFilter path type)
+        || (starterAgentFilter path type)
         || (craneLib.filterCargoSources path type);
       cloudStorageSrc = pkgs.lib.cleanSourceWith {
         src = ../.;
@@ -225,6 +238,8 @@
           || (rel == "vendor")
           || (rel == "vendor/utoipa-swagger-ui")
           || (pkgs.lib.hasPrefix "vendor/utoipa-swagger-ui/" rel)
+          || (rel == "vendor/chrono-tz")
+          || (pkgs.lib.hasPrefix "vendor/chrono-tz/" rel)
           || (
             type == "regular"
             && !(pkgs.lib.hasInfix "/" rel)
@@ -331,6 +346,12 @@
           mkdir -p "$out/packages/fork/email-translation/backend"
           cp -rT ${emailTranslationBackendSrc} "$out/packages/fork/email-translation/backend"
           chmod -R +w "$out/packages/fork/self-host-health/backend" "$out/packages/fork/read-receipts/backend" "$out/packages/fork/email-translation/backend"
+          ${pkgs.lib.optionalString (builtins.elem "crates/agent_git" dirs) ''
+            mkdir -p $out/packages
+            rm -rf $out/packages/starter-agent
+            cp -rT ${starterAgentSrc} $out/packages/starter-agent
+            chmod -R +w $out/packages/starter-agent
+          ''}
           ${overlays}
           ${compileTimeResourceOverlays dirs}
         '';
@@ -1470,9 +1491,19 @@
         '';
       };
 
+      # Local dev shells build Rust through kache (see the shellHook); CI keeps
+      # sccache.
+      kache = pkgs.callPackage ./_kache.nix { };
+      kacheRustcWrapper = pkgs.writeShellScript "kache-rustc-wrapper" (
+        builtins.replaceStrings [ "@kache@" ] [ (pkgs.lib.getExe kache) ] (
+          builtins.readFile ./kache-rustc-wrapper.sh
+        )
+      );
+
       shellTools =
         with pkgs;
         [
+          kache
           daytona
           goalert-mcp
           goalert-mcp-macro
@@ -1553,6 +1584,7 @@
           rustToolchain
           python3
         ]
+        ++ [ (pkgs.callPackage ./_swagger2openapi.nix { }) ]
         ++ pkgs.lib.optionals isLinux [
           mold
           docker
@@ -1568,8 +1600,19 @@
         pruned-deploy-src-vendored-patches = pkgs.runCommand "cloud-storage-pruned-vendored-patches" { } ''
           grep -q "fn write_embed_code" \
             ${prunedDeploySrc "service-agent-harness-service" "agent_harness_service"}/vendor/utoipa-swagger-ui/build.rs
+          grep -q "IANA_TZDB_VERSION" \
+            ${prunedDeploySrc "service-agent-harness-service" "agent_harness_service"}/vendor/chrono-tz/src/prebuilt/directory.rs
           touch $out
         '';
+        pruned-deploy-src-starter-agent =
+          pkgs.runCommand "cloud-storage-pruned-starter-agent"
+            { nativeBuildInputs = [ pkgs.diffutils ]; }
+            ''
+              diff -r ${starterAgentSrc} ${src}/packages/starter-agent
+              diff -r ${starterAgentSrc} \
+                ${prunedDeploySrc "service-agent-harness-service" "agent_harness_service"}/packages/starter-agent
+              touch $out
+            '';
         fmt = craneLib.cargoFmt {
           inherit src;
           pname = "cloud-storage";
@@ -1685,10 +1728,10 @@
               PKG_CONFIG_PATH_FOR_TARGET = pkgConfigPath;
               LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
               RUSTC_WRAPPER = "${pkgs.sccache}/bin/sccache";
-              # Local dev shells favor reusable sccache artifacts across JJ
-              # workspaces. CI derivations do not inherit devShell attributes.
+              # CI needs sccache to cache every crate. It loads this shell through
+              # setup-nix-dev-shell, so these attributes reach its build steps.
+              # The shellHook switches local shells to incremental builds.
               CARGO_INCREMENTAL = "0";
-              SCCACHE_CACHE_SIZE = "30G";
               # Namespace CI runners preserve Cargo's ignored target directory.
               # A flake update can change the Nix C compiler while leaving CMake
               # configure state behind; CMake then drops its command-line cache
@@ -1696,6 +1739,35 @@
               # Remove only caches configured by another compiler so ordinary
               # shell entry keeps reusable native build state.
               shellHook = ''
+                # Default the sccache size in the hook, not as an attribute: an
+                # attribute replaces the caller's value, while a machine with a
+                # dedicated cache disk (SCCACHE_DIR) sets its own size. CI gets
+                # the default too, since print-dev-env output evaluates this hook.
+                export SCCACHE_CACHE_SIZE="''${SCCACHE_CACHE_SIZE:-30G}"
+                # Local builds keep incremental compilation on and go through
+                # kache instead of sccache: kache reuses compiled crates across
+                # worktrees (a new worktree's build takes about a third of the
+                # time), and the wrapper keeps incremental state for crates
+                # rebuilt in place, so the edit loop stays fast. kache's
+                # scheduler is off: it slowed parallel builds by pacing their
+                # compilers. To use another cache, set RUSTC_WRAPPER after
+                # entering the shell.
+                # Line tables keep backtrace locations while shrinking test
+                # binaries; set CARGO_PROFILE_DEV_DEBUG=full to use a debugger.
+                if [ -z "''${CI:-}" ]; then
+                  unset CARGO_INCREMENTAL
+                  export RUSTC_WRAPPER=${kacheRustcWrapper}
+                  export KACHE_SCHEDULER="''${KACHE_SCHEDULER:-false}"
+                  export KACHE_LOCAL_ONLY="''${KACHE_LOCAL_ONLY:-true}"
+                  export CARGO_PROFILE_DEV_DEBUG="''${CARGO_PROFILE_DEV_DEBUG:-line-tables-only}"
+                  ${pkgs.lib.optionalString isLinux ''
+                    # Link host binaries with mold. Scoped to the host target, so
+                    # wasm and musl builds keep their own linkers; zig cc (cargo
+                    # zigbuild) ignores the flag. An exported RUSTFLAGS replaces
+                    # it, as cargo does.
+                    export CARGO_TARGET_${pkgs.stdenv.hostPlatform.rust.cargoEnvVarTarget}_RUSTFLAGS="''${CARGO_TARGET_${pkgs.stdenv.hostPlatform.rust.cargoEnvVarTarget}_RUSTFLAGS:--C link-arg=-fuse-ld=mold}"
+                  ''}
+                fi
                 if command -v prek >/dev/null 2>&1; then
                   repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
                   if [ -n "$repo_root" ] && [ -f "$repo_root/.pre-commit-config.yaml" ]; then

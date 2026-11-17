@@ -5,9 +5,9 @@
 //! API key, HS256 signing key, the (unlicensed) populate-JWT lambda, and the
 //! tenant and Macro application with fixed ids + a fixed client secret. Every
 //! id/secret is fixed (see `identity`) so services and FusionAuth always agree
-//! without any API read-back or patch step. An admin user is provisioned only
-//! when the resolved run environment explicitly supplies administrator
-//! credentials; passwordless login auto-creates all other users on demand.
+//! without any API read-back or patch step. The admin user is provisioned last
+//! (after the app it registers against exists); passwordless login auto-creates
+//! all other users on demand.
 
 use std::collections::BTreeMap;
 
@@ -18,14 +18,20 @@ use super::identity;
 #[cfg(test)]
 mod test;
 
-/// The Google OAuth web client the local `google`/`google_gmail` OIDC identity
-/// providers authenticate against (the Internal client in the
-/// `macro-email-testing` GCP project — see the macro-2634 proposal). Optional:
-/// without it the kickstart is unchanged and the email connect flows stay
-/// unreachable locally, exactly as before.
+/// What the local `google`/`google_gmail` OIDC identity providers
+/// authenticate against: a real Google OAuth web client from the run env
+/// (the Internal client in the `macro-email-testing` GCP project — see the
+/// macro-2634 proposal), or without one the stack's Gmail emulator
+/// (`google_emulator::idp`).
 pub struct GoogleIdp {
     pub client_id: String,
     pub client_secret: String,
+    /// Where FusionAuth sends the browser to sign in.
+    pub authorization_endpoint: String,
+    /// Where FusionAuth exchanges the code, from inside its container.
+    pub token_endpoint: String,
+    /// Where FusionAuth reads the signed-in user, from inside its container.
+    pub userinfo_endpoint: String,
 }
 
 impl GoogleIdp {
@@ -47,6 +53,9 @@ impl GoogleIdp {
         Some(GoogleIdp {
             client_id,
             client_secret,
+            authorization_endpoint: "https://accounts.google.com/o/oauth2/v2/auth".to_string(),
+            token_endpoint: "https://oauth2.googleapis.com/token".to_string(),
+            userinfo_endpoint: "https://openidconnect.googleapis.com/v1/userinfo".to_string(),
         })
     }
 }
@@ -105,49 +114,71 @@ impl GithubIdp {
     }
 }
 
-/// Optional local administrator provisioned into FusionAuth from the resolved
-/// run environment. Both values must be provided by `.env`, Doppler, or the
-/// process environment; local tooling must not invent administrator credentials.
-pub struct AdminUser {
-    pub email: String,
-    pub password: String,
+/// What the local `microsoft` OIDC identity provider authenticates against:
+/// the stack's Outlook emulator (`microsoft_emulator::idp`). There is no
+/// provider for a real Microsoft client: its registered redirect URIs do not
+/// name a local stack.
+pub struct MicrosoftIdp {
+    pub client_id: String,
+    pub client_secret: String,
+    /// The OpenID issuer FusionAuth discovers the endpoints and signing keys
+    /// from, as its container reaches it.
+    pub issuer: String,
 }
 
-impl AdminUser {
-    pub fn from_env(env: &BTreeMap<String, String>) -> Option<Self> {
-        let email = env
-            .get("ADMIN_EMAIL")
-            .or_else(|| env.get("MACRO_ADMIN_EMAIL"))?
-            .trim()
-            .to_lowercase();
-        let password = env.get("ADMIN_PASSWORD")?.trim().to_string();
-        if email.is_empty() || password.is_empty() {
-            return None;
-        }
-        Some(AdminUser { email, password })
-    }
+/// Appends the `microsoft` identity provider and its reconcile lambda to a
+/// kickstart document, as the deployed instance defines them
+/// (`infra/stacks/fusionauth-instance`): endpoints and keys from the issuer,
+/// so FusionAuth verifies the ID token and the lambda can read `xms_edov`
+/// from it. `lambda_body` is the source of `reconcile_microsoft_signin.js`.
+/// Appended last: the provider references the application.
+pub fn add_microsoft_idp(doc: &mut Value, microsoft: &MicrosoftIdp, lambda_body: &str) {
+    let Some(requests) = doc.get_mut("requests").and_then(Value::as_array_mut) else {
+        return;
+    };
+    requests.push(json!({
+        "method": "POST",
+        "url": format!("/api/lambda/{}", identity::MICROSOFT_RECONCILE_LAMBDA_ID),
+        "body": { "lambda": {
+            "id": identity::MICROSOFT_RECONCILE_LAMBDA_ID,
+            "name": "Reconcile Microsoft Sign-in (local)",
+            "type": "OpenIDReconcile",
+            "enabled": true,
+            "body": lambda_body,
+        }}
+    }));
+    requests.push(json!({
+        "method": "POST",
+        "url": format!("/api/identity-provider/{}", identity::MICROSOFT_IDP_ID),
+        "body": { "identityProvider": {
+            "type": "OpenIDConnect",
+            "name": "microsoft",
+            "enabled": true,
+            "debug": true,
+            "buttonText": "Microsoft",
+            "linkingStrategy": "LinkByEmail",
+            "lambdaConfiguration": { "reconcileId": identity::MICROSOFT_RECONCILE_LAMBDA_ID },
+            "oauth2": {
+                "issuer": microsoft.issuer.as_str(),
+                "client_id": microsoft.client_id.as_str(),
+                "client_secret": microsoft.client_secret.as_str(),
+                "clientAuthenticationMethod": "client_secret_basic",
+                "scope": "openid email profile offline_access",
+                "uniqueIdClaim": "sub",
+                "emailVerifiedClaim": "xms_edov",
+            },
+            "applicationConfiguration": {
+                identity::APPLICATION_ID: { "enabled": true, "createRegistration": true }
+            },
+        }}
+    }));
 }
 
-/// Build the kickstart document. `lambda_body` is the JS source of
-/// `populate_jwt_local.js`; `reconcile_lambda_body` is the reconcile lambda
-/// attached to `google_gmail` (only used when `google` is configured); redirect
-/// URLs are templated from the instance ports.
-pub fn build(
-    frontend_port: u16,
-    auth_port: u16,
-    proxy_origins: &[String],
-    lambda_body: &str,
-    reconcile_lambda_body: &str,
-    google: Option<&GoogleIdp>,
-    github: Option<&GithubIdp>,
-    admin: Option<&AdminUser>,
-) -> Value {
-    let app_id = identity::APPLICATION_ID;
-    let tenant_id = identity::TENANT_ID;
-    let key_id = identity::JWT_SIGNING_KEY_ID;
-    let lambda_id = identity::POPULATE_JWT_LAMBDA_ID;
-    let template_id = identity::PASSWORDLESS_EMAIL_TEMPLATE_ID;
-
+/// The application's OAuth redirect URLs: the only part of the kickstart that
+/// depends on the instance's ports. The init snapshot key leaves them out (see
+/// [`without_instance_urls`]), and every bring-up writes the instance's own
+/// list into FusionAuth, so one snapshot serves every port window.
+pub fn redirect_urls(frontend_port: u16, auth_port: u16, proxy_origins: &[String]) -> Vec<String> {
     let mut redirect_urls = vec![
         format!("http://localhost:{frontend_port}/app"),
         identity::oauth_redirect_uri(auth_port),
@@ -166,6 +197,59 @@ pub fn build(
             }
         }
     }
+    redirect_urls
+}
+
+/// The authorization endpoint as the Google identity providers hold it: with
+/// the parameters that make every sign-in return a refresh token.
+pub fn authorization_endpoint(base: &str) -> String {
+    format!("{base}?prompt=consent&access_type=offline")
+}
+
+/// The kickstart document without the URLs that depend on the instance's
+/// ports (the application's redirect URLs, and the Google identity
+/// providers' authorization endpoint, which names the emulator's port on a
+/// stack that runs it), so that instances that differ only in their ports
+/// produce the same snapshot key.
+pub fn without_instance_urls(mut doc: Value) -> Value {
+    let requests = doc
+        .get_mut("requests")
+        .and_then(Value::as_array_mut)
+        .into_iter()
+        .flatten();
+    for request in requests {
+        let oauth = request
+            .pointer_mut("/body/application/oauthConfiguration")
+            .and_then(Value::as_object_mut);
+        if let Some(oauth) = oauth {
+            oauth.remove("authorizedRedirectURLs");
+        }
+        let provider = request
+            .pointer_mut("/body/identityProvider/oauth2")
+            .and_then(Value::as_object_mut);
+        if let Some(provider) = provider {
+            provider.remove("authorization_endpoint");
+        }
+    }
+    doc
+}
+
+/// Build the kickstart document. `lambda_body` is the JS source of
+/// `populate_jwt_local.js`; `reconcile_lambda_body` is the reconcile lambda
+/// attached to `google_gmail` (only used when `google` is configured);
+/// `redirect_urls` comes from [`redirect_urls`].
+pub fn build(
+    redirect_urls: Vec<String>,
+    lambda_body: &str,
+    reconcile_lambda_body: &str,
+    google: Option<&GoogleIdp>,
+    github: Option<&GithubIdp>,
+) -> Value {
+    let app_id = identity::APPLICATION_ID;
+    let tenant_id = identity::TENANT_ID;
+    let key_id = identity::JWT_SIGNING_KEY_ID;
+    let lambda_id = identity::POPULATE_JWT_LAMBDA_ID;
+    let template_id = identity::PASSWORDLESS_EMAIL_TEMPLATE_ID;
 
     // Kickstart executes these in order, so each request must come after the
     // entities it references. Dependency chain:
@@ -303,26 +387,21 @@ pub fn build(
                 "passwordlessConfiguration": { "enabled": true },
             }}
         }),
-    ];
-
-    if let Some(admin) = admin {
-        requests.push(json!({
+        // 6. Admin user.
+        json!({
             "method": "POST",
             "url": "/api/user/registration",
             "body": {
                 "user": {
-                    "email": admin.email,
-                    "password": admin.password,
+                    "email": "admin@macro.com",
+                    "password": "macroIsGreat!",
                 },
                 "registration": {
                     "applicationId": "3c219e58-ed0e-4b18-ad48-f4f92793ae32", // FusionAuth's reserved client application id
                     "roles": ["admin"],
                 }
             }
-        }));
-    }
-
-    requests.extend([
+        }),
         // 7. Webhooks: on user.create FusionAuth calls auth-service, which
         // registers the new user for the Macro app (so passwordless completes
         // with 200). `x-internal-auth-key` must equal the services'
@@ -357,7 +436,7 @@ pub fn build(
                 "headers": { "x-internal-auth-key": identity::INTERNAL_AUTH_KEY },
             }}
         }),
-    ]);
+    ];
 
     // Google OIDC identity providers — only when a real Google client is
     // configured (see `GoogleIdp::from_env`). Mirrors the dev instance's IdP
@@ -368,9 +447,9 @@ pub fn build(
     if let Some(google) = google {
         let oauth2_base = |scope: &str| {
             json!({
-                "authorization_endpoint": "https://accounts.google.com/o/oauth2/v2/auth?prompt=consent&access_type=offline",
-                "token_endpoint": "https://oauth2.googleapis.com/token",
-                "userinfo_endpoint": "https://openidconnect.googleapis.com/v1/userinfo",
+                "authorization_endpoint": authorization_endpoint(&google.authorization_endpoint),
+                "token_endpoint": google.token_endpoint.as_str(),
+                "userinfo_endpoint": google.userinfo_endpoint.as_str(),
                 "client_id": google.client_id.as_str(),
                 "client_secret": google.client_secret.as_str(),
                 "clientAuthenticationMethod": "client_secret_basic",

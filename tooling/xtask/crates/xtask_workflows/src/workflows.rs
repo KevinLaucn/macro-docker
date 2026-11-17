@@ -9,6 +9,8 @@
 //! files — [`runners`] (runner labels), [`vars`] (env / secrets / concurrency),
 //! and [`steps`] (reusable step + job helpers).
 
+mod android_apk_on_release;
+mod android_build;
 mod android_play_publish;
 mod android_play_release;
 mod android_release_drift;
@@ -23,6 +25,7 @@ mod build_dmg_on_tag;
 mod build_web_app;
 mod cancel_stuck_cloud_storage_deploys;
 mod cargo_deny;
+mod cargo_deny_advisories;
 mod cargo_workspace_dependency_check;
 mod check_generated;
 mod check_node_modules_nix;
@@ -39,12 +42,15 @@ mod deploy_ai_editing_worker;
 mod deploy_all_services;
 mod deploy_cla_worker;
 mod deploy_fusionauth_instance;
+mod deploy_mcp_chatgpt_worker;
 mod deploy_observability;
 mod deploy_on_push;
+mod deploy_pulumi_stack;
 mod deploy_sdk_docs;
 mod deploy_sync_service;
 mod deploy_web_app;
 mod deploy_website;
+mod desktop_qa_macos;
 mod ensure_daytona_snapshot;
 mod export_ci_telemetry;
 mod ios_app_store_publish;
@@ -61,6 +67,7 @@ mod publish_sdk;
 mod pulumi_preview_pr;
 mod push_local_stack_binaries;
 mod release_label_check;
+mod release_production;
 mod release_sdk;
 mod reusable_deploy_service;
 mod reusable_preview_service;
@@ -177,6 +184,11 @@ const WORKFLOWS: &[WorkflowFile] = &[
         render_yaml: || render_patched(build_dmg_on_tag::build_dmg, build_dmg_on_tag::patch),
     },
     WorkflowFile {
+        slug: "desktop_qa_macos",
+        file_name: "desktop_qa_macos.yml",
+        render_yaml: || render_patched(desktop_qa_macos::desktop_qa_macos, desktop_qa_macos::patch),
+    },
+    WorkflowFile {
         slug: "build_desktop_on_tag",
         file_name: "build_desktop_on_tag.yml",
         render_yaml: || render_gh_workflow(build_desktop_on_tag::build_desktop_on_tag)(),
@@ -205,6 +217,11 @@ const WORKFLOWS: &[WorkflowFile] = &[
         slug: "cargo_deny",
         file_name: "cargo_deny.yml",
         render_yaml: || render_gh_workflow(cargo_deny::cargo_deny)(),
+    },
+    WorkflowFile {
+        slug: "cargo_deny_advisories",
+        file_name: "cargo_deny_advisories.yml",
+        render_yaml: || render_gh_workflow(cargo_deny_advisories::cargo_deny_advisories)(),
     },
     WorkflowFile {
         slug: "cargo_workspace_dependency_check",
@@ -240,6 +257,16 @@ const WORKFLOWS: &[WorkflowFile] = &[
             render_patched(
                 deploy_ai_editing_worker::deploy_ai_editing_worker,
                 deploy_ai_editing_worker::patch,
+            )
+        },
+    },
+    WorkflowFile {
+        slug: "deploy_mcp_chatgpt_worker",
+        file_name: "deploy_mcp_chatgpt_worker.yml",
+        render_yaml: || {
+            render_patched(
+                deploy_mcp_chatgpt_worker::deploy_mcp_chatgpt_worker,
+                deploy_mcp_chatgpt_worker::patch,
             )
         },
     },
@@ -282,6 +309,16 @@ const WORKFLOWS: &[WorkflowFile] = &[
         },
     },
     WorkflowFile {
+        slug: "deploy_pulumi_stack",
+        file_name: "deploy-pulumi-stack.yml",
+        render_yaml: || {
+            render_patched(
+                deploy_pulumi_stack::deploy_pulumi_stack,
+                deploy_pulumi_stack::patch,
+            )
+        },
+    },
+    WorkflowFile {
         slug: "deploy_sync_service",
         file_name: "deploy_sync_service.yml",
         render_yaml: || {
@@ -295,6 +332,16 @@ const WORKFLOWS: &[WorkflowFile] = &[
         slug: "deploy_web_app",
         file_name: "deploy_web_app.yml",
         render_yaml: || render_patched(deploy_web_app::deploy_web_app, deploy_web_app::patch),
+    },
+    WorkflowFile {
+        slug: "release_production",
+        file_name: "release-production.yml",
+        render_yaml: || {
+            render_patched(
+                release_production::release_production,
+                release_production::patch,
+            )
+        },
     },
     WorkflowFile {
         slug: "deploy_website",
@@ -380,6 +427,11 @@ const WORKFLOWS: &[WorkflowFile] = &[
         slug: "android_play_release",
         file_name: "android-play-release.yml",
         render_yaml: || render_gh_workflow(android_play_release::android_play_release)(),
+    },
+    WorkflowFile {
+        slug: "android_apk_on_release",
+        file_name: "android-apk-on-release.yml",
+        render_yaml: || render_gh_workflow(android_apk_on_release::android_apk_on_release)(),
     },
     WorkflowFile {
         slug: "android_play_publish",

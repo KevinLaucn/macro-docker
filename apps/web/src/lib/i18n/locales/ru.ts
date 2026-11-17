@@ -630,10 +630,6 @@ export default {
       other: 'Отмечено как невыполненные {{accepted}} из {{count}} элемента',
     },
     toastMarkNotDoneFailed: 'Не удалось отметить как невыполненное',
-    toastThreadStaysDone:
-      'В этой ветке нет полученных сообщений, поэтому она остаётся выполненной',
-    toastThreadsStayDone:
-      'В этих ветках нет полученных сообщений, поэтому они остаются выполненными',
     toastCountNotRestored: {
       one: 'Не удалось восстановить {{count}} элемент.',
       few: 'Не удалось восстановить {{count}} элемента.',
@@ -815,7 +811,7 @@ export default {
     tabMobileApp: 'Мобильное приложение',
     tabTags: 'Теги',
     tabIntegrations: 'Интеграции',
-    tabRuntimes: 'Среды выполнения',
+    tabRuntimes: 'Компьютеры',
     tabMcpServer: 'Сервер MCP',
     tabApiKeys: 'Ключи API',
     tabBots: 'Боты',

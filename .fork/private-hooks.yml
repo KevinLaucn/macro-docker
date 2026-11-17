@@ -14,11 +14,6 @@ hooks:
     file: crates/agent/src/model/router.rs
     marker: "// PRIVATE-HOOK: model_router:openrouter-provider"
     expected: "if let Some(key) = OpenrouterApiKey::new() {"
-  - id: browser_runtime_recommendation_title
-    customization: BROWSER-RUNTIME-COMPAT-001
-    file: apps/web/src/lib/queries/ai/homeRecommendations.ts
-    marker: "// PRIVATE-HOOK: browser_runtime:recommendation-title"
-    expected: ".max(180)"
   - id: browser_runtime_keyless_event
     customization: BROWSER-RUNTIME-COMPAT-001
     file: apps/web/src/lib/core/hotkey/utils.ts
@@ -44,11 +39,6 @@ hooks:
     file: apps/web/src/lib/queries/agent-session/warm.ts
     marker: "// PRIVATE-HOOK: selfhost_runtime:agent-warm-gate"
     expected: "enabled: getAppCapabilities().agents && !!owner,"
-  - id: selfhost_runtime_home_composer_gate
-    customization: SELFHOST-RUNTIME-001
-    file: apps/web/src/features/home/home-chat-input.tsx
-    marker: "// PRIVATE-HOOK: selfhost_runtime:home-composer-gate"
-    expected: "when={getAppCapabilities().agents && flag().enabled}"
   - id: email_read_receipts_send_completion_import
     customization: READ-RECEIPTS-001
     file: apps/web/src/lib/queries/email/thread.ts
@@ -95,14 +85,6 @@ hooks:
     context:
       - "function proxyEmailImageUrl(url: string): string {"
 
-  - id: crm_backfill_depopulate_all_inboxes
-    customization: CRM-MULTI-INBOX-001
-    file: services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
-    marker: "// PRIVATE-HOOK: crm_backfill:depopulate_all_inboxes"
-    expected: "let mut links = email_db_client::links::get::fetch_inboxes_for_macro_id(&ctx.db, macro_id_str)"
-    context:
-      - "links.retain(|link| link.macro_id.as_ref() == macro_id_str);"
-      - "for link in links {"
   - id: email_read_receipts_features
     customization: READ-RECEIPTS-001
     file: services/email_service/src/lib.rs
@@ -110,15 +92,6 @@ hooks:
     expected: "mod features;"
     context:
       - "mod api;"
-  - id: email_realtime_browser_new_email
-    customization: EMAIL-REALTIME-001
-    file: apps/web/src/features/notifications/notification-source.ts
-    marker: "// PRIVATE-HOOK: email_realtime:browser-new-email"
-    expected: "const notification = parseBrowserNewEmailNotification(wsData.data);"
-    context:
-      - "createSocketEffect(ws, (wsData) => {"
-      - "wsData.type !== NOTIFICATION_EVENT_TYPE ||"
-
   - id: email_selfhost_local_poller_gate
     customization: EMAIL-SELFHOST-001
     file: services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
@@ -579,7 +552,7 @@ hooks:
     marker: "{/* PRIVATE-HOOK: email_translation:view-provider */}"
     expected: "<EmailListTranslationProvider>"
     context:
-      - "<EmailViewProvider initialState={props.initialState}>"
+      - "<EmailViewProvider"
 
   - id: selfhost_runtime_feature_flag_overrides
     customization: SELFHOST-RUNTIME-001
@@ -638,14 +611,6 @@ hooks:
     expected: "const uid = data.id ?? data.userId;"
     context:
       - "initAndStartEmailSync().match("
-
-  - id: ai_model_policy_free_tier_models
-    customization: AI-MODEL-POLICY-001
-    file: crates/ai_projections/src/domain/ai_projection_service.rs
-    marker: "PRIVATE-HOOK: ai_model_policy:free-tier-models"
-    expected: "openai/gpt-5-mini"
-    context:
-      - "FREE_TIER_MODELS"
 
   - id: ai_model_policy_chat_renamer
     customization: AI-MODEL-POLICY-001

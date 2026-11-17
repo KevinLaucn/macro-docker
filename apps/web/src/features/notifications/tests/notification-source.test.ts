@@ -1,6 +1,5 @@
 import { getEntityNotifications } from '@app/features/soup/entity-notifications';
 import type { EntityData } from '@entity/types/entity';
-import type { ConnectionGatewayWebsocket } from '@service-connection/websocket';
 import type { UserUnsubscribe } from '@service-notification/generated/schemas/userUnsubscribe';
 import { createEffect, createMemo, createRoot, createSignal } from 'solid-js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,19 +16,15 @@ import {
 import { type UnifiedNotification, unifiedNotificationSchema } from '../types';
 
 const mocks = vi.hoisted(() => ({
+  fetchActiveNotificationIds: vi.fn(),
   graphqlCacheEnabled: true,
-  graphqlEnabled: false,
   documentMentionsEnabled: true,
   graphqlPatchCallback: undefined as
     | ((patch: Record<string, unknown>) => void)
     | undefined,
   mutedEntitiesQuery: {} as Record<string, unknown>,
   notificationsQuery: {} as Record<string, unknown>,
-  optimisticInsertNotification: vi.fn(),
   updateSoupForNotification: vi.fn(),
-  socketCallback: undefined as
-    | ((data: { type: string; data: string }) => void)
-    | undefined,
   seenMutation: {
     isPending: false,
     mutateAsync: vi.fn(),
@@ -44,27 +39,21 @@ vi.mock('@core/constant/featureFlags', () => ({
   get ENABLE_DOCUMENT_MENTION_NOTIFICATIONS() {
     return mocks.documentMentionsEnabled;
   },
-  enableGraphqlSoup: { key: 'enable-graphql-soup' },
-  isFeatureEnabled: () => mocks.graphqlEnabled,
 }));
 
-vi.mock('@macro-inc/collaboration/websocket', () => ({
-  createSocketEffect: vi.fn(
-    (
-      _ws: unknown,
-      callback: (data: { type: string; data: string }) => void
-    ) => {
-      mocks.socketCallback = callback;
-    }
-  ),
-}));
+vi.mock(
+  '@queries/notification/graphql/active-notification-ids',
+  async (importOriginal) => ({
+    ...(await importOriginal<object>()),
+    fetchActiveNotificationIds: mocks.fetchActiveNotificationIds,
+  })
+);
 
 vi.mock('@queries/notification/notification-soup', () => ({
   updateSoupForNotification: mocks.updateSoupForNotification,
 }));
 
 vi.mock('@queries/notification/user-notifications', () => ({
-  optimisticInsertNotification: mocks.optimisticInsertNotification,
   useMarkNotificationsAsDoneMutation: () => mocks.doneMutation,
   useMarkNotificationsAsSeenMutation: () => mocks.seenMutation,
   useUserNotificationsQuery: () => {
@@ -86,9 +75,19 @@ vi.mock('@queries/notification/unsubscribes', () => ({
   useUnmuteItemMutation: () => ({ mutateAsync: vi.fn() }),
 }));
 
+vi.mock('@queries/auth/account-scope', () => ({
+  currentQueryAccount: () => ({
+    userId: 'macro|viewer@example.com',
+    session: 1,
+  }),
+  isCurrentQueryAccount: () => true,
+  queryAccountSessionPending: () => false,
+}));
+
 vi.mock('@service-storage/graphql-soup', () => ({
   graphqlCacheEnabled: () => mocks.graphqlCacheEnabled,
   mapGraphqlNotification: (notification: UnifiedNotification) => notification,
+  subscribeGraphqlSoupReconnected: () => () => {},
 }));
 
 vi.mock('@service-storage/graphql-soup-websocket', () => ({
@@ -128,11 +127,9 @@ function notification(
 describe('createNotificationSource', () => {
   beforeEach(() => {
     mocks.graphqlCacheEnabled = true;
-    mocks.graphqlEnabled = false;
     mocks.documentMentionsEnabled = true;
     mocks.graphqlPatchCallback = undefined;
-    mocks.socketCallback = undefined;
-    mocks.optimisticInsertNotification.mockReset();
+    mocks.fetchActiveNotificationIds.mockReset().mockResolvedValue([]);
     mocks.updateSoupForNotification.mockReset();
     mocks.seenMutation.mutateAsync.mockReset().mockResolvedValue(undefined);
     mocks.doneMutation.mutateAsync.mockReset().mockResolvedValue(undefined);
@@ -191,7 +188,6 @@ describe('createNotificationSource', () => {
       const refetch = vi.fn(async () => {});
       let started = false;
       mocks.notificationsQuery = {
-        transport: 'graphql',
         get isStarted() {
           return started;
         },
@@ -206,10 +202,7 @@ describe('createNotificationSource', () => {
       };
       const receive = vi.fn();
       const { source, dispose } = createRoot((dispose) => ({
-        source: createNotificationSource(
-          {} as ConnectionGatewayWebsocket,
-          receive
-        ),
+        source: createNotificationSource(receive),
         dispose,
       }));
       try {
@@ -249,86 +242,50 @@ describe('createNotificationSource', () => {
     }
   );
 
-  it.each(['rest', 'graphql'] as const)(
-    'cleans up disabled document mentions only once the %s feed is active',
-    async (transport) => {
-      mocks.documentMentionsEnabled = false;
-      const [started, setStarted] = createSignal(transport === 'rest');
-      const mention = {
-        ...notification(`disabled-mention-${transport}`, 'document', 'doc'),
-        notification_event_type: 'document_mention',
-      };
-      const [rows, setRows] = createSignal([
-        mention,
-        { ...mention, id: 'already-done', state: 'done' as const },
-        notification('ordinary', 'document', 'doc'),
-      ]);
-      const readData = vi.fn(() => rows());
-      mocks.notificationsQuery = {
-        transport,
-        get isStarted() {
-          return started();
-        },
-        isLoading: false,
-        get data() {
-          return readData();
-        },
-        isFetching: false,
-      };
-      const { source, dispose } = createRoot((dispose) => ({
-        source: createNotificationSource({} as ConnectionGatewayWebsocket),
-        dispose,
-      }));
-      try {
-        if (transport === 'graphql') {
-          expect(readData).not.toHaveBeenCalled();
-          expect(mocks.doneMutation.mutateAsync).not.toHaveBeenCalled();
-          setStarted(true);
-        }
-        expect(mocks.doneMutation.mutateAsync).toHaveBeenCalledExactlyOnceWith({
-          notificationIds: [mention.id],
-        });
-        expect(source.notifications()).toHaveLength(3);
-        setRows([{ ...mention, id: `later-${transport}` }]);
-        expect(mocks.doneMutation.mutateAsync).toHaveBeenLastCalledWith({
-          notificationIds: [`later-${transport}`],
-        });
-        await Promise.resolve();
-      } finally {
-        dispose();
-      }
-    }
-  );
-
-  it('handles document-mention cleanup failures without an unhandled rejection', async () => {
+  it('cleans up disabled document mentions by id, never through the feed, even once it starts', async () => {
     mocks.documentMentionsEnabled = false;
-    const failure = new Error('offline');
-    mocks.doneMutation.mutateAsync.mockRejectedValueOnce(failure);
-    mocks.notificationsQuery = {
-      transport: 'graphql',
-      isStarted: true,
-      isLoading: false,
-      data: [
-        {
-          ...notification('cleanup-error', 'document', 'doc'),
-          notification_event_type: 'document_mention',
-        },
-      ],
+    mocks.fetchActiveNotificationIds.mockResolvedValue(['outside-feed']);
+    const [started, setStarted] = createSignal(false);
+    const mention = {
+      ...notification('in-feed', 'document', 'doc'),
+      notification_event_type: 'document_mention',
     };
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const [rows, setRows] = createSignal([mention]);
+    const readData = vi.fn(() => rows());
+    mocks.notificationsQuery = {
+      get isStarted() {
+        return started();
+      },
+      isLoading: false,
+      get data() {
+        return readData();
+      },
+      isFetching: false,
+    };
     const dispose = createRoot((dispose) => {
-      createNotificationSource({} as ConnectionGatewayWebsocket);
+      createNotificationSource();
       return dispose;
     });
     try {
-      await Promise.resolve();
-      expect(error).toHaveBeenCalledWith(
-        'Failed to discard document mention notifications',
-        failure
+      await vi.waitFor(() =>
+        expect(mocks.doneMutation.mutateAsync).toHaveBeenCalledExactlyOnceWith({
+          notificationIds: ['outside-feed'],
+        })
       );
+      expect(mocks.fetchActiveNotificationIds).toHaveBeenCalledExactlyOnceWith(
+        ['document_mention'],
+        500
+      );
+
+      // Another reader starting the feed must not turn the cleanup into one.
+      setStarted(true);
+      setRows([{ ...mention, id: 'later-graphql' }]);
+      await Promise.resolve();
+      expect(readData).not.toHaveBeenCalled();
+      expect(mocks.doneMutation.mutateAsync).toHaveBeenCalledOnce();
+      expect(mocks.fetchActiveNotificationIds).toHaveBeenCalledOnce();
     } finally {
       dispose();
-      error.mockRestore();
     }
   });
 
@@ -337,12 +294,11 @@ describe('createNotificationSource', () => {
     const row = notification('background-failure', 'document', 'doc');
     mocks.seenMutation.mutateAsync.mockRejectedValue(failure);
     mocks.notificationsQuery = {
-      transport: 'rest',
       data: [row],
       isLoading: false,
     };
     const { source, dispose } = createRoot((dispose) => ({
-      source: createNotificationSource({} as ConnectionGatewayWebsocket),
+      source: createNotificationSource(),
       dispose,
     }));
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -380,7 +336,6 @@ describe('createNotificationSource', () => {
         release = resolve;
       });
       mocks.notificationsQuery = {
-        transport: 'graphql',
         isStarted: false,
         get isLoading() {
           return !loaded;
@@ -394,7 +349,7 @@ describe('createNotificationSource', () => {
         }),
       };
       const { source, dispose } = createRoot((dispose) => ({
-        source: createNotificationSource({} as ConnectionGatewayWebsocket),
+        source: createNotificationSource(),
         dispose,
       }));
       try {
@@ -423,7 +378,6 @@ describe('createNotificationSource', () => {
 
   it('does not silently perform an empty bulk action when cold loading fails', async () => {
     mocks.notificationsQuery = {
-      transport: 'graphql',
       isStarted: false,
       isLoading: false,
       refetch: vi.fn(async () => {
@@ -431,7 +385,7 @@ describe('createNotificationSource', () => {
       }),
     };
     const { source, dispose } = createRoot((dispose) => ({
-      source: createNotificationSource({} as ConnectionGatewayWebsocket),
+      source: createNotificationSource(),
       dispose,
     }));
     try {
@@ -447,7 +401,6 @@ describe('createNotificationSource', () => {
   it.each(['array', 'accessor'] as const)(
     'applies done and undo to GraphQL-attached notifications (%s) before server snapshots change',
     (attachment) => {
-      mocks.graphqlEnabled = true;
       mocks.graphqlCacheEnabled = true;
       const row = notification(
         `soup-attached-${attachment}`,
@@ -456,11 +409,10 @@ describe('createNotificationSource', () => {
       );
       mocks.notificationsQuery = {
         data: [row],
-        transport: 'graphql',
         isFetching: false,
       };
       const { source, dispose } = createRoot((dispose) => ({
-        source: createNotificationSource({} as ConnectionGatewayWebsocket),
+        source: createNotificationSource(),
         dispose,
       }));
       const entity = {
@@ -496,7 +448,6 @@ describe('createNotificationSource', () => {
   );
 
   it('tells an entity-wide mark seen which notifications it expects to change', async () => {
-    mocks.graphqlEnabled = true;
     const { toNotificationEntityRef, updateNotificationsForEntities } =
       await import('@queries/notification/entity-mutations');
     vi.mocked(toNotificationEntityRef).mockReturnValue({
@@ -511,11 +462,10 @@ describe('createNotificationSource', () => {
     };
     mocks.notificationsQuery = {
       data: [unseen, seen],
-      transport: 'graphql',
       isFetching: false,
     };
     const { source, dispose } = createRoot((dispose) => ({
-      source: createNotificationSource({} as ConnectionGatewayWebsocket),
+      source: createNotificationSource(),
       dispose,
     }));
     try {
@@ -535,7 +485,6 @@ describe('createNotificationSource', () => {
   });
 
   it('expects nothing from a feed that has not started, without starting it', async () => {
-    mocks.graphqlEnabled = true;
     const { toNotificationEntityRef, updateNotificationsForEntities } =
       await import('@queries/notification/entity-mutations');
     vi.mocked(toNotificationEntityRef).mockReturnValue({
@@ -549,11 +498,10 @@ describe('createNotificationSource', () => {
       get data() {
         return read();
       },
-      transport: 'graphql',
       isFetching: false,
     };
     const { source, dispose } = createRoot((dispose) => ({
-      source: createNotificationSource({} as ConnectionGatewayWebsocket),
+      source: createNotificationSource(),
       dispose,
     }));
     try {
@@ -571,18 +519,16 @@ describe('createNotificationSource', () => {
   });
 
   it('can release a failed reversal to authoritative state without clearing newer intent', () => {
-    mocks.graphqlEnabled = true;
     const row: UnifiedNotification = {
       ...notification('partial-reversal', 'document', 'task'),
       state: 'seen',
     };
     mocks.notificationsQuery = {
       data: [row],
-      transport: 'graphql',
       isFetching: false,
     };
     const { source, dispose } = createRoot((dispose) => ({
-      source: createNotificationSource({} as ConnectionGatewayWebsocket),
+      source: createNotificationSource(),
       dispose,
     }));
     try {
@@ -603,7 +549,6 @@ describe('createNotificationSource', () => {
   });
 
   it('undo reopens a GraphQL-attached notification whose cached server state is already done', () => {
-    mocks.graphqlEnabled = true;
     mocks.graphqlCacheEnabled = true;
     const row = {
       ...notification('soup-undo-committed', 'document', 'task'),
@@ -611,11 +556,10 @@ describe('createNotificationSource', () => {
     };
     mocks.notificationsQuery = {
       data: [row],
-      transport: 'graphql',
       isFetching: false,
     };
     const { source, dispose } = createRoot((dispose) => ({
-      source: createNotificationSource({} as ConnectionGatewayWebsocket),
+      source: createNotificationSource(),
       dispose,
     }));
     const entity = {
@@ -636,46 +580,35 @@ describe('createNotificationSource', () => {
     }
   });
 
-  it.each([true, false])(
-    'only overlays attached Soup edges when GraphQL is enabled (%s)',
-    (graphql) => {
-      mocks.graphqlEnabled = graphql;
-      const row = notification('edge-outside-feed', 'document', 'task');
-      const attached = [row];
-      mocks.notificationsQuery = {
-        data: [],
-        transport: graphql ? 'graphql' : 'rest',
-        isFetching: false,
-      };
-      const { source, dispose } = createRoot((dispose) => ({
-        source: createNotificationSource({} as ConnectionGatewayWebsocket),
-        dispose,
-      }));
-      const entity = {
-        id: 'task',
-        type: 'document',
-        name: 'Task',
-        notifications: attached,
-      } as EntityData & { notifications: UnifiedNotification[] };
-      try {
-        setDoneOverride([row.id], true);
-        expect(getEntityNotifications(entity, source)[0].state).toBe(
-          graphql ? 'done' : 'unseen'
-        );
-        if (!graphql)
-          expect(getEntityNotifications(entity, source)).toBe(attached);
-        expect(row.state).toBe('unseen');
-      } finally {
-        setDoneOverride([row.id], undefined);
-        dispose();
-      }
+  it('overlays local intent on attached Soup edges outside the feed', () => {
+    const row = notification('edge-outside-feed', 'document', 'task');
+    mocks.notificationsQuery = {
+      data: [],
+      isFetching: false,
+    };
+    const { source, dispose } = createRoot((dispose) => ({
+      source: createNotificationSource(),
+      dispose,
+    }));
+    const entity = {
+      id: 'task',
+      type: 'document',
+      name: 'Task',
+      notifications: [row],
+    } as EntityData & { notifications: UnifiedNotification[] };
+    try {
+      setDoneOverride([row.id], true);
+      expect(getEntityNotifications(entity, source)[0].state).toBe('done');
+      expect(row.state).toBe('unseen');
+    } finally {
+      setDoneOverride([row.id], undefined);
+      dispose();
     }
-  );
+  });
 
   it.each(['seen', 'done'] as const)(
     'retains %s intent on a stale Soup edge when its feed row disappears or confirms the write',
     async (state) => {
-      mocks.graphqlEnabled = true;
       const row = notification(`edge-leaves-feed-${state}`, 'document', 'task');
       const [raw, setRaw] = createSignal<UnifiedNotification[]>([row]);
       const [pending, setPending] = createSignal(true);
@@ -695,10 +628,9 @@ describe('createNotificationSource', () => {
         get isFetching() {
           return pending();
         },
-        transport: 'graphql',
       };
       const { source, dispose } = createRoot((dispose) => ({
-        source: createNotificationSource({} as ConnectionGatewayWebsocket),
+        source: createNotificationSource(),
         dispose,
       }));
       const edge = () => source.withLocalOverrides!(row);
@@ -732,7 +664,6 @@ describe('createNotificationSource', () => {
   it.each(['seen', 'done'] as const)(
     'rolls back a failed %s action after its notification leaves the feed',
     async (state) => {
-      mocks.graphqlEnabled = true;
       const row = notification(
         `edge-leaves-feed-rollback-${state}`,
         'document',
@@ -753,10 +684,9 @@ describe('createNotificationSource', () => {
           return raw();
         },
         isFetching: false,
-        transport: 'graphql',
       };
       const { source, dispose } = createRoot((dispose) => ({
-        source: createNotificationSource({} as ConnectionGatewayWebsocket),
+        source: createNotificationSource(),
         dispose,
       }));
       const result =
@@ -777,47 +707,14 @@ describe('createNotificationSource', () => {
     }
   );
 
-  it.each(['seen', 'done'] as const)(
-    'still prunes absent %s overrides for REST-only readers',
-    async (state) => {
-      const row = notification(`rest-leaves-feed-${state}`, 'document', 'task');
-      const [raw, setRaw] = createSignal<UnifiedNotification[]>([row]);
-      mocks.notificationsQuery = {
-        get data() {
-          return raw();
-        },
-        isFetching: false,
-        transport: 'rest',
-      };
-      const { source, dispose } = createRoot((dispose) => ({
-        source: createNotificationSource({} as ConnectionGatewayWebsocket),
-        dispose,
-      }));
-      try {
-        await (state === 'seen'
-          ? source.markAsRead(row)
-          : source.markAsDone(row));
-        expect(source.notifications()[0].state).toBe(state);
-        setRaw([]);
-        await Promise.resolve();
-        setRaw([row]);
-        expect(source.notifications()[0].state).toBe('unseen');
-      } finally {
-        setDoneOverride([row.id], undefined);
-        dispose();
-      }
-    }
-  );
-
   it('keeps done through a late seen action, and reopens as seen across stale snapshots', async () => {
     const row = notification('lifecycle-stale', 'document', 'doc');
     mocks.notificationsQuery = {
       data: [row],
-      transport: 'graphql',
       isFetching: false,
     };
     const { source, dispose } = createRoot((dispose) => ({
-      source: createNotificationSource({} as ConnectionGatewayWebsocket),
+      source: createNotificationSource(),
       dispose,
     }));
     try {
@@ -837,12 +734,11 @@ describe('createNotificationSource', () => {
     const row = notification('lifecycle-rollback', 'document', 'doc');
     mocks.notificationsQuery = {
       data: [row],
-      transport: 'graphql',
       isFetching: false,
     };
     mocks.doneMutation.mutateAsync.mockRejectedValueOnce(new Error('failed'));
     const { source, dispose } = createRoot((dispose) => ({
-      source: createNotificationSource({} as ConnectionGatewayWebsocket),
+      source: createNotificationSource(),
       dispose,
     }));
     try {
@@ -858,7 +754,6 @@ describe('createNotificationSource', () => {
     const row = notification('lifecycle-overlap', 'document', 'doc');
     mocks.notificationsQuery = {
       data: [row],
-      transport: 'graphql',
       isFetching: false,
     };
     let rejectFirst!: (error: Error) => void;
@@ -869,7 +764,7 @@ describe('createNotificationSource', () => {
         })
     );
     const { source, dispose } = createRoot((dispose) => ({
-      source: createNotificationSource({} as ConnectionGatewayWebsocket),
+      source: createNotificationSource(),
       dispose,
     }));
     try {
@@ -889,15 +784,12 @@ describe('createNotificationSource', () => {
       const row = notification(`untracked-${operation}`, 'document', 'doc');
       mocks.notificationsQuery = {
         data: [row],
-        transport: 'graphql',
         isFetching: false,
       };
       let runs = 0;
       let first: Promise<unknown> | undefined;
       const { source, dispose } = createRoot((dispose) => {
-        const source = createNotificationSource(
-          {} as ConnectionGatewayWebsocket
-        );
+        const source = createNotificationSource();
         createEffect(() => {
           runs += 1;
           // Bound a regression so an accidental subscription cannot loop the test.
@@ -940,7 +832,7 @@ describe('createNotificationSource', () => {
     let memoRuns = 0;
     const mutedEntitiesValue = createRoot((rootDispose) => {
       dispose = rootDispose;
-      const source = createNotificationSource({} as ConnectionGatewayWebsocket);
+      const source = createNotificationSource();
       return createMemo(() => {
         memoRuns += 1;
         return source.mutedEntities();
@@ -964,86 +856,10 @@ describe('createNotificationSource', () => {
     }
   });
 
-  it('follows the query transport for pagination, realtime delivery and edge overrides', async () => {
-    // An imperative flag snapshot can disagree with the mounted query during
-    // startup. Only the facade's reactive transport owns source behavior.
-    mocks.graphqlEnabled = true;
-    const [transport, setTransport] = createSignal<'rest' | 'graphql'>('rest');
-    const fetchNextPage = vi.fn(async () => undefined);
-    const refetch = vi.fn(async () => undefined);
-    mocks.notificationsQuery = {
-      data: [],
-      get transport() {
-        return transport();
-      },
-      hasNextPage: true,
-      isFetching: false,
-      fetchNextPage,
-      refetch,
-    };
-    const incoming: UnifiedNotification = {
-      ...notification(
-        '00000000-0000-4000-8000-000000000011',
-        'reminder',
-        'reminder-transport'
-      ),
-      notification_event_type: 'reminder',
-      notification_metadata: {
-        tag: 'reminder',
-        content: {
-          description: 'Transport transition',
-          reminderId: '00000000-0000-4000-8000-000000000012',
-        },
-      },
-    };
-    const restEvent = {
-      type: 'notification',
-      data: JSON.stringify({ ...incoming, notification_id: incoming.id }),
-    };
-    const graphqlEvent = {
-      __typename: 'GraphqlNewNotification',
-      notification: incoming,
-    };
-    const receive = vi.fn();
-    const { source, dispose } = createRoot((dispose) => ({
-      source: createNotificationSource(
-        {} as ConnectionGatewayWebsocket,
-        receive
-      ),
-      dispose,
-    }));
-    try {
-      expect(fetchNextPage).toHaveBeenCalledOnce();
-      expect(source.withLocalOverrides).toBeUndefined();
-      mocks.graphqlPatchCallback?.(graphqlEvent);
-      expect(receive).not.toHaveBeenCalled();
-      mocks.socketCallback?.(restEvent);
-      expect(receive).toHaveBeenCalledOnce();
-      expect(mocks.optimisticInsertNotification).toHaveBeenCalledOnce();
-
-      setTransport('graphql');
-      expect(source.withLocalOverrides).toBeTypeOf('function');
-      expect(fetchNextPage).toHaveBeenCalledOnce();
-      mocks.socketCallback?.(restEvent);
-      expect(receive).toHaveBeenCalledOnce();
-      mocks.graphqlPatchCallback?.(graphqlEvent);
-      expect(receive).toHaveBeenCalledTimes(2);
-      await Promise.resolve();
-      expect(refetch).toHaveBeenCalledOnce();
-
-      setTransport('rest');
-      expect(source.withLocalOverrides).toBeUndefined();
-      expect(fetchNextPage).toHaveBeenCalledTimes(2);
-    } finally {
-      dispose();
-    }
-  });
-
-  it('coalesces uncached GraphQL patches and ignores connection gateway notifications when enabled', async () => {
+  it('coalesces uncached GraphQL patches into one refetch', async () => {
     const incoming = notification('new-notification', 'channel', 'channel-1');
     const refetch = vi.fn().mockResolvedValue(undefined);
     mocks.graphqlCacheEnabled = false;
-    mocks.graphqlEnabled = true;
     mocks.notificationsQuery = {
       data: [],
       fetchNextPage: vi.fn(),
@@ -1051,7 +867,6 @@ describe('createNotificationSource', () => {
       hasNextPage: false,
       isFetching: false,
       isLoading: false,
-      transport: 'graphql',
     };
     const onNotification = vi.fn();
     const subscriber = vi.fn();
@@ -1059,25 +874,11 @@ describe('createNotificationSource', () => {
     let dispose = () => {};
     createRoot((rootDispose) => {
       dispose = rootDispose;
-      const source = createNotificationSource(
-        {} as ConnectionGatewayWebsocket,
-        onNotification
-      );
+      const source = createNotificationSource(onNotification);
       source.subscribe(subscriber);
     });
 
     try {
-      mocks.socketCallback?.({
-        type: 'notification',
-        data: JSON.stringify({
-          ...incoming,
-          notification_id: incoming.id,
-          notification_metadata: incoming.notification_metadata,
-        }),
-      });
-      expect(onNotification).not.toHaveBeenCalled();
-      expect(subscriber).not.toHaveBeenCalled();
-
       mocks.graphqlPatchCallback?.({
         __typename: 'GraphqlUpdatedNotification',
         notification: incoming,
@@ -1102,7 +903,6 @@ describe('createNotificationSource', () => {
       expect(refetch).not.toHaveBeenCalled();
       await Promise.resolve();
       expect(refetch).toHaveBeenCalledOnce();
-      expect(mocks.optimisticInsertNotification).not.toHaveBeenCalled();
     } finally {
       dispose();
     }
@@ -1112,7 +912,6 @@ describe('createNotificationSource', () => {
     const incoming = notification('new-notification', 'channel', 'channel-1');
     const refetch = vi.fn().mockResolvedValue(undefined);
     mocks.graphqlCacheEnabled = true;
-    mocks.graphqlEnabled = true;
     mocks.notificationsQuery = {
       data: [],
       fetchNextPage: vi.fn(),
@@ -1120,13 +919,12 @@ describe('createNotificationSource', () => {
       hasNextPage: false,
       isFetching: false,
       isLoading: false,
-      transport: 'graphql',
     };
 
     let dispose = () => {};
     createRoot((rootDispose) => {
       dispose = rootDispose;
-      createNotificationSource({} as ConnectionGatewayWebsocket);
+      createNotificationSource();
     });
 
     try {
@@ -1137,87 +935,6 @@ describe('createNotificationSource', () => {
       expect(refetch).not.toHaveBeenCalled();
       await Promise.resolve();
       expect(refetch).toHaveBeenCalledOnce();
-    } finally {
-      dispose();
-    }
-  });
-
-  it('rejects invalid lifecycle state even when metadata fallback is enabled', () => {
-    mocks.notificationsQuery = { data: [], transport: 'rest' };
-    const receive = vi.fn();
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const dispose = createRoot((dispose) => {
-      createNotificationSource({} as ConnectionGatewayWebsocket, receive);
-      return dispose;
-    });
-    try {
-      mocks.socketCallback?.({
-        type: 'notification',
-        data: JSON.stringify({
-          notification_id: 'invalid',
-          done: true,
-          viewed_at: null,
-        }),
-      });
-      expect(receive).not.toHaveBeenCalled();
-      expect(mocks.optimisticInsertNotification).not.toHaveBeenCalled();
-      expect(error).toHaveBeenCalled();
-    } finally {
-      dispose();
-      error.mockRestore();
-    }
-  });
-
-  it('keeps connection gateway notifications authoritative when GraphQL is disabled', () => {
-    const incoming: UnifiedNotification = {
-      ...notification(
-        '00000000-0000-4000-8000-000000000001',
-        'reminder',
-        'reminder-1'
-      ),
-      notification_event_type: 'reminder',
-      notification_metadata: {
-        tag: 'reminder',
-        content: {
-          description: 'Review the notification source',
-          reminderId: '00000000-0000-4000-8000-000000000002',
-        },
-      },
-    };
-    mocks.notificationsQuery = {
-      data: [],
-      fetchNextPage: vi.fn(),
-      hasNextPage: false,
-      isFetching: false,
-      isLoading: false,
-      transport: 'rest',
-    };
-    const onNotification = vi.fn();
-
-    let dispose = () => {};
-    createRoot((rootDispose) => {
-      dispose = rootDispose;
-      createNotificationSource(
-        {} as ConnectionGatewayWebsocket,
-        onNotification
-      );
-    });
-
-    try {
-      mocks.socketCallback?.({
-        type: 'notification',
-        data: JSON.stringify({
-          ...incoming,
-          notification_id: incoming.id,
-          notification_metadata: incoming.notification_metadata,
-        }),
-      });
-      expect(onNotification).toHaveBeenCalledOnce();
-      expect(mocks.optimisticInsertNotification).toHaveBeenCalledOnce();
-      expect(
-        mocks.optimisticInsertNotification.mock.invocationCallOrder[0]
-      ).toBeLessThan(onNotification.mock.invocationCallOrder[0]);
-      expect(mocks.updateSoupForNotification).not.toHaveBeenCalled();
     } finally {
       dispose();
     }
@@ -1240,13 +957,12 @@ describe('createNotificationSource', () => {
       hasNextPage: false,
       isFetching: false,
       isLoading: false,
-      transport: 'graphql',
     };
 
     let dispose = () => {};
     const result = createRoot((rootDispose) => {
       dispose = rootDispose;
-      const source = createNotificationSource({} as ConnectionGatewayWebsocket);
+      const source = createNotificationSource();
       let channelMemoRuns = 0;
       let emailMemoRuns = 0;
       const unreadChannels = createMemo(() => {

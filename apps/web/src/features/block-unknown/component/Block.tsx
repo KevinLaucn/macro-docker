@@ -6,6 +6,7 @@ import { toast } from '@core/component/Toast/Toast';
 import { useShareModal } from '@core/component/TopBar/shareModal';
 import { fileTypeToBlockName } from '@core/constant/allBlocks';
 import { enableAiEditor, isFeatureEnabled } from '@core/constant/featureFlags';
+import { isTouchDevice } from '@core/mobile/isTouchDevice';
 import { blockMetadataSignal } from '@core/signal/load';
 import { useGetPermissions } from '@core/signal/permissions';
 import {
@@ -40,7 +41,8 @@ import {
   upgradedOfficeLabel,
 } from '../legacy-office';
 import { useGetFileBlob } from '../signal/blockData';
-import { TopBar } from './TopBar';
+import { MobileUnknownHeader } from '../views/mobile/unknown-header';
+import { UnknownHeader } from '../views/unknown-header';
 import { UnknownFilePreview } from './UnknownFilePreview';
 
 const UploadedWorkbook = lazy(
@@ -96,7 +98,12 @@ function BlockUnknownContent() {
       <FileSidePanelSections />
       <div class="flex size-full min-w-0 flex-col overflow-hidden">
         <div class="relative">
-          <TopBar onShare={openShare} />
+          <Show
+            when={isTouchDevice()}
+            fallback={<UnknownHeader onShare={openShare} />}
+          >
+            <MobileUnknownHeader onShare={openShare} />
+          </Show>
         </div>
         <div class="w-full grow relative overflow-hidden">
           <Show
