@@ -1,6 +1,6 @@
 ---
 version: 2
-upstream_sha: 1feb36c68dd04f3b44092717467a6b1d2dd2d22a
+upstream_sha: e417be81d6b6faf1bf4e9b125d354d799c8c1456
 diffs:
 - file: ".github/actions/setup-nix/action.yml"
   owners:
@@ -52,24 +52,6 @@ diffs:
   hooks:
   - browser_runtime_split_keyless_event
   override: false
-- file: apps/web/src/features/block-agent/component/AgentMessage.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/block-email/component/TopBar.tsx
-  owners:
-  - EMAIL-SELFHOST-001
-  - I18N-ZH-CN-001
-  - READ-RECEIPTS-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/block-email/util/emailHotkeys.ts
-  owners:
-  - EMAIL-SELFHOST-001
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/block-pdf/util/pdf-file-actions.ts
   owners:
   - ADOBE-ATTACHMENT-PREVIEW-001
@@ -88,22 +70,12 @@ diffs:
   hooks:
   - adobe_preview_fallback_preview
   override: false
-- file: apps/web/src/features/calendar/calendar-settings.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/calendar/utils/calendar-label.ts
   owners:
   - I18N-ZH-CN-001
   hooks: []
   override: false
 - file: apps/web/src/features/channel/Channel/channel-tabs.ts
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
-- file: apps/web/src/features/drive-view/core/types.ts
   owners:
   - I18N-ZH-CN-001
   hooks: []
@@ -236,11 +208,6 @@ diffs:
   hooks:
   - email_translation_email_list_toolbar
   override: false
-- file: apps/web/src/features/email-view/components/EmailHeader.tsx
-  owners:
-  - I18N-ZH-CN-001
-  hooks: []
-  override: false
 - file: apps/web/src/features/email-view/components/EmailList.tsx
   owners:
   - EMAIL-TRANSLATION-001
@@ -293,12 +260,6 @@ diffs:
   - I18N-ZH-CN-001
   hooks: []
   override: false
-- file: apps/web/src/features/home/home-chat-input.tsx
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks:
-  - selfhost_runtime_home_composer_gate
-  override: false
 - file: apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
   owners:
   - EMAIL-TRANSLATION-001
@@ -314,12 +275,6 @@ diffs:
   owners:
   - READ-RECEIPTS-001
   hooks: []
-  override: false
-- file: apps/web/src/features/notifications/notification-source.ts
-  owners:
-  - EMAIL-REALTIME-001
-  hooks:
-  - email_realtime_browser_new_email
   override: false
 - file: apps/web/src/features/notifications/tests/notification-source.test.ts
   owners:
@@ -538,22 +493,6 @@ diffs:
   - selfhost_runtime_agent_models_capability_gate
   - selfhost_runtime_single_agent_models_gate
   override: false
-- file: apps/web/src/lib/queries/ai/createHomeRecommendations.ts
-  owners:
-  - AI-MODEL-POLICY-001
-  hooks: []
-  override: true
-- file: apps/web/src/lib/queries/ai/homeRecommendations.ts
-  owners:
-  - BROWSER-RUNTIME-COMPAT-001
-  hooks:
-  - browser_runtime_recommendation_title
-  override: false
-- file: apps/web/src/lib/queries/ai/tests/homeRecommendations.test.ts
-  owners:
-  - BROWSER-RUNTIME-COMPAT-001
-  hooks: []
-  override: false
 - file: apps/web/src/lib/queries/auth/codex.ts
   owners:
   - SELFHOST-RUNTIME-001
@@ -630,12 +569,6 @@ diffs:
   owners:
   - BROWSER-RUNTIME-COMPAT-001
   hooks: []
-  override: false
-- file: crates/ai_projections/src/domain/ai_projection_service.rs
-  owners:
-  - AI-MODEL-POLICY-001
-  hooks:
-  - ai_model_policy_free_tier_models
   override: false
 - file: crates/code_execution/src/outbound/deno.rs
   owners:
@@ -719,11 +652,6 @@ diffs:
   hooks: []
   override: false
 - file: docker/websocket-service.Dockerfile
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
-- file: nix-support/node_modules-hashes.json
   owners:
   - SELFHOST-RUNTIME-001
   hooks: []
@@ -842,11 +770,6 @@ diffs:
   hooks:
   - email_read_receipts_public_router
   override: false
-- file: services/email_service/src/api/context.rs
-  owners:
-  - EMAIL-SELFHOST-001
-  hooks: []
-  override: false
 - file: services/email_service/src/api/email/attachments.rs
   owners:
   - EMAIL-SELFHOST-001
@@ -862,11 +785,6 @@ diffs:
   - EMAIL-SELFHOST-001
   hooks:
   - self_host_resilience_verify_attachment_s3_presence
-  override: false
-- file: services/email_service/src/api/email/init.rs
-  owners:
-  - EMAIL-SELFHOST-001
-  hooks: []
   override: false
 - file: services/email_service/src/api/email/links.rs
   owners:
@@ -927,46 +845,9 @@ diffs:
   hooks:
   - email_read_receipts_send_call
   override: false
-- file: services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
-  owners:
-  - CRM-MULTI-INBOX-001
-  - EMAIL-SELFHOST-001
-  hooks:
-  - crm_backfill_depopulate_all_inboxes
-  override: false
-- file: services/email_service/src/pubsub/backfill/error_handlers.rs
-  owners:
-  - EMAIL-SELFHOST-001
-  hooks: []
-  override: false
-- file: services/email_service/src/pubsub/backfill/process.rs
-  owners:
-  - EMAIL-SELFHOST-001
-  hooks: []
-  override: false
-- file: services/email_service/src/pubsub/context.rs
-  owners:
-  - EMAIL-SELFHOST-001
-  hooks: []
-  override: false
-- file: services/email_service/src/pubsub/inbox_sync/operations/upsert_message.rs
-  owners:
-  - EMAIL-SELFHOST-001
-  hooks: []
-  override: false
-- file: services/email_service/src/pubsub/inbox_sync/operations/upsert_message/test.rs
-  owners:
-  - EMAIL-SELFHOST-001
-  hooks: []
-  override: false
 - file: services/email_service/src/pubsub/mod.rs
   owners:
   - EMAIL-SELFHOST-001
-  hooks: []
-  override: false
-- file: services/email_service/src/server.rs
-  owners:
-  - READ-RECEIPTS-001
   hooks: []
   override: false
 - file: services/email_service/src/util/gmail/send.rs
@@ -989,11 +870,6 @@ diffs:
 - file: services/email_service/src/util/upload_attachment.rs
   owners:
   - EMAIL-SELFHOST-001
-  hooks: []
-  override: false
-- file: services/sync-service/wrangler.docker.toml
-  owners:
-  - SELFHOST-RUNTIME-001
   hooks: []
   override: false
 - file: sgconfig.yml
@@ -1027,22 +903,7 @@ diffs:
   - SELFHOST-RUNTIME-001
   hooks: []
   override: false
-- file: tooling/just/xtask.just
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
 - file: tooling/xtask/crates/xtask_local/Cargo.toml
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
-- file: tooling/xtask/crates/xtask_local/src/local.rs
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
-- file: tooling/xtask/crates/xtask_local/src/local/cli.rs
   owners:
   - SELFHOST-RUNTIME-001
   hooks: []
@@ -1052,32 +913,7 @@ diffs:
   - SELFHOST-RUNTIME-001
   hooks: []
   override: false
-- file: tooling/xtask/crates/xtask_local/src/local/env_layer.rs
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
-- file: tooling/xtask/crates/xtask_local/src/local/frontend.rs
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
-- file: tooling/xtask/crates/xtask_local/src/local/fusionauth.rs
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
-- file: tooling/xtask/crates/xtask_local/src/local/instance.rs
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
 - file: tooling/xtask/crates/xtask_local/src/local/instance/test.rs
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
-- file: tooling/xtask/crates/xtask_local/src/local/kickstart.rs
   owners:
   - SELFHOST-RUNTIME-001
   hooks: []
@@ -1103,16 +939,6 @@ diffs:
   hooks: []
   override: false
 - file: tooling/xtask/crates/xtask_local/src/local/sandbox_image/test.rs
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
-- file: tooling/xtask/crates/xtask_local/src/local/snapshot/test.rs
-  owners:
-  - SELFHOST-RUNTIME-001
-  hooks: []
-  override: false
-- file: tooling/xtask/crates/xtask_local/src/local/stack.rs
   owners:
   - SELFHOST-RUNTIME-001
   hooks: []

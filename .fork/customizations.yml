@@ -1,738 +1,705 @@
+---
 version: 1
-
-# paths define the review/test watch scope and may be broad.
-# owned_paths are exact upstream-owned files intentionally allowed to differ;
-# glob patterns are forbidden there. Test groups are implemented by CI.
 customizations:
-  - id: BROWSER-RUNTIME-COMPAT-001
-    title: Preserve browser runtime and configured AI provider availability
-    rationale: User-requested blocker patches for bounded AI titles, malformed keyboard events, and optional provider initialization. Retire each patch when upstream passes the same regression contracts.
-    risk: low
-    paths:
-      - apps/web/src/lib/core/constant/featureFlags.ts
-      - apps/web/src/lib/queries/ai/**
-      - apps/web/src/components/app/split-layout/**
-      - crates/agent/src/model/router.rs
-      - crates/agent/src/test/test_router.rs
-      - crates/code_execution/src/outbound/deno.rs
-      - apps/web/src/lib/queries/ai/homeRecommendations.ts
-      - apps/web/src/lib/queries/ai/tests/homeRecommendations.test.ts
-      - apps/web/src/lib/core/hotkey/utils.ts
-      - apps/web/src/lib/core/hotkey/utils.test.ts
-      - apps/web/src/components/app/split-layout/components/SplitPanel.tsx
-    owned_paths:
-      - crates/agent/src/model/router.rs
-      - crates/agent/src/test/test_router.rs
-      - crates/code_execution/src/outbound/deno.rs
-      - apps/web/src/lib/queries/ai/homeRecommendations.ts
-      - apps/web/src/lib/queries/ai/tests/homeRecommendations.test.ts
-      - apps/web/src/lib/core/hotkey/utils.ts
-      - apps/web/src/lib/core/hotkey/utils.test.ts
-      - apps/web/src/components/app/split-layout/components/SplitPanel.tsx
-    tests:
-      - conventions
-      - web
-  - id: FORK-GOVERNANCE-001
-    title: Private fork governance and upstream parity gates
-    rationale: Keep fork policy in private Skills and machine gates while upstream-provided Skills remain byte-identical to the selected upstream target.
-    risk: high
-    paths:
-      - .agents/skills/macro-private-maintainer/**
-      - .agents/skills/macro-pre-push-gate/**
-      - .github/scripts/check-core-drift.rb
-      - .github/scripts/check-private-hooks.rb
-      - tooling/just/check.just
-      - docs/FORK_DEVELOPMENT.md
-      - .fork/upstream.yml
-    owned_paths:
-      - tooling/just/check.just
-    tests:
-      - conventions
-      - workflow-lint
-
-  - id: FORK-PACKAGES-001
-    title: Isolated private fork feature packages
-    rationale: Keep fork-owned feature implementations together and minimize upstream source changes.
-    risk: high
-    paths:
-      - packages/fork/**
-      - .fork/overrides/**
-      - package.json
-      - bun.lock
-    owned_paths:
-      - package.json
-      - bun.lock
-    tests:
-      - conventions
-
-  - id: EMAIL-PARTICIPANT-IDENTITY-001
-    title: Unified Gmail self-identity and participant display
-    rationale: Show all linked Gmail addresses as me while preserving distinct external contacts and existing inbox attribution avatars.
-    risk: medium
-    contracts:
-      upstream_dependencies:
-        - Google Contact API
-        - contact backend photo field (photo_url / photoUrl / sfs_photo_url)
-        - email participant identity mapper
-        - EmailUserTooltip & UserIcon component seam
-      failure_mode: Missing avatar fallback to initials or empty image; schema desync
-      verification_gate: Fork Contract Gate
-    paths:
-      - packages/fork/email-participant-identity/**
-      - apps/web/src/features/entity/extractors/entity-email-participants.tsx
-      - apps/web/src/features/entity/queries/email.ts
-      - apps/web/src/features/entity/types/entity.ts
-      - apps/web/src/lib/core/component/UserIcon.tsx
-      - apps/web/src/features/email-view/queries/use-email-query.ts
-      - crates/models_email/src/email/service/contact.rs
-      - apps/web/tsconfig.json
-      - .fork/private-hooks.yml
-      - apps/web/src/features/email-message/components/email-user-tooltip.tsx
-    owned_paths:
-      - apps/web/src/features/email-view/queries/use-email-query.ts
-      - apps/web/src/features/entity/extractors/entity-email-participants.tsx
-      - apps/web/src/features/entity/queries/email.ts
-      - apps/web/src/features/entity/types/entity.ts
-      - apps/web/src/lib/core/component/UserIcon.tsx
-      - apps/web/tsconfig.json
-      - crates/models_email/src/email/service/contact.rs
-      - apps/web/src/features/email-message/components/email-user-tooltip.tsx
-    tests:
-      - conventions
-      - email-identity
-      - web
-
-  - id: READ-RECEIPTS-001
-    title: Isolated read receipts and email tracking
-    rationale: Keep send-side open tracking, status APIs, settings, pixel handling, and compatibility hooks in one fork-owned feature package without changing the public contract.
-    risk: high
-    contracts:
-      upstream_dependencies:
-        - email tracking pixel gateway route (/t/*)
-        - email service public domain configuration
-        - email list envelope & sent status UI hooks
-      failure_mode: Tracking pixel 404; Suspense white screen / flicker on list query
-      verification_gate: Fork Contract Gate
-    paths:
-      - packages/fork/read-receipts/**
-      - services/email_service/src/outbound/**
-      - services/email_service/src/util/gmail/**
-      - services/email_service/src/api.rs
-      - services/email_service/src/api/email/messages.rs
-      - services/email_service/src/api/email/settings.rs
-      - services/email_service/src/features/mod.rs
-      - services/email_service/src/lib.rs
-      - crates/email_db_client/src/lib.rs
-      - crates/email_db_client/src/settings.rs
-      - crates/email_utils/src/lib.rs
-      - apps/web/src/lib/queries/email/thread.ts
-      - services/email_service/src/server.rs
-      - apps/web/src/features/email-message/**
-      - apps/web/src/features/email-thread/queries/thread-source.ts
-      - apps/web/src/features/email-compose/**
-      - packages/email-renderer/**
-      - apps/web/src/lib/queries/email/**
-      - apps/web/src/lib/service-clients/service-email/**
-      - apps/web/src/features/extensions/Extensions.tsx
-      - apps/web/src/features/settings/ReadReceiptsSection.tsx
-      - apps/web/src/features/block-email/util/readReceipts.ts
-      - apps/web/src/features/block-email/component/TopBar.tsx
-      - apps/web/src/features/next-soup/actions/make-delete-action.ts
-      - apps/web/src/features/next-soup/utils.ts
-      - apps/web/src/features/notifications/notification-platform.ts
-      - apps/web/src/lib/queries/sync/use-query-sync.ts
-      - apps/web/src/features/entity/extractors/entity-icon.tsx
-      - apps/web/src/features/email-view/queries/use-email-query.ts
-      - apps/web/src/index.css
-      - apps/web/vitest.config.ts
-      - .github/workflows/upstream-sync-test-group.yml
-      - .github/workflows/self-host-images.yml
-      - .fork/private-hooks.yml
-    owned_paths:
-      - apps/web/src/features/block-email/component/TopBar.tsx
-      - apps/web/src/features/email-compose/primitives/prepare-email-body.ts
-      - apps/web/src/features/email-message/components/collapsed-message.tsx
-      - apps/web/src/features/email-message/components/email-message-top-bar.tsx
-      - apps/web/src/features/email-message/primitives/email-message-body.ts
-      - apps/web/src/features/email-thread/queries/thread-source.ts
-      - apps/web/src/features/email-view/queries/use-email-query.ts
-      - apps/web/src/features/entity/extractors/entity-icon.tsx
-      - apps/web/src/features/notifications/notification-platform.ts
-      - apps/web/src/index.css
-      - apps/web/src/lib/queries/sync/use-query-sync.ts
-      - apps/web/vitest.config.ts
-      - crates/email_db_client/src/lib.rs
-      - crates/email_db_client/src/settings.rs
-      - crates/email_utils/src/lib.rs
-      - apps/web/src/lib/queries/email/thread.ts
-      - services/email_service/src/server.rs
-      - services/email_service/src/api.rs
-      - services/email_service/src/api/email/messages.rs
-      - services/email_service/src/api/email/settings.rs
-      - services/email_service/src/lib.rs
-      - services/email_service/src/outbound/scheduled_delivery.rs
-      - services/email_service/src/util/gmail/send.rs
-      - apps/web/src/features/email-compose/primitives/prepare-email-body.test.ts
-    tests:
-      - conventions
-      - email-rust
-      - read-receipts-contract
-      - web
-
-  - id: CRM-MULTI-INBOX-001
-    title: CRM backfill multi-inbox compatibility patch
-    rationale: The upstream CRM backfill targets one macro-id email; this small compatibility patch fans out across the user's owned inboxes, excludes delegated inboxes, and must be retired when upstream PR #6370 provides the same behavior.
-    risk: medium
-    paths:
-      - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
-      - .fork/private-hooks.yml
-      - .fork/retirements.yml
-    owned_paths:
-      - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
-    tests:
-      - conventions
-      - email-rust
-
-  - id: EMAIL-REALTIME-001
-    title: Browser new-email realtime compatibility adapter
-    rationale: Preserve the fork's legacy browser_new_email_notification producer while routing it through the upstream new_email cache refresh path.
-    risk: high
-    contracts:
-      upstream_dependencies:
-        - connection gateway websocket event envelope
-        - notification-source websocket dispatch
-        - notification update subscriber
-        - Soup emailThread refetch and invalidation
-        - email thread message query invalidation
-      failure_mode: New inbox messages or messages in an open thread remain stale until a full page refresh.
-      verification_gate: Fork Contract Gate
-    paths:
-      - packages/fork/email-realtime/**
-      - apps/web/src/features/notifications/notification-source.ts
-      - apps/web/src/features/notifications/tests/notification-source.test.ts
-      - apps/web/src/features/notifications/use-notification-updates.ts
-      - apps/web/src/lib/queries/soup/normalized-cache/operations.ts
-      - apps/web/src/lib/queries/email/keys.ts
-      - apps/web/src/lib/queries/email/thread.ts
-      - services/email_service/src/pubsub/inbox_sync/operations/upsert_message.rs
-      - .fork/private-hooks.yml
-    owned_paths:
-      - apps/web/src/features/notifications/notification-source.ts
-      - apps/web/src/features/notifications/tests/notification-source.test.ts
-    tests:
-      - conventions
-      - email-rust
-      - web
-
-  - id: SELFHOST-HEALTH-001
-    title: Isolated self-host health diagnostics
-    rationale: Preserve the self-host health report, permission gate, routes, probes, and admin UI while keeping fork implementation code out of upstream-owned directories.
-    risk: high
-    paths:
-      - packages/fork/self-host-health/**
-      - services/authentication_service/src/api.rs
-      - services/authentication_service/src/lib.rs
-      - services/authentication_service/src/server.rs
-      - services/document_storage_service/src/api/internal.rs
-      - services/document_storage_service/src/service/s3.rs
-      - apps/web/src/components/app/Layout.tsx
-      - apps/web/src/lib/core/constant/SettingsState.tsx
-      - apps/web/src/lib/core/constant/settingsTabsConfig.tsx
-      - apps/web/src/features/settings/Settings.tsx
-      - apps/web/src/features/settings/SettingsTabContent.tsx
-      - apps/web/src/lib/service-clients/service-auth/client.ts
-      - self-host/scripts/check-drift.py
-      - self-host/scripts/affected-services.py
-      - .github/workflows/self-host-images.yml
-      - services/email_service/src/api/email/links/health_check.rs
-      - services/authentication_service/Cargo.toml
-      - crates/sqs_client/src/email.rs
-      - crates/sqs_client/src/gmail.rs
-      - crates/sqs_client/src/queue.rs
-    owned_paths:
-      - apps/web/src/components/app/Layout.tsx
-      - apps/web/src/features/settings/SettingsTabContent.tsx
-      - apps/web/src/lib/core/constant/SettingsState.tsx
-      - apps/web/src/lib/core/constant/settingsTabsConfig.tsx
-      - apps/web/src/lib/service-clients/service-auth/client.ts
-      - services/authentication_service/src/api.rs
-      - services/authentication_service/src/lib.rs
-      - services/authentication_service/src/server.rs
-      - services/document_storage_service/src/api/internal.rs
-      - services/document_storage_service/src/service/s3.rs
-      - services/email_service/src/api/email/links/health_check.rs
-      - services/authentication_service/Cargo.toml
-      - crates/sqs_client/src/email.rs
-      - crates/sqs_client/src/gmail.rs
-      - crates/sqs_client/src/queue.rs
-    tests:
-      - conventions
-      - auth-rust
-      - web
-      - selfhost-config
-
-  - id: AI-MODEL-POLICY-001
-    title: Private AI model availability and recommendation policy
-    rationale: Keep the fork's configured OpenAI model availability and home recommendation model choice explicit and independently reviewable from self-host health/runtime behavior.
-    risk: medium
-    paths:
-      - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
-      - crates/ai_projections/src/domain/ai_projection_service.rs
-      - .fork/overrides/home-recommendations.yml
-      - services/agent_harness_service/src/cognition/service/chat_renamer.rs
-    owned_paths:
-      - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
-      - crates/ai_projections/src/domain/ai_projection_service.rs
-      - services/agent_harness_service/src/cognition/service/chat_renamer.rs
-    tests:
-      - conventions
-      - web
-
-  - id: SELFHOST-RUNTIME-001
-    title: Private self-host runtime and zero-cloud behavior
-    rationale: Preserve the private Docker/VPS topology and prevent implicit Macro cloud dependencies.
-    risk: high
-    paths:
-      - self-host/**
-      - docker/**
-      - nix/**
-      - nix-support/**
-      - crates/macro_db_migrator/**
-      - tooling/xtask/crates/xtask_local/**
-      - tooling/just/**
-      - apps/web/src/lib/core/constant/featureFlags.ts
-      - apps/web/src/lib/queries/agents/models.ts
-      - apps/web/src/lib/queries/auth/codex.ts
-      - apps/web/src/lib/queries/agents/capabilities.ts
-      - apps/web/src/lib/queries/agents/capabilities.test.tsx
-      - apps/web/src/lib/queries/agents/models.test.tsx
-      - apps/web/src/lib/queries/agent-session/warm.ts
-      - apps/web/src/features/home/home-chat-input.tsx
-      - services/sync-service/wrangler.docker.toml
-    owned_paths:
-      - apps/web/src/lib/core/constant/featureFlags.ts
-      - apps/web/src/lib/queries/agents/models.ts
-      - apps/web/src/lib/queries/auth/codex.ts
-      - apps/web/src/lib/queries/agents/capabilities.ts
-      - apps/web/src/lib/queries/agents/capabilities.test.tsx
-      - apps/web/src/lib/queries/agents/models.test.tsx
-      - apps/web/src/lib/queries/agent-session/warm.ts
-      - apps/web/src/features/home/home-chat-input.tsx
-      - crates/macro_db_migrator/Cargo.toml
-      - docker/docker-compose-databases.yml
-      - docker/sync-service.Dockerfile
-      - docker/websocket-service.Dockerfile
-      - nix/cloud-storage.nix
-      - nix-support/node_modules-hashes.json
-      - services/sync-service/wrangler.docker.toml
-      - tooling/just/check.just
-      - tooling/just/ci.just
-      - tooling/just/database.just
-      - tooling/just/local_stack.just
-      - tooling/just/rust.just
-      - tooling/just/xtask.just
-      - tooling/xtask/crates/xtask_local/Cargo.toml
-      - tooling/xtask/crates/xtask_local/src/local.rs
-      - tooling/xtask/crates/xtask_local/src/local/cli.rs
-      - tooling/xtask/crates/xtask_local/src/local/cli/test.rs
-      - tooling/xtask/crates/xtask_local/src/local/env_layer.rs
-      - tooling/xtask/crates/xtask_local/src/local/frontend.rs
-      - tooling/xtask/crates/xtask_local/src/local/fusionauth.rs
-      - tooling/xtask/crates/xtask_local/src/local/instance.rs
-      - tooling/xtask/crates/xtask_local/src/local/instance/test.rs
-      - tooling/xtask/crates/xtask_local/src/local/kickstart.rs
-      - tooling/xtask/crates/xtask_local/src/local/kickstart/test.rs
-      - tooling/xtask/crates/xtask_local/src/local/local_env/test.rs
-      - tooling/xtask/crates/xtask_local/src/local/localstack.rs
-      - tooling/xtask/crates/xtask_local/src/local/sandbox_image.rs
-      - tooling/xtask/crates/xtask_local/src/local/sandbox_image/test.rs
-      - tooling/xtask/crates/xtask_local/src/local/snapshot/test.rs
-      - tooling/xtask/crates/xtask_local/src/local/stack.rs
-      - tooling/xtask/crates/xtask_local/src/local/test.rs
-    tests:
-      - conventions
-      - selfhost-config
-
-  - id: SELFHOST-SEARCH-UPLOAD-001
-    title: Self-host document search upload bridge
-    rationale: In official AWS, services/search_upload_handler forwards S3/EventBridge document upload events to DSS, which emits DocumentTopicEvent::ContentUploaded to drive Search Processor. Self-host uses LocalStack without AWS EventBridge/Lambda pipelines; packages/fork/search-upload-worker and self-host infrastructure replicate identical event semantics while maintaining 0 diff against upstream search_upload_handler.
-    risk: high
-    paths:
-      - packages/fork/search-upload-worker/**
-      - self-host/init/reconcile-localstack.sh
-      - self-host/docker-compose.yml
-      - self-host/.env.example
-      - self-host/scripts/check-drift.py
-      - nix/cloud-storage.nix
-      - Cargo.toml
-      - Cargo.lock
-      - .github/workspace-dep-closures.json
-      - .fork/private-hooks.yml
-    owned_paths:
-      - .github/workspace-dep-closures.json
-      - Cargo.lock
-      - Cargo.toml
-      - nix/cloud-storage.nix
-    tests:
-      - conventions
-      - selfhost-config
-
-  - id: TELEMETRY-PRIVACY-001
-    title: Private telemetry and analytics boundary
-    rationale: Keep analytics and telemetry independently reviewable from deployment/runtime changes; self-host must not silently fall back to official PostHog or other hosted collectors.
-    risk: high
-    paths:
-      - apps/web/src/lib/analytics/**
-      - services/analytics-proxy/**
-      - self-host/docker-compose.yml
-      - self-host/Caddyfile
-      - docker/analytics-proxy.Dockerfile
-      - .github/scripts/check-zero-cloud.rb
-    owned_paths:
-      - apps/web/src/lib/analytics/analytics.ts
-      - apps/web/src/lib/analytics/posthog.tsx
-      - services/analytics-proxy/src/index.ts
-      - services/analytics-proxy/wrangler.jsonc
-    tests:
-      - conventions
-      - selfhost-config
-
-  - id: SELFHOST-MEDIA-001
-    title: Self-hosted static image proxy compatibility
-    rationale: Bypass the image proxy only for first-party self-hosted static files, preserving SSRF protection for external images.
-    risk: medium
-    paths:
-      - apps/web/src/features/email-message/rendering-adapter.ts
-      - packages/email-renderer/src/core/resource-policy.ts
-      - .fork/private-hooks.yml
-    owned_paths:
-      - apps/web/src/features/email-message/rendering-adapter.ts
-      - packages/email-renderer/src/core/resource-policy.ts
-    tests:
-      - conventions
-      - web
-
-  - id: EMAIL-ATTACHMENT-RECOVERY-001
-    title: Preserve attachment cache and provider recovery
-    rationale: Protect existing cache-first provider fallback and private document object checks without introducing a new recovery pipeline.
-    risk: high
-    paths:
-      - .github/scripts/check-email-attachment-contract.rb
-      - services/email_service/src/api/email/attachments.rs
-      - services/email_service/src/api/email/attachments/**
-      - services/email_service/src/util/upload_attachment.rs
-      - crates/email_db_client/src/attachments/**
-      - apps/web/src/features/email-compose/**
-      - apps/web/src/features/email-message/**
-      - apps/web/src/lib/queries/email/integration.ts
-      - apps/web/src/lib/service-clients/service-email/**
-      - packages/email-renderer/**
-      - self-host/**
-    tests:
-      - attachment-recovery-contract
-      - selfhost-config
-
-  - id: EMAIL-SELFHOST-001
-    title: Self-hosted Gmail and email service behavior
-    rationale: Preserve Gmail synchronization, sending, tracking, and local worker behavior without Macro cloud services.
-    risk: high
-    paths:
-      - services/email_service/**
-      - services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
-      - services/email_service/src/api/email/links/health_check.rs
-      - crates/email/**
-      - crates/email_db_client/**
-      - crates/email_api_client/**
-      - crates/email_utils/**
-      - apps/web/src/features/block-email/**
-      - apps/web/src/features/email-message/**
-      - apps/web/src/lib/service-clients/service-email/**
-      - apps/web/src/components/app/InitialInteractiveOnboardingModal.tsx
-    owned_paths:
-      - apps/web/src/components/app/InitialInteractiveOnboardingModal.tsx
-      - apps/web/src/features/block-email/component/TopBar.tsx
-      - apps/web/src/features/block-email/util/emailHotkeys.ts
-      - apps/web/src/features/email-message/attachment-action-adapter.ts
-      - apps/web/src/features/email-message/components/attachment-pill.tsx
-      - apps/web/src/features/email-message/components/collapsed-message.tsx
-      - apps/web/src/features/email-message/components/email-message-top-bar.tsx
-      - apps/web/src/features/email-message/components/email-user-tooltip.tsx
-      - apps/web/src/features/email-message/core/email-message.ts
-      - apps/web/src/features/email-message/core/format-email-date.ts
-      - apps/web/src/features/email-message/primitives/email-message-body.ts
-      - apps/web/src/features/email-message/rendering-adapter.ts
-      - apps/web/src/features/email-message/views/email-message-body.tsx
-      - apps/web/src/lib/service-clients/service-email/client.ts
-      - apps/web/src/lib/service-clients/service-email/generated/client.ts
-      - crates/email/Cargo.toml
-      - crates/email_db_client/src/lib.rs
-      - crates/email_db_client/src/links/get.rs
-      - crates/email_db_client/src/messages/mod.rs
-      - crates/email_db_client/src/settings.rs
-      - crates/email_utils/src/lib.rs
-      - services/email_service/Cargo.toml
-      - services/email_service/src/api.rs
-      - services/email_service/src/api/context.rs
-      - services/email_service/src/api/email/attachments.rs
-      - services/email_service/src/api/email/attachments/get.rs
-      - services/email_service/src/api/email/attachments/get_document_id.rs
-      - services/email_service/src/api/email/init.rs
-      - services/email_service/src/api/email/links.rs
-      - services/email_service/src/api/email/links/health_check.rs
-      - services/email_service/src/api/email/messages.rs
-      - services/email_service/src/api/email/settings.rs
-      - services/email_service/src/api/swagger.rs
-      - services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
-      - services/email_service/src/config.rs
-      - services/email_service/src/outbound/attachment_access.rs
-      - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
-      - services/email_service/src/pubsub/backfill/error_handlers.rs
-      - services/email_service/src/pubsub/backfill/process.rs
-      - services/email_service/src/pubsub/context.rs
-      - services/email_service/src/pubsub/inbox_sync/operations/upsert_message.rs
-      - services/email_service/src/pubsub/inbox_sync/operations/upsert_message/test.rs
-      - services/email_service/src/pubsub/mod.rs
-      - services/email_service/src/util/sync_contacts.rs
-      - services/email_service/src/util/sync_contacts/test.rs
-      - services/email_service/src/util/upload_attachment.rs
-    tests:
-      - conventions
-      - email-rust
-
-
-  - id: AUTH-SELFHOST-001
-    title: Self-host authentication and identity consistency
-    rationale: >-
-      Protect only the self-host identity boundary: deployment URL, OAuth callback
-      validation, FusionAuth initialization, and the small client fallback needed
-      when SaaS-only auth endpoints are absent. Health checks, billing, i18n, and
-      general upstream authentication remain outside this customization.
-    risk: high
-    paths:
-      - services/authentication_service/src/api/utils.rs
-      - services/authentication_service/src/api/login/sso.rs
-      - services/authentication_service/src/api/oauth2.rs
-      - services/authentication_service/src/api/link/gmail.rs
-      - services/authentication_service/src/api/link/gmail/test.rs
-      - services/authentication_service/src/api/oauth.rs
-      - crates/soup/src/outbound/pg_soup_repo/candidate_gates.rs
-      - services/authentication_service/src/main.rs
-      - services/authentication_service/Cargo.toml
-      - self-host/init/Dockerfile
-      - self-host/init/provision.sh
-      - self-host/init/render-kickstart.sh
-      - self-host/kickstart/**
-      - self-host/scripts/reconcile_fusionauth_idp.py
-      - apps/web/src/lib/service-clients/service-auth/client.ts
-      - apps/web/src/routes/Root.tsx
-    owned_paths:
-      - apps/web/src/lib/service-clients/service-auth/client.ts
-      - crates/soup/src/outbound/pg_soup_repo/candidate_gates.rs
-      - services/authentication_service/Cargo.toml
-      - services/authentication_service/src/api/link/gmail.rs
-      - services/authentication_service/src/api/login/sso.rs
-      - services/authentication_service/src/api/utils.rs
-      - apps/web/src/routes/Root.tsx
-    tests:
-      - conventions
-      - auth-rust
-
-  - id: I18N-ZH-CN-001
-    title: Explicit Chinese localization
-    rationale: Preserve the fork's explicit i18n runtime, extraction rules, and zh-CN coverage.
-    risk: medium
-    paths:
-      - apps/web/src/features/email-compose/primitives/email-send-schedule-i18n.test.ts
-      - apps/web/src/features/email-compose/primitives/email-send-schedule.ts
-      - apps/web/src/lib/core/component/AI/component/tool/email/DraftComposer.tsx
-      - apps/web/src/features/property/utils/formatting.ts
-      - apps/web/src/features/crm/**
-      - packages/fork/i18n/**
-      - apps/web/src/features/calendar/calendar-settings.tsx
-      - apps/web/src/features/settings/email-settings.tsx
-      - apps/web/src/features/settings/Email.tsx
-      - apps/web/src/features/settings/SignatureEditor.tsx
-      - apps/web/src/features/settings/SignatureEditor.css
-      - apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
-      - apps/web/src/features/settings/connections/capability-row.ts
-      - apps/web/src/features/block-agent/component/AgentMessage.tsx
-      - rules/ast-grep/**
-      - sgconfig.yml
-      - apps/web/src/features/block-email/component/TopBar.tsx
-      - apps/web/src/features/block-email/util/emailHotkeys.ts
-      - apps/web/src/features/block-spreadsheet/core/toolbar-types.ts
-      - apps/web/src/features/calendar/utils/calendar-label.ts
-      - apps/web/src/features/channel/Channel/channel-tabs.ts
-      - apps/web/src/features/channel/CreateChannelModal.tsx
-      - apps/web/src/features/command/CommandMenu.tsx
-      - apps/web/src/features/companies/Company/Company.tsx
-      - apps/web/src/features/companies/Company/CompanyContactsSection.tsx
-      - apps/web/src/features/companies/core/crm-navigation.ts
-      - apps/web/src/features/contacts/Contact/**
-      - apps/web/src/features/drive-view/core/types.ts
-      - apps/web/src/features/email-view/constants.ts
-      - apps/web/src/features/email-view/components/EmailSidebar.tsx
-      - apps/web/src/features/email-view/components/EmailHeader.tsx
-      - apps/web/src/features/email-view/components/EmailControls.tsx
-      - apps/web/src/features/home/components/HomeTabs.tsx
-      - apps/web/src/features/notifications/notification-event-catalog.ts
-      - apps/web/src/features/property/utils/errorHandling.ts
-      - apps/web/src/features/settings/Shortcuts.tsx
-      - apps/web/src/lib/core/component/TopBar/linkShare.ts
-      - apps/web/src/lib/core/constant/PaywallState.tsx
-      - apps/web/vite.base.ts
-      - apps/web/src/lib/i18n/locales/zh-Hans.ts
-      - apps/web/src/lib/i18n/locales/zh-Hant.ts
-      - apps/web/src/lib/i18n/locales/translated-from.json
-      - apps/web/src/lib/i18n/i18n.ts
-      - apps/web/src/features/slack-import/**
-    owned_paths:
-      - apps/web/src/features/email-compose/primitives/email-send-schedule.ts
-      - apps/web/src/lib/core/component/AI/component/tool/email/DraftComposer.tsx
-      - apps/web/src/features/property/utils/formatting.ts
-      - apps/web/src/features/calendar/calendar-settings.tsx
-      - apps/web/src/features/settings/email-settings.tsx
-      - apps/web/src/features/settings/Email.tsx
-      - apps/web/src/features/settings/SignatureEditor.tsx
-      - apps/web/src/features/settings/SignatureEditor.css
-      - apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
-      - apps/web/src/features/settings/connections/capability-row.ts
-      - apps/web/src/features/block-agent/component/AgentMessage.tsx
-      - apps/web/src/features/block-email/component/TopBar.tsx
-      - apps/web/src/features/block-email/util/emailHotkeys.ts
-      - apps/web/src/features/block-spreadsheet/core/toolbar-types.ts
-      - apps/web/src/features/calendar/utils/calendar-label.ts
-      - apps/web/src/features/channel/Channel/channel-tabs.ts
-      - apps/web/src/features/drive-view/core/types.ts
-      - apps/web/src/features/home/components/HomeTabs.tsx
-      - apps/web/src/features/notifications/notification-event-catalog.ts
-      - apps/web/src/features/property/utils/errorHandling.ts
-      - apps/web/src/features/settings/Shortcuts.tsx
-      - apps/web/src/lib/core/component/TopBar/linkShare.ts
-      - apps/web/src/lib/core/constant/PaywallState.tsx
-      - apps/web/vite.base.ts
-      - sgconfig.yml
-      - apps/web/src/features/email-view/components/EmailHeader.tsx
-      - apps/web/src/features/email-view/components/EmailControls.tsx
-      - apps/web/src/lib/i18n/locales/zh-Hans.ts
-      - apps/web/src/lib/i18n/locales/zh-Hant.ts
-      - apps/web/src/lib/i18n/locales/translated-from.json
-      - apps/web/src/lib/i18n/i18n.ts
-      - apps/web/src/features/slack-import/components/conversation-picker.tsx
-      - apps/web/src/features/slack-import/components/import-progress.tsx
-      - apps/web/src/features/slack-import/components/import-ui.tsx
-      - apps/web/src/features/slack-import/components/slack-connect-card.tsx
-      - apps/web/src/features/slack-import/components/slack-import-card.tsx
-      - apps/web/src/features/slack-import/slack-import-sidebar.tsx
-      - apps/web/src/features/slack-import/slack-import.tsx
-      - apps/web/src/features/slack-import/views/import-dialog.tsx
-    tests:
-      - conventions
-      - i18n
-
-  - id: EMAIL-TRANSLATION-001
-    title: Isolated AI email translation and PostgreSQL persistence
-    rationale: Provide unified AI email translation with permanent PostgreSQL persistence while keeping upstream email UI and cognition service files limited to registered hooks.
-    risk: high
-    contracts:
-      upstream_dependencies:
-        - agent_harness_service cognition router & ModelRouter completion
-        - email_messages / email_threads / email_links schema & access permissions
-        - email message body renderer & tracking pixel filter
-      failure_mode: Translation button disabled/noop; unpersisted translations lost on refresh; tracking pixel self-trigger
-      verification_gate: Fork Contract Gate
-    paths:
-      - packages/fork/email-translation/**
-      - crates/macro_db_client/migrations/20261106233639_email_translations.sql
-      - services/agent_harness_service/Cargo.toml
-      - services/agent_harness_service/src/cognition/mod.rs
-      - services/agent_harness_service/src/cognition/api.rs
-      - apps/web/src/features/email-message/components/email-message-top-bar.tsx
-      - apps/web/src/features/email-message/primitives/email-message-body.ts
-      - apps/web/src/features/email-message/views/email-message-body.tsx
-      - apps/web/src/features/email-thread/primitives/thread-navigation.ts
-      - apps/web/src/features/email-thread/views/email-thread.tsx
-      - apps/web/src/features/email-thread/views/message-list.tsx
-      - apps/web/src/features/entity/composed/list-entity/email.tsx
-      - apps/web/src/features/extensions/Extensions.tsx
-      - apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
-      - apps/web/src/features/email-view/components/EmailControls.tsx
-      - apps/web/src/features/email-view/components/EmailList.tsx
-      - apps/web/src/features/email-view/email-list-translation-context.tsx
-      - apps/web/src/features/email-view/email-view.tsx
-      - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
-      - .fork/private-hooks.yml
-      - apps/web/src/features/email-message/components/collapsed-message.tsx
-    owned_paths:
-      - services/agent_harness_service/Cargo.toml
-      - services/agent_harness_service/src/cognition/mod.rs
-      - services/agent_harness_service/src/cognition/api.rs
-      - apps/web/src/features/email-message/components/email-message-top-bar.tsx
-      - apps/web/src/features/email-message/primitives/email-message-body.ts
-      - apps/web/src/features/email-message/views/email-message-body.tsx
-      - apps/web/src/features/email-thread/primitives/thread-navigation.ts
-      - apps/web/src/features/email-thread/views/email-thread.tsx
-      - apps/web/src/features/email-thread/views/message-list.tsx
-      - apps/web/src/features/email-view/components/EmailControls.tsx
-      - apps/web/src/features/email-view/components/EmailList.tsx
-      - apps/web/src/features/email-view/email-view.tsx
-      - apps/web/src/features/entity/composed/list-entity/email.tsx
-      - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
-      - apps/web/src/features/email-message/components/collapsed-message.tsx
-    tests:
-      - conventions
-      - email-translation
-
-
-
-  - id: FORK-CI-001
-    title: Private fork build and release pipelines
-    rationale: Preserve private image builds, release gates, and fork-specific CI infrastructure.
-    risk: high
-    paths:
-      - .github/workflows/self-host-images.yml
-      - .github/workflows/nix-cache-health.yml
-      - .github/workflows/release.yml
-      - .github/workflows/upstream-sync.yml
-      - .github/workflows/upstream-sync-test-group.yml
-      - .github/actions/setup-nix/**
-      - .github/scripts/**
-      - .fork/**
-    owned_paths:
-      - .github/actions/setup-nix/action.yml
-      - .github/scripts/build-cloud-storage-lambdas-nix.sh
-      - .github/scripts/build-cloud-storage-lambdas.sh
-    tests:
-      - conventions
-      - workflow-lint
-
-  - id: ADOBE-ATTACHMENT-PREVIEW-001
-    title: Adobe Illustrator and EPS attachment preview
-    rationale: Provide lightweight client-side AI/EPS inspection, TIFF extraction, and explicit status states without cloud or Ghostscript dependencies.
-    risk: low
-    paths:
-      - packages/fork/adobe-preview/**
-      - apps/web/src/features/email-message/attachment-action-adapter.ts
-      - apps/web/src/features/email-message/components/attachment-pill.tsx
-      - apps/web/src/features/email-message/components/attachment-pill.test.tsx
-      - apps/web/src/features/block-unknown/**
-      - apps/web/src/lib/queries/storage/**
-      - apps/web/src/lib/service-clients/service-storage/util/**
-      - services/document_storage_service/**
-      - crates/s3_key/**
-      - apps/web/src/features/block-pdf/definition.ts
-      - apps/web/src/features/block-pdf/util/pdf-file-actions.ts
-      - apps/web/tsconfig.json
-      - apps/web/vite.base.ts
-      - .fork/private-hooks.yml
-    owned_paths:
-      - apps/web/src/features/block-pdf/util/pdf-file-actions.ts
-      - apps/web/src/features/block-unknown/component/Block.tsx
-      - apps/web/src/features/email-message/attachment-action-adapter.ts
-      - apps/web/src/features/email-message/components/attachment-pill.tsx
-      - apps/web/src/features/email-message/components/attachment-pill.test.tsx
-      - apps/web/tsconfig.json
-      - apps/web/vite.base.ts
-    tests:
-      - conventions
-      - web
+- id: BROWSER-RUNTIME-COMPAT-001
+  title: Preserve browser runtime and configured AI provider availability
+  rationale: User-requested blocker patches for bounded AI titles, malformed keyboard
+    events, and optional provider initialization. Retire each patch when upstream
+    passes the same regression contracts.
+  risk: low
+  paths:
+  - apps/web/src/lib/core/constant/featureFlags.ts
+  - apps/web/src/lib/queries/ai/**
+  - apps/web/src/components/app/split-layout/**
+  - crates/agent/src/model/router.rs
+  - crates/agent/src/test/test_router.rs
+  - crates/code_execution/src/outbound/deno.rs
+  - apps/web/src/lib/queries/ai/homeRecommendations.ts
+  - apps/web/src/lib/queries/ai/tests/homeRecommendations.test.ts
+  - apps/web/src/lib/core/hotkey/utils.ts
+  - apps/web/src/lib/core/hotkey/utils.test.ts
+  - apps/web/src/components/app/split-layout/components/SplitPanel.tsx
+  owned_paths:
+  - crates/agent/src/model/router.rs
+  - crates/agent/src/test/test_router.rs
+  - crates/code_execution/src/outbound/deno.rs
+  - apps/web/src/lib/core/hotkey/utils.ts
+  - apps/web/src/lib/core/hotkey/utils.test.ts
+  - apps/web/src/components/app/split-layout/components/SplitPanel.tsx
+  tests:
+  - conventions
+  - web
+- id: FORK-GOVERNANCE-001
+  title: Private fork governance and upstream parity gates
+  rationale: Keep fork policy in private Skills and machine gates while upstream-provided
+    Skills remain byte-identical to the selected upstream target.
+  risk: high
+  paths:
+  - ".agents/skills/macro-private-maintainer/**"
+  - ".agents/skills/macro-pre-push-gate/**"
+  - ".github/scripts/check-core-drift.rb"
+  - ".github/scripts/check-private-hooks.rb"
+  - tooling/just/check.just
+  - docs/FORK_DEVELOPMENT.md
+  - ".fork/upstream.yml"
+  owned_paths:
+  - tooling/just/check.just
+  tests:
+  - conventions
+  - workflow-lint
+- id: FORK-PACKAGES-001
+  title: Isolated private fork feature packages
+  rationale: Keep fork-owned feature implementations together and minimize upstream
+    source changes.
+  risk: high
+  paths:
+  - packages/fork/**
+  - ".fork/overrides/**"
+  - package.json
+  - bun.lock
+  owned_paths:
+  - package.json
+  - bun.lock
+  tests:
+  - conventions
+- id: EMAIL-PARTICIPANT-IDENTITY-001
+  title: Unified Gmail self-identity and participant display
+  rationale: Show all linked Gmail addresses as me while preserving distinct external
+    contacts and existing inbox attribution avatars.
+  risk: medium
+  contracts:
+    upstream_dependencies:
+    - Google Contact API
+    - contact backend photo field (photo_url / photoUrl / sfs_photo_url)
+    - email participant identity mapper
+    - EmailUserTooltip & UserIcon component seam
+    failure_mode: Missing avatar fallback to initials or empty image; schema desync
+    verification_gate: Fork Contract Gate
+  paths:
+  - packages/fork/email-participant-identity/**
+  - apps/web/src/features/entity/extractors/entity-email-participants.tsx
+  - apps/web/src/features/entity/queries/email.ts
+  - apps/web/src/features/entity/types/entity.ts
+  - apps/web/src/lib/core/component/UserIcon.tsx
+  - apps/web/src/features/email-view/queries/use-email-query.ts
+  - crates/models_email/src/email/service/contact.rs
+  - apps/web/tsconfig.json
+  - ".fork/private-hooks.yml"
+  - apps/web/src/features/email-message/components/email-user-tooltip.tsx
+  owned_paths:
+  - apps/web/src/features/email-view/queries/use-email-query.ts
+  - apps/web/src/features/entity/extractors/entity-email-participants.tsx
+  - apps/web/src/features/entity/queries/email.ts
+  - apps/web/src/features/entity/types/entity.ts
+  - apps/web/src/lib/core/component/UserIcon.tsx
+  - apps/web/tsconfig.json
+  - crates/models_email/src/email/service/contact.rs
+  - apps/web/src/features/email-message/components/email-user-tooltip.tsx
+  tests:
+  - conventions
+  - email-identity
+  - web
+- id: READ-RECEIPTS-001
+  title: Isolated read receipts and email tracking
+  rationale: Keep send-side open tracking, status APIs, settings, pixel handling,
+    and compatibility hooks in one fork-owned feature package without changing the
+    public contract.
+  risk: high
+  contracts:
+    upstream_dependencies:
+    - email tracking pixel gateway route (/t/*)
+    - email service public domain configuration
+    - email list envelope & sent status UI hooks
+    failure_mode: Tracking pixel 404; Suspense white screen / flicker on list query
+    verification_gate: Fork Contract Gate
+  paths:
+  - packages/fork/read-receipts/**
+  - services/email_service/src/outbound/**
+  - services/email_service/src/util/gmail/**
+  - services/email_service/src/api.rs
+  - services/email_service/src/api/email/messages.rs
+  - services/email_service/src/api/email/settings.rs
+  - services/email_service/src/features/mod.rs
+  - services/email_service/src/lib.rs
+  - crates/email_db_client/src/lib.rs
+  - crates/email_db_client/src/settings.rs
+  - crates/email_utils/src/lib.rs
+  - apps/web/src/lib/queries/email/thread.ts
+  - services/email_service/src/server.rs
+  - apps/web/src/features/email-message/**
+  - apps/web/src/features/email-thread/queries/thread-source.ts
+  - apps/web/src/features/email-compose/**
+  - packages/email-renderer/**
+  - apps/web/src/lib/queries/email/**
+  - apps/web/src/lib/service-clients/service-email/**
+  - apps/web/src/features/extensions/Extensions.tsx
+  - apps/web/src/features/settings/ReadReceiptsSection.tsx
+  - apps/web/src/features/block-email/util/readReceipts.ts
+  - apps/web/src/features/block-email/component/TopBar.tsx
+  - apps/web/src/features/next-soup/actions/make-delete-action.ts
+  - apps/web/src/features/next-soup/utils.ts
+  - apps/web/src/features/notifications/notification-platform.ts
+  - apps/web/src/lib/queries/sync/use-query-sync.ts
+  - apps/web/src/features/entity/extractors/entity-icon.tsx
+  - apps/web/src/features/email-view/queries/use-email-query.ts
+  - apps/web/src/index.css
+  - apps/web/vitest.config.ts
+  - ".github/workflows/upstream-sync-test-group.yml"
+  - ".github/workflows/self-host-images.yml"
+  - ".fork/private-hooks.yml"
+  owned_paths:
+  - apps/web/src/features/email-compose/primitives/prepare-email-body.ts
+  - apps/web/src/features/email-message/components/collapsed-message.tsx
+  - apps/web/src/features/email-message/components/email-message-top-bar.tsx
+  - apps/web/src/features/email-message/primitives/email-message-body.ts
+  - apps/web/src/features/email-thread/queries/thread-source.ts
+  - apps/web/src/features/email-view/queries/use-email-query.ts
+  - apps/web/src/features/entity/extractors/entity-icon.tsx
+  - apps/web/src/features/notifications/notification-platform.ts
+  - apps/web/src/index.css
+  - apps/web/src/lib/queries/sync/use-query-sync.ts
+  - apps/web/vitest.config.ts
+  - crates/email_db_client/src/lib.rs
+  - crates/email_db_client/src/settings.rs
+  - crates/email_utils/src/lib.rs
+  - apps/web/src/lib/queries/email/thread.ts
+  - services/email_service/src/api.rs
+  - services/email_service/src/api/email/messages.rs
+  - services/email_service/src/api/email/settings.rs
+  - services/email_service/src/lib.rs
+  - services/email_service/src/outbound/scheduled_delivery.rs
+  - services/email_service/src/util/gmail/send.rs
+  - apps/web/src/features/email-compose/primitives/prepare-email-body.test.ts
+  tests:
+  - conventions
+  - email-rust
+  - read-receipts-contract
+  - web
+- id: CRM-MULTI-INBOX-001
+  title: CRM backfill multi-inbox compatibility patch
+  rationale: The upstream CRM backfill targets one macro-id email; this small compatibility
+    patch fans out across the user's owned inboxes, excludes delegated inboxes, and
+    must be retired when upstream PR
+  risk: medium
+  paths:
+  - services/email_service/src/pubsub/backfill/depopulate_crm_for_user.rs
+  - ".fork/private-hooks.yml"
+  - ".fork/retirements.yml"
+  owned_paths: []
+  tests:
+  - conventions
+  - email-rust
+- id: EMAIL-REALTIME-001
+  title: Browser new-email realtime compatibility adapter
+  rationale: Preserve the fork's legacy browser_new_email_notification producer while
+    routing it through the upstream new_email cache refresh path.
+  risk: high
+  contracts:
+    upstream_dependencies:
+    - connection gateway websocket event envelope
+    - notification-source websocket dispatch
+    - notification update subscriber
+    - Soup emailThread refetch and invalidation
+    - email thread message query invalidation
+    failure_mode: New inbox messages or messages in an open thread remain stale until
+      a full page refresh.
+    verification_gate: Fork Contract Gate
+  paths:
+  - packages/fork/email-realtime/**
+  - apps/web/src/features/notifications/notification-source.ts
+  - apps/web/src/features/notifications/tests/notification-source.test.ts
+  - apps/web/src/features/notifications/use-notification-updates.ts
+  - apps/web/src/lib/queries/soup/normalized-cache/operations.ts
+  - apps/web/src/lib/queries/email/keys.ts
+  - apps/web/src/lib/queries/email/thread.ts
+  - services/email_service/src/pubsub/inbox_sync/operations/upsert_message.rs
+  - ".fork/private-hooks.yml"
+  owned_paths:
+  - apps/web/src/features/notifications/tests/notification-source.test.ts
+  tests:
+  - conventions
+  - email-rust
+  - web
+- id: SELFHOST-HEALTH-001
+  title: Isolated self-host health diagnostics
+  rationale: Preserve the self-host health report, permission gate, routes, probes,
+    and admin UI while keeping fork implementation code out of upstream-owned directories.
+  risk: high
+  paths:
+  - packages/fork/self-host-health/**
+  - services/authentication_service/src/api.rs
+  - services/authentication_service/src/lib.rs
+  - services/authentication_service/src/server.rs
+  - services/document_storage_service/src/api/internal.rs
+  - services/document_storage_service/src/service/s3.rs
+  - apps/web/src/components/app/Layout.tsx
+  - apps/web/src/lib/core/constant/SettingsState.tsx
+  - apps/web/src/lib/core/constant/settingsTabsConfig.tsx
+  - apps/web/src/features/settings/Settings.tsx
+  - apps/web/src/features/settings/SettingsTabContent.tsx
+  - apps/web/src/lib/service-clients/service-auth/client.ts
+  - self-host/scripts/check-drift.py
+  - self-host/scripts/affected-services.py
+  - ".github/workflows/self-host-images.yml"
+  - services/email_service/src/api/email/links/health_check.rs
+  - services/authentication_service/Cargo.toml
+  - crates/sqs_client/src/email.rs
+  - crates/sqs_client/src/gmail.rs
+  - crates/sqs_client/src/queue.rs
+  owned_paths:
+  - apps/web/src/components/app/Layout.tsx
+  - apps/web/src/features/settings/SettingsTabContent.tsx
+  - apps/web/src/lib/core/constant/SettingsState.tsx
+  - apps/web/src/lib/core/constant/settingsTabsConfig.tsx
+  - apps/web/src/lib/service-clients/service-auth/client.ts
+  - services/authentication_service/src/api.rs
+  - services/authentication_service/src/lib.rs
+  - services/authentication_service/src/server.rs
+  - services/document_storage_service/src/api/internal.rs
+  - services/document_storage_service/src/service/s3.rs
+  - services/email_service/src/api/email/links/health_check.rs
+  - services/authentication_service/Cargo.toml
+  - crates/sqs_client/src/email.rs
+  - crates/sqs_client/src/gmail.rs
+  - crates/sqs_client/src/queue.rs
+  tests:
+  - conventions
+  - auth-rust
+  - web
+  - selfhost-config
+- id: AI-MODEL-POLICY-001
+  title: Private AI model availability and recommendation policy
+  rationale: Keep the fork's configured OpenAI model availability and home recommendation
+    model choice explicit and independently reviewable from self-host health/runtime
+    behavior.
+  risk: medium
+  paths:
+  - apps/web/src/lib/queries/ai/createHomeRecommendations.ts
+  - crates/ai_projections/src/domain/ai_projection_service.rs
+  - ".fork/overrides/home-recommendations.yml"
+  - services/agent_harness_service/src/cognition/service/chat_renamer.rs
+  owned_paths:
+  - services/agent_harness_service/src/cognition/service/chat_renamer.rs
+  tests:
+  - conventions
+  - web
+- id: SELFHOST-RUNTIME-001
+  title: Private self-host runtime and zero-cloud behavior
+  rationale: Preserve the private Docker/VPS topology and prevent implicit Macro cloud
+    dependencies.
+  risk: high
+  paths:
+  - self-host/**
+  - docker/**
+  - nix/**
+  - nix-support/**
+  - crates/macro_db_migrator/**
+  - tooling/xtask/crates/xtask_local/**
+  - tooling/just/**
+  - apps/web/src/lib/core/constant/featureFlags.ts
+  - apps/web/src/lib/queries/agents/models.ts
+  - apps/web/src/lib/queries/auth/codex.ts
+  - apps/web/src/lib/queries/agents/capabilities.ts
+  - apps/web/src/lib/queries/agents/capabilities.test.tsx
+  - apps/web/src/lib/queries/agents/models.test.tsx
+  - apps/web/src/lib/queries/agent-session/warm.ts
+  - apps/web/src/features/home/home-chat-input.tsx
+  - services/sync-service/wrangler.docker.toml
+  owned_paths:
+  - apps/web/src/lib/core/constant/featureFlags.ts
+  - apps/web/src/lib/queries/agents/models.ts
+  - apps/web/src/lib/queries/auth/codex.ts
+  - apps/web/src/lib/queries/agents/capabilities.ts
+  - apps/web/src/lib/queries/agents/capabilities.test.tsx
+  - apps/web/src/lib/queries/agents/models.test.tsx
+  - apps/web/src/lib/queries/agent-session/warm.ts
+  - crates/macro_db_migrator/Cargo.toml
+  - docker/docker-compose-databases.yml
+  - docker/sync-service.Dockerfile
+  - docker/websocket-service.Dockerfile
+  - nix/cloud-storage.nix
+  - tooling/just/check.just
+  - tooling/just/ci.just
+  - tooling/just/database.just
+  - tooling/just/local_stack.just
+  - tooling/just/rust.just
+  - tooling/xtask/crates/xtask_local/Cargo.toml
+  - tooling/xtask/crates/xtask_local/src/local/cli/test.rs
+  - tooling/xtask/crates/xtask_local/src/local/instance/test.rs
+  - tooling/xtask/crates/xtask_local/src/local/kickstart/test.rs
+  - tooling/xtask/crates/xtask_local/src/local/local_env/test.rs
+  - tooling/xtask/crates/xtask_local/src/local/localstack.rs
+  - tooling/xtask/crates/xtask_local/src/local/sandbox_image.rs
+  - tooling/xtask/crates/xtask_local/src/local/sandbox_image/test.rs
+  - tooling/xtask/crates/xtask_local/src/local/test.rs
+  tests:
+  - conventions
+  - selfhost-config
+- id: SELFHOST-SEARCH-UPLOAD-001
+  title: Self-host document search upload bridge
+  rationale: In official AWS, services/search_upload_handler forwards S3/EventBridge
+    document upload events to DSS, which emits DocumentTopicEvent::ContentUploaded
+    to drive Search Processor. Self-host uses LocalStack without AWS EventBridge/Lambda
+    pipelines; packages/fork/search-upload-worker and self-host infrastructure replicate
+    identical event semantics while maintaining 0 diff against upstream search_upload_handler.
+  risk: high
+  paths:
+  - packages/fork/search-upload-worker/**
+  - self-host/init/reconcile-localstack.sh
+  - self-host/docker-compose.yml
+  - self-host/.env.example
+  - self-host/scripts/check-drift.py
+  - nix/cloud-storage.nix
+  - Cargo.toml
+  - Cargo.lock
+  - ".github/workspace-dep-closures.json"
+  - ".fork/private-hooks.yml"
+  owned_paths:
+  - ".github/workspace-dep-closures.json"
+  - Cargo.lock
+  - Cargo.toml
+  - nix/cloud-storage.nix
+  tests:
+  - conventions
+  - selfhost-config
+- id: TELEMETRY-PRIVACY-001
+  title: Private telemetry and analytics boundary
+  rationale: Keep analytics and telemetry independently reviewable from deployment/runtime
+    changes; self-host must not silently fall back to official PostHog or other hosted
+    collectors.
+  risk: high
+  paths:
+  - apps/web/src/lib/analytics/**
+  - services/analytics-proxy/**
+  - self-host/docker-compose.yml
+  - self-host/Caddyfile
+  - docker/analytics-proxy.Dockerfile
+  - ".github/scripts/check-zero-cloud.rb"
+  owned_paths:
+  - apps/web/src/lib/analytics/analytics.ts
+  - apps/web/src/lib/analytics/posthog.tsx
+  - services/analytics-proxy/src/index.ts
+  - services/analytics-proxy/wrangler.jsonc
+  tests:
+  - conventions
+  - selfhost-config
+- id: SELFHOST-MEDIA-001
+  title: Self-hosted static image proxy compatibility
+  rationale: Bypass the image proxy only for first-party self-hosted static files,
+    preserving SSRF protection for external images.
+  risk: medium
+  paths:
+  - apps/web/src/features/email-message/rendering-adapter.ts
+  - packages/email-renderer/src/core/resource-policy.ts
+  - ".fork/private-hooks.yml"
+  owned_paths:
+  - apps/web/src/features/email-message/rendering-adapter.ts
+  - packages/email-renderer/src/core/resource-policy.ts
+  tests:
+  - conventions
+  - web
+- id: EMAIL-ATTACHMENT-RECOVERY-001
+  title: Preserve attachment cache and provider recovery
+  rationale: Protect existing cache-first provider fallback and private document object
+    checks without introducing a new recovery pipeline.
+  risk: high
+  paths:
+  - ".github/scripts/check-email-attachment-contract.rb"
+  - services/email_service/src/api/email/attachments.rs
+  - services/email_service/src/api/email/attachments/**
+  - services/email_service/src/util/upload_attachment.rs
+  - crates/email_db_client/src/attachments/**
+  - apps/web/src/features/email-compose/**
+  - apps/web/src/features/email-message/**
+  - apps/web/src/lib/queries/email/integration.ts
+  - apps/web/src/lib/service-clients/service-email/**
+  - packages/email-renderer/**
+  - self-host/**
+  tests:
+  - attachment-recovery-contract
+  - selfhost-config
+- id: EMAIL-SELFHOST-001
+  title: Self-hosted Gmail and email service behavior
+  rationale: Preserve Gmail synchronization, sending, tracking, and local worker behavior
+    without Macro cloud services.
+  risk: high
+  paths:
+  - services/email_service/**
+  - services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
+  - services/email_service/src/api/email/links/health_check.rs
+  - crates/email/**
+  - crates/email_db_client/**
+  - crates/email_api_client/**
+  - crates/email_utils/**
+  - apps/web/src/features/block-email/**
+  - apps/web/src/features/email-message/**
+  - apps/web/src/lib/service-clients/service-email/**
+  - apps/web/src/components/app/InitialInteractiveOnboardingModal.tsx
+  owned_paths:
+  - apps/web/src/components/app/InitialInteractiveOnboardingModal.tsx
+  - apps/web/src/features/email-message/attachment-action-adapter.ts
+  - apps/web/src/features/email-message/components/attachment-pill.tsx
+  - apps/web/src/features/email-message/components/collapsed-message.tsx
+  - apps/web/src/features/email-message/components/email-message-top-bar.tsx
+  - apps/web/src/features/email-message/components/email-user-tooltip.tsx
+  - apps/web/src/features/email-message/core/email-message.ts
+  - apps/web/src/features/email-message/core/format-email-date.ts
+  - apps/web/src/features/email-message/primitives/email-message-body.ts
+  - apps/web/src/features/email-message/rendering-adapter.ts
+  - apps/web/src/features/email-message/views/email-message-body.tsx
+  - apps/web/src/lib/service-clients/service-email/client.ts
+  - apps/web/src/lib/service-clients/service-email/generated/client.ts
+  - crates/email/Cargo.toml
+  - crates/email_db_client/src/lib.rs
+  - crates/email_db_client/src/links/get.rs
+  - crates/email_db_client/src/messages/mod.rs
+  - crates/email_db_client/src/settings.rs
+  - crates/email_utils/src/lib.rs
+  - services/email_service/Cargo.toml
+  - services/email_service/src/api.rs
+  - services/email_service/src/api/email/attachments.rs
+  - services/email_service/src/api/email/attachments/get.rs
+  - services/email_service/src/api/email/attachments/get_document_id.rs
+  - services/email_service/src/api/email/links.rs
+  - services/email_service/src/api/email/links/health_check.rs
+  - services/email_service/src/api/email/messages.rs
+  - services/email_service/src/api/email/settings.rs
+  - services/email_service/src/api/swagger.rs
+  - services/email_service/src/bin/pubsub_workers/pubsub_workers.rs
+  - services/email_service/src/config.rs
+  - services/email_service/src/outbound/attachment_access.rs
+  - services/email_service/src/pubsub/mod.rs
+  - services/email_service/src/util/sync_contacts.rs
+  - services/email_service/src/util/sync_contacts/test.rs
+  - services/email_service/src/util/upload_attachment.rs
+  tests:
+  - conventions
+  - email-rust
+- id: AUTH-SELFHOST-001
+  title: Self-host authentication and identity consistency
+  rationale: 'Protect only the self-host identity boundary: deployment URL, OAuth
+    callback validation, FusionAuth initialization, and the small client fallback
+    needed when SaaS-only auth endpoints are absent. Health checks, billing, i18n,
+    and general upstream authentication remain outside this customization.'
+  risk: high
+  paths:
+  - services/authentication_service/src/api/utils.rs
+  - services/authentication_service/src/api/login/sso.rs
+  - services/authentication_service/src/api/oauth2.rs
+  - services/authentication_service/src/api/link/gmail.rs
+  - services/authentication_service/src/api/link/gmail/test.rs
+  - services/authentication_service/src/api/oauth.rs
+  - crates/soup/src/outbound/pg_soup_repo/candidate_gates.rs
+  - services/authentication_service/src/main.rs
+  - services/authentication_service/Cargo.toml
+  - self-host/init/Dockerfile
+  - self-host/init/provision.sh
+  - self-host/init/render-kickstart.sh
+  - self-host/kickstart/**
+  - self-host/scripts/reconcile_fusionauth_idp.py
+  - apps/web/src/lib/service-clients/service-auth/client.ts
+  - apps/web/src/routes/Root.tsx
+  owned_paths:
+  - apps/web/src/lib/service-clients/service-auth/client.ts
+  - crates/soup/src/outbound/pg_soup_repo/candidate_gates.rs
+  - services/authentication_service/Cargo.toml
+  - services/authentication_service/src/api/link/gmail.rs
+  - services/authentication_service/src/api/login/sso.rs
+  - services/authentication_service/src/api/utils.rs
+  - apps/web/src/routes/Root.tsx
+  tests:
+  - conventions
+  - auth-rust
+- id: I18N-ZH-CN-001
+  title: Explicit Chinese localization
+  rationale: Preserve the fork's explicit i18n runtime, extraction rules, and zh-CN
+    coverage.
+  risk: medium
+  paths:
+  - apps/web/src/features/email-compose/primitives/email-send-schedule-i18n.test.ts
+  - apps/web/src/features/email-compose/primitives/email-send-schedule.ts
+  - apps/web/src/lib/core/component/AI/component/tool/email/DraftComposer.tsx
+  - apps/web/src/features/property/utils/formatting.ts
+  - apps/web/src/features/crm/**
+  - packages/fork/i18n/**
+  - apps/web/src/features/calendar/calendar-settings.tsx
+  - apps/web/src/features/settings/email-settings.tsx
+  - apps/web/src/features/settings/Email.tsx
+  - apps/web/src/features/settings/SignatureEditor.tsx
+  - apps/web/src/features/settings/SignatureEditor.css
+  - apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
+  - apps/web/src/features/settings/connections/capability-row.ts
+  - apps/web/src/features/block-agent/component/AgentMessage.tsx
+  - rules/ast-grep/**
+  - sgconfig.yml
+  - apps/web/src/features/block-email/component/TopBar.tsx
+  - apps/web/src/features/block-email/util/emailHotkeys.ts
+  - apps/web/src/features/block-spreadsheet/core/toolbar-types.ts
+  - apps/web/src/features/calendar/utils/calendar-label.ts
+  - apps/web/src/features/channel/Channel/channel-tabs.ts
+  - apps/web/src/features/channel/CreateChannelModal.tsx
+  - apps/web/src/features/command/CommandMenu.tsx
+  - apps/web/src/features/companies/Company/Company.tsx
+  - apps/web/src/features/companies/Company/CompanyContactsSection.tsx
+  - apps/web/src/features/companies/core/crm-navigation.ts
+  - apps/web/src/features/contacts/Contact/**
+  - apps/web/src/features/drive-view/core/types.ts
+  - apps/web/src/features/email-view/constants.ts
+  - apps/web/src/features/email-view/components/EmailSidebar.tsx
+  - apps/web/src/features/email-view/components/EmailHeader.tsx
+  - apps/web/src/features/email-view/components/EmailControls.tsx
+  - apps/web/src/features/home/components/HomeTabs.tsx
+  - apps/web/src/features/notifications/notification-event-catalog.ts
+  - apps/web/src/features/property/utils/errorHandling.ts
+  - apps/web/src/features/settings/Shortcuts.tsx
+  - apps/web/src/lib/core/component/TopBar/linkShare.ts
+  - apps/web/src/lib/core/constant/PaywallState.tsx
+  - apps/web/vite.base.ts
+  - apps/web/src/lib/i18n/locales/zh-Hans.ts
+  - apps/web/src/lib/i18n/locales/zh-Hant.ts
+  - apps/web/src/lib/i18n/locales/translated-from.json
+  - apps/web/src/lib/i18n/i18n.ts
+  - apps/web/src/features/slack-import/**
+  owned_paths:
+  - apps/web/src/features/email-compose/primitives/email-send-schedule.ts
+  - apps/web/src/lib/core/component/AI/component/tool/email/DraftComposer.tsx
+  - apps/web/src/features/property/utils/formatting.ts
+  - apps/web/src/features/settings/email-settings.tsx
+  - apps/web/src/features/settings/Email.tsx
+  - apps/web/src/features/settings/SignatureEditor.tsx
+  - apps/web/src/features/settings/SignatureEditor.css
+  - apps/web/src/features/settings/connections/PipedreamAiProvider.tsx
+  - apps/web/src/features/settings/connections/capability-row.ts
+  - apps/web/src/features/block-spreadsheet/core/toolbar-types.ts
+  - apps/web/src/features/calendar/utils/calendar-label.ts
+  - apps/web/src/features/channel/Channel/channel-tabs.ts
+  - apps/web/src/features/home/components/HomeTabs.tsx
+  - apps/web/src/features/notifications/notification-event-catalog.ts
+  - apps/web/src/features/property/utils/errorHandling.ts
+  - apps/web/src/features/settings/Shortcuts.tsx
+  - apps/web/src/lib/core/component/TopBar/linkShare.ts
+  - apps/web/src/lib/core/constant/PaywallState.tsx
+  - apps/web/vite.base.ts
+  - sgconfig.yml
+  - apps/web/src/features/email-view/components/EmailControls.tsx
+  - apps/web/src/lib/i18n/locales/zh-Hans.ts
+  - apps/web/src/lib/i18n/locales/zh-Hant.ts
+  - apps/web/src/lib/i18n/locales/translated-from.json
+  - apps/web/src/lib/i18n/i18n.ts
+  - apps/web/src/features/slack-import/components/conversation-picker.tsx
+  - apps/web/src/features/slack-import/components/import-progress.tsx
+  - apps/web/src/features/slack-import/components/import-ui.tsx
+  - apps/web/src/features/slack-import/components/slack-connect-card.tsx
+  - apps/web/src/features/slack-import/components/slack-import-card.tsx
+  - apps/web/src/features/slack-import/slack-import-sidebar.tsx
+  - apps/web/src/features/slack-import/slack-import.tsx
+  - apps/web/src/features/slack-import/views/import-dialog.tsx
+  tests:
+  - conventions
+  - i18n
+- id: EMAIL-TRANSLATION-001
+  title: Isolated AI email translation and PostgreSQL persistence
+  rationale: Provide unified AI email translation with permanent PostgreSQL persistence
+    while keeping upstream email UI and cognition service files limited to registered
+    hooks.
+  risk: high
+  contracts:
+    upstream_dependencies:
+    - agent_harness_service cognition router & ModelRouter completion
+    - email_messages / email_threads / email_links schema & access permissions
+    - email message body renderer & tracking pixel filter
+    failure_mode: Translation button disabled/noop; unpersisted translations lost
+      on refresh; tracking pixel self-trigger
+    verification_gate: Fork Contract Gate
+  paths:
+  - packages/fork/email-translation/**
+  - crates/macro_db_client/migrations/20261106233639_email_translations.sql
+  - services/agent_harness_service/Cargo.toml
+  - services/agent_harness_service/src/cognition/mod.rs
+  - services/agent_harness_service/src/cognition/api.rs
+  - apps/web/src/features/email-message/components/email-message-top-bar.tsx
+  - apps/web/src/features/email-message/primitives/email-message-body.ts
+  - apps/web/src/features/email-message/views/email-message-body.tsx
+  - apps/web/src/features/email-thread/primitives/thread-navigation.ts
+  - apps/web/src/features/email-thread/views/email-thread.tsx
+  - apps/web/src/features/email-thread/views/message-list.tsx
+  - apps/web/src/features/entity/composed/list-entity/email.tsx
+  - apps/web/src/features/extensions/Extensions.tsx
+  - apps/web/src/features/next-soup/soup-view/filters-bar/soup-filters-bar.tsx
+  - apps/web/src/features/email-view/components/EmailControls.tsx
+  - apps/web/src/features/email-view/components/EmailList.tsx
+  - apps/web/src/features/email-view/email-list-translation-context.tsx
+  - apps/web/src/features/email-view/email-view.tsx
+  - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
+  - ".fork/private-hooks.yml"
+  - apps/web/src/features/email-message/components/collapsed-message.tsx
+  owned_paths:
+  - services/agent_harness_service/Cargo.toml
+  - services/agent_harness_service/src/cognition/mod.rs
+  - services/agent_harness_service/src/cognition/api.rs
+  - apps/web/src/features/email-message/components/email-message-top-bar.tsx
+  - apps/web/src/features/email-message/primitives/email-message-body.ts
+  - apps/web/src/features/email-message/views/email-message-body.tsx
+  - apps/web/src/features/email-thread/primitives/thread-navigation.ts
+  - apps/web/src/features/email-thread/views/email-thread.tsx
+  - apps/web/src/features/email-thread/views/message-list.tsx
+  - apps/web/src/features/email-view/components/EmailControls.tsx
+  - apps/web/src/features/email-view/components/EmailList.tsx
+  - apps/web/src/features/email-view/email-view.tsx
+  - apps/web/src/features/entity/composed/list-entity/email.tsx
+  - apps/web/src/features/next-soup/soup-view/use-soup-view-hotkeys.ts
+  - apps/web/src/features/email-message/components/collapsed-message.tsx
+  tests:
+  - conventions
+  - email-translation
+- id: FORK-CI-001
+  title: Private fork build and release pipelines
+  rationale: Preserve private image builds, release gates, and fork-specific CI infrastructure.
+  risk: high
+  paths:
+  - ".github/workflows/self-host-images.yml"
+  - ".github/workflows/nix-cache-health.yml"
+  - ".github/workflows/release.yml"
+  - ".github/workflows/upstream-sync.yml"
+  - ".github/workflows/upstream-sync-test-group.yml"
+  - ".github/actions/setup-nix/**"
+  - ".github/scripts/**"
+  - ".fork/**"
+  owned_paths:
+  - ".github/actions/setup-nix/action.yml"
+  - ".github/scripts/build-cloud-storage-lambdas-nix.sh"
+  - ".github/scripts/build-cloud-storage-lambdas.sh"
+  tests:
+  - conventions
+  - workflow-lint
+- id: ADOBE-ATTACHMENT-PREVIEW-001
+  title: Adobe Illustrator and EPS attachment preview
+  rationale: Provide lightweight client-side AI/EPS inspection, TIFF extraction, and
+    explicit status states without cloud or Ghostscript dependencies.
+  risk: low
+  paths:
+  - packages/fork/adobe-preview/**
+  - apps/web/src/features/email-message/attachment-action-adapter.ts
+  - apps/web/src/features/email-message/components/attachment-pill.tsx
+  - apps/web/src/features/email-message/components/attachment-pill.test.tsx
+  - apps/web/src/features/block-unknown/**
+  - apps/web/src/lib/queries/storage/**
+  - apps/web/src/lib/service-clients/service-storage/util/**
+  - services/document_storage_service/**
+  - crates/s3_key/**
+  - apps/web/src/features/block-pdf/definition.ts
+  - apps/web/src/features/block-pdf/util/pdf-file-actions.ts
+  - apps/web/tsconfig.json
+  - apps/web/vite.base.ts
+  - ".fork/private-hooks.yml"
+  owned_paths:
+  - apps/web/src/features/block-pdf/util/pdf-file-actions.ts
+  - apps/web/src/features/block-unknown/component/Block.tsx
+  - apps/web/src/features/email-message/attachment-action-adapter.ts
+  - apps/web/src/features/email-message/components/attachment-pill.tsx
+  - apps/web/src/features/email-message/components/attachment-pill.test.tsx
+  - apps/web/tsconfig.json
+  - apps/web/vite.base.ts
+  tests:
+  - conventions
+  - web
