@@ -58,9 +58,11 @@ customizations:
   - ".fork/overrides/**"
   - package.json
   - bun.lock
+  - nix-support/node_modules-hashes.json
   owned_paths:
   - package.json
   - bun.lock
+  - nix-support/node_modules-hashes.json
   tests:
   - conventions
 - id: EMAIL-PARTICIPANT-IDENTITY-001
