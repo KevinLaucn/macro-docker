@@ -439,6 +439,7 @@ impl<S: EmailTranslationStore> EmailTranslationService<S> {
                         prompt,
                         schema: translation_output_schema(),
                         thinking: CompletionThinking::Low,
+                        session: None,
                     },
                 )
                 .await;
