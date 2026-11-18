@@ -204,11 +204,16 @@
         filter = path: type: type == "directory" || builtins.match ".*\\.sql$" path != null;
       };
 
-      compileTimeResourceOverlays = dirs: pkgs.lib.optionalString (builtins.elem "crates/macro_db_migrator" dirs) ''
+      compileTimeResourceOverlays = dirs: (pkgs.lib.optionalString (builtins.elem "crates/macro_db_migrator" dirs) ''
         mkdir -p "$out/crates/macro_db_client/migrations"
         cp -rT ${macroDbMigrationsSrc} "$out/crates/macro_db_client/migrations"
         chmod -R +w "$out/crates/macro_db_client/migrations"
-      '';
+      '') + (pkgs.lib.optionalString (builtins.elem "crates/agent_git" dirs) ''
+        mkdir -p "$out/packages"
+        rm -rf "$out/packages/starter-agent"
+        cp -rT ${starterAgentSrc} "$out/packages/starter-agent"
+        chmod -R +w "$out/packages/starter-agent"
+      '');
 
       # Workspace-root files that crates read across crate boundaries: the
       # .sqlx offline cache (sqlx macros resolve it from the workspace root),
@@ -346,12 +351,6 @@
           mkdir -p "$out/packages/fork/email-translation/backend"
           cp -rT ${emailTranslationBackendSrc} "$out/packages/fork/email-translation/backend"
           chmod -R +w "$out/packages/fork/self-host-health/backend" "$out/packages/fork/read-receipts/backend" "$out/packages/fork/email-translation/backend"
-          ${pkgs.lib.optionalString (builtins.elem "crates/agent_git" dirs) ''
-            mkdir -p $out/packages
-            rm -rf $out/packages/starter-agent
-            cp -rT ${starterAgentSrc} $out/packages/starter-agent
-            chmod -R +w $out/packages/starter-agent
-          ''}
           ${overlays}
           ${compileTimeResourceOverlays dirs}
         '';
@@ -1156,8 +1155,10 @@
           syncServiceSrc = crateDirSrc "services/sync-service";
           agentFoldSrc = crateDirSrc "crates/folds/agent_fold";
           codingAgentWorkerSrc = crateDirSrc "crates/coding_agent_worker";
+          agentHarnessSrc = selfHostEmailPrunedDeploySrc "source-check-agent-harness" "agent_harness_service";
         in
         pkgs.runCommand "self-host-email-source-check" { } ''
+          test -f ${agentHarnessSrc}/packages/starter-agent/package.json
           test -f ${migratorSrc}/crates/macro_db_migrator/src/lib.rs
           test -f ${migratorSrc}/crates/macro_db_client/migrations/0001_baseline.sql
           test -n "$(find ${migratorSrc}/crates/macro_db_client/migrations -maxdepth 1 -type f -name '*.sql' -print -quit)"
@@ -1704,10 +1705,12 @@
       }
       // deployLambdaPackages
       // selfHostEmailBinaryPackages
+      // {
+        self-host-email-source-check = selfHostEmailSourceCheck;
+      }
       // pkgs.lib.optionalAttrs isLinux {
         local-stack-binaries = localStackBinaries;
         self-host-email-binaries = selfHostEmailBinaries;
-        self-host-email-source-check = selfHostEmailSourceCheck;
       };
 
       devShells = {
