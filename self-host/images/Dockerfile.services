@@ -21,7 +21,7 @@ LABEL org.opencontainers.image.title="Macro services" \
       org.opencontainers.image.revision="${GIT_SHA}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates dumb-init curl patchelf \
+      ca-certificates dumb-init curl patchelf git \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # An unprivileged runtime user. Package installation and the copy below still
