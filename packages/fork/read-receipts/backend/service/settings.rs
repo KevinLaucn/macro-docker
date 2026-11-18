@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::api::context::ApiContext;
+use super::ApiContextExt;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ReadReceiptsResponse {
@@ -41,7 +42,7 @@ pub async fn get_handler(
     link: Extension<Link>,
 ) -> Result<Json<ReadReceiptsResponse>, ReadReceiptsError> {
     let enabled =
-        email_db_client::read_receipts::fetch_read_receipts_enabled(&ctx.db, link.id).await?;
+        email_db_client::read_receipts::fetch_read_receipts_enabled(ctx.db(), link.id).await?;
     Ok(Json(ReadReceiptsResponse {
         read_receipts_enabled: enabled,
     }))
@@ -54,7 +55,7 @@ pub async fn patch_handler(
     Json(request): Json<UpdateReadReceiptsRequest>,
 ) -> Result<Json<ReadReceiptsResponse>, ReadReceiptsError> {
     let enabled = email_db_client::read_receipts::set_read_receipts_enabled(
-        &ctx.db,
+        ctx.db(),
         link.id,
         request.read_receipts_enabled,
     )
@@ -87,7 +88,7 @@ pub async fn get_global_handler(
     link: Extension<Link>,
 ) -> Result<Json<GlobalExtensionSettingsResponse>, ReadReceiptsError> {
     let settings = email_db_client::read_receipts::fetch_global_extension_settings(
-        &ctx.db,
+        ctx.db(),
         link.macro_id.as_ref(),
     )
     .await?;
@@ -104,7 +105,7 @@ pub async fn patch_global_open_tracking_handler(
     Json(request): Json<UpdateGlobalOpenTrackingRequest>,
 ) -> Result<Json<GlobalExtensionSettingsResponse>, ReadReceiptsError> {
     let settings = email_db_client::read_receipts::set_global_open_tracking_enabled(
-        &ctx.db,
+        ctx.db(),
         link.macro_id.as_ref(),
         request.email_open_tracking_enabled,
     )
@@ -122,7 +123,7 @@ pub async fn patch_global_pixel_blocking_handler(
     Json(request): Json<UpdateGlobalPixelBlockingRequest>,
 ) -> Result<Json<GlobalExtensionSettingsResponse>, ReadReceiptsError> {
     let settings = email_db_client::read_receipts::set_global_pixel_blocking_enabled(
-        &ctx.db,
+        ctx.db(),
         link.macro_id.as_ref(),
         request.email_tracking_pixel_blocking_enabled,
     )

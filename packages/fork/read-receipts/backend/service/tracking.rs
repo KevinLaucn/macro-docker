@@ -10,6 +10,7 @@ use axum::{
 use uuid::Uuid;
 
 use crate::api::context::ApiContext;
+use super::ApiContextExt;
 
 #[cfg(test)]
 mod test;
@@ -31,7 +32,7 @@ pub fn router() -> Router<ApiContext> {
 #[tracing::instrument(skip_all)]
 async fn open_pixel_handler(State(ctx): State<ApiContext>, Path(token): Path<String>) -> Response {
     if let Ok(token) = Uuid::parse_str(token.trim()) {
-        match email_db_client::read_receipts::record_message_open(&ctx.db, token).await {
+        match email_db_client::read_receipts::record_message_open(ctx.db(), token).await {
             Ok(Some(open)) => {
                 tracing::debug!(
                     message_id = %open.message_id,
@@ -45,7 +46,7 @@ async fn open_pixel_handler(State(ctx): State<ApiContext>, Path(token): Path<Str
                 if open.is_first_open {
                     let activity_res =
                         email_db_client::read_receipts::record_email_opened_activity(
-                            &ctx.db, &open,
+                            ctx.db(), &open,
                         )
                         .await;
                     if let Err(activity_err) = activity_res {
@@ -58,7 +59,7 @@ async fn open_pixel_handler(State(ctx): State<ApiContext>, Path(token): Path<Str
                     }
                 }
 
-                let db = ctx.db.clone();
+                let db = ctx.db().clone();
                 let internal_api_key = ctx.internal_api_key.to_string();
                 tokio::spawn(async move {
                     broadcast_open_event(&db, &internal_api_key, &open).await;

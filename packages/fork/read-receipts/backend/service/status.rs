@@ -15,6 +15,7 @@ use serde::Serialize;
 use sqlx::types::Uuid;
 
 use crate::api::context::{ApiContext, AuthorizationService};
+use super::ApiContextExt;
 
 #[cfg(test)]
 mod test;
@@ -92,7 +93,7 @@ pub async fn batch_handler(
     }
 
     let link_ids: HashSet<Uuid> = email_db_client::links::get::fetch_inboxes_for_macro_id(
-        &ctx.db,
+        ctx.db(),
         &authorization.authorization.user.user_context.user_id,
     )
     .await
@@ -125,7 +126,7 @@ pub async fn batch_handler(
     )
     .bind(&ids)
     .bind(&link_id_vec)
-    .fetch_all(&ctx.db)
+    .fetch_all(ctx.db())
     .await
     .context("unable to fetch read receipt statuses")?;
 
@@ -152,7 +153,7 @@ pub async fn thread_batch_handler(
     }
 
     let link_ids: HashSet<Uuid> = email_db_client::links::get::fetch_inboxes_for_macro_id(
-        &ctx.db,
+        ctx.db(),
         &authorization.authorization.user.user_context.user_id,
     )
     .await
@@ -190,7 +191,7 @@ pub async fn thread_batch_handler(
     )
     .bind(&ids)
     .bind(&link_id_vec)
-    .fetch_all(&ctx.db)
+    .fetch_all(ctx.db())
     .await
     .context("unable to fetch thread read receipt statuses")?;
 

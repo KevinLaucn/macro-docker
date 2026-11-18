@@ -76,7 +76,7 @@ pub async fn download_handler(
     Path(attachment_id): Path<Uuid>,
 ) -> Result<Response, Response> {
     let links = email_db_client::links::get::fetch_inboxes_for_macro_id(
-        &ctx.db,
+        &ctx.attachment_reads.files.db,
         &authorization.authorization.user.user_context.user_id,
     )
     .await
@@ -95,7 +95,7 @@ pub async fn download_handler(
     for link in links {
         if let Some((db_attachment, message_provider_id)) =
             email_db_client::attachments::provider::fetch_attachment_by_id(
-                &ctx.db,
+                &ctx.attachment_reads.files.db,
                 attachment_id,
                 link.id,
             )
@@ -139,6 +139,8 @@ pub async fn download_handler(
     })?;
 
     let attachment_data = ctx
+        .signature_settings
+        .provider
         .email_api
         .get_attachment(link.id, &message_provider_id, provider_attachment_id)
         .await

@@ -7,7 +7,6 @@ use axum::{
 use email::domain::draft_attachments::AttachmentError;
 use macro_authorization::{MacroAuthorizationExtractor, UserOrInternal};
 use model::response::ErrorResponse;
-use std::time::Duration;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -52,22 +51,6 @@ pub async fn handler(
         }));
     }
 
-    // Acquire a distributed lock to prevent duplicate uploads of the same attachment
-    let lock_key = format!("attachment_upload:{}", attachment_id);
-    let _lock = ctx
-        .redis_client
-        .acquire_lock(&lock_key, Duration::from_secs(60), Duration::from_secs(30))
-        .await
-        .map_err(|_| AttachmentApiError(AttachmentError::Infrastructure))?;
-
-    // Re-check after acquiring lock — another request may have completed the upload
-    if let Some(document_id) = verify_and_get_cached_document_id(&ctx, attachment_id).await? {
-        return Ok(Json(GetAttachmentDocumentIDResponse {
-            attachment_id,
-            document_id,
-        }));
-    }
-
     let document_id = ctx.attachment_reads.document(actor, attachment_id).await?;
     Ok(Json(GetAttachmentDocumentIDResponse {
         attachment_id,
@@ -98,7 +81,7 @@ async fn verify_and_get_cached_document_id(
         "#,
     )
     .bind(attachment_id)
-    .fetch_optional(&ctx.db)
+    .fetch_optional(&ctx.attachment_reads.files.db)
     .await
     .map_err(|_| AttachmentApiError(AttachmentError::Infrastructure))?;
 
@@ -115,7 +98,7 @@ async fn verify_and_get_cached_document_id(
         std::env::var("DOCUMENT_STORAGE_BUCKET").unwrap_or_else(|_| "doc-storage".to_string());
     let s3_key = format!("{}/{}/{}", record.owner, document_id, version_id);
 
-    match ctx.s3_client.exists(&bucket, &s3_key).await {
+    match ctx.attachment_reads.files.s3.exists(&bucket, &s3_key).await {
         Ok(true) => Ok(Some(document_id)),
         Ok(false) => {
             tracing::warn!(
@@ -126,12 +109,12 @@ async fn verify_and_get_cached_document_id(
             );
             let _ = sqlx::query(r#"DELETE FROM document_email WHERE email_attachment_id = $1"#)
                 .bind(attachment_id)
-                .execute(&ctx.db)
+                .execute(&ctx.attachment_reads.files.db)
                 .await;
 
             let _ = sqlx::query(r#"UPDATE "Document" SET "deletedAt" = NOW() WHERE id = $1"#)
                 .bind(&document_id)
-                .execute(&ctx.db)
+                .execute(&ctx.attachment_reads.files.db)
                 .await;
 
             Ok(None)
