@@ -97,7 +97,7 @@
 	}
 	@scheduled_action path /scheduled-action /scheduled-action/*
 	handle @scheduled_action {
-		reverse_proxy scheduled-action-service:8080
+		reverse_proxy agent-harness-service:8080
 	}
 	@preview path /preview /preview/*
 	handle @preview {
