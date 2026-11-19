@@ -138,7 +138,7 @@ jobs:
             fi
             # Every workspace package may be imported by apps/web. Keep this
             # broad so a shared-package change cannot publish a stale Web image.
-            matches '^(apps/web/|packages/|packages/fork/|bun\.lock$|package\.json$|nix-support/|\.github/workflows/self-host-images\.yml)' && run_web=true
+            matches '^(apps/web/|packages/|packages/fork/|self-host/wasm/|bun\.lock$|package\.json$|nix-support/|\.github/workflows/self-host-images\.yml)' && run_web=true
             matches '^(self-host/init/|self-host/images/Dockerfile\.init|\.github/workflows/self-host-images\.yml)' && run_init=true
             matches '^(self-host/images/Dockerfile\.workers|docker/(sync-service|websocket-service)\.Dockerfile|services/(sync|websocket)|\.github/workflows/self-host-images\.yml)' && run_workers=true
             matches '^(self-host/(Caddyfile|images/Dockerfile\.caddy|docker-compose\.yml|scripts/)|\.github/workflows/self-host-images\.yml)' && run_caddy=true
@@ -1224,6 +1224,10 @@ jobs:
           '
           mkdir -p self-host/build/dist
           cp -a apps/web/dist/. self-host/build/dist/
+          if [ -d self-host/wasm ]; then
+            mkdir -p self-host/build/dist/wasm
+            cp -a self-host/wasm/. self-host/build/dist/wasm/
+          fi
           test -f self-host/build/dist/index.html
 
       - name: Build diagnostics after build

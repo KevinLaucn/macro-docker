@@ -97,7 +97,7 @@
 	}
 	@scheduled_action path /scheduled-action /scheduled-action/*
 	handle @scheduled_action {
-		reverse_proxy agent-harness-service:8080
+		reverse_proxy scheduled-action-service:8080
 	}
 	@preview path /preview /preview/*
 	handle @preview {
@@ -209,8 +209,21 @@
 		}
 		header @immutable_assets Cache-Control "public, max-age=31536000, immutable"
 
-		try_files {path} /index.html
-		file_server
+		# Static assets & WASM must never fall back to index.html (which causes invalid MIME script rejection)
+		@static_assets path *.js *.mjs *.wasm *.css *.json *.map *.png *.jpg *.jpeg *.svg *.woff *.woff2 *.ico *.webp /wasm/* /assets/*
+		handle @static_assets {
+			@app_js path *.js
+			header @app_js Content-Type "application/javascript; charset=utf-8"
+			@app_wasm path *.wasm
+			header @app_wasm Content-Type "application/wasm"
+			file_server
+		}
+
+		# SPA navigation fallback: only for non-static page navigation routes
+		handle {
+			try_files {path} /index.html
+			file_server
+		}
 	}
 
 	handle_errors {
