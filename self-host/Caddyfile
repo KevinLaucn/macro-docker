@@ -180,6 +180,14 @@
 		root * /srv/frontend
 		file_server
 	}
+	handle /wasm/* {
+		root * /srv/frontend
+		@js path *.js
+		header @js Content-Type "application/javascript; charset=utf-8"
+		@wasm path *.wasm
+		header @wasm Content-Type "application/wasm"
+		file_server
+	}
 
 	# The app bundle. Built with base `/app`, so the URL space maps onto the
 	# dist root once the prefix is stripped; unknown paths fall back to
