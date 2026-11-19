@@ -86,7 +86,7 @@
 			}
 		}
 	}
-	handle_path /email/* {
+	handle /email/* {
 		reverse_proxy email-service:8080
 	}
 	handle /t/* {
