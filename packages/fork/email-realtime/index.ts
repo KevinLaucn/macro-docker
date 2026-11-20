@@ -1,3 +1,8 @@
+export {
+  refreshEmailRealtimeReaders,
+  registerEmailRealtimeReader,
+} from './readers';
+
 export type BrowserNewEmailNotificationPayload = {
   readonly sender?: string | null;
   readonly toEmail: string;

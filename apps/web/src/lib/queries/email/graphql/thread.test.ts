@@ -1,3 +1,4 @@
+import { refreshEmailRealtimeReaders } from '@macro/email-realtime';
 import type {
   EmailThreadPageQuery,
   EmailThreadPageQueryVariables,
@@ -261,7 +262,11 @@ describe('open-thread revalidation without normalized caching', () => {
           }
         : undefined
     );
-    const server = { inboxVisible: false, failThreadRead: false };
+    const server = {
+      inboxVisible: false,
+      failThreadRead: false,
+      messageCount: options.messageCount ?? 0,
+    };
     const reads: number[] = [];
     const readIds: string[] = [];
     const fetch = vi.fn(async (_url: unknown, init?: RequestInit) => {
@@ -307,7 +312,7 @@ describe('open-thread revalidation without normalized caching', () => {
               inboxVisible: server.inboxVisible,
               messages: threadMessages(
                 offset,
-                Math.min(20, Math.max(0, (options.messageCount ?? 0) - offset))
+                Math.min(20, Math.max(0, server.messageCount - offset))
               ),
             },
           },
@@ -379,6 +384,55 @@ describe('open-thread revalidation without normalized caching', () => {
     expect(f.reads).toEqual([0, 0]);
     await archiveEmailThread({ id: 'thread-1', value: true });
     expect(f.query.data?.pages[0].inbox_visible).toBe(false);
+  });
+
+  it('receives consecutive replies through the real GraphQL query and ignores other threads', async () => {
+    const f = setup({ messageCount: 1 });
+    await vi.waitFor(() => expect(f.query.isSuccess).toBe(true));
+    f.server.messageCount = 2;
+    await refreshEmailRealtimeReaders(['another-thread']);
+    expect(f.reads).toEqual([0]);
+    await refreshEmailRealtimeReaders(['thread-1', 'thread-1']);
+    expect(
+      f.query.data?.pages[0].messages.map((message) => message.db_id)
+    ).toHaveLength(2);
+    f.server.messageCount = 4;
+    await refreshEmailRealtimeReaders(['thread-1']);
+    const ids = f.query.data!.pages.flatMap((page) =>
+      page.messages.map((message) => message.db_id)
+    );
+    expect(ids).toHaveLength(4);
+    expect(ids).toEqual(['message-0', 'message-1', 'message-2', 'message-3']);
+    expect(new Set(ids).size).toBe(4);
+    expect(f.reads).toEqual([0, 0, 0]);
+  });
+
+  it('catches up missed replies on reconnect and releases disabled and unmounted readers', async () => {
+    const [enabled, setEnabled] = createSignal(true);
+    const f = setup({ messageCount: 1, enabled });
+    await vi.waitFor(() => expect(f.query.isSuccess).toBe(true));
+    f.server.messageCount = 3;
+    await refreshEmailRealtimeReaders();
+    expect(f.query.data?.pages[0].messages).toHaveLength(3);
+    setEnabled(false);
+    await refreshEmailRealtimeReaders();
+    expect(f.reads).toEqual([0, 0]);
+    f.dispose();
+    await refreshEmailRealtimeReaders();
+    expect(f.reads).toEqual([0, 0]);
+  });
+
+  it('refreshes every loaded page on a reply without changing pagination', async () => {
+    const f = setup({ messageCount: 22 });
+    await vi.waitFor(() => expect(f.query.isSuccess).toBe(true));
+    await f.query.fetchNextPage();
+    f.server.messageCount = 24;
+    await refreshEmailRealtimeReaders(['thread-1']);
+    expect(f.query.data?.pageParams).toEqual([0, 20]);
+    expect(f.query.data?.pages.flatMap((page) => page.messages)).toHaveLength(
+      24
+    );
+    expect(f.reads).toEqual([0, 20, 0, 20]);
   });
 
   it('refreshes all loaded message pages without resetting pagination', async () => {

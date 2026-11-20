@@ -2,6 +2,8 @@ import { subscribeNativeNetworkStatus } from '@core/mobile/native-network-status
 import { fireAndForget } from '@core/util/fireAndForget';
 import { normalizedCacheResultMetadata } from '@graphql-cache/exchange/normalized-cache-exchange';
 import type { CacheHost } from '@graphql-cache/host/types';
+// PRIVATE-HOOK: email_realtime:events-import
+import { refreshEmailRealtimeReaders } from '@macro/email-realtime';
 import { type Span, Telemetry } from '@macro-inc/observability';
 import type { Client, OperationResult } from '@urql/core';
 import type { Result } from 'neverthrow';
@@ -9,6 +11,8 @@ import {
   channelNotificationRefresh,
   disposeChannelNotificationRefresh,
 } from '../../queries/channel/notification-refresh';
+// PRIVATE-HOOK: email_realtime:lists-import
+import { refreshActiveGraphqlSoupQueries } from '../../queries/soup/graphql/active-queries';
 import { revalidateCallListsForSoupUpdates } from '../../queries/soup/graphql/call-list-revalidation';
 import {
   ActivityUpdatesDocument,
@@ -300,6 +304,7 @@ export function createGraphqlSoupSubscriptionsLifecycle(
 } {
   let currentClient: Pick<Client, 'subscription' | 'query'> | undefined;
   let currentHost: CacheHost | undefined;
+  let connectedOnce = false;
   let suspended = false;
   let unsubscribes: Array<() => void> = [];
   let activity: ReturnType<typeof createActivityUpdatesHandler> | undefined;
@@ -360,23 +365,38 @@ export function createGraphqlSoupSubscriptionsLifecycle(
       const activityHandler = activity;
       const channelHandler = channels;
 
-      const subscriptions =
-        host && !host.disabled
-          ? LIVE_UPDATE_SUBSCRIPTIONS
-          : LIVE_UPDATE_SUBSCRIPTIONS.filter(
-              ({ document }) => document !== SoupUpdatesDocument
-            );
+      // PRIVATE-HOOK: email_realtime:subscriptions
+      const subscriptions = LIVE_UPDATE_SUBSCRIPTIONS;
       const setGeneration = generation;
       unsubscribes = subscriptions.map(({ document, errorMessage }) => {
         const subscription = client
           .subscription(document, {})
           .subscribe((result) => {
+            if (setGeneration !== generation) return;
             if (document === ActivityUpdatesDocument) {
               activityHandler.onResult(
                 result as OperationResult<ActivityUpdatesSubscription>
               );
             }
             if (document === SoupUpdatesDocument && result.data != null) {
+              // PRIVATE-HOOK: email_realtime:patch
+              const emailIds = (
+                result.data as SoupUpdatesSubscription
+              ).soupUpdates.flatMap((patch) =>
+                patch.__typename === 'SoupUpdated' &&
+                patch.item.__typename === 'GraphqlSoupEmailThread'
+                  ? [patch.item.id]
+                  : []
+              );
+              if (emailIds.length > 0 && (!host || host.disabled)) {
+                fireAndForget(
+                  Promise.all([
+                    refreshEmailRealtimeReaders(emailIds),
+                    refreshActiveGraphqlSoupQueries({ unmaintainedOnly: true }),
+                  ]),
+                  'email-realtime'
+                );
+              }
               fireAndForget(
                 revalidateCallListsForSoupUpdates(
                   (result.data as SoupUpdatesSubscription).soupUpdates
@@ -423,6 +443,21 @@ export function createGraphqlSoupSubscriptionsLifecycle(
       signaledFailure = false;
       activity?.reconnect();
       channels?.reconnect();
+      // PRIVATE-HOOK: email_realtime:reconnect
+      if (
+        connectedOnce &&
+        currentClient &&
+        (!currentHost || currentHost.disabled)
+      ) {
+        fireAndForget(
+          Promise.all([
+            refreshEmailRealtimeReaders(),
+            refreshActiveGraphqlSoupQueries({ unmaintainedOnly: true }),
+          ]),
+          'email-realtime'
+        );
+      }
+      connectedOnce = true;
     },
     dispose() {
       if (options.suspendOnPagehide) {

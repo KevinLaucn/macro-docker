@@ -19,6 +19,7 @@
 - 更换 LocalStack 持久化目录或存储卷前，备份并核对数据库附件映射与实际 S3 对象；更新后抽查历史图片、文档、原件下载。不能只根据 uploaded 状态判定文件可用。
 - 恢复历史对象只补缺失键，校验文件大小和校验和，不覆盖已有对象、不清空数据库或存储卷。
 - `EMAIL-ATTACHMENT-RECOVERY-001` 监控附件调用者、接口、存储和部署依赖。合并命中这些路径时执行 `just test-email-attachment-recovery`；结构检查失败必须人工复核调用链，不能删断言绕过。
+- 附件文档创建的并发去重由官方 `documents::PgDocumentRepo::import_email_attachment_document` 的事务 advisory lock、锁内重查和唯一冲突复用保证；保护检查跟踪该路径，不再要求已移除的 HTTP handler Redis 锁。
 - 仅新增保护规则时使用 Ruby 结构回归检查，不启动完整前端/Rust 构建。这些检查不能代替运行时验证；实际改业务代码时再执行受影响范围测试。
 
 - **接口抽象**：底层统一走 Macro Hexagonal Storage Port（`document_storage_service` / `static_file_service`）。

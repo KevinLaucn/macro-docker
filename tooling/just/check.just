@@ -33,6 +33,13 @@ fork-gate:
     python3 self-host/scripts/check-drift.py
     python3 self-host/scripts/verify-release.py
     just test-browser-runtime
+    just test-mail-realtime
+
+test-mail-realtime:
+    bun run --cwd packages/fork/email-realtime test
+    bunx vitest run --config packages/fork/email-realtime/vitest.integration.config.ts
+    \cd apps/web && bunx vitest run --config src/lib/queries/vitest.config.ts src/lib/queries/email/graphql/thread.test.ts
+    \cd apps/web && bunx vitest run --config src/lib/core/vitest.config.ts src/lib/service-clients/service-storage/graphql-soup-websocket.test.ts src/features/notifications/tests/notification-source.test.ts
 
 test-browser-runtime:
     python3 -m unittest discover -s self-host/scripts -p 'test_web_assets.py'

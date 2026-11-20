@@ -22,6 +22,7 @@ target. Put Fork instructions only in Fork-owned Skills.
 | i18n、翻译、漏译或隐藏界面字段 | `references/i18n-workflow.md` + `../update-translations/SKILL.md` |
 | Email pixels, read receipts, send/reply status, or their upstream dependencies | `references/read-receipts-contract.md` |
 | Production operations | `references/production-deployment.md` |
+| Mail realtime, open-thread updates, unread consistency, or their upstream dependencies | `references/mail-realtime-contract.md` |
 | Email attachment availability, provider fallback, or storage migration | `references/storage-attachments.md` |
 
 Read relevant AGENTS.md/CLAUDE.md and source before editing. Use CodeGraph when

@@ -140,7 +140,7 @@ describe('createNotificationSource', () => {
     };
   });
 
-  it('dispatches the fork browser new-email event as upstream new_email', () => {
+  it('dispatches the official GraphQL new-email event', () => {
     mocks.notificationsQuery = {
       transport: 'rest',
       data: [],
@@ -148,20 +148,18 @@ describe('createNotificationSource', () => {
     };
     const receive = vi.fn();
     const dispose = createRoot((dispose) => {
-      createNotificationSource({} as ConnectionGatewayWebsocket, receive);
+      createNotificationSource(receive);
       return dispose;
     });
 
     try {
-      mocks.socketCallback?.({
-        type: 'browser_new_email_notification',
-        data: JSON.stringify({
-          toEmail: 'ada@example.com',
-          threadId: 'thread-1',
-          subject: 'Hello',
-          snippet: 'New message',
-          sentAt: '2026-09-30T00:00:00.000Z',
-        }),
+      mocks.graphqlPatchCallback?.({
+        __typename: 'GraphqlNewNotification',
+        notification: {
+          ...notification('mail-notification', 'email_thread', 'thread-1'),
+          notification_event_type: 'new_email',
+          notification_metadata: { tag: 'new_email', content: {} },
+        },
       });
       expect(receive).toHaveBeenCalledWith(
         expect.objectContaining({

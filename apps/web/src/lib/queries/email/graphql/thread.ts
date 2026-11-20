@@ -9,6 +9,8 @@ import {
   readRecordsByKeys,
   selectRecords,
 } from '@graphql-cache/exchange/record-selection';
+// PRIVATE-HOOK: email_realtime:reader-import
+import { registerEmailRealtimeReader } from '@macro/email-realtime';
 import type { ApiThread } from '@service-email/generated/schemas';
 import {
   EmailThreadIdentityFieldsFragmentDoc,
@@ -361,6 +363,22 @@ export function createGraphqlEmailThreadQuery<TData = GraphqlEmailThreadPages>(
         !graphqlCacheEnabled() &&
         identity()?.kind !== 'local',
       target: () => ({ kind: 'email-archive', threadId: resolvedThreadId() }),
+      refresh: async () => {
+        await query.refetch({
+          requestPolicy: 'network-only',
+          throwOnError: true,
+        });
+      },
+    })
+  );
+  // PRIVATE-HOOK: email_realtime:mounted-query
+  onCleanup(
+    registerEmailRealtimeReader({
+      threadId: resolvedThreadId,
+      isEnabled: () =>
+        query.isEnabled &&
+        !graphqlCacheEnabled() &&
+        identity()?.kind === 'remote',
       refresh: async () => {
         await query.refetch({
           requestPolicy: 'network-only',

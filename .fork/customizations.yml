@@ -193,17 +193,18 @@ customizations:
   - conventions
   - email-rust
 - id: EMAIL-REALTIME-001
-  title: Browser new-email realtime compatibility adapter
-  rationale: Preserve the fork's legacy browser_new_email_notification producer while
-    routing it through the upstream new_email cache refresh path.
+  title: MAIL_REALTIME_SYNC_PROTECTION
+  rationale: Keep official GraphQL email events connected to fetch-only browser
+    detail readers, lists and unread probes; catch up after reconnect. Retire the
+    adapter when upstream refreshes these readers without a persistent cache.
   risk: high
   contracts:
     upstream_dependencies:
-    - connection gateway websocket event envelope
-    - notification-source websocket dispatch
-    - notification update subscriber
-    - Soup emailThread refetch and invalidation
-    - email thread message query invalidation
+    - Gmail history import, committed mailbox projection and Soup publication
+    - GraphQL SoupUpdates subscription with and without a normalized cache host
+    - canonical paginated thread query and mounted reader lifecycle
+    - active Soup lists and unread presence queries
+    - websocket reconnect and account generation fencing
     failure_mode: New inbox messages or messages in an open thread remain stale until
       a full page refresh.
     verification_gate: Fork Contract Gate
@@ -215,10 +216,29 @@ customizations:
   - apps/web/src/lib/queries/soup/normalized-cache/operations.ts
   - apps/web/src/lib/queries/email/keys.ts
   - apps/web/src/lib/queries/email/thread.ts
-  - services/email_service/src/pubsub/inbox_sync/operations/upsert_message.rs
+  - apps/web/src/lib/queries/email/graphql/**
+  - apps/web/src/lib/queries/soup/graphql/**
+  - apps/web/src/lib/queries/soup/items.ts
+  - apps/web/src/lib/service-clients/service-storage/graphql-soup*.ts
+  - apps/web/src/lib/graphql-cache/**
+  - apps/web/src/components/app/use-navigation-unread.ts
+  - apps/web/src/features/email-view/queries/**
+  - crates/email/src/domain/mailbox/**
+  - crates/email/src/outbound/**
+  - services/email_service/src/outbound/inbox_lifecycle/**
+  - services/email_service/src/outbound/mailbox_projection.rs
+  - crates/soup_realtime/**
+  - self-host/Caddyfile
+  - self-host/docker-compose.yml
+  - tooling/just/check.just
+  - .github/workflows/upstream-sync-test-group.yml
   - ".fork/private-hooks.yml"
   owned_paths:
   - apps/web/src/features/notifications/tests/notification-source.test.ts
+  - apps/web/src/lib/queries/email/graphql/thread.ts
+  - apps/web/src/lib/queries/email/graphql/thread.test.ts
+  - apps/web/src/lib/service-clients/service-storage/graphql-soup-websocket.ts
+  - apps/web/src/lib/service-clients/service-storage/graphql-soup-websocket.test.ts
   tests:
   - conventions
   - email-rust
@@ -409,6 +429,8 @@ customizations:
   - services/email_service/src/api/email/attachments/**
   - services/email_service/src/util/upload_attachment.rs
   - crates/email_db_client/src/attachments/**
+  - crates/documents/src/outbound/pg_document_repo.rs
+  - crates/documents/src/outbound/pg_document_repo/**
   - apps/web/src/features/email-compose/**
   - apps/web/src/features/email-message/**
   - apps/web/src/lib/queries/email/integration.ts

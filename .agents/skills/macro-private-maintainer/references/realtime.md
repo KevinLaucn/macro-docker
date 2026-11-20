@@ -2,7 +2,7 @@
 
 ## 1. 架构组件与拓扑
 
-- **网关核心**：`connection_gateway`、`websocket_service`，负责前端客户端与后端事件驱动核心之间的双向长连接。
+- **邮件实时链路**：`document_storage_service` 的 `/items/soup/graphql/ws` 提供官方 GraphQL Soup/notification 订阅；`connection_gateway`、`websocket_service` 继续承载各自的其他实时能力。邮件保护与回归流程见 [mail-realtime-contract.md](mail-realtime-contract.md)。
 - **本地化约束**：VPS self-host 环境下前端与服务端必须直连本地 WebSocket 端口，严禁尝试向 `wss://*.macro.com` 发送任何握手或订阅请求。
 
 ## 2. 优雅重试与异常静默

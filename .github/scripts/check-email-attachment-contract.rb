@@ -26,11 +26,18 @@ check.call("cache-first read and owning-inbox provider fallback",
   provider.include?("async fn store_download("))
 
 document = read.call("services/email_service/src/api/email/attachments/get_document_id.rs")
+document_repo = read.call("crates/documents/src/outbound/pg_document_repo.rs")
+document_create = read.call("crates/documents/src/outbound/pg_document_repo/create.rs")
 handler, probe = document.split("async fn verify_and_get_cached_document_id(", 2)
 missing = probe.to_s[/Ok\(false\) => \{(.*?)\n        \}/m, 1].to_s
 check.call("private missing-document recovery reaches the existing upload",
-  handler.scan("verify_and_get_cached_document_id(&ctx, attachment_id).await?").length == 2 &&
-  handler.include?("acquire_lock(") && handler.include?(".attachment_reads") &&
+  handler.scan("verify_and_get_cached_document_id(&ctx, attachment_id).await?").length == 1 &&
+  handler.include?(".attachment_reads.authorize(actor, attachment_id).await?") &&
+  document_repo.include?("async fn import_email_attachment_document(") &&
+  document_repo.include?("create::reuse_email_document(") &&
+  document_repo.include?(".reused_linked_email_attachment(email_attachment_id)") &&
+  document_create.include?("pg_advisory_xact_lock(hashtext($1), hashtext($2))") &&
+  document_create.include?("find_document_id_for_email_attachment(&mut **transaction, email_attachment_id)") &&
   handler.include?(".document(") &&
   provider.include?("crate::util::upload_attachment::store_attachment(") &&
   probe.to_s.include?(".exists(&bucket, &s3_key)") &&

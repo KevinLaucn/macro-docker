@@ -1,3 +1,4 @@
+import { registerEmailRealtimeReader } from '@macro/email-realtime';
 import { err, ok } from 'neverthrow';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -186,6 +187,54 @@ describe('GraphQL Soup websocket retry policy', () => {
 });
 
 describe('GraphQL Soup subscription lifecycle', () => {
+  it('refreshes matching mail details, lists and unread readers on email patches and reconnect', async () => {
+    const receive = new Map<unknown, (result: { data?: unknown }) => void>();
+    const client = {
+      query: vi.fn(),
+      subscription: vi.fn((document) => ({
+        subscribe: (next: (result: { data?: unknown }) => void) => {
+          receive.set(document, next);
+          return { unsubscribe: vi.fn() };
+        },
+      })),
+    };
+    const detail = vi.fn(async () => {});
+    const list = vi.fn(async () => {});
+    const stopDetail = registerEmailRealtimeReader({
+      threadId: () => 'thread-1',
+      isEnabled: () => true,
+      refresh: detail,
+    });
+    const stopList = registerActiveGraphqlSoupQuery({
+      isEnabled: () => true,
+      refresh: list,
+    });
+    const lifecycle = createGraphqlSoupSubscriptionsLifecycle();
+    try {
+      lifecycle.replace(client as never);
+      lifecycle.connected();
+      expect(detail).not.toHaveBeenCalled();
+      receive.get(SoupUpdatesDocument)?.({
+        data: {
+          soupUpdates: [
+            {
+              __typename: 'SoupUpdated',
+              item: { __typename: 'GraphqlSoupEmailThread', id: 'thread-1' },
+            },
+          ],
+        },
+      });
+      await vi.waitFor(() => expect(detail).toHaveBeenCalledTimes(1));
+      expect(list).toHaveBeenCalledTimes(1);
+      lifecycle.connected();
+      await vi.waitFor(() => expect(detail).toHaveBeenCalledTimes(2));
+      expect(list).toHaveBeenCalledTimes(2);
+    } finally {
+      lifecycle.dispose();
+      stopDetail();
+      stopList();
+    }
+  });
   it('marks listener failures on the receipt span and continues delivery', () => {
     const failure = new Error('notification listener failed');
     const stopFailed = subscribeToGraphqlNotificationPatches(() => {
@@ -241,9 +290,7 @@ describe('GraphQL Soup subscription lifecycle', () => {
       );
       expect(documents).toContain(NotificationUpdatesDocument);
       expect(documents).toContain(ActivityUpdatesDocument);
-      expect(documents.includes(SoupUpdatesDocument)).toBe(
-        host?.disabled === false
-      );
+      expect(documents).toContain(SoupUpdatesDocument);
       const patch = {
         __typename: 'GraphqlNewNotification',
         notification: { id: 'one' },
@@ -350,7 +397,7 @@ describe('GraphQL Soup subscription lifecycle', () => {
     lifecycle.replace(client as never);
     dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
     dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
-    expect(client.subscription).toHaveBeenCalledTimes(2);
+    expect(client.subscription).toHaveBeenCalledTimes(3);
     expect(unsubscribe).not.toHaveBeenCalled();
     lifecycle.dispose();
   });
@@ -404,22 +451,22 @@ describe('GraphQL Soup subscription lifecycle', () => {
     };
     const lifecycle = createGraphqlSoupSubscriptionsLifecycle();
     lifecycle.replace(client as never);
-    expect(client.subscription).toHaveBeenCalledTimes(2);
+    expect(client.subscription).toHaveBeenCalledTimes(3);
 
     // Results that keep the stream open never reattach it.
     receive[0]?.({ hasNext: true });
     setVisibility('visible');
-    expect(client.subscription).toHaveBeenCalledTimes(2);
+    expect(client.subscription).toHaveBeenCalledTimes(3);
 
     // A terminal result waits for an opportunity rather than a timer.
     const failed = receive[0];
     failed?.({ error: new Error('session rejected'), hasNext: false });
     receive[1]?.({ error: new Error('session rejected'), hasNext: false });
-    expect(client.subscription).toHaveBeenCalledTimes(2);
+    expect(client.subscription).toHaveBeenCalledTimes(3);
 
     setVisibility('visible');
-    expect(client.subscription).toHaveBeenCalledTimes(4);
-    for (const unsubscribe of unsubscribes.slice(0, 2))
+    expect(client.subscription).toHaveBeenCalledTimes(6);
+    for (const unsubscribe of unsubscribes.slice(0, 3))
       expect(unsubscribe).toHaveBeenCalledOnce();
 
     // Late results from the replaced set and repeated signals do not
@@ -427,13 +474,13 @@ describe('GraphQL Soup subscription lifecycle', () => {
     failed?.({ error: new Error('stale'), hasNext: false });
     setVisibility('visible');
     dispatchEvent(new Event('online'));
-    expect(client.subscription).toHaveBeenCalledTimes(4);
+    expect(client.subscription).toHaveBeenCalledTimes(6);
     expect(telemetryError).toHaveBeenCalledOnce();
 
-    receive[2]?.({ error: new Error('again'), hasNext: false });
+    receive[3]?.({ error: new Error('again'), hasNext: false });
     lifecycle.dispose();
     dispatchEvent(new Event('online'));
-    expect(client.subscription).toHaveBeenCalledTimes(4);
+    expect(client.subscription).toHaveBeenCalledTimes(6);
   });
 
   it('signals a new outage after a successful reconnection', () => {

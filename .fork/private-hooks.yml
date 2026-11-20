@@ -4,6 +4,41 @@ version: 1
 # Keep hooks small: marker + the expected one-line import/call/router/component
 # entry that connects upstream code to private feature modules.
 hooks:
+  - id: email_realtime_reader_import
+    customization: EMAIL-REALTIME-001
+    file: apps/web/src/lib/queries/email/graphql/thread.ts
+    marker: "// PRIVATE-HOOK: email_realtime:reader-import"
+    expected: "import { registerEmailRealtimeReader } from '@macro/email-realtime';"
+  - id: email_realtime_reader
+    customization: EMAIL-REALTIME-001
+    file: apps/web/src/lib/queries/email/graphql/thread.ts
+    marker: "// PRIVATE-HOOK: email_realtime:mounted-query"
+    expected: "onCleanup("
+  - id: email_realtime_events_import
+    customization: EMAIL-REALTIME-001
+    file: apps/web/src/lib/service-clients/service-storage/graphql-soup-websocket.ts
+    marker: "// PRIVATE-HOOK: email_realtime:events-import"
+    expected: "import { refreshEmailRealtimeReaders } from '@macro/email-realtime';"
+  - id: email_realtime_lists_import
+    customization: EMAIL-REALTIME-001
+    file: apps/web/src/lib/service-clients/service-storage/graphql-soup-websocket.ts
+    marker: "// PRIVATE-HOOK: email_realtime:lists-import"
+    expected: "import { refreshActiveGraphqlSoupQueries } from '../../queries/soup/graphql/active-queries';"
+  - id: email_realtime_subscriptions
+    customization: EMAIL-REALTIME-001
+    file: apps/web/src/lib/service-clients/service-storage/graphql-soup-websocket.ts
+    marker: "// PRIVATE-HOOK: email_realtime:subscriptions"
+    expected: "const subscriptions = LIVE_UPDATE_SUBSCRIPTIONS;"
+  - id: email_realtime_patch
+    customization: EMAIL-REALTIME-001
+    file: apps/web/src/lib/service-clients/service-storage/graphql-soup-websocket.ts
+    marker: "// PRIVATE-HOOK: email_realtime:patch"
+    expected: "const emailIds ="
+  - id: email_realtime_reconnect
+    customization: EMAIL-REALTIME-001
+    file: apps/web/src/lib/service-clients/service-storage/graphql-soup-websocket.ts
+    marker: "// PRIVATE-HOOK: email_realtime:reconnect"
+    expected: "if ("
   - id: browser_runtime_optional_model_providers
     customization: BROWSER-RUNTIME-COMPAT-001
     file: crates/agent/src/model/router.rs
