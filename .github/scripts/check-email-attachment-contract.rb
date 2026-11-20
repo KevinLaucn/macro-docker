@@ -28,6 +28,9 @@ check.call("cache-first read and owning-inbox provider fallback",
 document = read.call("services/email_service/src/api/email/attachments/get_document_id.rs")
 document_repo = read.call("crates/documents/src/outbound/pg_document_repo.rs")
 document_create = read.call("crates/documents/src/outbound/pg_document_repo/create.rs")
+import_flow = document_repo.split("async fn import_email_attachment_document(", 2).last.to_s
+reuse_position = import_flow.index("create::reuse_email_document(")
+insert_position = import_flow.index("create::insert_new_document(")
 handler, probe = document.split("async fn verify_and_get_cached_document_id(", 2)
 missing = probe.to_s[/Ok\(false\) => \{(.*?)\n        \}/m, 1].to_s
 check.call("private missing-document recovery reaches the existing upload",
@@ -36,6 +39,9 @@ check.call("private missing-document recovery reaches the existing upload",
   document_repo.include?("async fn import_email_attachment_document(") &&
   document_repo.include?("create::reuse_email_document(") &&
   document_repo.include?(".reused_linked_email_attachment(email_attachment_id)") &&
+  import_flow.include?("db_err.is_unique_violation()") &&
+  import_flow.include?("transaction.rollback().await?") &&
+  reuse_position && insert_position && reuse_position < insert_position &&
   document_create.include?("pg_advisory_xact_lock(hashtext($1), hashtext($2))") &&
   document_create.include?("find_document_id_for_email_attachment(&mut **transaction, email_attachment_id)") &&
   handler.include?(".document(") &&

@@ -498,6 +498,18 @@ diffs:
   - SELFHOST-RUNTIME-001
   hooks: []
   override: false
+- file: apps/web/src/lib/queries/email/graphql/thread.test.ts
+  owners:
+  - EMAIL-REALTIME-001
+  hooks: []
+  override: false
+- file: apps/web/src/lib/queries/email/graphql/thread.ts
+  owners:
+  - EMAIL-REALTIME-001
+  hooks:
+  - email_realtime_reader
+  - email_realtime_reader_import
+  override: false
 - file: apps/web/src/lib/queries/email/thread.ts
   owners:
   - READ-RECEIPTS-001
@@ -529,6 +541,21 @@ diffs:
   owners:
   - EMAIL-SELFHOST-001
   hooks: []
+  override: false
+- file: apps/web/src/lib/service-clients/service-storage/graphql-soup-websocket.test.ts
+  owners:
+  - EMAIL-REALTIME-001
+  hooks: []
+  override: false
+- file: apps/web/src/lib/service-clients/service-storage/graphql-soup-websocket.ts
+  owners:
+  - EMAIL-REALTIME-001
+  hooks:
+  - email_realtime_events_import
+  - email_realtime_lists_import
+  - email_realtime_patch
+  - email_realtime_reconnect
+  - email_realtime_subscriptions
   override: false
 - file: apps/web/src/routes/Root.tsx
   owners:
